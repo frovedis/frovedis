@@ -4,52 +4,19 @@
 Logistic Regression \- A classification algorithm to predict the binary
 and multi\-class output with logistic loss.
 .SH SYNOPSIS
-.PP
-class
-frovedis.mllib.linear_model.LogisticRegression(penalty=\[aq]l2\[aq],
-dual=False, tol=1e\-4,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ C=100.0,
-fit_intercept=True,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ intercept_scaling=1,
-class_weight=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None,
-solver=\[aq]lbfgs\[aq],
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=1000,
-multi_class=\[aq]auto\[aq],
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0,
-warm_start=False,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_jobs=1,
-l1_ratio=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lr_rate=0.01,
-use_shrink=False)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.linear_model.LogisticRegression(penalty=\[aq]l2\[aq],\ dual=False,\ tol=1e\-4,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ C=100.0,\ fit_intercept=True,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ intercept_scaling=1,\ class_weight=None,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None,\ solver=\[aq]lbfgs\[aq],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=1000,\ multi_class=\[aq]auto\[aq],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0,\ warm_start=False,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_jobs=1,\ l1_ratio=None,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lr_rate=0.01,\ use_shrink=False)\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y, sample_weight = None)
@@ -114,11 +81,11 @@ L(w;x,y)\ :=\ log(1\ +\ exp(\-ywTx))\ \ \ \
 \f[]
 .fi
 .PP
-Where the vectors \f[B]x\f[] are the training data examples and
-\f[B]y\f[] are their corresponding labels (Frovedis supports any values
-as for labels, but internally it encodes the input binary labels to \-1
-and 1, and input multinomial labels to 0, 1, 2, ..., N\-1 (where N is
-the no.
+During training, the input \f[B]X\f[] is the training data and
+\f[B]y\f[] is the corresponding label values (Frovedis supports any
+values as for labels, but internally it encodes the input binary labels
+to \-1 and 1, and input multinomial labels to 0, 1, 2, ..., N\-1 (where
+N is the no.
 of classes) before training at Frovedis server) which we want to
 predict.
 \f[B]w\f[] is the linear model (also called as weight) which uses a
@@ -126,21 +93,18 @@ single weighted sum of features to make a prediction.
 \f[B]Frovedis Logistic Regression supports ZERO, L1 and L2
 regularization to address the overfit problem. However, LBFGS solver
 supports only L2 regularization.\f[]
+.PP
+The gradient of the logistic loss is: \f[B]\-y( 1 \- 1 / (1 +
+exp(\-ywTx))).x\f[]
 .PD 0
 .P
 .PD
-The gradient of the logistic loss is: \-y( 1 \- 1 / (1 + exp(\-ywTx))).x
+The gradient of the L1 regularizer is: \f[B]sign(w)\f[]
 .PD 0
 .P
 .PD
-The gradient of the L1 regularizer is: sign(w)
-.PD 0
-.P
-.PD
-And, the gradient of the L2 regularizer is: w
-.PD 0
-.P
-.PD
+And, the gradient of the L2 regularizer is: \f[B]w\f[]
+.PP
 For binary classification problems, the algorithm outputs a binary
 logistic regression model.
 Given a new data point, denoted by x, the model makes predictions by
@@ -236,7 +200,7 @@ Currenlty none, l1 and l2 are supported by Frovedis.
 .PD 0
 .P
 .PD
-\f[B]\f[I]tol\f[]\f[]: A double(float64) type value specifying the
+\f[B]\f[I]tol\f[]\f[]: A double (float64) type value specifying the
 convergence tolerance value.
 It must be zero or a postive value.
 (Default: 1e\-4)
@@ -257,19 +221,18 @@ a constant (intercept) should be added to the decision function.
 .PD 0
 .P
 .PD
-\f[B]\f[I]intercept_scaling\f[]\f[]: An integer parameter.
-(unused)
+\f[B]\f[I]intercept_scaling\f[]\f[]: An unused parameter.
+(Default: 1)
 .PD 0
 .P
 .PD
-\f[B]\f[I]class_weight\f[]\f[]: A python dictionary or a string object.
-(unused)
+\f[B]\f[I]class_weight\f[]\f[]: An unused parameter.
+(Default: None)
 .PD 0
 .P
 .PD
-\f[B]\f[I]random_state\f[]\f[]: An integer, None or RandomState
-instance.
-(unused)
+\f[B]\f[I]random_state\f[]\f[]: An unused parameter.
+(Default: None)
 .PD 0
 .P
 .PD
@@ -300,17 +263,15 @@ iteration count.
 .PD
 \f[B]\f[I]multi_class\f[]\f[]: A string object specifying the type of
 classification.
-If it is "auto" or "ovr", then a binary classification is selected when
-N = 2, otherwise multinomial classification is selected (where N is the
-no.
+\- If it is "auto" or "ovr", then a binary classification is selected
+when N = 2, otherwise multinomial classification is selected (where N is
+the no.
 of classes in training labels).
-If it is "multinomial", then it always selects a multinomial problem
+\- If it is "multinomial", then it always selects a multinomial problem
 (even when N = 2).
 Only "sag" solvers support multinomial classification currently.
 (Default: \[aq]auto\[aq])
-.PD 0
-.P
-.PD
+.PP
 \f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
 Its value is 0 by default (for INFO mode and not explicitly specified).
@@ -326,19 +287,18 @@ otherwise, just erase the previous solution.
 .PD 0
 .P
 .PD
-\f[B]\f[I]n_jobs\f[]\f[]: An integer parameter.
-(unused)
+\f[B]\f[I]n_jobs\f[]\f[]: An unused parameter.
+(Default: 1)
 .PD 0
 .P
 .PD
-\f[B]\f[I]l1_ratio\f[]\f[]: A float parameter, also called the
-Elastic\-Net mixing parameter.
-(unused)
+\f[B]\f[I]l1_ratio\f[]\f[]: An unused parameter.
+(Default: None)
 .PD 0
 .P
 .PD
-\f[B]\f[I]lr_rate(alpha)\f[]\f[]: A double(float64) parameter containing
-the learning rate.
+\f[B]\f[I]lr_rate(alpha)\f[]\f[]: A double (float64) parameter
+containing the learning rate.
 (Default: 0.01)
 .PD 0
 .P
@@ -353,23 +313,23 @@ by reducing communication overhead across participating processes.
 .PD 0
 .P
 .PD
-\f[B]\f[I]coef_\f[]\f[]: It is a python ndarray(float or double(float64)
-values depending on input matrix data type) of coefficient of the
-features in the decision function.
+\f[B]\f[I]coef_\f[]\f[]: It is a python ndarray (float or double
+(float64) values depending on input matrix data type) of coefficient of
+the features in the decision function.
 It has shape \f[B](1, n_features)\f[] when the given problem is "binary"
 and \f[B](n_classes, n_features)\f[] when it is a "multinomial" problem.
 .PD 0
 .P
 .PD
 \f[B]\f[I]intercept_(bias)\f[]\f[]: It is a python ndarray(float or
-double(float64) values depending on input matrix data type) If
+double (float64) values depending on input matrix data type) If
 fit_intercept is set to False, the intercept is set to zero.
 It has shape \f[B](1,)\f[] when the given problem is "binary" and
 (n_classes) when its "multinomial" problem.
 .PD 0
 .P
 .PD
-\f[B]\f[I]classes_\f[]\f[]: It is a python ndarray(any type) of unique
+\f[B]\f[I]classes_\f[]\f[]: It is a python ndarray (any type) of unique
 labels given to the classifier during training.
 It has shape \f[B](n_classes,)\f[].
 .PD 0
@@ -409,14 +369,17 @@ and FrovedisColmajorMatrix for dense data.
 .P
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+FrovedisDvector containing target labels.
 It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
 \f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
-\f[B](n_samples, )\f[].
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -537,7 +500,7 @@ Output
 .PD 0
 .P
 .PD
-It returns a numpy array of float or double(float64) type and of shape
+It returns a numpy array of float or double (float64) type and of shape
 \f[B](n_samples,)\f[] containing the predicted outputs.
 .SS 4. predict_proba(X)
 .PP
@@ -615,7 +578,7 @@ Output
 .PD 0
 .P
 .PD
-It returns an ndarray of float or double(float64) type and of shape
+It returns an ndarray of float or double (float64) type and of shape
 \f[B](n_samples, n_classes)\f[] containing the prediction probability
 values.
 .SS 5. score(X, y, sample_weight = None)
@@ -630,15 +593,18 @@ and FrovedisRowmajorMatrix for dense data.
 .PD 0
 .P
 .PD
-\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object containing true
+labels for X.
 It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
 \f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
-\f[B](n_samples, )\f[].
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -698,7 +664,7 @@ For example,
 .IP
 .nf
 \f[C]
-\ \ print(lr.get_params())
+print(lr.get_params())
 \f[]
 .fi
 .PP
@@ -787,7 +753,8 @@ having model information to be loaded.
 .P
 .PD
 \f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -823,8 +790,8 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (weight values, etc.) in the
-specified file as little\-endian binary data.
+On success, it writes the model information (label_map, metadata and
+model) in the specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -960,8 +927,8 @@ the user to train the logistic regression model first.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
-linear_regression, dvector, crs_matrix, colmajor_matrix
+linear_regression, dvector, crs_matrix, colmajor_matrix, rowmajor_matrix

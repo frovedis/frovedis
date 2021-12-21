@@ -73,8 +73,7 @@ in the forest. (Default: 100)
 quality of a split. (Default: 'mse')  
 Currently, supported criteria are 'mse' and 'mae'. The mean squared error (mse), which 
 is equal to variance reduction as feature selection criterion. The mean absolute 
-error (mae) uses reduction in Poisson deviance to find splits. Training using 'mae' is 
-significantly slower than when using 'mse'.  
+error (mae) uses reduction in Poisson deviance to find splits.  
 **_max\_depth_**: A positive integer parameter that specifies the maximum depth of the 
 tree. (Default: None)  
 If it is None (not specified explicitly), then 'max_depth' is set to 4.  
@@ -84,17 +83,19 @@ of samples required to split an internal node. (Default: 2)
 number of samples required to be at a leaf node. A split point at any depth will only be 
 considered if it leaves at least 'min_samples_leaf' training samples in each of the left 
 and right branches. (Default: 1)  
-If it is an integer, then 'min_samples_leaf' should be greater than 0.  
-If it is float, then it is set as **int(np.ceil(self.min_samples_split * self.n_samples_))**  
+- If it is an integer, then 'min_samples_leaf' should be greater than 0.  
+- If it is float, then it is set as **int(np.ceil(self.min_samples_split * self.n_samples_))**  
+
 **_min\_weight\_fraction\_leaf_**: An unused parameter. (Default: 0.0)  
 **_max\_features_**: A string object parameter that specifies the number of features to 
 consider when looking for the best split:  
-If it is an integer, then it will be set as **(max_features * 1.0) / n_features**.  
-If it is float, then it will be **'max_features'** number of features at each split.  
-If it is 'auto', then it will be set as **sqrt(n_features)**.  
-If 'sqrt', then it will be set as **sqrt(n_features)** (same as 'auto').  
-If 'log2', then it will be set as **log2(n_features)**.  
-If None, then it will be set as **n_features**. (Default: 'auto')  
+- If it is an integer, then it will be set as **(max_features * 1.0) / n_features_**.  
+- If it is float, then it will be **'max_features'** number of features at each split.  
+- If it is 'auto', then it will be set as **sqrt(n_features_)**.  
+- If 'sqrt', then it will be set as **sqrt(n_features_)** (same as 'auto').  
+- If 'log2', then it will be set as **log2(n_features_)**.  
+- If None, then it will be set as **n_features_**. (Default: 'auto')  
+
 **_max\_leaf\_nodes_**: An unused parameter. (Default: None)  
 **_min\_impurity\_decrease_**: A positive double (float64) parameter. A node will be split 
 if this split induces a decrease of the impurity greater than or equal to this value. (Default: 0.0)  
@@ -192,7 +193,8 @@ for dense data. It has shape **(n_samples, n_features)**. Currently, it supports
 __Purpose__  
 Predict regression value for X.  
 
-The predicted regression target of an input sample is computed as the mean predicted regression targets of the trees in the forest.  
+The predicted regression target of an input sample is computed as the mean predicted 
+regression targets of the trees in the forest.  
 
 For example,   
 
@@ -296,7 +298,7 @@ It loads the model from the specified file (having little-endian binary data).
 
 For example,  
 
-    rfc.load("./out/rf_regressor_model")  
+    rfr.load("./out/rf_regressor_model")  
 
 __Return Value__  
 It simply returns "self" reference.  
@@ -307,19 +309,18 @@ __Parameters__
 is to be saved.  
 
 __Purpose__  
-On success, it writes the model information (after-fit populated attributes) in the 
+On success, it writes the model information (metadata and model) in the 
 specified file as little-endian binary data. Otherwise, it throws an exception.  
 
 For example,   
 
     # To save the random forest regressor model
-    dtc.save("./out/rf_regressor_model")  
+    rfr.save("./out/rf_regressor_model")  
 
 This will save the random forest regressor model on the path "/out/rf_regressor_model". It would 
 raise exception if the directory already exists with same name.  
 
 The 'rf_regressor_model' directory has  
-
 **rf_regressor_model**   
 |-----metadata  
 |-----model  
@@ -337,8 +338,9 @@ for dense data. It has shape **(n_samples, n_features)**. Currently, it supports
 **_y_**: Any python array-like object containing the true values for X. It has 
 shape **(n_samples,)**.  
 **_sample\_weight_**: A python ndarray containing the intended weights for each input 
-samples and it should be the shape of **(n_samples, )**. When it is None (not specified 
-explicitly), an uniform weight vector is assigned on each input sample. (Default: None)  
+samples and it should be the shape of **(n_samples,)**.  
+When it is None (not specified explicitly), an uniform weight vector is assigned on 
+each input sample. (Default: None)  
 
 __Purpose__  
 Calculate the root mean square value on the given test data and labels i.e. 
@@ -465,7 +467,7 @@ __Purpose__
 It can be used to confirm if the model is already fitted or not.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.  
+It returns 'True', if the model is already fitted, otherwise, it returns 'False'.  
 
 # SEE ALSO
 dvector, rowmajor_matrix, colmajor_matrix, random_forest_classifer, decision_tree_regressor

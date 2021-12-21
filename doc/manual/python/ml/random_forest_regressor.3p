@@ -126,8 +126,6 @@ The mean squared error (mse), which is equal to variance reduction as
 feature selection criterion.
 The mean absolute error (mae) uses reduction in Poisson deviance to find
 splits.
-Training using \[aq]mae\[aq] is significantly slower than when using
-\[aq]mse\[aq].
 .PD 0
 .P
 .PD
@@ -159,16 +157,14 @@ right branches.
 .PD 0
 .P
 .PD
-If it is an integer, then \[aq]min_samples_leaf\[aq] should be greater
-than 0.
+\- If it is an integer, then \[aq]min_samples_leaf\[aq] should be
+greater than 0.
 .PD 0
 .P
 .PD
-If it is float, then it is set as
+\- If it is float, then it is set as
 \f[B]int(np.ceil(self.min_samples_split * self.n_samples_))\f[]
-.PD 0
-.P
-.PD
+.PP
 \f[B]\f[I]min_weight_fraction_leaf\f[]\f[]: An unused parameter.
 (Default: 0.0)
 .PD 0
@@ -179,35 +175,33 @@ the number of features to consider when looking for the best split:
 .PD 0
 .P
 .PD
-If it is an integer, then it will be set as \f[B](max_features * 1.0) /
-n_features\f[].
+\- If it is an integer, then it will be set as \f[B](max_features * 1.0)
+/ n_features_\f[].
 .PD 0
 .P
 .PD
-If it is float, then it will be \f[B]\[aq]max_features\[aq]\f[] number
-of features at each split.
+\- If it is float, then it will be \f[B]\[aq]max_features\[aq]\f[]
+number of features at each split.
 .PD 0
 .P
 .PD
-If it is \[aq]auto\[aq], then it will be set as
-\f[B]sqrt(n_features)\f[].
+\- If it is \[aq]auto\[aq], then it will be set as
+\f[B]sqrt(n_features_)\f[].
 .PD 0
 .P
 .PD
-If \[aq]sqrt\[aq], then it will be set as \f[B]sqrt(n_features)\f[]
+\- If \[aq]sqrt\[aq], then it will be set as \f[B]sqrt(n_features_)\f[]
 (same as \[aq]auto\[aq]).
 .PD 0
 .P
 .PD
-If \[aq]log2\[aq], then it will be set as \f[B]log2(n_features)\f[].
+\- If \[aq]log2\[aq], then it will be set as \f[B]log2(n_features_)\f[].
 .PD 0
 .P
 .PD
-If None, then it will be set as \f[B]n_features\f[].
+\- If None, then it will be set as \f[B]n_features_\f[].
 (Default: \[aq]auto\[aq])
-.PD 0
-.P
-.PD
+.PP
 \f[B]\f[I]max_leaf_nodes\f[]\f[]: An unused parameter.
 (Default: None)
 .PD 0
@@ -580,7 +574,7 @@ For example,
 .IP
 .nf
 \f[C]
-rfc.load("./out/rf_regressor_model")\ \ 
+rfr.load("./out/rf_regressor_model")\ \ 
 \f[]
 .fi
 .PP
@@ -602,8 +596,8 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (after\-fit populated
-attributes) in the specified file as little\-endian binary data.
+On success, it writes the model information (metadata and model) in the
+specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -611,7 +605,7 @@ For example,
 .nf
 \f[C]
 #\ To\ save\ the\ random\ forest\ regressor\ model
-dtc.save("./out/rf_regressor_model")\ \ 
+rfr.save("./out/rf_regressor_model")\ \ 
 \f[]
 .fi
 .PP
@@ -620,7 +614,9 @@ This will save the random forest regressor model on the path
 It would raise exception if the directory already exists with same name.
 .PP
 The \[aq]rf_regressor_model\[aq] directory has
-.PP
+.PD 0
+.P
+.PD
 \f[B]rf_regressor_model\f[]
 .PD 0
 .P
@@ -665,7 +661,10 @@ It has shape \f[B](n_samples,)\f[].
 .PD
 \f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
-\f[B](n_samples, )\f[].
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -848,8 +847,8 @@ It can be used to confirm if the model is already fitted or not.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted, otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted, otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
 dvector, rowmajor_matrix, colmajor_matrix, random_forest_classifer,

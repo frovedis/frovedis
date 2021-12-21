@@ -6,44 +6,19 @@ Spectral Clustering \- A clustering algorithm commonly used in EDA
 It uses the spectrum (eigenvalues) of the similarity matrix of the data
 to perform clustering.
 .SH SYNOPSIS
-.PP
-class frovedis.mllib.cluster.SpectralClustering(n_clusters=8,
-eigen_solver=None, n_components=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None,
-n_init=10, gamma=1.0,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ affinity=\[aq]rbf\[aq],
-n_neighbors=10, eigen_tol=0.0,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ assign_labels=\[aq]kmeans\[aq],
-degree=3, coef0=1,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ kernel_params=None,
-n_jobs=None, verbose=0,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=300, eps=1e\-4,
-norm_laplacian=True,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mode=3, drop_first=True)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.cluster.SpectralClustering(n_clusters=8,\ eigen_solver=None,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_components=None,\ random_state=None,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_init=10,\ gamma=1.0,\ affinity=\[aq]rbf\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_neighbors=10,\ eigen_tol=0.0,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ assign_labels=\[aq]kmeans\[aq],\ degree=3,\ coef0=1,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ kernel_params=None,\ n_jobs=None,\ verbose=0,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=300,\ eps=1e\-4,\ norm_laplacian=True,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mode=3,\ drop_first=True)\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y = None)
@@ -200,18 +175,19 @@ Only \[aq]rbf\[aq], \[aq]nearest_neighbors\[aq] and
 .PD 0
 .P
 .PD
-\- \[aq]nearest_neighbors\[aq]: construct the affinity matrix by
-computing a graph of nearest neighbors.
+\- \f[B]\[aq]nearest_neighbors\[aq]\f[]: construct the affinity matrix
+by computing a graph of nearest neighbors.
 .PD 0
 .P
 .PD
-\- \[aq]rbf\[aq]: construct the affinity matrix using a radial basis
-function (RBF) kernel.
+\- \f[B]\[aq]rbf\[aq]\f[]: construct the affinity matrix using a radial
+basis function (RBF) kernel.
 .PD 0
 .P
 .PD
-\- \[aq]precomputed\[aq]: interpret X as a precomputed affinity matrix,
-where larger values indicate greater similarity between instances.
+\- \f[B]\[aq]precomputed\[aq]\f[]: interpret X as a precomputed affinity
+matrix, where larger values indicate greater similarity between
+instances.
 .PP
 \f[B]\f[I]n_neighbors\f[]\f[]: A positive integer parameter that
 specifies the number of neighbors to be used when constructing the
@@ -561,8 +537,9 @@ n_samples)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]y\f[]\f[]: A python ndarray or an instance of FrovedisVector.
-It has shape \f[B](n_samples,1)\f[].
+\f[B]\f[I]y\f[]\f[]: A python ndarray or an instance of FrovedisVector
+containing the true labels for X.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
@@ -624,7 +601,7 @@ For example,
 .IP
 .nf
 \f[C]
-\ \ print(spec.get_params())
+print(spec.get_params())
 \f[]
 .fi
 .PP
@@ -713,7 +690,8 @@ having model information to be loaded.
 .P
 .PD
 \f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -749,8 +727,8 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (after\-fit populated
-attributes) in the specified file as little\-endian binary data.
+On success, it writes the model information (metadata and model) in the
+specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -890,8 +868,8 @@ It can be used to confirm if the model is already fitted or not.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
 agglomerative_clustering, dbscan, kmeans, rowmajor_matrix, crs_matrix

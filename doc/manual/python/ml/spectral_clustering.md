@@ -7,19 +7,14 @@ It uses the spectrum (eigenvalues) of the similarity matrix of the data to perfo
 
 # SYNOPSIS
 
-class frovedis.mllib.cluster.SpectralClustering(n_clusters=8, eigen_solver=None, n_components=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None, n_init=10, gamma=1.0,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ affinity='rbf', n_neighbors=10, eigen_tol=0.0,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ assign_labels='kmeans', degree=3, coef0=1,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ kernel_params=None, n_jobs=None, verbose=0,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=300, eps=1e-4, norm_laplacian=True,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mode=3, drop_first=True)  
+    class frovedis.mllib.cluster.SpectralClustering(n_clusters=8, eigen_solver=None, 
+                                                    n_components=None, random_state=None, 
+                                                    n_init=10, gamma=1.0, affinity='rbf', 
+                                                    n_neighbors=10, eigen_tol=0.0,
+                                                    assign_labels='kmeans', degree=3, coef0=1,
+                                                    kernel_params=None, n_jobs=None, verbose=0,
+                                                    max_iter=300, eps=1e-4, norm_laplacian=True,
+                                                    mode=3, drop_first=True)  
 
 ## Public Member Functions
 
@@ -86,9 +81,9 @@ affinity='nearest_neighbors'.
 **_affinity_**: A string object parameter which tells how to construct the affinity matrix. (Default: 'rbf')  
 When it is None (specified explicitly), it will be set as 'rbf'. Only 'rbf', 
 'nearest_neighbors' and 'precomputed' are supported.  
-- 'nearest_neighbors': construct the affinity matrix by computing a graph of nearest neighbors.  
-- 'rbf': construct the affinity matrix using a radial basis function (RBF) kernel.  
-- 'precomputed': interpret X as a precomputed affinity matrix, where larger values indicate greater 
+- **'nearest_neighbors'**: construct the affinity matrix by computing a graph of nearest neighbors.  
+- **'rbf'**: construct the affinity matrix using a radial basis function (RBF) kernel.  
+- **'precomputed'**: interpret X as a precomputed affinity matrix, where larger values indicate greater 
 similarity between instances.  
 
 **_n\_neighbors_**: A positive integer parameter that specifies the number of neighbors to be 
@@ -250,7 +245,8 @@ __Parameters__
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. If 
 affinity="precomputed", it needs to be of shape **(n_samples, n_samples)**.  
-**_y_**: A python ndarray or an instance of FrovedisVector. It has shape **(n_samples,1)**.  
+**_y_**: A python ndarray or an instance of FrovedisVector containing the true labels for 
+X. It has shape **(n_samples,)**.  
 **_sample\_weight_**: An unused parameter whose default value is None. It is simply ignored 
 in frovedis implementation.  
 
@@ -280,7 +276,7 @@ parameters and their values of SpectralClustering class.
 
 For example, 
  
-      print(spec.get_params())
+    print(spec.get_params())
 
 Output  
 
@@ -336,7 +332,7 @@ __Parameters__
 **_fname_**:  A string object containing the name of the file having model information
 to be loaded.  
 **_dtype_**: A data-type is inferred from the input data. Currently, expected input 
-data-type is either float or double(float64). (Default: None)  
+data-type is either float or double (float64). (Default: None)  
 
 __Purpose__  
 It loads a spectral clustering model stored previously from the specified 
@@ -355,8 +351,8 @@ __Parameters__
 model is to be saved.  
 
 __Purpose__  
-On success, it writes the model information (after-fit populated attributes) in the 
-specified file as little-endian binary data. Otherwise, it throws an exception.  
+On success, it writes the model information (metadata and model) in the specified file 
+as little-endian binary data. Otherwise, it throws an exception.  
 
 For example,   
 
@@ -434,7 +430,7 @@ __Purpose__
 It can be used to confirm if the model is already fitted or not.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.  
+It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
 
 # SEE ALSO  
 agglomerative_clustering, dbscan, kmeans, rowmajor_matrix, crs_matrix  

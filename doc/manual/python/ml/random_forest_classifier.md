@@ -75,10 +75,11 @@ __Parameters__
 in the forest. (Default: 100)  
 **_criterion_**: A string object parameter that specifies the function to measure the 
 quality of a split. Supported criteria are 'gini' and 'entropy'. (Default: 'gini')  
-'gini' impurity: calculates the amount of probability of a specific feature that is 
+- **'gini' impurity**: calculates the amount of probability of a specific feature that is 
 classified incorrectly when selected randomly.  
-'entropy' (information gain): it is applied to quantify which feature provides maximal 
+- **'entropy' (information gain)**: it is applied to quantify which feature provides maximal 
 information about the classification based on the notion of entropy.  
+
 **_max\_depth_**: A positive integer parameter that specifies the maximum depth of the 
 tree. (Default: None)  
 If it is None (not specified explicitly), then 'max_depth' is set to 4.  
@@ -88,17 +89,18 @@ of samples required to split an internal node. (Default: 2)
 number of samples required to be at a leaf node. A split point at any depth will only be 
 considered if it leaves at least 'min_samples_leaf' training samples in each of the left 
 and right branches. (Default: 1)  
-If it is an integer, then 'min_samples_leaf' should be greater than 0.  
-If it is float, then it is set as **int(np.ceil(self.min_samples_split * self.n_samples_))**  
+- If it is an integer, then 'min_samples_leaf' should be greater than 0.  
+- If it is float, then it is set as **int(np.ceil(self.min_samples_split * self.n_samples_))**  
+
 **_min\_weight\_fraction\_leaf_**: An unused parameter. (Default: 0.0)  
 **_max\_features_**: A string object parameter that specifies the number of features to 
 consider when looking for the best split:  
-If it is an integer, then it will be set as **(max_features * 1.0) / n_features**.  
-If it is float, then it will be **'max_features'** number of features at each split.  
-If it is 'auto', then it will be set as **sqrt(n_features)**.  
-If 'sqrt', then it will be set as **sqrt(n_features)** (same as 'auto').  
-If 'log2', then it will be set as **log2(n_features)**.  
-If None, then it will be set as **n_features**. (Default: 'auto')  
+- If it is an integer, then it will be set as **(max_features * 1.0) / n_features_**.  
+- If it is float, then it will be **'max_features'** number of features at each split.  
+- If it is 'auto', then it will be set as **sqrt(n_features_)**.  
+- If 'sqrt', then it will be set as **sqrt(n_features_)** (same as 'auto').  
+- If 'log2', then it will be set as **log2(n_features_)**.  
+- If None, then it will be set as **n_features_**. (Default: 'auto')  
 **_max\_leaf\_nodes_**: An unused parameter. (Default: None)  
 **_min\_impurity\_decrease_**: A positive double (float64) parameter. A node will be split 
 if this split induces a decrease of the impurity greater than or equal to this value. (Default: 0.0)  
@@ -120,7 +122,7 @@ getting training time logs from frovedis server.
 created by ordered splits. (Default: 32)  
 
 __Attributes__  
-**_classes\__**: It is a python ndarray(any type) of unique labels given to the classifier 
+**_classes\__**: It is a python ndarray (any type) of unique labels given to the classifier 
 during training. It has shape **(n_classes,)**.  
 **_n\_features\__**: An integer value specifying the number of features when fitting the estimator.  
 
@@ -158,7 +160,7 @@ For example,
     # fitting input matrix and label on RandomForestClassifier object
     from frovedis.mllib.ensemble import RandomForestClassifier
     rfc = RandomForestClassifier(n_estimators = 10, max_depth = 4, min_samples_split = 0.5
-                                 min_samples_leaf = 1.2, random_state=324)  
+                                 min_samples_leaf = 1.2, random_state = 324)  
     rfc.fit(mat,lbl)
 
 When native python data is provided, it is converted to frovedis-like inputs and 
@@ -187,7 +189,7 @@ For example,
     from frovedis.mllib.ensemble import RandomForestClassifier
     rfc = RandomForestClassifier(n_estimators = 10, max_depth = 4,
                                  min_samples_split = 0.5, min_samples_leaf = 1.2, 
-                                 random_state=324)  
+                                 random_state = 324)  
     rfc.fit(cmat,dlbl)
 
 
@@ -319,7 +321,7 @@ __Parameters__
 is to be saved.  
 
 __Purpose__  
-On success, it writes the model information (after-fit populated attributes) in the 
+On success, it writes the model information (label_map, metadata and model) in the 
 specified file as little-endian binary data. Otherwise, it throws an exception.  
 
 For example,   
@@ -352,8 +354,9 @@ for dense data. It has shape **(n_samples, n_features)**. Currently, it supports
 **_y_**: Any python array-like object containing the true labels for X. It has 
 shape **(n_samples,)**.  
 **_sample\_weight_**: A python ndarray containing the intended weights for each input 
-samples and it should be the shape of **(n_samples, )**. When it is None (not specified 
-explicitly), an uniform weight vector is assigned on each input sample. (Default: None)  
+samples and it should be the shape of **(n_samples,)**.  
+When it is None (not specified explicitly), an uniform weight vector is assigned on 
+each input sample. (Default: None)  
 
 __Purpose__  
 Calculate mean accuracy on the given test data and labels i.e. mean accuracy of 
@@ -454,7 +457,7 @@ __Purpose__
 It can be used to confirm if the model is already fitted or not.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.  
+It returns 'True', if the model is already fitted, otherwise, it returns 'False'.  
 
 # SEE ALSO
 dvector, rowmajor_matrix, colmajor_matrix, random_forest_regressor, decision_tree_classifier

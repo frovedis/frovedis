@@ -4,34 +4,17 @@
 Ridge Regression \- A regression algorithm used to predict the
 continuous output with L2 regularization.
 .SH SYNOPSIS
-.PP
-class frovedis.mllib.linear_model.Ridge(alpha=0.01, fit_intercept=True,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ normalize=False, copy_X=True,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=None, tol=1e\-3,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ solver=\[aq]auto\[aq],
-random_state=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lr_rate=1e\-8, verbose=0,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ warm_start=False)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.linear_model.Ridge(alpha=0.01,\ fit_intercept=True,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ normalize=False,\ copy_X=True,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=None,\ tol=1e\-3,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ solver=\[aq]auto\[aq],\ random_state=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lr_rate=1e\-8,\ verbose=0,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ warm_start=False)\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y, sample_weight = None)
@@ -84,19 +67,19 @@ L(w;x,y)\ :=\ 1/2(wTx\-y)^2
 \f[]
 .fi
 .PP
-Where the vectors \f[B]x\f[] are the training data examples and
-\f[B]y\f[] are their corresponding labels which we want to predict.
+During training, the input \f[B]X\f[] is the training data and
+\f[B]y\f[] is the corresponding label values which we want to predict.
 \f[B]w\f[] is the linear model (also known as weight) which uses a
 single weighted sum of features to make a prediction.
 The method is called linear since it can be expressed as a function of
 wTx and y.
 Ridge regression uses L2 regularization to address the overfit problem.
 .PP
-The gradient of the squared loss is: (wTx\-y).x
+The gradient of the squared loss is: \f[B](wTx\-y).x\f[]
 .PD 0
 .P
 .PD
-The gradient of the regularizer is: w
+The gradient of the regularizer is: \f[B]w\f[]
 .PP
 Frovedis provides implementation of ridge regression with two different
 optimizers:
@@ -154,7 +137,7 @@ sent back to the python client.
 .PD 0
 .P
 .PD
-\f[B]\f[I]alpha\f[]\f[]: A postive value of double(float64) type is
+\f[B]\f[I]alpha\f[]\f[]: A postive value of double (float64) type is
 called the regularization strength parameter.
 (Default: 0.01)
 .PD 0
@@ -166,11 +149,11 @@ a constant (intercept) should be added to the decision function.
 .PD 0
 .P
 .PD
-\f[B]\f[I]normalize\f[]\f[]: A boolean parameter (unused)
+\f[B]\f[I]normalize\f[]\f[]: An unused parameter (Default: False)
 .PD 0
 .P
 .PD
-\f[B]\f[I]copy_X\f[]\f[]: A boolean parameter (unsed)
+\f[B]\f[I]copy_X\f[]\f[]: An unused parameter (Default: True)
 .PD 0
 .P
 .PD
@@ -181,7 +164,7 @@ set as 1000.
 .PD 0
 .P
 .PD
-\f[B]\f[I]tol\f[]\f[]: Zero or a positive value of double(float64) type
+\f[B]\f[I]tol\f[]\f[]: Zero or a positive value of double (float64) type
 specifying the convergence tolerance value.
 (Default: 1e\-3)
 .PD 0
@@ -197,13 +180,12 @@ Both "sag" and "lbfgs" can handle L2 penalty.
 .PD 0
 .P
 .PD
-\f[B]\f[I]random_state\f[]\f[]: An integer, None or RandomState
-instance.
-(unused)
+\f[B]\f[I]random_state\f[]\f[]: An unused parameter.
+(Default: None)
 .PD 0
 .P
 .PD
-\f[B]\f[I]lr_rate\f[]\f[]: Zero or a positive value of double(float64)
+\f[B]\f[I]lr_rate\f[]\f[]: Zero or a positive value of double (float64)
 type containing the learning rate.
 (Default: 1e\-8)
 .PD 0
@@ -227,14 +209,14 @@ otherwise, just erase the previous solution.
 .P
 .PD
 \f[B]\f[I]coef_\f[]\f[]: It is a python ndarray(containing float or
-double(float64) typed values depending on data\-type of input matrix
+double (float64) typed values depending on data\-type of input matrix
 (X)) of estimated coefficients for the ridge regression problem.
 It has shape \f[B](n_features,)\f[].
 .PD 0
 .P
 .PD
 \f[B]\f[I]intercept_(bias)\f[]\f[]: It is a python ndarray(contaning
-float or double(float64) typed values depending on data\-type of input
+float or double (float64) typed values depending on data\-type of input
 matrix (X)).
 If fit_intercept is set to False, the intercept is set to zero.
 It has shape \f[B](1,)\f[].
@@ -272,14 +254,17 @@ and FrovedisColmajorMatrix for dense data.
 .P
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+FrovedisDvector containing the target values.
 It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
 \f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
 weights for each input samples and it should be the shape of
-\f[B](n_samples, )\f[].
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -329,7 +314,7 @@ FrovedisColmajorMatrix (X) is provided during prediction, then
 .PD 0
 .P
 .PD
-It returns a numpy array of double(float64) type and has shape
+It returns a numpy array of double (float64) type and has shape
 \f[B](n_samples,)\f[] containing the predicted outputs.
 .SS 4. score(X, y, sample_weight = None)
 .PP
@@ -343,15 +328,18 @@ and FrovedisRowmajorMatrix for dense data.
 .PD 0
 .P
 .PD
-\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object containing the target
+values for X.
 It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
 \f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
 weights for each input samples and it should be the shape of
-\f[B](n_samples, )\f[].
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -448,7 +436,8 @@ having model information to be loaded.
 .P
 .PD
 \f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -476,7 +465,7 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (weight values, etc.) in the
+On success, it writes the model information (metadata and model) in the
 specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
@@ -553,8 +542,8 @@ the user to train the ridge regression model first.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
 linear_regression, lasso_regression, dvector, crs_matrix,

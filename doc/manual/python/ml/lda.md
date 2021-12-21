@@ -8,27 +8,22 @@ of the data are similar.
 
 # SYNOPSIS
 
-class frovedis.mllib.decomposition.LatentDirichletAllocation(n_components=10, doc_topic_prior=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ topic_word_prior=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ learning_method='batch',  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ learning_decay=.7, learning_offset=10.,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=10, batch_size=128,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ evaluate_every=-1, total_samples=1e6,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ perp_tol=1e-1, mean_change_tol=1e-3,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_doc_update_iter=100,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_jobs=None, verbose=0,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None, algorithm="original",  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ explore_iter=0)  
+    class frovedis.mllib.decomposition.LatentDirichletAllocation(n_components=10, 
+                                                                 doc_topic_prior=None, 
+                                                                 topic_word_prior=None,
+                                                                 learning_method='batch',
+                                                                 learning_decay=.7, 
+                                                                 learning_offset=10.,
+                                                                 max_iter=10, batch_size=128,
+                                                                 evaluate_every=-1, 
+                                                                 total_samples=1e6,
+                                                                 perp_tol=1e-1, 
+                                                                 mean_change_tol=1e-3,
+                                                                 max_doc_update_iter=100,
+                                                                 n_jobs=None, verbose=0,
+                                                                 random_state=None, 
+                                                                 algorithm="original",
+                                                                 explore_iter=0)  
 
 ## Public Member Functions  
 
@@ -49,10 +44,10 @@ Latent Dirichlet Allocation (LDA) is a widely used machine learning technique fo
 modeling. The input is a corpus of documents and the output is per-document topic 
 distribution and per-topic word distribution. 
 
-This implementation provides python wrapper interface to VLDA, which accelerates LDA training 
-by exploiting the data-level, and the thread-level parallelism using vector processors. The 
-priority-aware scheduling approach is proposed to address the high memory requirement and 
-workload imbalance issues with existing works. 
+This implementation provides python wrapper interface to Vectorised LDA (VLDA), which 
+accelerates LDA training by exploiting the data-level, and the thread-level parallelism 
+using vector processors. The priority-aware scheduling approach is proposed to address 
+the high memory requirement and workload imbalance issues with existing works. 
 
 This module provides a client-server implementation, where the client application 
 is a normal python program. The frovedis interface is almost same as Scikit-learn 
@@ -85,9 +80,8 @@ distribution beta. It is also called beta. (Default: None)
 If it is None (not specified explicitly), it will be set as (1 / n_components).  
 **_learning\_method_**: An unused parameter which specifies the method used to 
 update 'components_'.  
-Although, this parameter is unused in frovedis but 
-it must be 'batch' or 'online' update. This is simply done to keep the behavior 
-consistent with Scikit-learn. (Default: batch)  
+Although, this parameter is unused in frovedis but it must be 'batch' or 'online' 
+update. This is simply done to keep the behavior consistent with Scikit-learn. (Default: batch)  
 **_learning\_decay_**: An unused parameter. (Default: 0.7)  
 **_learning\_offset_**: An unused parameter. Although, this parameter is unused in 
 frovedis but it must be zero or a positive float value. This is simply done to 
@@ -184,8 +178,8 @@ It simply returns "self" reference.
 
 ### 2. fit(X, y = None)  
 __Parameters__  
-**_X_**: A scipy sparse matrix or an instance of FrovedisCRSMatrix for sparse data of int, float, 
-double(float64) type. It has shape **(n_samples, n_features)**.  
+**_X_**: A scipy sparse matrix or an instance of FrovedisCRSMatrix for sparse data of int, float 
+or double (float64) type. It has shape **(n_samples, n_features)**.  
 **_y_**:  None or any python array-like object (any shape). It is simply ignored in frovedis 
 implementation, like in Scikit-learn.  
 
@@ -247,11 +241,11 @@ It simply returns "self" reference.
 
 ### 3. transform(X)  
 __Parameters__  
-**_X_**: A scipy sparse matrix or an instance of FrovedisCRSMatrix for sparse data of int, float, 
-double(float64) type. It has shape **(n_samples, n_features)**.  
+**_X_**: A scipy sparse matrix or an instance of FrovedisCRSMatrix for sparse data of int, float 
+or double (float64) type. It has shape **(n_samples, n_features)**.  
 
 __Purpose__  
-Transforms input matrix X according to the trained model.  
+It transforms input matrix X according to the trained model.  
 
 For example,   
 
@@ -312,17 +306,19 @@ Output
     0.0666667 0.866667
 
 __Return Value__  
-**When X is python native input:**  
+- **When X is python native input:**  
 It returns a python ndarray of shape **(n_samples, n_components)** and double (float64) 
 type values. It contains the document-wise topic distribution for input data X.  
-**When X is frovedis-like input:**  
+
+- **When X is frovedis-like input:**  
 It returns a FrovedisRowmajorMatrix of shape **(n_samples, n_components)** and 
 double (float64) type values, containing document-wise topic distribution for input data X.  
+
 
 ### 4. perplexity(X, sub_sampling = False)  
 __Parameters__  
 **_X_**: A scipy sparse matrix or an instance of FrovedisCRSMatrix for sparse data of int, float, 
-double(float64) type. It has shape **(n_samples, n_features)**.  
+double (float64) type. It has shape **(n_samples, n_features)**.  
 **_sub\_sampling_**: A boolean parameter that specifies whether to do sub-sampling or not. It is 
 simply ignored in frovedis implementation. (Default: False)  
 
@@ -347,8 +343,8 @@ It returns float type perplexity score.
 
 ### 5. score(X, y = None)  
 __Parameters__  
-**_X_**: A scipy sparse matrix or an instance of FrovedisCRSMatrix for sparse data of int, float, 
-double(float64) type. It has shape **(n_samples, n_features)**.  
+**_X_**: A scipy sparse matrix or an instance of FrovedisCRSMatrix for sparse data of int, float 
+or double (float64) type. It has shape **(n_samples, n_features)**.  
 **_y_**:  None or any python array-like object (any shape). It is simply ignored in frovedis 
 implementation, just like in Scikit-learn.  
 
@@ -438,8 +434,8 @@ It simply returns "self" reference.
 
 ### 8. fit_transform(X, y = None)  
 __Parameters__  
-**_X_**: A scipy sparse matrix or an instance of FrovedisCRSMatrix for sparse data of int, float, 
-double(float64) type. It has shape **(n_samples, n_features)**.  
+**_X_**: A scipy sparse matrix or an instance of FrovedisCRSMatrix for sparse data of int, float 
+or double (float64) type. It has shape **(n_samples, n_features)**.  
 **_y_**:  None or any python array-like object (any shape). It is simply ignored in frovedis 
 implementation, like in Scikit-learn.  
 
@@ -504,19 +500,21 @@ Output
     0.266667 0.666667 0.266667 
     
 __Return Value__  
-**When X is python native input:**  
+- **When X is python native input:**  
 It returns a numpy ndarray of shape **(n_samples, n_components)** and double (float64) 
 type values. This is a transformed array X.  
-**When X is frovedis-like input:**  
+
+- **When X is frovedis-like input:**  
 It returns a FrovedisRowmajorMatrix of shape **(n_samples, n_components)** and 
 double (float64) type values. This is a transformed array X.  
+
 
 ### 9. load(fname, dtype = None)  
 __Parameters__  
 **_fname_**:  A string object containing the name of the file having model information
 to be loaded.  
 **_dtype_**: A data-type is inferred from the input data. Currently, expected input 
-data-type is either float or double(float64). (Default: None)  
+data-type is either float or double (float64). (Default: None)  
 
 __Purpose__  
 It loads the model from the specified file (having little-endian binary data).  
@@ -534,7 +532,7 @@ __Parameters__
 is to be saved.  
 
 __Purpose__  
-On success, it writes the model information (after-fit populated attributes) in the 
+On success, it writes the model information (corpus_topic, metadata and word_topic) in the 
 specified file as little-endian binary data. Otherwise, it throws an exception.  
 
 For example,   
@@ -581,7 +579,7 @@ __Purpose__
 It can be used to confirm if the model is already fitted or not.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.  
+It returns 'True', if the model is already fitted, otherwise, it returns 'False'.  
 
 # SEE ALSO  
 crs_matrix

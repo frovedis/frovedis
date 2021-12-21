@@ -6,66 +6,27 @@ algorithm that allows a set of observations to be explained by
 unobserved groups.
 These are used to explain why some parts of the data are similar.
 .SH SYNOPSIS
-.PP
-class
-frovedis.mllib.decomposition.LatentDirichletAllocation(n_components=10,
-doc_topic_prior=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ topic_word_prior=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ learning_method=\[aq]batch\[aq],
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ learning_decay=.7,
-learning_offset=10.,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=10,
-batch_size=128,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ evaluate_every=\-1,
-total_samples=1e6,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ perp_tol=1e\-1,
-mean_change_tol=1e\-3,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_doc_update_iter=100,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_jobs=None,
-verbose=0,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None,
-algorithm="original",
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ explore_iter=0)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.decomposition.LatentDirichletAllocation(n_components=10,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ doc_topic_prior=None,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ topic_word_prior=None,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ learning_method=\[aq]batch\[aq],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ learning_decay=.7,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ learning_offset=10.,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=10,\ batch_size=128,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ evaluate_every=\-1,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ total_samples=1e6,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ perp_tol=1e\-1,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ mean_change_tol=1e\-3,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_doc_update_iter=100,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_jobs=None,\ verbose=0,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ algorithm="original",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ explore_iter=0)\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y = None)
@@ -116,9 +77,9 @@ technique for topic modeling.
 The input is a corpus of documents and the output is per\-document topic
 distribution and per\-topic word distribution.
 .PP
-This implementation provides python wrapper interface to VLDA, which
-accelerates LDA training by exploiting the data\-level, and the
-thread\-level parallelism using vector processors.
+This implementation provides python wrapper interface to Vectorised LDA
+(VLDA), which accelerates LDA training by exploiting the data\-level,
+and the thread\-level parallelism using vector processors.
 The priority\-aware scheduling approach is proposed to address the high
 memory requirement and workload imbalance issues with existing works.
 .PP
@@ -393,7 +354,8 @@ It simply returns "self" reference.
 .P
 .PD
 \f[B]\f[I]X\f[]\f[]: A scipy sparse matrix or an instance of
-FrovedisCRSMatrix for sparse data of int, float, double(float64) type.
+FrovedisCRSMatrix for sparse data of int, float or double (float64)
+type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
@@ -479,14 +441,15 @@ It simply returns "self" reference.
 .P
 .PD
 \f[B]\f[I]X\f[]\f[]: A scipy sparse matrix or an instance of
-FrovedisCRSMatrix for sparse data of int, float, double(float64) type.
+FrovedisCRSMatrix for sparse data of int, float or double (float64)
+type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PP
 \f[B]Purpose\f[]
 .PD 0
 .P
 .PD
-Transforms input matrix X according to the trained model.
+It transforms input matrix X according to the trained model.
 .PP
 For example,
 .IP
@@ -567,16 +530,14 @@ node\ =\ 0,\ local_num_row\ =\ 2,\ local_num_col\ =\ 3,\ val\ =\ 0.47619\ 0.3333
 .PD 0
 .P
 .PD
-\f[B]When X is python native input:\f[]
+\- \f[B]When X is python native input:\f[]
 .PD 0
 .P
 .PD
 It returns a python ndarray of shape \f[B](n_samples, n_components)\f[]
 and double (float64) type values.
 It contains the document\-wise topic distribution for input data X.
-.PD 0
-.P
-.PD
+.IP \[bu] 2
 \f[B]When X is frovedis\-like input:\f[]
 .PD 0
 .P
@@ -591,7 +552,7 @@ document\-wise topic distribution for input data X.
 .P
 .PD
 \f[B]\f[I]X\f[]\f[]: A scipy sparse matrix or an instance of
-FrovedisCRSMatrix for sparse data of int, float, double(float64) type.
+FrovedisCRSMatrix for sparse data of int, float, double (float64) type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
@@ -642,7 +603,8 @@ It returns float type perplexity score.
 .P
 .PD
 \f[B]\f[I]X\f[]\f[]: A scipy sparse matrix or an instance of
-FrovedisCRSMatrix for sparse data of int, float, double(float64) type.
+FrovedisCRSMatrix for sparse data of int, float or double (float64)
+type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
@@ -798,7 +760,8 @@ It simply returns "self" reference.
 .P
 .PD
 \f[B]\f[I]X\f[]\f[]: A scipy sparse matrix or an instance of
-FrovedisCRSMatrix for sparse data of int, float, double(float64) type.
+FrovedisCRSMatrix for sparse data of int, float or double (float64)
+type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
@@ -890,16 +853,14 @@ node\ =\ 0,\ local_num_row\ =\ 2,\ local_num_col\ =\ 3,\ val\ =\ 0.333333\ 0.619
 .PD 0
 .P
 .PD
-\f[B]When X is python native input:\f[]
+\- \f[B]When X is python native input:\f[]
 .PD 0
 .P
 .PD
 It returns a numpy ndarray of shape \f[B](n_samples, n_components)\f[]
 and double (float64) type values.
 This is a transformed array X.
-.PD 0
-.P
-.PD
+.IP \[bu] 2
 \f[B]When X is frovedis\-like input:\f[]
 .PD 0
 .P
@@ -919,7 +880,8 @@ having model information to be loaded.
 .P
 .PD
 \f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -955,8 +917,8 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (after\-fit populated
-attributes) in the specified file as little\-endian binary data.
+On success, it writes the model information (corpus_topic, metadata and
+word_topic) in the specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -1044,8 +1006,8 @@ It can be used to confirm if the model is already fitted or not.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted, otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted, otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
 crs_matrix

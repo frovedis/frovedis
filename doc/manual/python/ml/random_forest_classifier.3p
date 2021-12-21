@@ -127,17 +127,16 @@ Supported criteria are \[aq]gini\[aq] and \[aq]entropy\[aq].
 .PD 0
 .P
 .PD
-\[aq]gini\[aq] impurity: calculates the amount of probability of a
-specific feature that is classified incorrectly when selected randomly.
+\- \f[B]\[aq]gini\[aq] impurity\f[]: calculates the amount of
+probability of a specific feature that is classified incorrectly when
+selected randomly.
 .PD 0
 .P
 .PD
-\[aq]entropy\[aq] (information gain): it is applied to quantify which
-feature provides maximal information about the classification based on
-the notion of entropy.
-.PD 0
-.P
-.PD
+\- \f[B]\[aq]entropy\[aq] (information gain)\f[]: it is applied to
+quantify which feature provides maximal information about the
+classification based on the notion of entropy.
+.PP
 \f[B]\f[I]max_depth\f[]\f[]: A positive integer parameter that specifies
 the maximum depth of the tree.
 (Default: None)
@@ -166,16 +165,14 @@ right branches.
 .PD 0
 .P
 .PD
-If it is an integer, then \[aq]min_samples_leaf\[aq] should be greater
-than 0.
+\- If it is an integer, then \[aq]min_samples_leaf\[aq] should be
+greater than 0.
 .PD 0
 .P
 .PD
-If it is float, then it is set as
+\- If it is float, then it is set as
 \f[B]int(np.ceil(self.min_samples_split * self.n_samples_))\f[]
-.PD 0
-.P
-.PD
+.PP
 \f[B]\f[I]min_weight_fraction_leaf\f[]\f[]: An unused parameter.
 (Default: 0.0)
 .PD 0
@@ -186,31 +183,31 @@ the number of features to consider when looking for the best split:
 .PD 0
 .P
 .PD
-If it is an integer, then it will be set as \f[B](max_features * 1.0) /
-n_features\f[].
+\- If it is an integer, then it will be set as \f[B](max_features * 1.0)
+/ n_features_\f[].
 .PD 0
 .P
 .PD
-If it is float, then it will be \f[B]\[aq]max_features\[aq]\f[] number
-of features at each split.
+\- If it is float, then it will be \f[B]\[aq]max_features\[aq]\f[]
+number of features at each split.
 .PD 0
 .P
 .PD
-If it is \[aq]auto\[aq], then it will be set as
-\f[B]sqrt(n_features)\f[].
+\- If it is \[aq]auto\[aq], then it will be set as
+\f[B]sqrt(n_features_)\f[].
 .PD 0
 .P
 .PD
-If \[aq]sqrt\[aq], then it will be set as \f[B]sqrt(n_features)\f[]
+\- If \[aq]sqrt\[aq], then it will be set as \f[B]sqrt(n_features_)\f[]
 (same as \[aq]auto\[aq]).
 .PD 0
 .P
 .PD
-If \[aq]log2\[aq], then it will be set as \f[B]log2(n_features)\f[].
+\- If \[aq]log2\[aq], then it will be set as \f[B]log2(n_features_)\f[].
 .PD 0
 .P
 .PD
-If None, then it will be set as \f[B]n_features\f[].
+\- If None, then it will be set as \f[B]n_features_\f[].
 (Default: \[aq]auto\[aq])
 .PD 0
 .P
@@ -296,7 +293,7 @@ the maximum number of bins created by ordered splits.
 .PD 0
 .P
 .PD
-\f[B]\f[I]classes_\f[]\f[]: It is a python ndarray(any type) of unique
+\f[B]\f[I]classes_\f[]\f[]: It is a python ndarray (any type) of unique
 labels given to the classifier during training.
 It has shape \f[B](n_classes,)\f[].
 .PD 0
@@ -362,7 +359,7 @@ lbl\ =\ np.array([100,\ 500,\ 100,\ 600],\ dtype\ =\ np.float64)\
 #\ fitting\ input\ matrix\ and\ label\ on\ RandomForestClassifier\ object
 from\ frovedis.mllib.ensemble\ import\ RandomForestClassifier
 rfc\ =\ RandomForestClassifier(n_estimators\ =\ 10,\ max_depth\ =\ 4,\ min_samples_split\ =\ 0.5
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_samples_leaf\ =\ 1.2,\ random_state=324)\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_samples_leaf\ =\ 1.2,\ random_state\ =\ 324)\ \ 
 rfc.fit(mat,lbl)
 \f[]
 .fi
@@ -397,7 +394,7 @@ dlbl\ =\ FrovedisDvector(lbl)
 from\ frovedis.mllib.ensemble\ import\ RandomForestClassifier
 rfc\ =\ RandomForestClassifier(n_estimators\ =\ 10,\ max_depth\ =\ 4,
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_samples_split\ =\ 0.5,\ min_samples_leaf\ =\ 1.2,\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=324)\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state\ =\ 324)\ \ 
 rfc.fit(cmat,dlbl)
 \f[]
 .fi
@@ -627,8 +624,8 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (after\-fit populated
-attributes) in the specified file as little\-endian binary data.
+On success, it writes the model information (label_map, metadata and
+model) in the specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -699,7 +696,10 @@ It has shape \f[B](n_samples,)\f[].
 .PD
 \f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
-\f[B](n_samples, )\f[].
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -846,8 +846,8 @@ It can be used to confirm if the model is already fitted or not.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted, otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted, otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
 dvector, rowmajor_matrix, colmajor_matrix, random_forest_regressor,

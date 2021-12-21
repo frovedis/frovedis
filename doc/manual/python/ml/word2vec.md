@@ -8,15 +8,12 @@ semantic and syntactic similarity, relation with other words, etc.
 
 # SYNOPSIS  
 
-class frovedis.mllib.feature.Word2Vec(sentences=None, corpusFile=None, outDirPath=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ hiddenSize=100, learningRate=0.025, n_iter=1,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ minCount=5, window=5, threshold=1e-3,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ negative=5, modelSyncPeriod=0.1, minSyncWords=1024,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fullSyncTimes=0, messageSize=1024, numThreads=None)  
+    class frovedis.mllib.feature.Word2Vec(sentences=None, corpusFile=None, 
+                                          outDirPath=None, hiddenSize=100, 
+                                          learningRate=0.025, n_iter=1,  
+                                          minCount=5, window=5, threshold=1e-3,  
+                                          negative=5, modelSyncPeriod=0.1, minSyncWords=1024,  
+                                          fullSyncTimes=0, messageSize=1024, numThreads=None)  
 
 ## Public Member Functions  
 
