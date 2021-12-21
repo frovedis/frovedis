@@ -4,41 +4,18 @@
 Lasso Regression \- A regression algorithm used to predict the
 continuous output with L1 regularization.
 .SH SYNOPSIS
-.PP
-class frovedis.mllib.linear_model.Lasso(alpha=0.01, fit_intercept=True,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ normalize=False,
-precompute=False,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ copy_X=True, max_iter=1000,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tol=1e\-4, warm_start=False,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ positive=False,
-random_state=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ selection=\[aq]cyclic\[aq],
-lr_rate=1e\-8,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0, solver=\[aq]sag\[aq])
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.linear_model.Lasso(alpha=0.01,\ fit_intercept=True,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ normalize=False,\ precompute=False,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ copy_X=True,\ max_iter=1000,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tol=1e\-4,\ warm_start=False,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ positive=False,\ random_state=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ selection=\[aq]cyclic\[aq],\ lr_rate=1e\-8,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0,\ solver=\[aq]sag\[aq])\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y, sample_weight = None)
@@ -91,8 +68,8 @@ L(w;x,y)\ :=\ 1/2(wTx\-y)^2
 \f[]
 .fi
 .PP
-Where the vectors \f[B]x\f[] are the training data examples and
-\f[B]y\f[] are their corresponding labels which we want to predict.
+During training, the input \f[B]X\f[] is the training data and
+\f[B]y\f[] is the corresponding label values which we want to predict.
 \f[B]w\f[] is the linear model (also known as weight) which uses a
 single weighted sum of features to make a prediction.
 The method is called linear since it can be expressed as a function of
@@ -100,11 +77,11 @@ wTx and y.
 \f[B]Lasso regression uses L1 regularization to address the overfit
 problem.\f[]
 .PP
-The gradient of the squared loss is: (wTx\-y).x
+The gradient of the squared loss is: \f[B](wTx\-y).x\f[]
 .PD 0
 .P
 .PD
-The gradient of the regularizer is: sign(w)
+The gradient of the regularizer is: \f[B]sign(w)\f[]
 .PP
 Frovedis provides implementation of lasso regression with two different
 optimizers:
@@ -135,8 +112,8 @@ first\-order optimization.
 .PP
 This module provides a client\-server implementation, where the client
 application is a normal python program.
-The frovedis interface is almost same as Scikit\-learn Lasso Regression
-interface, but it doesn\[aq]t have any dependency with Scikit\-learn.
+The frovedis interface is almost same as Scikit\-learn Lasso interface,
+but it doesn\[aq]t have any dependency with Scikit\-learn.
 It can be used simply even if the system doesn\[aq]t have Scikit\-learn
 installed.
 Thus in this implementation, a python client can interact with a
@@ -146,7 +123,7 @@ Python data is converted into frovedis compatible data internally and
 the python ML call is linked with the respective frovedis ML call to get
 the job done at frovedis server.
 .PP
-Python side calls for Lasso Regression on the frovedis server.
+Python side calls for Lasso on the frovedis server.
 Once the training is completed with the input data at the frovedis
 server, it returns an abstract model with a unique model ID to the
 client python program.
@@ -163,7 +140,7 @@ sent back to the python client.
 .P
 .PD
 \f[B]\f[I]alpha\f[]\f[]: A constant that multiplies the L1 term.
-It must be a positive value of double(float64) type .
+It must be a positive value of double (float64) type .
 (Default: 0.01)
 .PD 0
 .P
@@ -174,15 +151,18 @@ a constant (intercept) should be added to the decision function.
 .PD 0
 .P
 .PD
-\f[B]\f[I]normalize\f[]\f[]: A boolean parameter (unused)
+\f[B]\f[I]normalize\f[]\f[]: An unused parameter.
+(Default: False)
 .PD 0
 .P
 .PD
-\f[B]\f[I]precompute\f[]\f[]: A boolean parameter (unused)
+\f[B]\f[I]precompute\f[]\f[]: An unused parameter.
+(Default: False)
 .PD 0
 .P
 .PD
-\f[B]\f[I]copy_X\f[]\f[]: A boolean parameter (unsed)
+\f[B]\f[I]copy_X\f[]\f[]: An unused parameter.
+(Default: True)
 .PD 0
 .P
 .PD
@@ -192,7 +172,7 @@ maximum number of iterations.
 .PD 0
 .P
 .PD
-\f[B]\f[I]tol\f[]\f[]: Zero or a positive value of double(float64) type
+\f[B]\f[I]tol\f[]\f[]: Zero or a positive value of double (float64) type
 specifying the convergence tolerance value.
 (Default: 1e\-4)
 .PD 0
@@ -205,22 +185,22 @@ otherwise, just erase the previous solution.
 .PD 0
 .P
 .PD
-\f[B]\f[I]positive\f[]\f[]: A boolean parameter (unused)
+\f[B]\f[I]positive\f[]\f[]: An unused parameter.
+(Default: False)
 .PD 0
 .P
 .PD
-\f[B]\f[I]random_state\f[]\f[]: An integer, None or RandomState
-instance.
-(unused)
+\f[B]\f[I]random_state\f[]\f[]: An unused parameter.
+(Default: None)
 .PD 0
 .P
 .PD
-\f[B]\f[I]selection\f[]\f[]: A string object.
-(unused)
+\f[B]\f[I]selection\f[]\f[]: An unused paremeter.
+(Default: cyclic)
 .PD 0
 .P
 .PD
-\f[B]\f[I]lr_rate\f[]\f[]: Zero or a positive value of double(float64)
+\f[B]\f[I]lr_rate\f[]\f[]: Zero or a positive value of double (float64)
 type containing the learning rate.
 (Default: 1e\-8)
 .PD 0
@@ -242,21 +222,21 @@ getting training time logs from frovedis server.
 It can be "sag" for frovedis side stochastic gradient descent or "lbfgs"
 for frovedis side LBFGS optimizer when optimizing the lasso regression
 model.
-Both "sag" and "lbfgs" can handle L1 penalty.
+\f[B]Both "sag" and "lbfgs" can handle L1 penalty.\f[]
 .PP
 \f[B]Attributes\f[]
 .PD 0
 .P
 .PD
-\f[B]\f[I]coef_\f[]\f[]: It is a python ndarray(containing float or
-double(float64) typed values depending on data\-type of input matrix
+\f[B]\f[I]coef_\f[]\f[]: It is a python ndarray (containing float or
+double (float64) typed values depending on data\-type of input matrix
 (X)) of estimated coefficients for the lasso regression problem.
 It has shape \f[B](n_features,)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]intercept_(bias)\f[]\f[]: It is a python ndarray(contaning
-float or double(float64) typed values depending on data\-type of input
+\f[B]\f[I]intercept_(bias)\f[]\f[]: It is a python ndarray (contaning
+float or double (float64) typed values depending on data\-type of input
 matrix (X)).
 If fit_intercept is set to False, the intercept is set to zero.
 It has shape \f[B](1,)\f[].
@@ -295,14 +275,17 @@ and FrovedisColmajorMatrix for dense data.
 .P
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+FrovedisDvector containing the target values.
 It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
 \f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
 weights for each input samples and it should be the shape of
-\f[B](n_samples, )\f[].
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -352,7 +335,7 @@ FrovedisColmajorMatrix (X) is provided during prediction, then
 .PD 0
 .P
 .PD
-It returns a numpy array of float or double(float64) type and has shape
+It returns a numpy array of float or double (float64) type and has shape
 \f[B](n_samples,)\f[] containing the predicted outputs.
 .SS 4. score(X, y, sample_weight = None)
 .PP
@@ -366,15 +349,18 @@ and FrovedisRowmajorMatrix for dense data.
 .PD 0
 .P
 .PD
-\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object containing true
+values for X.
 It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
 \f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
 weights for each input samples and it should be the shape of
-\f[B](n_samples, )\f[].
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -471,7 +457,8 @@ having model information to be loaded.
 .P
 .PD
 \f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -499,7 +486,7 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (weight values, etc.) in the
+On success, it writes the model information (metadata and model) in the
 specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
@@ -576,9 +563,9 @@ the user to train the lasso regression model first.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
 linear_regression, ridge_regression, dvector, crs_matrix,
-colmajor_matrix
+colmajor_matrix, rowmajor_matrix
