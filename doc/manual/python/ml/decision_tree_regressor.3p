@@ -124,9 +124,12 @@ each terminal node.
 .PD
 \f[B]\f[I]max_depth\f[]\f[]: A positive integer parameter that specifies
 the maximum depth of the tree.
-If it is None (not specified explicitly), then \[aq]max_depth\[aq] is
-set to 5.
 (Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), then \[aq]max_depth\[aq] is
+set to 5.
 .PD 0
 .P
 .PD
@@ -147,16 +150,14 @@ regression.
 .PD 0
 .P
 .PD
-If it is an integer, then \[aq]min_samples_leaf\[aq] should be greater
-than or equal to 1.
+\- If it is an integer, then \[aq]min_samples_leaf\[aq] should be
+greater than or equal to 1.
 .PD 0
 .P
 .PD
-If it is float, then \[aq]min_samples_leaf\[aq] should be in range
-(0,0.5].
-.PD 0
-.P
-.PD
+\- If it is float, then \[aq]min_samples_leaf\[aq] should be in range
+\f[B](0,0.5]\f[].
+.PP
 \f[B]\f[I]min_weight_fraction_leaf\f[]\f[]: An unused parameter.
 (Default: 0.0)
 .PD 0
@@ -259,7 +260,7 @@ It has shape \f[B](n_samples, n_features)\f[].
 .P
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+FrovedisDvector containing the target values for X.
 It has shape \f[B](n_samples,)\f[].
 .PP
 \f[B]Purpose\f[]
@@ -414,8 +415,8 @@ Output
 .IP
 .nf
 \f[C]
-{\[aq]categorical_info\[aq]:\ {},\ \[aq]ccp_alpha\[aq]:\ 0.0,\ \[aq]criterion\[aq]:\ \[aq]MSE\[aq],\ \[aq]max_bins\[aq]:\ 32,\ \[aq]max_depth\[aq]:\ 5,\ 
-\[aq]max_features\[aq]:\ None,\ \[aq]max_leaf_nodes\[aq]:\ None,\ \[aq]min_impurity_decrease\[aq]:\ 0.0,\ 
+{\[aq]categorical_info\[aq]:\ {},\ \[aq]ccp_alpha\[aq]:\ 0.0,\ \[aq]criterion\[aq]:\ \[aq]MSE\[aq],\ \[aq]max_bins\[aq]:\ 32,\ 
+\[aq]max_depth\[aq]:\ 5,\ \[aq]max_features\[aq]:\ None,\ \[aq]max_leaf_nodes\[aq]:\ None,\ \[aq]min_impurity_decrease\[aq]:\ 0.0,\ 
 \[aq]min_samples_leaf\[aq]:\ 1,\ \[aq]min_samples_split\[aq]:\ 2,\ \[aq]min_weight_fraction_leaf\[aq]:\ 0.0,\ 
 \[aq]presort\[aq]:\ \[aq]deprecated\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]splitter\[aq]:\ \[aq]best\[aq],\ \[aq]verbose\[aq]:\ 0}
 \f[]
@@ -463,13 +464,13 @@ Output
 .nf
 \f[C]
 get\ parameters\ before\ setting:
-{\[aq]categorical_info\[aq]:\ {},\ \[aq]ccp_alpha\[aq]:\ 0.0,\ \[aq]criterion\[aq]:\ \[aq]MSE\[aq],\ \[aq]max_bins\[aq]:\ 32,\ \[aq]max_depth\[aq]:\ 5,\ 
-\[aq]max_features\[aq]:\ None,\ \[aq]max_leaf_nodes\[aq]:\ None,\ \[aq]min_impurity_decrease\[aq]:\ 0.0,\ 
+{\[aq]categorical_info\[aq]:\ {},\ \[aq]ccp_alpha\[aq]:\ 0.0,\ \[aq]criterion\[aq]:\ \[aq]MSE\[aq],\ \[aq]max_bins\[aq]:\ 32,\ 
+\[aq]max_depth\[aq]:\ 5,\ \[aq]max_features\[aq]:\ None,\ \[aq]max_leaf_nodes\[aq]:\ None,\ \[aq]min_impurity_decrease\[aq]:\ 0.0,\ 
 \[aq]min_samples_leaf\[aq]:\ 1,\ \[aq]min_samples_split\[aq]:\ 2,\ \[aq]min_weight_fraction_leaf\[aq]:\ 0.0,\ 
 \[aq]presort\[aq]:\ \[aq]deprecated\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]splitter\[aq]:\ \[aq]best\[aq],\ \[aq]verbose\[aq]:\ 0}
 get\ parameters\ after\ setting:
-{\[aq]categorical_info\[aq]:\ {},\ \[aq]ccp_alpha\[aq]:\ 0.0,\ \[aq]criterion\[aq]:\ \[aq]MSE\[aq],\ \[aq]max_bins\[aq]:\ 32,\ \[aq]max_depth\[aq]:\ 4,\ 
-\[aq]max_features\[aq]:\ None,\ \[aq]max_leaf_nodes\[aq]:\ None,\ \[aq]min_impurity_decrease\[aq]:\ 0.0,\ 
+{\[aq]categorical_info\[aq]:\ {},\ \[aq]ccp_alpha\[aq]:\ 0.0,\ \[aq]criterion\[aq]:\ \[aq]MSE\[aq],\ \[aq]max_bins\[aq]:\ 32,\ 
+\[aq]max_depth\[aq]:\ 4,\ \[aq]max_features\[aq]:\ None,\ \[aq]max_leaf_nodes\[aq]:\ None,\ \[aq]min_impurity_decrease\[aq]:\ 0.0,\ 
 \[aq]min_samples_leaf\[aq]:\ 1,\ \[aq]min_samples_split\[aq]:\ 2,\ \[aq]min_weight_fraction_leaf\[aq]:\ 0.0,\ 
 \[aq]presort\[aq]:\ \[aq]deprecated\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]splitter\[aq]:\ \[aq]best\[aq],\ \[aq]verbose\[aq]:\ 0}
 \f[]
@@ -492,7 +493,8 @@ having model information to be loaded.
 .P
 .PD
 \f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -528,8 +530,8 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information in the specified file as
-little\-endian binary data.
+On success, it writes the model information (metadata and model) in the
+specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -584,14 +586,17 @@ It has shape \f[B](n_samples, n_features)\f[].
 .P
 .PD
 \f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+FrovedisDvector containing the true values for X.
 It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
 \f[B]\f[I]sample_weight\f[]\f[]: Python ndarray containing the intended
 weights for each input samples and it should be the shape of
-\f[B](n_samples, )\f[].
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -765,8 +770,8 @@ It can be used to confirm if the model is already fitted or not.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted, otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted, otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
 dvector, crs_matrix, colmajor_matrix, rowmajor_matrix,

@@ -69,14 +69,16 @@ variance reduction as a feature selection criterion and minimizes the L2 loss us
 the mean of each terminal node. (Default: 'mse')  
 **_splitter_**: An unused parameter. (Default: 'best')  
 **_max\_depth_**: A positive integer parameter that specifies the maximum depth of the 
-tree. If it is None (not specified explicitly), then 'max_depth' is set to 5. (Default: None)  
+tree. (Default: None)  
+When it is None (not specified explicitly), then 'max_depth' is set to 5.  
 **_min\_samples\_split_**: An unused parameter. (Default: 2)  
 **_min\_samples\_leaf_**: A positive integer or float value that specifies the minimum 
 number of samples required to be at a leaf node. A split point at any depth will only be 
 considered if it leaves at least 'min_samples_leaf' training samples in each of the left 
 and right branches. This may have the effect of smoothing the model, especially in regression. (Default: 1)  
-If it is an integer, then 'min_samples_leaf' should be greater than or equal to 1.  
-If it is float, then 'min_samples_leaf' should be in range (0,0.5].  
+- If it is an integer, then 'min_samples_leaf' should be greater than or equal to 1.  
+- If it is float, then 'min_samples_leaf' should be in range **(0,0.5]**.  
+
 **_min\_weight\_fraction\_leaf_**: An unused parameter. (Default: 0.0)  
 **_max\_features_**: An unused parameter. (Default: None)  
 **_random\_state_**: An unused parameter. (Default: None)  
@@ -115,7 +117,8 @@ __Parameters__
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisColmajorMatrix for dense data. 
 It has shape **(n_samples, n_features)**.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector. It has shape **(n_samples,)**.  
+**_y_**: Any python array-like object or an instance of FrovedisDvector containing the target 
+values for X. It has shape **(n_samples,)**.  
 
 __Purpose__  
 It builds a decision tree regressor from the training data X and labels y.  
@@ -209,8 +212,8 @@ For example,
 
 Output  
 
-    {'categorical_info': {}, 'ccp_alpha': 0.0, 'criterion': 'MSE', 'max_bins': 32, 'max_depth': 5, 
-    'max_features': None, 'max_leaf_nodes': None, 'min_impurity_decrease': 0.0, 
+    {'categorical_info': {}, 'ccp_alpha': 0.0, 'criterion': 'MSE', 'max_bins': 32, 
+    'max_depth': 5, 'max_features': None, 'max_leaf_nodes': None, 'min_impurity_decrease': 0.0, 
     'min_samples_leaf': 1, 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 
     'presort': 'deprecated', 'random_state': None, 'splitter': 'best', 'verbose': 0}
 
@@ -239,13 +242,13 @@ For example,
 Output  
      
     get parameters before setting:
-    {'categorical_info': {}, 'ccp_alpha': 0.0, 'criterion': 'MSE', 'max_bins': 32, 'max_depth': 5, 
-    'max_features': None, 'max_leaf_nodes': None, 'min_impurity_decrease': 0.0, 
+    {'categorical_info': {}, 'ccp_alpha': 0.0, 'criterion': 'MSE', 'max_bins': 32, 
+    'max_depth': 5, 'max_features': None, 'max_leaf_nodes': None, 'min_impurity_decrease': 0.0, 
     'min_samples_leaf': 1, 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 
     'presort': 'deprecated', 'random_state': None, 'splitter': 'best', 'verbose': 0}
     get parameters after setting:
-    {'categorical_info': {}, 'ccp_alpha': 0.0, 'criterion': 'MSE', 'max_bins': 32, 'max_depth': 4, 
-    'max_features': None, 'max_leaf_nodes': None, 'min_impurity_decrease': 0.0, 
+    {'categorical_info': {}, 'ccp_alpha': 0.0, 'criterion': 'MSE', 'max_bins': 32, 
+    'max_depth': 4, 'max_features': None, 'max_leaf_nodes': None, 'min_impurity_decrease': 0.0, 
     'min_samples_leaf': 1, 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 
     'presort': 'deprecated', 'random_state': None, 'splitter': 'best', 'verbose': 0}
     
@@ -257,7 +260,7 @@ __Parameters__
 **_fname_**:  A string object containing the name of the file having model information
 to be loaded.  
 **_dtype_**: A data-type is inferred from the input data. Currently, expected input 
-data-type is either float or double(float64). (Default: None)  
+data-type is either float or double (float64). (Default: None)  
 
 __Purpose__  
 It loads the model from the specified file (having little-endian binary data).  
@@ -275,8 +278,8 @@ __Parameters__
 is to be saved.  
 
 __Purpose__  
-On success, it writes the model information in the specified file as little-endian binary 
-data. Otherwise, it throws an exception.  
+On success, it writes the model information (metadata and model) in the specified file as 
+little-endian binary data. Otherwise, it throws an exception.  
 
 For example,   
 
@@ -303,10 +306,12 @@ __Parameters__
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. 
 It has shape **(n_samples, n_features)**.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector. It has shape **(n_samples,)**.  
+**_y_**: Any python array-like object or an instance of FrovedisDvector containing the true values 
+for X. It has shape **(n_samples,)**.  
 **_sample\_weight_**: Python ndarray containing the intended weights for each input
-samples and it should be the shape of **(n_samples, )**. When it is None (not specified explicitly), an
-uniform weight vector is assigned on each input sample. (Default: None)  
+samples and it should be the shape of **(n_samples,)**.  
+When it is None (not specified explicitly), an uniform weight vector is assigned on each 
+input sample. (Default: None)  
 
 __Purpose__  
 Calculate the root mean square value on the given test data and labels i.e. 
@@ -424,7 +429,7 @@ __Purpose__
 It can be used to confirm if the model is already fitted or not.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted, otherwise, it returns ‘False’.  
+It returns 'True', if the model is already fitted, otherwise, it returns 'False'.  
 
 # SEE ALSO
 dvector, crs_matrix, colmajor_matrix, rowmajor_matrix, decision_tree_classifier
