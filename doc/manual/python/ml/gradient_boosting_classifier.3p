@@ -1,0 +1,837 @@
+.TH "GradientBoostingClassifier" "" "" "" ""
+.SH NAME
+.PP
+GradientBoostingClassifier \- It is a machine learning algorithm, used
+for binary classification problems.
+It works on the principle that many weak learners (multiple decision
+trees) can together make a more accurate predictor.
+.SH SYNOPSIS
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.ensemble.gbtree.GradientBoostingClassifier(loss="deviance",\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ learning_rate=0.1,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_estimators=100,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ subsample=1.0,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ criterion="friedman_mse",\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_samples_split=2,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_samples_leaf=1,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_weight_fraction_leaf=0.,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_depth=3,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_impurity_decrease=0.,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_impurity_split=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ init=None,\ random_state=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_features=None,\ verbose=0,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_leaf_nodes=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ warm_start=False,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ presort="deprecated",\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ validation_fraction=0.1,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_iter_no_change=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tol=1e\-4,\ ccp_alpha=0.0,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_bins=32)\ \ 
+\f[]
+.fi
+.SS Public Member Functions
+.PP
+fit(X, y)
+.PD 0
+.P
+.PD
+predict(X)
+.PD 0
+.P
+.PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
+load(fname, dtype = None)
+.PD 0
+.P
+.PD
+score(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+save(fname)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.PD 0
+.P
+.PD
+is_fitted()
+.SH DESCRIPTION
+.PP
+GradientBoostingClassifier is a supervised machine learning algorithm
+used for classification using decision trees.
+In gradient boosting decision trees, we combine many weak learners to
+come up with one strong learner.
+The weak learners here are the individual decision trees.
+All the trees are connected in series and each tree tries to minimise
+the error of the previous tree.
+Due to this sequential connection, boosting algorithms are usually slow
+to learn, but also highly accurate.
+\f[B]Currently, frovedis supports only binary gradient boosting
+classification algorithm.\f[]
+.PP
+During training, the input \f[B]X\f[] is the training data and
+\f[B]y\f[] is the corresponding label values (Frovedis supports any
+values for labels, but internally it encodes the input binary labels to
+\-1 and 1) before training at Frovedis server) which we want to predict.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The frovedis interface is almost same as Scikit\-learn
+GradientBoostingClassifier interface, but it doesn\[aq]t have any
+dependency with Scikit\-learn.
+It can be used simply even if the system doesn\[aq]t have Scikit\-learn
+installed.
+Thus in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for GradientBoostingClassifier on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
+.PP
+When prediction\-like request would be made on the trained model, python
+program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
+.SS Detailed Description
+.SS 1. GradientBoostingClassifier()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]loss\f[]\f[]: A string object parameter that specifies the
+loss function to be optimized.
+Currently, it supports only ‘deviance' loss (logloss as in logistic
+regression) for classification.
+(Default: \[aq]deviance\[aq])
+.PD 0
+.P
+.PD
+\f[B]\f[I]learning_rate\f[]\f[]: A positive double (float64) parameter
+that shrinks the contribution of each tree by \[aq]learning_rate\[aq]
+value provided.
+(Default: 0.1)
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_estimators\f[]\f[]: A positive integer parameter that
+specifies the number of boosting stages to perform.
+(Default: 100)
+.PD 0
+.P
+.PD
+\f[B]\f[I]subsample\f[]\f[]: A positive double (float64) parameter that
+specifies the fraction of samples to be used for fitting the individual
+base learners.
+It must be in range \f[B](0, 1.0]\f[].
+(Default: 1.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]criterion\f[]\f[]: A string object parameter that specifies
+the function to measure the quality of a split.
+(Default: \[aq]friedman_mse\[aq])
+.PD 0
+.P
+.PD
+Currently, supported criteria are \[aq]friedman_mse\[aq], \[aq]mse\[aq]
+and \[aq]mae\[aq].
+.PD 0
+.P
+.PD
+\- \f[B]\[aq]friedman_mse\[aq]\f[]: the mean squared error with
+improvement score by Friedman.
+.PD 0
+.P
+.PD
+\- \f[B]\[aq]mse\[aq]\f[]: the mean squared error, which is equal to
+variance reduction as feature selection criterion.
+.PD 0
+.P
+.PD
+\- \f[B]\[aq]mae\[aq]\f[]: the mean absolute error uses reduction in
+Poisson deviance to find splits.
+.PP
+\f[B]\f[I]min_samples_split\f[]\f[]: An unused parameter.
+(Default: 2)
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_samples_leaf\f[]\f[]: An unused parameter.
+(Default: 1)
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_weight_fraction_leaf\f[]\f[]: An unused parameter.
+(Default: 0.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]max_depth\f[]\f[]: A positive integer parameter that specifies
+the maximum depth of the individual estimators.
+(Default: 3)
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_impurity_decrease\f[]\f[]: A positive double (float64)
+parameter.
+A node will be split if this split induces a decrease of the impurity
+greater than or equal to this value.
+(Default: 0.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_impurity_split\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]init\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]random_state\f[]\f[]: An integer parameter that controls the
+random seed given to each tree estimator at each boosting iteration.
+In addition, it controls the random permutation of the features at each
+split.
+(Default: None)
+.PD 0
+.P
+.PD
+If it is None (not specified explicitly), then \[aq]random_state\[aq] is
+set as \-1.
+.PD 0
+.P
+.PD
+\f[B]\f[I]max_features\f[]\f[]: A string object parameter that specifies
+the number of features to consider when looking for the best split:
+.PD 0
+.P
+.PD
+\- If it is an integer, then it will be set as \f[B](max_features * 1.0)
+/ n_features_\f[].
+.PD 0
+.P
+.PD
+\- If it is float, then it will be \f[B]\[aq]max_features\[aq]\f[]
+number of features at each split.
+.PD 0
+.P
+.PD
+\- If it is \[aq]auto\[aq], then it will be set as
+\f[B]sqrt(n_features_)\f[].
+.PD 0
+.P
+.PD
+\- If \[aq]sqrt\[aq], then it will be set as \f[B]sqrt(n_features_)\f[]
+(same as \[aq]auto\[aq]).
+.PD 0
+.P
+.PD
+\- If \[aq]log2\[aq], then it will be set as \f[B]log2(n_features_)\f[].
+.PD 0
+.P
+.PD
+\- If None, then it will be set as \f[B]n_features_\f[].
+(Default: \[aq]None\[aq])
+.PP
+\f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is set as 0 by default (for INFO mode).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
+.PD 0
+.P
+.PD
+\f[B]\f[I]max_leaf_nodes\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]warm_start\f[]\f[]: An unused parameter.
+(Default: False)
+.PD 0
+.P
+.PD
+\f[B]\f[I]presort\f[]\f[]: An unused parameter.
+(Default: \[aq]deprecated\[aq])
+.PD 0
+.P
+.PD
+\f[B]\f[I]validation_fraction\f[]\f[]: An unused parameter.
+(Default: 0.1)
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_iter_no_change\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]tol\f[]\f[]: A double (float64) parameter that specifies the
+tolerance value for the early stopping.
+(Default: 1e\-4)
+.PD 0
+.P
+.PD
+\f[B]\f[I]ccp_alpha\f[]\f[]: An unused parameter.
+(Default: 0.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]max_bins\f[]\f[]: A positive integer parameter that specifies
+the maximum number of bins created by ordered splits.
+(Default: 32)
+.PP
+\f[B]Attributes\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]classes_\f[]\f[]: It is a python ndarray (any type) of unique
+labels given to the classifier during training.
+It has shape \f[B](n_classes,)\f[].
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_estimators_\f[]\f[]: An integer value specifying the
+\[aq]n_estimators\[aq] value.
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_features_\f[]\f[]: An integer value specifying the number of
+features when fitting the estimator.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes a GradientBoostingClassifier object with the given
+parameters.
+.PP
+The parameters: "min_samples_split", "min_samples_leaf",
+"min_weight_fraction_leaf", "min_impurity_split", "init",
+"max_leaf_nodes", "warm_start", "presort", "validation_fraction",
+"n_iter_no_change" and "ccp_alpha" are simply kept in to make the
+interface uniform to the Scikit\-learn GradientBoostingClassifier
+module.
+They are not used anywhere within frovedis implementation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 2. fit(X, y)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or any python array\-like object or
+an instance of FrovedisColmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+Currently, it supports only dense data as input.
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
+FrovedisDvector containing the target values.
+It has shape \f[B](n_samples,)\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It fits the gradient boosting model.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ matrix\ and\ labels\ dense\ data
+import\ numpy\ as\ np
+mat\ =\ np.array([[10,\ 0,\ 1,\ 0,\ 0,\ 1,\ 0],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [0,\ 1,\ 0,\ 1,\ 0,\ 1,\ 0],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [0,\ 1,\ 0,\ 0,\ 1,\ 0,\ 1],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1,\ 0,\ 0,\ 1,\ 0,\ 1,\ 0]])
+lbl\ =\ np.array([1,\ 0,\ 1,\ 0])
+
+#\ fitting\ input\ matrix\ and\ label\ on\ GradientBoostingClassifier\ object
+from\ frovedis.mllib.ensemble\ import\ GradientBoostingClassifier
+gbc\ =\ GradientBoostingClassifier(n_estimators\ =\ 2)
+gbc.fit(mat,\ lbl)
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ matrix\ and\ labels\ dense\ data
+import\ numpy\ as\ np
+mat\ =\ np.array([[10,\ 0,\ 1,\ 0,\ 0,\ 1,\ 0],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [0,\ 1,\ 0,\ 1,\ 0,\ 1,\ 0],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [0,\ 1,\ 0,\ 0,\ 1,\ 0,\ 1],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1,\ 0,\ 0,\ 1,\ 0,\ 1,\ 0]])
+lbl\ =\ np.array([1,\ 0,\ 1,\ 0])\ \ 
+
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisColmajorMatrix.\ \ 
+from\ frovedis.matrix.dense\ import\ FrovedisColmajorMatrix
+from\ frovedis.matrix.dvector\ import\ FrovedisDvector\ 
+cmat\ =\ FrovedisColmajorMatrix(mat)
+dlbl\ =\ FrovedisDvector(lbl)
+
+#\ fitting\ input\ matrix\ and\ label\ on\ GradientBoostingClassifier\ object
+from\ frovedis.mllib.ensemble\ import\ GradientBoostingClassifier
+gbc\ =\ GradientBoostingClassifier(n_estimators\ =\ 2)
+gbc.fit(cmat,\ dlbl)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 3. predict(X)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or any python array\-like object or
+an instance of FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+Currently, it supports only dense data as input.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Predict class for X.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ predicting\ on\ gradient\ boosting\ classifier\ model
+gbc.predict(mat)\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[1\ 0\ 1\ 0]
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "cmat"\ is\ FrovedisColmajorMatrix,\ we\ have\ created\ FrovedisRowmajorMatrix.\ 
+#\ predicting\ on\ gradient\ boosting\ classifier\ model
+gbc.predict(cmat.to_frovedis_rowmatrix())\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[1\ 0\ 1\ 0]
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of int64 type and of shape
+\f[B](n_samples,)\f[] containing the predicted classes.
+.SS 4. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, it will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+GradientBoostingClassifier.
+It is used to get parameters and their values of
+GradientBoostingClassifier class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print(gbc.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]ccp_alpha\[aq]:\ 0.0,\ \[aq]criterion\[aq]:\ \[aq]friedman_mse\[aq],\ \[aq]init\[aq]:\ None,\ \[aq]learning_rate\[aq]:\ 0.1,\ 
+\[aq]loss\[aq]:\ \[aq]deviance\[aq],\ \[aq]max_bins\[aq]:\ 32,\ \[aq]max_depth\[aq]:\ 3,\ \[aq]max_features\[aq]:\ None,\ 
+\[aq]max_leaf_nodes\[aq]:\ None,\ \[aq]min_impurity_decrease\[aq]:\ 0.0,\ \[aq]min_impurity_split\[aq]:\ None,\ 
+\[aq]min_samples_leaf\[aq]:\ 1,\ \[aq]min_samples_split\[aq]:\ 2,\ \[aq]min_weight_fraction_leaf\[aq]:\ 0.0,\ 
+\[aq]n_estimators\[aq]:\ 2,\ \[aq]n_iter_no_change\[aq]:\ None,\ \[aq]presort\[aq]:\ \[aq]deprecated\[aq],\ \[aq]random_state\[aq]:\ \-1,\ 
+\[aq]subsample\[aq]:\ 1.0,\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]validation_fraction\[aq]:\ 0.1,\ \[aq]verbose\[aq]:\ 0,\ 
+\[aq]warm_start\[aq]:\ False}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 5. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed to this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+GradientBoostingClassifier, used to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("get\ parameters\ before\ setting:")\ 
+print(gbc.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+gbc.set_params(n_estimators\ =\ 5)\ 
+print("get\ parameters\ after\ setting:")\ 
+print(gbc.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+get\ parameters\ before\ setting:\ \ 
+{\[aq]ccp_alpha\[aq]:\ 0.0,\ \[aq]criterion\[aq]:\ \[aq]friedman_mse\[aq],\ \[aq]init\[aq]:\ None,\ \[aq]learning_rate\[aq]:\ 0.1,\ 
+\[aq]loss\[aq]:\ \[aq]deviance\[aq],\ \[aq]max_bins\[aq]:\ 32,\ \[aq]max_depth\[aq]:\ 3,\ \[aq]max_features\[aq]:\ None,\ 
+\[aq]max_leaf_nodes\[aq]:\ None,\ \[aq]min_impurity_decrease\[aq]:\ 0.0,\ \[aq]min_impurity_split\[aq]:\ None,\ 
+\[aq]min_samples_leaf\[aq]:\ 1,\ \[aq]min_samples_split\[aq]:\ 2,\ \[aq]min_weight_fraction_leaf\[aq]:\ 0.0,\ 
+\[aq]n_estimators\[aq]:\ 2,\ \[aq]n_iter_no_change\[aq]:\ None,\ \[aq]presort\[aq]:\ \[aq]deprecated\[aq],\ \[aq]random_state\[aq]:\ \-1,\ 
+\[aq]subsample\[aq]:\ 1.0,\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]validation_fraction\[aq]:\ 0.1,\ \[aq]verbose\[aq]:\ 0,\ 
+\[aq]warm_start\[aq]:\ False}\ \ 
+get\ parameters\ after\ setting:\ \ \ \ 
+{\[aq]ccp_alpha\[aq]:\ 0.0,\ \[aq]criterion\[aq]:\ \[aq]friedman_mse\[aq],\ \[aq]init\[aq]:\ None,\ \[aq]learning_rate\[aq]:\ 0.1,\ 
+\[aq]loss\[aq]:\ \[aq]deviance\[aq],\ \[aq]max_bins\[aq]:\ 32,\ \[aq]max_depth\[aq]:\ 3,\ \[aq]max_features\[aq]:\ None,\ 
+\[aq]max_leaf_nodes\[aq]:\ None,\ \[aq]min_impurity_decrease\[aq]:\ 0.0,\ \[aq]min_impurity_split\[aq]:\ None,\ 
+\[aq]min_samples_leaf\[aq]:\ 1,\ \[aq]min_samples_split\[aq]:\ 2,\ \[aq]min_weight_fraction_leaf\[aq]:\ 0.0,\ 
+\[aq]n_estimators\[aq]:\ 5,\ \[aq]n_iter_no_change\[aq]:\ None,\ \[aq]presort\[aq]:\ \[aq]deprecated\[aq],\ \[aq]random_state\[aq]:\ \-1,\ 
+\[aq]subsample\[aq]:\ 1.0,\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]validation_fraction\[aq]:\ 0.1,\ \[aq]verbose\[aq]:\ 0,\ 
+\[aq]warm_start\[aq]:\ False}\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 6. load(fname, dtype = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+having model information to be loaded.
+.PD 0
+.P
+.PD
+\f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
+Currently, expected input data\-type is either float or double
+(float64).
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads the model from the specified file (having little\-endian binary
+data).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+gbc.load("./out/gbt_classifier_model")\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 7. save(fname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+on which the target model is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+On success, it writes the model information (metadata and model) in the
+specified file as little\-endian binary data.
+Otherwise, it throws an exception.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ To\ save\ the\ gradient\ boosting\ classifier\ model
+gbc.save("./out/gbt_classifier_model")\ \ 
+\f[]
+.fi
+.PP
+This will save the gradient boosted classifier model on the path
+"/out/gbt_classifier_model".
+It would raise exception if the directory already exists with same name.
+.PP
+The \[aq]gbt_classifier_model\[aq] directory has
+.PP
+\f[B]gbt_classifier_model\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-label_map
+.PD 0
+.P
+.PD
+|\-\-\-\-\-metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-model
+.PP
+‘label_map' file contains information about labels mapped with their
+encoded value.
+.PD 0
+.P
+.PD
+The \[aq]metadata\[aq] file contains the number of classes, model kind
+and input datatype used for trained model.
+.PD 0
+.P
+.PD
+The \[aq]model\[aq] file contains the gradient boosting model saved in
+binary format.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 8. score(X, y, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or any python array\-like object or
+an instance of FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+Currently, it supports only dense data as input.
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: Any python array\-like object containing the true
+labels for X.
+It has shape \f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
+\f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
+intended weights for each input samples and it should be the shape of
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Calculate mean accuracy on the given test data and labels i.e.
+mean accuracy of self.predict(X) wrt.
+y.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ calculate\ mean\ accuracy\ score\ on\ given\ test\ data\ and\ labels
+gbc.score(mat,lbl)\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+1.00
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns an accuracy score of float type.
+.SS 9. debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It shows the target model information on the server side user terminal.
+It is mainly used for debugging purpose.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+gbc.debug_print()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+\-\-\-\-\-\-\-\-\ Classification\ Trees\ (GBTs)::\ \-\-\-\-\-\-\-\-
+#\ of\ trees:\ 2
+\-\-\-\-\ [0]\ \-\-\-\-
+\ \ #\ of\ nodes:\ 3,\ height:\ 1
+\ \ <1>\ Split:\ feature[3]\ <\ 0.25,\ IG:\ 1
+\ \ \ \\_\ (2)\ Predict:\ 1
+\ \ \ \\_\ (3)\ Predict:\ \-1
+\-\-\-\-\ [1]\ \-\-\-\-
+\ \ #\ of\ nodes:\ 3,\ height:\ 1
+\ \ <1>\ Split:\ feature[3]\ <\ 0.25,\ IG:\ 0.227349
+\ \ \ \\_\ (2)\ Predict:\ 0.476812
+\ \ \ \\_\ (3)\ Predict:\ \-0.476812
+\f[]
+.fi
+.PP
+It displays the gradient boosting tree having maximum depth of 4 and
+total 2 decision trees.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 10. release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+gbc.release()
+\f[]
+.fi
+.PP
+This will reset the after\-fit populated attributes (like classes_,
+n_features_) to None, along with releasing server side memory.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 11. is_fitted()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to confirm if the model is already fitted or not.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns \[aq]True\[aq], if the model is already fitted, otherwise, it
+returns \[aq]False\[aq].
+.SH SEE ALSO
+.PP
+dvector, rowmajor_matrix, colmajor_matrix,
+gradient_boost_tree_regressor, decision_tree_classifier
