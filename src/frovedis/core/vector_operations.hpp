@@ -675,9 +675,10 @@ vector_unique(const std::vector<T>& vec,
 // similar to numpy.bincount()
 template <class R, class I>
 std::vector<R> // 'R' can be int, size_t etc...
-vector_bincount(const std::vector<I>& vec) { // must be of integer type: int, short, long, size_t etc.
+vector_bincount(const std::vector<I>& vec,
+                I max = 0) { // I: must be of integer type: int, short, long, size_t etc.
   auto vecsz = vec.size();
-  if (vecsz == 0) return std::vector<R>(); // quick return
+  if (vecsz == 0) return std::vector<R>(max + 1, 0); // quick return
   auto negatives = vector_count_negatives(vec);
   require(negatives == 0, "bincount: negative element is detected!\n");
   std::vector<size_t> uidx, ucnt;
@@ -686,7 +687,7 @@ vector_bincount(const std::vector<I>& vec) { // must be of integer type: int, sh
   auto unqsz = unq.size();
   auto uptr = unq.data();
   auto cntptr = ucnt.data();
-  auto max = uptr[unqsz - 1]; // unq is a sorted array, last elem should be max
+  max = std::max(max, uptr[unqsz - 1]); // unq is a sorted array, last elem should be max
   std::vector<R> ret(max + 1, 0);
   auto rptr = ret.data();
   if (std::is_same<R, size_t>::value)
@@ -1350,7 +1351,7 @@ std::vector<R>
 vector_take(const std::vector<T>& vec,
             const std::vector<size_t>& idx) {
   auto vsz = vec.size();
-  require(vsz > 0, "vector_take: input vector is empty!");
+  if (vec.empty() || idx.empty()) return std::vector<R>();
   require(idx[vector_argmax(idx)] < vsz,
   "vector_take: idx contains index which is larger than input vector size!");
   auto sz = idx.size();
