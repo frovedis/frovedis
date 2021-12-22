@@ -86,7 +86,6 @@ namespace frovedis {
     template <class MATRIX>
     agglomerative_clustering<T>& 
     _fit(MATRIX& mat, bool input_movable) {
-      std::cout << "movable: " << input_movable << std::endl;
       auto link = this->linkage; 
       nleaves_ = mat.num_row;  
       model = input_movable ? agglomerative_training<T>(std::move(mat), link)
