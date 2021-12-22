@@ -1456,11 +1456,11 @@ dftable frov_df_max_impl(exrpc_ptr_t& df_proxy,
       use_dfcolumn use(df.raw_column(cols[0]));
       auto cur_max_col = df.column(cols[0]);
       if (skip_na) fillna_column_0_typed_helper(cur_max_col, types[0]);
+      cur_max_dv = cur_max_col->as_dvector_double();
       for (size_t i = 1; i < ncol; ++i) {
         use_dfcolumn use_col(df.raw_column(cols[i]));
         auto dfcol = df.column(cols[i]);
         if (skip_na) fillna_column_0_typed_helper(dfcol, types[i]);
-        cur_max_dv = cur_max_col->as_dvector_double();
         auto cur_col_dv = dfcol->as_dvector_double();
         cur_max_dv.mapv_partitions(max_row_wise_helper, 
                                    cur_col_dv.viewas_node_local());
@@ -1545,11 +1545,11 @@ dftable frov_df_min_impl(exrpc_ptr_t& df_proxy,
       use_dfcolumn use(df.raw_column(cols[0]));
       auto cur_min_col = df.column(cols[0]);
       if (skip_na) fillna_column_max_typed_helper(cur_min_col, types[0]);
+      cur_min_dv = cur_min_col->as_dvector_double();
       for (size_t i = 1; i < ncol; ++i) {
         use_dfcolumn use_col(df.raw_column(cols[i]));
         auto dfcol = df.column(cols[i]);
         if (skip_na) fillna_column_max_typed_helper(dfcol, types[i]);
-        cur_min_dv = cur_min_col->as_dvector_double();
         auto cur_col_dv = dfcol->as_dvector_double();
         cur_min_dv.mapv_partitions(min_row_wise_helper, cur_col_dv.viewas_node_local());
       }
