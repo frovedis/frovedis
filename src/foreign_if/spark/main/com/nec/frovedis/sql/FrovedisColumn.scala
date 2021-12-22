@@ -145,7 +145,7 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.IDIV => "(" + left + " // " + right + ")"
       case OPTYPE.FDIV => "(" + left + " / " + right + ")"
       case OPTYPE.MOD => "(" + left + " % " + right + ")"
-      case OPTYPE.POW => "(" + left + " ** " + right + ")"
+      case OPTYPE.POW => "POWER(" + left + ", " + right + ")"
       // --- aggregator ---
       case OPTYPE.aMAX  => "max(" + left + ")"
       case OPTYPE.aMIN  => "min(" + left + ")"
@@ -185,12 +185,13 @@ class FrovedisColumn extends java.io.Serializable {
   def isNotNull = new FrovedisColumn(this, dummy, OPTYPE.ISNOTNULL) 
 
   // TODO: support other mathematical operators...
-  def + (right: Any) = new FrovedisColumn(this, right, OPTYPE.ADD)
-  def - (right: Any) = new FrovedisColumn(this, right, OPTYPE.SUB)
-  def * (right: Any) = new FrovedisColumn(this, right, OPTYPE.MUL)
-  def / (right: Any) = new FrovedisColumn(this, right, OPTYPE.FDIV)
-  def % (right: Any) = new FrovedisColumn(this, right, OPTYPE.MOD)
-  def **(right: Any) = new FrovedisColumn(this, right, OPTYPE.POW)
+  def + (right: Any)  = new FrovedisColumn(this, right, OPTYPE.ADD)
+  def - (right: Any)  = new FrovedisColumn(this, right, OPTYPE.SUB)
+  def * (right: Any)  = new FrovedisColumn(this, right, OPTYPE.MUL)
+  def / (right: Any)  = new FrovedisColumn(this, right, OPTYPE.FDIV)
+  def % (right: Any)  = new FrovedisColumn(this, right, OPTYPE.MOD)
+  def **(right: Any)  = new FrovedisColumn(this, right, OPTYPE.POW)
+  def pow(right: Any) = new FrovedisColumn(this, right, OPTYPE.POW)
 
   def unary_- : FrovedisColumn = { // special case
     val ret = new FrovedisColumn()
