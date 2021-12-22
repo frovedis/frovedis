@@ -233,12 +233,32 @@ struct dfaggregator_min : public dfaggregator {
 
 struct dfaggregator_count_distinct : public dfaggregator {
   dfaggregator_count_distinct(const std::shared_ptr<dffunction>& col,
-                   const std::string& as_name) : dfaggregator(col,as_name) {}
+                              const std::string& as_name) :
+    dfaggregator(col,as_name) {}
   dfaggregator_count_distinct(const std::shared_ptr<dffunction>& col) :
     dfaggregator(col, "count_distinct(" + col->get_as() + ")") {}
   virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_count_distinct>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes);
+};
+
+struct dfaggregator_sum_distinct : public dfaggregator {
+  dfaggregator_sum_distinct(const std::shared_ptr<dffunction>& col,
+                            const std::string& as_name) :
+    dfaggregator(col,as_name) {}
+  dfaggregator_sum_distinct(const std::shared_ptr<dffunction>& col) :
+    dfaggregator(col, "sum_distinct(" + col->get_as() + ")") {}
+  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dfaggregator_sum_distinct>(*this);
   }
   virtual std::shared_ptr<dfcolumn>
   aggregate(dftable_base& table,
@@ -399,6 +419,18 @@ count_distinct_as(const std::string& col, const std::string& as);
 
 std::shared_ptr<dfaggregator>
 count_distinct_as(const std::shared_ptr<dffunction>& col, const std::string& as);
+
+std::shared_ptr<dfaggregator>
+sum_distinct(const std::string& col);
+
+std::shared_ptr<dfaggregator>
+sum_distinct(const std::shared_ptr<dffunction>& col);
+
+std::shared_ptr<dfaggregator>
+sum_distinct_as(const std::string& col, const std::string& as);
+
+std::shared_ptr<dfaggregator>
+sum_distinct_as(const std::shared_ptr<dffunction>& col, const std::string& as);
        
 }
 #endif

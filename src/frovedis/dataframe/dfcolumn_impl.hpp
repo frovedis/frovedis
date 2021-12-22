@@ -3450,16 +3450,17 @@ count_distinct_impl
       auto group_pos = lower_bound(merged_separate, idx_separate);
       auto group_posp = group_pos.data();
       auto group_pos_size = group_pos.size();
-      auto flatten_sized_idxp = flatten_sized_idx.data();
       auto flatten_valp = flatten_val.data();
       auto merged_separatep = merged_separate.data();
       auto max = std::numeric_limits<T>::max();
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
       for(size_t i = 0; i < group_pos_size-1; i++) {
-        auto pos = flatten_sized_idxp[merged_separatep[group_posp[i]]];
         auto lastdata = flatten_valp[merged_separatep[group_posp[i+1]]-1];
         auto tostore = group_posp[i+1] - group_posp[i];
         if(lastdata == max) tostore--;
-        newvalp[pos] = tostore;
+        newvalp[i] = tostore;
       }
       return newval;
     }, merge_map, exchanged_distinct_size, row_sizes);
@@ -3477,6 +3478,122 @@ typed_dfcolumn<T>::count_distinct
  node_local<size_t>& row_sizes) {
   return count_distinct_impl(val, local_grouped_idx, local_idx_split,
                              hash_divide, merge_map, row_sizes);
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+sum_distinct_impl
+(node_local<std::vector<T>>& val,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
+#ifndef DONOT_ALLOW_MAX_AS_VALUE
+  throw std::runtime_error
+    ("define DONOT_ALLOW_MAX_AS_VALUE to use sum_distinct");
+#endif
+  auto ret = std::make_shared<typed_dfcolumn<T>>();
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  auto local_distinct_size =
+    make_node_local_allocate<std::vector<std::vector<size_t>>>();
+  auto local_agg = val.map(count_distinct_helper<T>, local_grouped_idx,
+                           local_idx_split, hash_divide, local_distinct_size);
+  auto exchanged = alltoall_exchange(local_agg);
+  auto exchanged_distinct_size = alltoall_exchange(local_distinct_size);
+  auto newval = exchanged.map
+    (+[](std::vector<std::vector<T>>& exchanged,
+         std::vector<std::vector<size_t>>& merge_map,
+         std::vector<std::vector<size_t>>& exchanged_distinct_size,
+         std::vector<size_t>& nulls,
+         size_t row_size) {
+      std::vector<T> newval(row_size);
+      auto newvalp = newval.data();
+      auto flatten_val = flatten(exchanged);
+      auto nodesize = merge_map.size();
+      std::vector<std::vector<size_t>> sized_idx(nodesize);
+      for(size_t i = 0; i < nodesize; i++) {
+        sized_idx[i] = fill_sized_idx(merge_map[i].data(),
+                                      exchanged_distinct_size[i].data(),
+                                      merge_map[i].size());
+      }
+      auto flatten_sized_idx = flatten(sized_idx);
+      radix_sort(flatten_val, flatten_sized_idx);
+      radix_sort(flatten_sized_idx, flatten_val);
+      auto val_separate = set_separate(flatten_val);
+      auto idx_separate = set_separate(flatten_sized_idx);
+      auto merged_separate = set_union(val_separate, idx_separate);
+      auto group_pos = lower_bound(merged_separate, idx_separate);
+      auto group_posp = group_pos.data();
+      auto group_pos_size = group_pos.size();
+      auto flatten_valp = flatten_val.data();
+      auto merged_separatep = merged_separate.data();
+      auto distinct_val_size = merged_separate.size() - 1;
+      std::vector<T> distinct_val(distinct_val_size);
+      auto distinct_valp = distinct_val.data();
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+      for(size_t i = 0; i < distinct_val_size; i++) {
+        distinct_valp[i] = flatten_valp[merged_separatep[i]];
+      }
+      auto maxpos = vector_find_tmax(distinct_val);
+      auto maxpos_size = maxpos.size();
+      auto maxposp = maxpos.data();
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+      for(size_t i = 0; i < maxpos_size; i++) {
+        distinct_valp[maxposp[i]] = 0;
+      }
+      // always group_pos_size > 0
+      if(distinct_val_size / group_pos_size > GROUPBY_VLEN * 2) {
+        size_t end = 0;
+        size_t start = 0;
+        for(size_t i = 0; i < group_pos_size-1; i++) {
+          start = end;
+          end = group_posp[i+1];
+          T total = 0;
+          for(size_t j = start; j < end; j++) {
+            total += distinct_valp[j];
+          }
+          newvalp[i] = total;
+        }
+      } else {
+        group_by_vector_sum_helper(distinct_val, group_pos, newval);
+      }
+      std::vector<size_t> count(group_pos_size - 1);
+      auto countp = count.data();
+      for(size_t i = 0; i < group_pos_size - 1; i++) {
+        countp[i] = group_posp[i+1] - group_posp[i];
+      }
+      auto one = vector_find_one(count); // maybe only NULL
+      auto one_size = one.size();
+      std::vector<size_t> one_group_pos(one_size);
+      auto onep = one.data();
+      auto one_group_posp = one_group_pos.data();
+      for(size_t i = 0; i < one_size; i++) {
+        one_group_posp[i] = group_posp[onep[i]];
+      }
+      auto one_and_max = set_intersection(one_group_pos, maxpos);
+      nulls = lower_bound(group_pos, one_and_max);
+      return newval;
+    }, merge_map, exchanged_distinct_size, ret->nulls, row_sizes);
+  ret->val = std::move(newval);
+  ret->contain_nulls_check();
+  return ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::sum_distinct
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes) {
+  return sum_distinct_impl(val, local_grouped_idx, local_idx_split,
+                           hash_divide, merge_map, row_sizes);
 }
 
 template <class T>
