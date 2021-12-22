@@ -1092,40 +1092,26 @@ construct_connectivity_graph_helper(rowmajor_matrix_local<T>& dmat,
                                     bool needs_weight = false) {
   auto nrow = dmat.local_num_row;
   auto ncol = dmat.local_num_col;
-  std::vector<size_t> oneD_indx;
-  if (to_include_self) oneD_indx = vector_find_le(dmat.val, (T) eps);
-  else oneD_indx = vector_find_le_and_neq(dmat.val, (T) eps, (T) 0);
+  auto oneD_indx = vector_find_le(dmat.val, (T) eps);
+  if (!to_include_self) {
+    std::vector<size_t> self_index(nrow); auto selfp = self_index.data();
+    for (size_t i = 0; i < nrow; ++i) selfp[i] = i * ncol + i;  
+    oneD_indx = set_difference(oneD_indx, self_index);
+  }
   auto count = oneD_indx.size();
   std::vector<I> index(count);
   auto idxp = index.data();
   auto gidxp = oneD_indx.data();
-  std::vector<O> retoff;
-  if (to_include_self) {
-    for(size_t i = 0; i < count; ++i) idxp[i] = gidxp[i] / ncol; // 0-based row-index
-    // every row would have at least one entry (since it includes self)
-    // hence, only set_separate() would produce required offset for resultant graph
-    if (std::is_same<O, size_t>::value)  retoff = set_separate(index);
-    else retoff = vector_astype<O>(set_separate(index));
-    for(size_t i = 0; i < count; ++i) {
-       idxp[i] = gidxp[i] - (idxp[i] * ncol); // col-index [same as gidxp[i] % ncol]
-    }
-  }
-  else {
-    // making 1-based row index to avoid adding 0 at beginining of bincount result
-    for(size_t i = 0; i < count; ++i) idxp[i] = 1 + (gidxp[i] / ncol); // 1-based row-index
-    retoff = prefix_sum(vector_bincount<O>(index));
-    for(size_t i = 0; i < count; ++i) {
-      idxp[i] = gidxp[i] - ((idxp[i] - 1) * ncol); // col-index [same as gidxp[i] % ncol]
-    }
+  // making 1-based row index to avoid adding 0 at beginining of bincount result
+  for(size_t i = 0; i < count; ++i) idxp[i] = 1 + (gidxp[i] / ncol); // 1-based row-index
+  I max_bin = nrow; // required, since last row(s) of dmat can have values > eps
+  auto retoff = prefix_sum(vector_bincount<O>(index, max_bin));
+  for(size_t i = 0; i < count; ++i) {
+    idxp[i] = gidxp[i] - ((idxp[i] - 1) * ncol); // col-index [same as gidxp[i] % ncol]
   }
   crs_matrix_local<R,I,O> ret;
-  if (needs_weight) {
-    ret.val = vector_take<R>(dmat.val, oneD_indx);
-  }
-  else {
-    oneD_indx.clear(); // 1-D index is no longer needed, hence freed
-    ret.val = vector_ones<R>(count);
-  }
+  if (needs_weight) ret.val = vector_take<R>(dmat.val, oneD_indx);
+  else              ret.val = vector_ones<R>(count); 
   ret.idx.swap(index);
   ret.off.swap(retoff);
   ret.local_num_row = nrow;

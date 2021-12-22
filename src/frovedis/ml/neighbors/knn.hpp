@@ -543,7 +543,7 @@ knn_radius(MATRIX1& x_mat,
 
   bool need_distance = true; // needs correct distance for checking within radius
   bool need_weight = (mode == "distance");
-  bool include_self = true;
+  bool include_self = true; // x_mat and y_mat might differ
   auto nquery = y_mat.num_row;
   auto nsamples = x_mat.num_row;
   bool in_one_go = true; 
