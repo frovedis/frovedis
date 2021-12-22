@@ -20,6 +20,7 @@ from ..matrix.dvector import FrovedisULongDvector
 from ..matrix.dvector import FrovedisFloatDvector, FrovedisDoubleDvector
 from ..matrix.dvector import FrovedisStringDvector
 from ..matrix.dtype import DTYPE, TypeUtil, get_string_array_pointer
+from ..matrix.dtype import get_result_type
 from ..matrix.dense import FrovedisRowmajorMatrix
 from ..matrix.dense import FrovedisColmajorMatrix
 from ..matrix.crs import FrovedisCRSMatrix
@@ -3142,6 +3143,46 @@ class DataFrame(object):
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         return ret
+
+    @check_association
+    def sum2(self, axis=None, skipna=None, level=None,
+             numeric_only=None, min_count=0, **kwargs):
+        """
+        returns the sum of the values over the requested axis.
+        """
+        param  = check_stat_error( axis_ = axis, skipna_ = skipna, \
+                                   level_ = level, \
+                                   numeric_only_= numeric_only, \
+                                   min_count_ = min_count)
+        if param.numeric_only_ == False:
+            if DTYPE.STRING in self.__types:
+                raise TypeError("sum: Currently supported only for numeric columns!")
+        cols, types = self.__get_numeric_columns()
+        dtypes = [self.get_dtype(c) for c in cols]
+        res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
+
+        ncol = len(cols)
+        cols_arr = get_string_array_pointer(cols)
+        type_arr = np.asarray(types, dtype=c_short)
+        tptr = type_arr.ctypes.data_as(POINTER(c_short))
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_sum2(host, port, self.get(), \
+                                 cols_arr, tptr, ncol, \
+                                 param.axis_, res_type, \
+                                 param.skipna_, param.min_count_, \
+                                 self.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        # returns a series
+        ret = DataFrame(is_series=True)
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.num_row = dummy_df["nrow"]
+        ret.index = FrovedisColumn(names[0], types[0]) #setting index
+        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        return ret
+
 
     @check_association
     def min(self, axis=None, skipna=None, level=None,

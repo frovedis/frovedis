@@ -603,6 +603,39 @@ extern "C" {
     return to_py_dummy_df(ret);
   }
 
+  PyObject* df_sum2(const char* host, int port, long proxy,
+                    const char** cols, short* types, ulong size,
+                    int axis, short res_type, 
+                    bool skipna, int min_count,
+                    bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto cc = to_string_vector(cols, size);
+    auto tt = to_short_vector(types, size);
+    dummy_dftable ret;
+    try {
+      switch (res_type) {
+        case INT:    ret = exrpc_async(fm_node, frov_df_sum2<int>, df_proxy,
+                     cc, tt, axis, skipna, min_count, with_index).get(); break;
+        case LONG:   ret = exrpc_async(fm_node, frov_df_sum2<long>, df_proxy,
+                     cc, tt, axis, skipna, min_count, with_index).get(); break;
+        case ULONG:  ret = exrpc_async(fm_node, frov_df_sum2<unsigned long>, df_proxy,
+                     cc, tt, axis, skipna, min_count, with_index).get(); break;
+        case FLOAT:  ret = exrpc_async(fm_node, frov_df_sum2<float>, df_proxy,
+                     cc, tt, axis, skipna, min_count, with_index).get(); break;
+        case DOUBLE: ret = exrpc_async(fm_node, frov_df_sum2<double>, df_proxy,
+                     cc, tt, axis, skipna, min_count, with_index).get(); break;
+        default:     REPORT_ERROR(USER_ERROR, 
+                     "Unknown type for frovedis dataframe: " + std::to_string(res_type));
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
   PyObject* df_min(const char* host, int port, long proxy,
                     const char** cols, short* types, ulong size, 
                     int axis, bool skipna, bool with_index) {

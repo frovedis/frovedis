@@ -25,6 +25,10 @@ exrpc_ptr_t get_df_column_pointer(exrpc_ptr_t& df_proxy,
   return reinterpret_cast<exrpc_ptr_t>(cptr);
 }
 
+void fillna_helper(dftable& ret, const std::string& cname, 
+                   std::shared_ptr<dfcolumn>& dfcol, 
+                   double fillv);
+
 template <class T>
 std::vector<T>
 fillna_column_helper(std::vector<T>& val,
@@ -665,5 +669,152 @@ exrpc_ptr_t frov_df_filter_using_mask(exrpc_ptr_t& df_proxy,
                                       exrpc_ptr_t& mask_dvec_proxy);
 
 exrpc_ptr_t frov_df_distinct(exrpc_ptr_t& df_proxy);
+
+template <class T>
+dftable fillna_and_append_non_na_count(dftable_base& df, T fillv,
+                                       int axis, const std::string& cname) { // assumes no index
+  dftable ret;
+  auto cols = df.columns();
+  auto ncol = cols.size();
+  for (auto c: cols) {
+    use_dfcolumn use(df.raw_column(c));
+    auto dfcol = df.column(c);
+    fillna_helper(ret, c, dfcol, fillv);
+  }
+
+  auto count_na = df.count_nulls(axis); 
+  auto subt_fn = sub_im(ncol, "count");
+  use_dfcolumn use(subt_fn->columns_to_use(count_na));
+  ret.append_column(cname, subt_fn->execute(count_na));
+  return ret;
+}
+
+template <class T>
+dftable sum_axis0_helper(dftable_base& df,         
+                         std::vector<std::string>& cols,
+                         std::vector<short>& types,
+                         bool skip_na, int min_count) {
+  auto ncol = cols.size();
+  auto nrow = df.num_row();
+  checkAssumption (ncol == types.size());
+  std::vector<T> sum_res(ncol); auto resp = sum_res.data();
+  auto tmax = std::numeric_limits<T>::max();
+  
+  if (nrow < min_count) { // quick check: applicable for both with_na and skip_na
+    for(size_t i = 0; i < ncol; ++i) resp[i] = tmax;
+  } else {
+    for(size_t i = 0; i < ncol; ++i) {
+      auto col = cols[i];
+      auto is_invalid = skip_na ? df.count(col) < min_count  // non-nulls are less than threshold
+                                : df.count(col) != nrow;     // one or more nulls
+      if (is_invalid) resp[i] = tmax;
+      else {
+        switch(types[i]) {
+          case BOOL:
+          case INT:    resp[i] = df.sum<int>(col);           break;
+          case LONG:   resp[i] = df.sum<long>(col);          break;
+          case ULONG:  resp[i] = df.sum<unsigned long>(col); break;
+          case FLOAT:  resp[i] = df.sum<float>(col);         break;
+          case DOUBLE: resp[i] = df.sum<double>(col);        break;
+          default:     REPORT_ERROR(USER_ERROR, "sum on non-numeric column!\n");
+        }
+      }
+    }
+  }
+  dftable ret;
+  ret.append_column("index", make_dvector_scatter(cols));
+  ret.append_column("sum", make_dvector_scatter(sum_res), true);
+  return ret;
+}
+
+template <class T>
+dftable sum_axis1_helper(dftable_base& df,         
+                         std::vector<std::string>& cols,
+                         std::vector<short>& types,
+                         bool skip_na, int min_count,
+                         bool with_index) {
+  dftable ret;
+  auto ncol = cols.size();
+  if ((ncol == 0 ) || (ncol < min_count)){
+    append_null<T>(ret, "sum", df.num_row());
+  } 
+  else {
+   auto target_df = df.select(cols);  // no index in selected columns
+/*
+   if (skip_na) target_df = fillna_with_min(target_df);
+   std::string max = "max";
+   auto func = when({(~cols[0] >= ~cols[1]) >> ~cols[0]}, ~cols[1])->as(max);
+   target_df.call_function(func);
+   for(size_t i = 2; i < ncol; ++i) {
+     target_df.call_function(when({(~max >= ~cols[i]), ~max}, ~cols[i]); 
+     target_df.drop(max);
+     target_df.rename("when", max);
+   }
+
+   if (skip_na) {
+      std::string n_valid = "n_valid";
+      auto cond = when({(~n_valid >= min_count) >> ~max});
+      use_dfcolumn use(cond->columns_to_use(target_df));
+      ret.append_column(max, cond->execute(target_df));
+   } else {
+      use_dfcolumn use(target_df.raw_column(max));
+      ret.append_column(max, target_df.column(max));
+   }
+*/   
+    auto func = (ncol == 1) ? ~cols[0] + 0 : ~cols[0] + ~cols[1];
+    for(size_t i = 2; i < ncol; ++i) func = func + ~cols[i];
+    if (skip_na) {
+      std::string n_valid = "n_valid";
+      target_df = fillna_and_append_non_na_count(target_df, 0, 1, n_valid);
+      // if non-na in each row >= min_count, apply "func"; else put NULL
+      auto cond = when({(~n_valid >= min_count) >> func});
+      use_dfcolumn use(cond->columns_to_use(target_df));
+      ret.append_column("sum", cond->execute(target_df));
+    } else {
+      use_dfcolumn use(func->columns_to_use(target_df));
+      ret.append_column("sum", func->execute(target_df));
+    }
+  }
+  // use index as it is in input dataframe, if any. otherwise add index.
+  if (with_index) {
+    auto index_nm = df.columns()[0]; 
+    use_dfcolumn use(df.raw_column(index_nm));
+    ret.append_column(index_nm, df.column(index_nm))
+       .change_col_position(index_nm, 0);
+  } else {
+    ret.prepend_rowid<long>("index");
+  }
+  return ret;
+}
+
+template <class T>
+dftable frov_df_sum2_impl(exrpc_ptr_t& df_proxy,
+                          std::vector<std::string>& cols,
+                          std::vector<short>& types,
+                          int& axis, bool& skip_na, 
+                          int& min_count,
+                          bool& with_index) {
+  dftable ret;
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  if (axis == 0) 
+    ret = sum_axis0_helper<T>(df, cols, types, skip_na, min_count);
+  else if (axis == 1)
+    ret = sum_axis1_helper<T>(df, cols, types, skip_na, min_count, with_index);
+  else REPORT_ERROR(USER_ERROR, "sum: supported axis: 0 and 1 only!\n");
+  return ret;
+}
+
+template <class T>
+dummy_dftable 
+frov_df_sum2(exrpc_ptr_t& df_proxy,
+             std::vector<std::string>& cols,
+             std::vector<short>& types,
+             int& axis, bool& skip_na, int& min_count,
+             bool& with_index) {
+  auto ret = frov_df_sum2_impl<T>(df_proxy, cols, types, axis, skip_na, 
+                                  min_count, with_index);
+  auto retp = new dftable(std::move(ret));
+  return to_dummy_dftable(retp);
+}
 
 #endif
