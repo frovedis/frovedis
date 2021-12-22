@@ -47,6 +47,8 @@ object OPTYPE extends java.io.Serializable {
   val aMAD:      Short = 48
   val aCNT:      Short = 49
   val aSIZE:     Short = 50
+  val aDSUM:     Short = 51
+  val aDCNT:     Short = 52
 }
 
 class FrovedisColumn extends java.io.Serializable {
@@ -157,6 +159,8 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.aMAD  => "mad(" + left + ")"
       case OPTYPE.aCNT  => "count(" + left + ")"
       case OPTYPE.aSIZE => "count(1)"
+      case OPTYPE.aDSUM => "sum(DISTINCT " + left + ")"
+      case OPTYPE.aDCNT => "count(DISTINCT " + left + ")" // spark defaults: count(left)
       case _ => throw new IllegalArgumentException("Unsupported opt-type: " + opt)
     }
   }
@@ -287,6 +291,9 @@ object functions extends java.io.Serializable {
   def stddev   (col: FrovedisColumn) = col.get_agg(OPTYPE.aSTD)
   def mad      (col: FrovedisColumn) = col.get_agg(OPTYPE.aMAD)
   def count    (col: FrovedisColumn) = col.get_agg(OPTYPE.aCNT)
+
+  def sumDistinct   (col: FrovedisColumn) = col.get_agg(OPTYPE.aDSUM)
+  def countDistinct (col: FrovedisColumn) = col.get_agg(OPTYPE.aDCNT)
 
   // --- alias aggregate functions ---
   def mean(col: String)                = avg(col)

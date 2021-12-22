@@ -115,6 +115,8 @@ enum OPTYPE {
   aMAD = 48,
   aCNT = 49,
   aSIZE = 50,
+  aDSUM = 51,
+  aDCNT = 52
 };
 
 // [MODEL_ID] => [MODEL_KIND, MODEL_PTR]

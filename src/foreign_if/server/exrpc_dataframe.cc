@@ -2473,6 +2473,8 @@ exrpc_ptr_t get_dffunc_agg(exrpc_ptr_t& leftp,
     case aMAD:  opt = new std::shared_ptr<dfaggregator>(mad_as(left, cname)); break; // TODO: implement in library for grouped_table
     case aCNT:  opt = new std::shared_ptr<dfaggregator>(count_as(left, cname)); break;
     case aSIZE: opt = new std::shared_ptr<dfaggregator>(size_as(left, cname)); break;
+    case aDSUM: opt = new std::shared_ptr<dfaggregator>(sum_distinct_as(left, cname)); break;
+    case aDCNT: opt = new std::shared_ptr<dfaggregator>(count_distinct_as(left, cname)); break;
     default:     REPORT_ERROR(USER_ERROR, "Unsupported dfaggregator is requested!\n");
   }
   return reinterpret_cast<exrpc_ptr_t> (opt);

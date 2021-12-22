@@ -124,7 +124,9 @@ object FrovedisDataframeDemo {
                                          min("Age").as("min_age"),
                                          avg($$"Age").as("avg_age"),
                                          mean("Age").as("mean_age"),
-                                         sum($$"Age").as("sum_age"))
+                                         sum($$"Age").as("sum_age"),
+                                         sumDistinct($$"Age"),
+                                         countDistinct($$"Age"))
     gdf.show()
 
     // miscellaneous
@@ -136,7 +138,9 @@ object FrovedisDataframeDemo {
             max("Age").as("max_age"),
             sum($$"Age").as("sum_age"),
             avg($$"Age").as("avg_age"),
-            stddev("Age")).show()
+            stddev($$"Age")).show()
+            //sumDistinct($$"Age"),           // TODO
+            //countDistinct($$"Age")).show()  // TODO
 
     val dataWithNull = Seq(
       ("Smith","NY","M"),
