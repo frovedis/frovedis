@@ -267,6 +267,20 @@ public:
                  node_local<std::vector<std::vector<size_t>>>& hash_divide,
                  node_local<std::vector<std::vector<size_t>>>& merge_map,
                  node_local<size_t>& row_sizes) = 0;
+  virtual std::shared_ptr<dfcolumn>
+  first(node_local<std::vector<size_t>>& local_grouped_idx,
+        node_local<std::vector<size_t>>& local_idx_split,
+        node_local<std::vector<std::vector<size_t>>>& hash_divide,
+        node_local<std::vector<std::vector<size_t>>>& merge_map,
+        node_local<size_t>& row_sizes,
+        bool ignore_nulls) = 0;
+  virtual std::shared_ptr<dfcolumn>
+  last(node_local<std::vector<size_t>>& local_grouped_idx,
+       node_local<std::vector<size_t>>& local_idx_split,
+       node_local<std::vector<std::vector<size_t>>>& hash_divide,
+       node_local<std::vector<std::vector<size_t>>>& merge_map,
+       node_local<size_t>& row_sizes,
+       bool ignore_nulls) = 0;
   // for whole column
   virtual size_t count() = 0; // exclude null
   template <class T> T sum();
@@ -762,6 +776,20 @@ public:
                node_local<std::vector<std::vector<size_t>>>& hash_divide,
                node_local<std::vector<std::vector<size_t>>>& merge_map,
                node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn>
+  first(node_local<std::vector<size_t>>& local_grouped_idx,
+        node_local<std::vector<size_t>>& local_idx_split,
+        node_local<std::vector<std::vector<size_t>>>& hash_divide,
+        node_local<std::vector<std::vector<size_t>>>& merge_map,
+        node_local<size_t>& row_sizes,
+        bool ignore_nulls);
+  virtual std::shared_ptr<dfcolumn>
+  last(node_local<std::vector<size_t>>& local_grouped_idx,
+       node_local<std::vector<size_t>>& local_idx_split,
+       node_local<std::vector<std::vector<size_t>>>& hash_divide,
+       node_local<std::vector<std::vector<size_t>>>& merge_map,
+       node_local<size_t>& row_sizes,
+       bool ignore_nulls);
   virtual size_t count();
   T sum();
   virtual double avg();
@@ -1264,6 +1292,20 @@ public:
                node_local<size_t>& row_sizes) {
     throw std::runtime_error("sum_distinct of string is not defined");
   }
+  virtual std::shared_ptr<dfcolumn>
+  first(node_local<std::vector<size_t>>& local_grouped_idx,
+        node_local<std::vector<size_t>>& local_idx_split,
+        node_local<std::vector<std::vector<size_t>>>& hash_divide,
+        node_local<std::vector<std::vector<size_t>>>& merge_map,
+        node_local<size_t>& row_sizes,
+        bool ignore_nulls);
+  virtual std::shared_ptr<dfcolumn>
+  last(node_local<std::vector<size_t>>& local_grouped_idx,
+       node_local<std::vector<size_t>>& local_idx_split,
+       node_local<std::vector<std::vector<size_t>>>& hash_divide,
+       node_local<std::vector<std::vector<size_t>>>& merge_map,
+       node_local<size_t>& row_sizes,
+       bool ignore_nulls);
   virtual size_t count();
   std::string sum() {
     throw std::runtime_error("sum of string is not defined");
@@ -1625,6 +1667,20 @@ public:
                node_local<size_t>& row_sizes) {
     throw std::runtime_error("sum_distinct of dic_string is not defined");
   }
+  virtual std::shared_ptr<dfcolumn>
+  first(node_local<std::vector<size_t>>& local_grouped_idx,
+        node_local<std::vector<size_t>>& local_idx_split,
+        node_local<std::vector<std::vector<size_t>>>& hash_divide,
+        node_local<std::vector<std::vector<size_t>>>& merge_map,
+        node_local<size_t>& row_sizes,
+        bool ignore_nulls);
+  virtual std::shared_ptr<dfcolumn>
+  last(node_local<std::vector<size_t>>& local_grouped_idx,
+       node_local<std::vector<size_t>>& local_idx_split,
+       node_local<std::vector<std::vector<size_t>>>& hash_divide,
+       node_local<std::vector<std::vector<size_t>>>& merge_map,
+       node_local<size_t>& row_sizes,
+       bool ignore_nulls);
   virtual size_t count();
   dic_string sum() {
     throw std::runtime_error("sum of dic_string is not defined");
@@ -2005,6 +2061,24 @@ public:
                node_local<size_t>& row_sizes) {
     throw std::runtime_error("sum_distinct of raw_string is not defined");
   }
+  virtual std::shared_ptr<dfcolumn>
+  first(node_local<std::vector<size_t>>& local_grouped_idx,
+        node_local<std::vector<size_t>>& local_idx_split,
+        node_local<std::vector<std::vector<size_t>>>& hash_divide,
+        node_local<std::vector<std::vector<size_t>>>& merge_map,
+        node_local<size_t>& row_sizes,
+        bool ignore_nulls) {
+    throw std::runtime_error("first of raw_string is not defined");
+  }
+  virtual std::shared_ptr<dfcolumn>
+  last(node_local<std::vector<size_t>>& local_grouped_idx,
+       node_local<std::vector<size_t>>& local_idx_split,
+       node_local<std::vector<std::vector<size_t>>>& hash_divide,
+       node_local<std::vector<std::vector<size_t>>>& merge_map,
+       node_local<size_t>& row_sizes,
+       bool ignore_nulls) {
+    throw std::runtime_error("last of raw_string is not defined");
+  }
   virtual size_t count();
   raw_string sum() {
     throw std::runtime_error("sum of raw_string is not defined");
@@ -2217,6 +2291,20 @@ public:
                node_local<size_t>& row_sizes) {
     throw std::runtime_error("sum_distinct of datetime is not defined");
   }
+  virtual std::shared_ptr<dfcolumn>
+  first(node_local<std::vector<size_t>>& local_grouped_idx,
+        node_local<std::vector<size_t>>& local_idx_split,
+        node_local<std::vector<std::vector<size_t>>>& hash_divide,
+        node_local<std::vector<std::vector<size_t>>>& merge_map,
+        node_local<size_t>& row_sizes,
+        bool ignore_nulls);
+  virtual std::shared_ptr<dfcolumn>
+  last(node_local<std::vector<size_t>>& local_grouped_idx,
+       node_local<std::vector<size_t>>& local_idx_split,
+       node_local<std::vector<std::vector<size_t>>>& hash_divide,
+       node_local<std::vector<std::vector<size_t>>>& merge_map,
+       node_local<size_t>& row_sizes,
+       bool ignore_nulls);
   virtual double std(double ddof = 1.0) {
     throw std::runtime_error("std of datetime is not defined");
   }

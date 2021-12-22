@@ -173,6 +173,34 @@ aggregate(dftable_base& table,
 }
 
 std::shared_ptr<dfcolumn> 
+dfaggregator_first::
+aggregate(dftable_base& table,
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
+  dftable_base sliced_table = table;
+  auto colp = col->execute(sliced_table);
+  return colp->first(local_grouped_idx, local_idx_split, hash_divide,
+                     merge_map, row_sizes, ignore_nulls);
+}
+
+std::shared_ptr<dfcolumn> 
+dfaggregator_last::
+aggregate(dftable_base& table,
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes) {
+  dftable_base sliced_table = table;
+  auto colp = col->execute(sliced_table);
+  return colp->last(local_grouped_idx, local_idx_split, hash_divide,
+                    merge_map, row_sizes, ignore_nulls);
+}
+
+std::shared_ptr<dfcolumn> 
 dfaggregator_sum::
 whole_column_aggregate(dftable_base& table) {
   auto colp = col->execute(table);
@@ -606,6 +634,50 @@ std::shared_ptr<dfaggregator>
 sum_distinct_as(const std::shared_ptr<dffunction>& col,
                 const std::string& as) {
   return std::make_shared<dfaggregator_sum_distinct>(col,as);
+}
+
+std::shared_ptr<dfaggregator> first(const std::string& col, bool ignore_nulls) {
+  return std::make_shared<dfaggregator_first>(id_col(col),ignore_nulls);
+}
+
+std::shared_ptr<dfaggregator>
+first(const std::shared_ptr<dffunction>& col, bool ignore_nulls) {
+  return std::make_shared<dfaggregator_first>(col,ignore_nulls);
+}
+
+std::shared_ptr<dfaggregator> first_as(const std::string& col,
+                                       const std::string& as,
+                                       bool ignore_nulls) {
+  return std::make_shared<dfaggregator_first>(id_col(col),as,ignore_nulls);
+}
+
+std::shared_ptr<dfaggregator>
+first_as(const std::shared_ptr<dffunction>& col,
+         const std::string& as,
+         bool ignore_nulls) {
+  return std::make_shared<dfaggregator_first>(col,as,ignore_nulls);
+}
+
+std::shared_ptr<dfaggregator> last(const std::string& col, bool ignore_nulls) {
+  return std::make_shared<dfaggregator_last>(id_col(col),ignore_nulls);
+}
+
+std::shared_ptr<dfaggregator>
+last(const std::shared_ptr<dffunction>& col, bool ignore_nulls) {
+  return std::make_shared<dfaggregator_last>(col,ignore_nulls);
+}
+
+std::shared_ptr<dfaggregator> last_as(const std::string& col,
+                                      const std::string& as,
+                                      bool ignore_nulls) {
+  return std::make_shared<dfaggregator_last>(id_col(col),as,ignore_nulls);
+}
+
+std::shared_ptr<dfaggregator>
+last_as(const std::shared_ptr<dffunction>& col,
+        const std::string& as,
+        bool ignore_nulls) {
+  return std::make_shared<dfaggregator_last>(col,as,ignore_nulls);
 }
 
 }

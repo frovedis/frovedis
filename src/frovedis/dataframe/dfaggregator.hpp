@@ -269,6 +269,52 @@ struct dfaggregator_sum_distinct : public dfaggregator {
             node_local<size_t>& row_sizes);
 };
 
+struct dfaggregator_first : public dfaggregator {
+  dfaggregator_first(const std::shared_ptr<dffunction>& col,
+                     const std::string& as_name,
+                     bool ignore_nulls = false) :
+    dfaggregator(col,as_name), ignore_nulls(ignore_nulls) {}
+  dfaggregator_first(const std::shared_ptr<dffunction>& col,
+                     bool ignore_nulls = false) :
+    dfaggregator(col, "first(" + col->get_as() + ")"),
+    ignore_nulls(ignore_nulls) {}
+  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dfaggregator_first>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes);
+  bool ignore_nulls;
+};
+
+struct dfaggregator_last : public dfaggregator {
+  dfaggregator_last(const std::shared_ptr<dffunction>& col,
+                    const std::string& as_name,
+                    bool ignore_nulls = false) :
+    dfaggregator(col,as_name), ignore_nulls(ignore_nulls) {}
+  dfaggregator_last(const std::shared_ptr<dffunction>& col,
+                    bool ignore_nulls = false) :
+    dfaggregator(col, "last(" + col->get_as() + ")"),
+    ignore_nulls(ignore_nulls) {}
+  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dfaggregator_last>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes);
+  bool ignore_nulls;
+};
+
 std::shared_ptr<dfaggregator>
 sum(const std::string& col);
 
@@ -431,6 +477,34 @@ sum_distinct_as(const std::string& col, const std::string& as);
 
 std::shared_ptr<dfaggregator>
 sum_distinct_as(const std::shared_ptr<dffunction>& col, const std::string& as);
+
+std::shared_ptr<dfaggregator>
+first(const std::string& col, bool ignore_nulls = false);
+
+std::shared_ptr<dfaggregator>
+first(const std::shared_ptr<dffunction>& col, bool ignore_nulls = false);
+
+std::shared_ptr<dfaggregator>
+first_as(const std::string& col, const std::string& as,
+         bool ignore_nulls = false);
+
+std::shared_ptr<dfaggregator>
+first_as(const std::shared_ptr<dffunction>& col, const std::string& as,
+         bool ignore_nulls = false);
+
+std::shared_ptr<dfaggregator>
+last(const std::string& col, bool ignore_nulls = false);
+
+std::shared_ptr<dfaggregator>
+last(const std::shared_ptr<dffunction>& col, bool ignore_nulls = false);
+
+std::shared_ptr<dfaggregator>
+last_as(const std::string& col, const std::string& as,
+        bool ignore_nulls = false);
+
+std::shared_ptr<dfaggregator>
+last_as(const std::shared_ptr<dffunction>& col, const std::string& as,
+        bool ignore_nulls = false);
        
 }
 #endif

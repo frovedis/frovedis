@@ -3418,7 +3418,7 @@ count_distinct_impl
   throw std::runtime_error
     ("define DONOT_ALLOW_MAX_AS_VALUE to use count_distinct");
 #endif
-  auto ret = std::make_shared<typed_dfcolumn<T>>();
+  auto ret = std::make_shared<typed_dfcolumn<size_t>>();
   ret->nulls = make_node_local_allocate<std::vector<size_t>>();
   auto local_distinct_size =
     make_node_local_allocate<std::vector<std::vector<size_t>>>();
@@ -3431,7 +3431,7 @@ count_distinct_impl
          std::vector<std::vector<size_t>>& merge_map,
          std::vector<std::vector<size_t>>& exchanged_distinct_size,
          size_t row_size) {
-      std::vector<T> newval(row_size);
+      std::vector<size_t> newval(row_size);
       auto newvalp = newval.data();
       auto flatten_val = flatten(exchanged);
       auto nodesize = merge_map.size();
@@ -3595,6 +3595,286 @@ typed_dfcolumn<T>::sum_distinct
   return sum_distinct_impl(val, local_grouped_idx, local_idx_split,
                            hash_divide, merge_map, row_sizes);
 }
+
+template <class T>
+std::vector<std::vector<T>>
+first_helper(std::vector<T>& org_val,
+             std::vector<size_t>& grouped_idx,
+             std::vector<size_t>& idx_split,
+             std::vector<std::vector<size_t>>& hash_divide,
+             bool ignore_nulls) {
+  T* org_valp = org_val.data();
+  size_t valsize = grouped_idx.size();
+  std::vector<T> val(valsize);
+  auto valp = val.data();
+  auto grouped_idxp = grouped_idx.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < valsize; i++) {
+    valp[i] = org_valp[grouped_idxp[i]];
+  }
+  size_t splitsize = idx_split.size();
+  std::vector<T> ret(splitsize-1);
+  auto retp = ret.data();
+  size_t* idx_splitp = idx_split.data();
+  auto max = std::numeric_limits<T>::max();
+  if(!ignore_nulls) {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < splitsize-1; i++) {
+      retp[i] = valp[idx_splitp[i]];
+    }
+  } else {
+    // less vectorized, but small computation anyway
+    for(size_t i = 0; i < splitsize-1; i++) {
+      auto start = idx_splitp[i];
+      auto end = idx_splitp[i+1];
+      retp[i] = max;
+      for(size_t j = start; j < end; j++) {
+        auto crnt = valp[j];
+        if(crnt == max) continue;
+        else {
+          retp[i] = crnt;
+          break;
+        }
+      }
+    }
+  }
+  auto nodesize = hash_divide.size();
+  std::vector<std::vector<T>> hashed_ret(nodesize);
+  for(size_t i = 0; i < nodesize; i++) {
+    auto each_size = hash_divide[i].size();
+    hashed_ret[i].resize(each_size);
+    auto hash_dividep = hash_divide[i].data();
+    auto hashed_retp = hashed_ret[i].data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t j = 0; j < each_size; j++) {
+      hashed_retp[j] = retp[hash_dividep[j]];
+    }
+  }
+  return hashed_ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+first_impl
+(node_local<std::vector<T>>& val,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ bool ignore_nulls) {
+#ifndef DONOT_ALLOW_MAX_AS_VALUE
+  throw std::runtime_error
+    ("define DONOT_ALLOW_MAX_AS_VALUE to use first");
+#endif
+  auto bignore_nulls = broadcast(ignore_nulls);
+  auto ret = std::make_shared<typed_dfcolumn<T>>();
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  auto local_agg = val.map(first_helper<T>, local_grouped_idx,
+                           local_idx_split, hash_divide,
+                           bignore_nulls);
+  auto exchanged = alltoall_exchange(local_agg);
+  auto newval = exchanged.map
+    (+[](std::vector<std::vector<T>>& exchanged,
+         std::vector<std::vector<size_t>>& merge_map,
+         std::vector<size_t>& nulls,
+         bool ignore_nulls,
+         size_t row_size) {
+      std::vector<T> newval(row_size);
+      auto newvalp = newval.data();
+      auto max = std::numeric_limits<T>::max();
+      if(ignore_nulls) {
+        for(size_t i = 0; i < row_size; i++) newvalp[i] = max;
+      }
+      auto exchanged_size = exchanged.size();
+      for(size_t i = 0; i < exchanged_size; i++) {
+        auto currentp = exchanged[exchanged_size - 1 - i].data();
+        auto current_size = exchanged[exchanged_size - 1 - i].size();
+        auto merge_mapp = merge_map[exchanged_size - 1 - i].data();
+        if(!ignore_nulls) {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+          for(size_t j = 0; j < current_size; j++) {
+            newvalp[merge_mapp[j]] = currentp[j];
+          }
+        } else {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+          for(size_t j = 0; j < current_size; j++) {
+            if(currentp[j] != max)
+              newvalp[merge_mapp[j]] = currentp[j];
+          }
+        }
+      }
+      nulls = vector_find_tmax(newval); 
+      return newval;
+    }, merge_map, ret->nulls, bignore_nulls, row_sizes);
+  ret->val = std::move(newval);
+  ret->contain_nulls_check();
+  return ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::first
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ bool ignore_nulls) {
+  return first_impl(val, local_grouped_idx, local_idx_split,
+                    hash_divide, merge_map, row_sizes, ignore_nulls);
+}
+
+template <class T>
+std::vector<std::vector<T>>
+last_helper(std::vector<T>& org_val,
+            std::vector<size_t>& grouped_idx,
+            std::vector<size_t>& idx_split,
+            std::vector<std::vector<size_t>>& hash_divide,
+            bool ignore_nulls) {
+  T* org_valp = org_val.data();
+  size_t valsize = grouped_idx.size();
+  std::vector<T> val(valsize);
+  auto valp = val.data();
+  auto grouped_idxp = grouped_idx.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < valsize; i++) {
+    valp[i] = org_valp[grouped_idxp[i]];
+  }
+  size_t splitsize = idx_split.size();
+  std::vector<T> ret(splitsize-1);
+  auto retp = ret.data();
+  size_t* idx_splitp = idx_split.data();
+  auto max = std::numeric_limits<T>::max();
+  if(!ignore_nulls) {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < splitsize-1; i++) {
+      retp[i] = valp[idx_splitp[i+1]-1];
+    }
+  } else {
+    // less vectorized, but small computation anyway
+    for(size_t i = 0; i < splitsize-1; i++) {
+      auto start = idx_splitp[i];
+      auto end = idx_splitp[i+1];
+      auto len = end - start;
+      retp[i] = max;
+      for(size_t j = 0; j < len; j++) {
+        auto crnt = valp[end - 1 - j];
+        if(crnt == max) continue;
+        else {
+          retp[i] = crnt;
+          break;
+        }
+      }
+    }
+  }
+  auto nodesize = hash_divide.size();
+  std::vector<std::vector<T>> hashed_ret(nodesize);
+  for(size_t i = 0; i < nodesize; i++) {
+    auto each_size = hash_divide[i].size();
+    hashed_ret[i].resize(each_size);
+    auto hash_dividep = hash_divide[i].data();
+    auto hashed_retp = hashed_ret[i].data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t j = 0; j < each_size; j++) {
+      hashed_retp[j] = retp[hash_dividep[j]];
+    }
+  }
+  return hashed_ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+last_impl
+(node_local<std::vector<T>>& val,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ bool ignore_nulls) {
+#ifndef DONOT_ALLOW_MAX_AS_VALUE
+  throw std::runtime_error
+    ("define DONOT_ALLOW_MAX_AS_VALUE to use last");
+#endif
+  auto bignore_nulls = broadcast(ignore_nulls);
+  auto ret = std::make_shared<typed_dfcolumn<T>>();
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  auto local_agg = val.map(last_helper<T>, local_grouped_idx,
+                           local_idx_split, hash_divide,
+                           bignore_nulls);
+  auto exchanged = alltoall_exchange(local_agg);
+  auto newval = exchanged.map
+    (+[](std::vector<std::vector<T>>& exchanged,
+         std::vector<std::vector<size_t>>& merge_map,
+         std::vector<size_t>& nulls,
+         bool ignore_nulls,
+         size_t row_size) {
+      std::vector<T> newval(row_size);
+      auto newvalp = newval.data();
+      auto max = std::numeric_limits<T>::max();
+      if(ignore_nulls) {
+        for(size_t i = 0; i < row_size; i++) newvalp[i] = max;
+      }
+      auto exchanged_size = exchanged.size();
+      for(size_t i = 0; i < exchanged_size; i++) {
+        auto currentp = exchanged[i].data();
+        auto current_size = exchanged[i].size();
+        auto merge_mapp = merge_map[i].data();
+        if(!ignore_nulls) {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+          for(size_t j = 0; j < current_size; j++) {
+            newvalp[merge_mapp[j]] = currentp[j];
+          }
+        } else {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+          for(size_t j = 0; j < current_size; j++) {
+            if(currentp[j] != max)
+              newvalp[merge_mapp[j]] = currentp[j];
+          }
+        }
+      }
+      nulls = vector_find_tmax(newval); 
+      return newval;
+    }, merge_map, ret->nulls, bignore_nulls, row_sizes);
+  ret->val = std::move(newval);
+  ret->contain_nulls_check();
+  return ret;
+}
+
+template <class T>
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<T>::last
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ bool ignore_nulls) {
+  return last_impl(val, local_grouped_idx, local_idx_split,
+                   hash_divide, merge_map, row_sizes, ignore_nulls);
+}
+
 
 template <class T>
 size_t typed_dfcolumn<T>::count() {

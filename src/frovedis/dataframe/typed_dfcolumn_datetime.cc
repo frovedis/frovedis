@@ -402,6 +402,128 @@ typed_dfcolumn<datetime>::min
   return ret;
 }
 
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::first
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ bool ignore_nulls) {
+#ifndef DONOT_ALLOW_MAX_AS_VALUE
+  throw std::runtime_error
+    ("define DONOT_ALLOW_MAX_AS_VALUE to use first");
+#endif
+  auto bignore_nulls = broadcast(ignore_nulls);
+  auto ret = std::make_shared<typed_dfcolumn<datetime>>();
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  auto local_agg = val.map(first_helper<datetime_t>, local_grouped_idx,
+                           local_idx_split, hash_divide,
+                           bignore_nulls);
+  auto exchanged = alltoall_exchange(local_agg);
+  auto newval = exchanged.map
+    (+[](std::vector<std::vector<datetime_t>>& exchanged,
+         std::vector<std::vector<size_t>>& merge_map,
+         std::vector<size_t>& nulls,
+         bool ignore_nulls,
+         size_t row_size) {
+      std::vector<datetime_t> newval(row_size);
+      auto newvalp = newval.data();
+      auto max = std::numeric_limits<datetime_t>::max();
+      if(ignore_nulls) {
+        for(size_t i = 0; i < row_size; i++) newvalp[i] = max;
+      }
+      auto exchanged_size = exchanged.size();
+      for(size_t i = 0; i < exchanged_size; i++) {
+        auto currentp = exchanged[exchanged_size - 1 - i].data();
+        auto current_size = exchanged[exchanged_size - 1 - i].size();
+        auto merge_mapp = merge_map[exchanged_size - 1 - i].data();
+        if(!ignore_nulls) {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+          for(size_t j = 0; j < current_size; j++) {
+            newvalp[merge_mapp[j]] = currentp[j];
+          }
+        } else {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+          for(size_t j = 0; j < current_size; j++) {
+            if(currentp[j] != max)
+              newvalp[merge_mapp[j]] = currentp[j];
+          }
+        }
+      }
+      nulls = vector_find_tmax(newval); 
+      return newval;
+    }, merge_map, ret->nulls, bignore_nulls, row_sizes);
+  ret->val = std::move(newval);
+  ret->contain_nulls_check();
+  return ret;
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::last
+(node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ bool ignore_nulls) {
+#ifndef DONOT_ALLOW_MAX_AS_VALUE
+  throw std::runtime_error
+    ("define DONOT_ALLOW_MAX_AS_VALUE to use last");
+#endif
+  auto bignore_nulls = broadcast(ignore_nulls);
+  auto ret = std::make_shared<typed_dfcolumn<datetime>>();
+  ret->nulls = make_node_local_allocate<std::vector<size_t>>();
+  auto local_agg = val.map(last_helper<datetime_t>, local_grouped_idx,
+                           local_idx_split, hash_divide,
+                           bignore_nulls);
+  auto exchanged = alltoall_exchange(local_agg);
+  auto newval = exchanged.map
+    (+[](std::vector<std::vector<datetime_t>>& exchanged,
+         std::vector<std::vector<size_t>>& merge_map,
+         std::vector<size_t>& nulls,
+         bool ignore_nulls,
+         size_t row_size) {
+      std::vector<datetime_t> newval(row_size);
+      auto newvalp = newval.data();
+      auto max = std::numeric_limits<datetime_t>::max();
+      if(ignore_nulls) {
+        for(size_t i = 0; i < row_size; i++) newvalp[i] = max;
+      }
+      auto exchanged_size = exchanged.size();
+      for(size_t i = 0; i < exchanged_size; i++) {
+        auto currentp = exchanged[i].data();
+        auto current_size = exchanged[i].size();
+        auto merge_mapp = merge_map[i].data();
+        if(!ignore_nulls) {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+          for(size_t j = 0; j < current_size; j++) {
+            newvalp[merge_mapp[j]] = currentp[j];
+          }
+        } else {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+          for(size_t j = 0; j < current_size; j++) {
+            if(currentp[j] != max)
+              newvalp[merge_mapp[j]] = currentp[j];
+          }
+        }
+      }
+      nulls = vector_find_tmax(newval); 
+      return newval;
+    }, merge_map, ret->nulls, bignore_nulls, row_sizes);
+  ret->val = std::move(newval);
+  ret->contain_nulls_check();
+  return ret;
+}
+
 void typed_dfcolumn<datetime>::debug_print() {
   std::cout << "dtype: " << dtype() << std::endl;
   std::cout << "values: ";
