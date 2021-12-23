@@ -123,7 +123,17 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_sum2<float>);
   expose(frov_df_sum2<double>);
   expose(frov_df_min);
+  expose(frov_df_min2<int>);
+  expose(frov_df_min2<long>);
+  expose(frov_df_min2<unsigned long>);
+  expose(frov_df_min2<float>);
+  expose(frov_df_min2<double>);
   expose(frov_df_max);
+  expose(frov_df_max2<int>);
+  expose(frov_df_max2<long>);
+  expose(frov_df_max2<unsigned long>);
+  expose(frov_df_max2<float>);
+  expose(frov_df_max2<double>);
   expose(frovedis_gdf_aggr_with_ddof);
   expose(frov_df_mode_cols);
   expose(frov_df_mode_rows);
