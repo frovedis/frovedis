@@ -101,6 +101,7 @@ consider when looking for the best split:
 - If 'sqrt', then it will be set as **sqrt(n_features_)** (same as 'auto').  
 - If 'log2', then it will be set as **log2(n_features_)**.  
 - If None, then it will be set as **n_features_**. (Default: 'auto')  
+
 **_max\_leaf\_nodes_**: An unused parameter. (Default: None)  
 **_min\_impurity\_decrease_**: A positive double (float64) parameter. A node will be split 
 if this split induces a decrease of the impurity greater than or equal to this value. (Default: 0.0)  

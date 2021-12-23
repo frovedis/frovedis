@@ -1,44 +1,21 @@
-.TH "Linear SVM" "" "" "" ""
+.TH "LinearSVC" "" "" "" ""
 .SH NAME
 .PP
-Linear SVM (Support Vector Machines) \- A classification algorithm used
-to predict the binary output with hinge loss.
+LinearSVC (Support Vector Classification) \- A classification algorithm
+used to predict the binary output with hinge loss.
 .SH SYNOPSIS
-.PP
-class frovedis.mllib.svm.LinearSVC(penalty=\[aq]l2\[aq],
-loss=\[aq]hinge\[aq], dual=True,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  tol=1e\-4, C=1.0,
-multi_class=\[aq]ovr\[aq],
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  fit_intercept=True,
-intercept_scaling=1,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  class_weight=None, verbose=0,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  random_state=None, max_iter=1000,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  lr_rate=0.01, solver=\[aq]sag\[aq],
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  warm_start=False)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.svm.LinearSVC(penalty=\[aq]l2\[aq],\ loss=\[aq]hinge\[aq],\ dual=True,\ tol=1e\-4,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ C=1.0,\ multi_class=\[aq]ovr\[aq],\ fit_intercept=True,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ intercept_scaling=1,\ class_weight=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0,\ random_state=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=1000,\ lr_rate=0.01,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ solver=\[aq]sag\[aq],\ warm_start=False)\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y, sample_weight = None)
@@ -58,6 +35,14 @@ save(fname)
 .P
 .PD
 score(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
 .PD 0
 .P
 .PD
@@ -89,10 +74,11 @@ L(w;x,y)\ :=\ max{0,\ 1\-ywTx}
 \f[]
 .fi
 .PP
-Where the vectors x are the training data examples and y are their
-corresponding labels (Frovedis supports any values as for labels, but
-internally it encodes the input binary labels to \-1 and 1, before
-training at Frovedis server) which we want to predict.
+During training, the input \f[B]X\f[] is the training data and
+\f[B]y\f[] are their corresponding label values (Frovedis supports any
+values as for labels, but internally it encodes the input binary labels
+to \-1 and 1, before training at Frovedis server) which we want to
+predict.
 w is the linear model (also known as weight) which uses a single
 weighted sum of features to make a prediction.
 Linear SVM supports ZERO, L1 and L2 regularization to address the
@@ -102,11 +88,11 @@ The gradient of the hinge loss is: \-y.x, if ywTx < 1, 0 otherwise.
 .PD 0
 .P
 .PD
-The gradient of the L1 regularizer is: sign(w)
+The gradient of the L1 regularizer is: \f[B]sign(w)\f[]
 .PD 0
 .P
 .PD
-And The gradient of the L2 regularizer is: w
+And The gradient of the L2 regularizer is: \f[B]w\f[]
 .PP
 For binary classification problems, the algorithm outputs a binary svm
 model.
@@ -168,11 +154,12 @@ Unlike Scikit\-learn, currently it supports only hinge loss.
 .PD 0
 .P
 .PD
-\f[I]\f[B]dual\f[]\f[]: A boolean parameter (unused)
+\f[I]\f[B]dual\f[]\f[]: An unused parameter.
+(Default: True)
 .PD 0
 .P
 .PD
-\f[I]\f[B]tol\f[]\f[]: A double(float64) parameter specifying the
+\f[I]\f[B]tol\f[]\f[]: A double (float64) parameter specifying the
 convergence tolerance value.
 It must be zero or a positive value.
 (Default: 1e\-4)
@@ -185,9 +172,8 @@ of regularization strength.
 .PD 0
 .P
 .PD
-\f[I]\f[B]multi_class\f[]\f[]: A string object specifying the type of
-classification.
-(unused)
+\f[I]\f[B]multi_class\f[]\f[]: An unused parameter.
+(Default: \[aq]ovr\[aq])
 .PD 0
 .P
 .PD
@@ -197,27 +183,26 @@ a constant (intercept) should be added to the decision function.
 .PD 0
 .P
 .PD
-\f[I]\f[B]intercept_scaling\f[]\f[]: An integer parameter.
-(unused)
+\f[I]\f[B]intercept_scaling\f[]\f[]: An unused parameter.
+(Default: 1)
 .PD 0
 .P
 .PD
-\f[I]\f[B]class_weight\f[]\f[]: A python dictionary or a string object.
-(unused)
+\f[I]\f[B]class_weight\f[]\f[]: An unused parameter.
+(Default: \[aq]None\[aq])
 .PD 0
 .P
 .PD
 \f[I]\f[B]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
-Its value is set as 0 by default(for INFO mode).
-But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for getting
-training time logs from frovedis server.
+Its value is set as 0 by default (for INFO mode).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
 .PD 0
 .P
 .PD
-\f[I]\f[B]random_state\f[]\f[]: An integer, None or RandomState
-instance.
-(unused)
+\f[I]\f[B]random_state\f[]\f[]: An unused parameter.
+(Default: \[aq]None\[aq])
 .PD 0
 .P
 .PD
@@ -227,7 +212,7 @@ maximum iteration count.
 .PD 0
 .P
 .PD
-\f[I]\f[B]lr_rate\f[]\f[]: A double(float64) parameter containing the
+\f[I]\f[B]lr_rate\f[]\f[]: A double (float64) parameter containing the
 learning rate.
 (Default: 0.01)
 .PD 0
@@ -252,27 +237,27 @@ otherwise, just erase the previous solution.
 .P
 .PD
 \f[I]\f[B]coef_\f[]\f[]: It is a python ndarray(containing float or
-double(float64) typed values depending on data\-type of input matrix
+double (float64) typed values depending on data\-type of input matrix
 (X)).
 It is the weights assigned to the features.
-It has shape (1, n_features).
+It has shape \f[B](1, n_features)\f[].
 .PD 0
 .P
 .PD
 \f[I]\f[B]classes_\f[]\f[]: It is a python ndarray(any type) of unique
 labels given to the classifier during training.
-It has shape (n_classes,).
+It has shape \f[B](n_classes,)\f[].
 .PD 0
 .P
 .PD
-\f[I]\f[B]intercept_\f[]\f[]: It is a python ndarray(float or
-double(float64) values depending on input matrix data type) and has
-shape(1,).
+\f[I]\f[B]intercept_\f[]\f[]: It is a python ndarray(float or double
+(float64) values depending on input matrix data type) and has shape
+\f[B](1,)\f[].
 .PD 0
 .P
 .PD
-\f[I]\f[B]n_iter\f[]\f[]: It is a python ndarray of shape(1,) and has
-integer data.
+\f[I]\f[B]n_iter\f[]\f[]: It is a python ndarray of shape \f[B](1,)\f[]
+and has integer data.
 It is used to get the actual iteration point at which the problem is
 converged.
 .PP
@@ -301,18 +286,22 @@ It simply returns "self" reference.
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisColmajorMatrix for dense data.
-It has shape(n_samples, n_features).
+It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
 \f[I]\f[B]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+FrovedisDvector containing the target labels.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
 \f[I]\f[B]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
-(nsamples, ).
+\f[B](n_samples, )\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -380,7 +369,7 @@ It simply returns "self" reference.
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data.
-It has shape(n_samples, n_features).
+It has shape \f[B](n_samples, n_features)\f[].
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -432,9 +421,9 @@ Output
 .PD 0
 .P
 .PD
-It returns a numpy array of double(float64) type containing the
+It returns a numpy array of double (float64) type containing the
 predicted outputs.
-It has shape(n_samples,).
+It has shape \f[B](n_samples,)\f[].
 .SS 4. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
@@ -447,7 +436,8 @@ model information to be loaded.
 .P
 .PD
 \f[B]dtype\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -484,8 +474,8 @@ the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information (weight values etc.) in the
-specified file as little\-endian binary data.
+On success, it writes the model information (label_map, metadata and
+model) in the specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -496,6 +486,40 @@ For example,
 svm.save("./out/SVMModel")
 \f[]
 .fi
+.PP
+The SVMModel contains below directory structure:
+.PD 0
+.P
+.PD
+\f[B]SVMModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-label_map
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-model
+.PP
+\[aq]label_map\[aq] contains information about labels mapped with their
+encoded value.
+.PD 0
+.P
+.PD
+\[aq]metadata\[aq] represents the detail about model_kind and datatype
+of training vector.
+.PD 0
+.P
+.PD
+Here, the model file contains information about model_id, model_kind and
+datatype of training vector.
+.PP
+This will save the LinearSVC model on the path ‘/out/SVMModel'.
+It would raise exception if the directory already exists with same name.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -511,17 +535,22 @@ It returns nothing.
 \f[B]X\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data.
-It has shape(n_samples, n_features).
+It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
-\f[B]y\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+\f[I]\f[B]y\f[]\f[]: Any python array\-like object containing the target
+labels.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
 \f[B]sample_weight\f[]: A python narray containing the intended weights
-for each input samples and it should be the shape of (nsamples, ).
+for each input samples and it should be the shape of \f[B](n_samples,
+)\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 (Default: None)
@@ -557,7 +586,103 @@ Output
 .P
 .PD
 It returns an accuracy score of float type.
-.SS 7. debug_print()
+.SS 7. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by LinearSVC.
+It is used to get parameters and their values of LinearSVC class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print(svm.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]C\[aq]:\ 1.0,\ \[aq]class_weight\[aq]:\ None,\ \[aq]dual\[aq]:\ True,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]intercept_scaling\[aq]:\ 1,
+\[aq]loss\[aq]:\ \[aq]hinge\[aq],\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\[aq]multi_class\[aq]:\ \[aq]ovr\[aq],\ \[aq]penalty\[aq]:\ \[aq]l2\[aq],
+\[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\[aq]warm_start\[aq]:\ False}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 8. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by LinearSVC,
+used to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("Get\ parameters\ before\ setting:")\ 
+print(svm.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+svm.set_params(\ penalty=\[aq]l1\[aq],\ dual=False)
+print("Get\ parameters\ after\ setting:")\ 
+print(svm.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Get\ parameters\ before\ setting:\ 
+{\[aq]C\[aq]:\ 1.0,\ \[aq]class_weight\[aq]:\ None,\ \[aq]dual\[aq]:\ True,\ \[aq]fit_intercept\[aq]:\ True,\ 
+\[aq]intercept_scaling\[aq]:\ 1,\[aq]loss\[aq]:\ \[aq]hinge\[aq],\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ 
+\[aq]multi_class\[aq]:\ \[aq]ovr\[aq],\[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ 
+\[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\[aq]warm_start\[aq]:\ False}
+Get\ parameters\ after\ setting:\ 
+{\[aq]C\[aq]:\ 1.0,\ \[aq]class_weight\[aq]:\ None,\ \[aq]dual\[aq]:\ False,\ \[aq]fit_intercept\[aq]:\ True,\ 
+\[aq]intercept_scaling\[aq]:\ 1,\[aq]loss\[aq]:\ \[aq]hinge\[aq],\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ 
+\[aq]multi_class\[aq]:\ \[aq]ovr\[aq],\[aq]penalty\[aq]:\ \[aq]l1\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ 
+\[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\[aq]warm_start\[aq]:\ False}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 9. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -594,7 +719,7 @@ Output:
 .P
 .PD
 It returns nothing.
-.SS 8. release()
+.SS 10. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -618,7 +743,7 @@ releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS 9. is_fitted()
+.SS 11. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -632,8 +757,9 @@ the user to train the model first.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
-logistic_regression, dvector, crs_matrix
+logistic_regression, dvector, crs_matrix, fm_classifier,
+decision_tree_classifier

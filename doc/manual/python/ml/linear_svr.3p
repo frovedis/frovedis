@@ -4,29 +4,16 @@
 LinearSVR (Support Vector Regression) \- A regression algorithm used to
 predict the binary output with L1 and L2 loss.
 .SH SYNOPSIS
-.PP
-class frovedis.mllib.svm.LinearSVR(epsilon=0.0, tol=1e\-4, C=1.0,
-loss=\[aq]epsilon_insensitive\[aq],
-.PD 0
-.P
-.PD
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
-\ fit_intercept=True, intercept_scaling=1, dual=True,
-.PD 0
-.P
-.PD
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
-\ verbose=0, random_state=None, max_iter=1000,
-.PD 0
-.P
-.PD
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
-\ penalty=\[aq]l2\[aq], lr_rate=0.01, solver=\[aq]sag\[aq],
-.PD 0
-.P
-.PD
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
-\ warm_start=False)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.svm.LinearSVR(epsilon=0.0,\ tol=1e\-4,\ C=1.0,\ loss=\[aq]epsilon_insensitive\[aq],\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fit_intercept=True,\ intercept_scaling=1,\ dual=True,\ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0,\ random_state=None,\ max_iter=1000,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ penalty=\[aq]l2\[aq],\ lr_rate=0.01,\ solver=\[aq]sag\[aq],\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ warm_start=False)\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y, sample_weight = None)
@@ -78,8 +65,8 @@ The model produced by Support Vector Regression depends only on a subset
 of the training data, because the cost function ignores samples whose
 prediction is close to their target.
 .PP
-LinearSVR supports ZERO, L1 and L2 regularization to address the overfit
-problem.
+\f[B]LinearSVR supports ZERO, L1 and L2 regularization to address the
+overfit problem.\f[]
 .PP
 Frovedis provides implementation of LinearSVR with \f[B]stochastic
 gradient descent with minibatch\f[].
@@ -119,13 +106,13 @@ sent back to the python client.
 .PD 0
 .P
 .PD
-\f[I]\f[B]epsilon\f[]\f[]: A zero or positive double(float64) parameter
+\f[I]\f[B]epsilon\f[]\f[]: A zero or positive double (float64) parameter
 used in the epsilon\-insensitive loss function.
 (Default: 0.0)
 .PD 0
 .P
 .PD
-\f[I]\f[B]tol\f[]\f[]: A double(float64) parameter specifying the
+\f[I]\f[B]tol\f[]\f[]: A double (float64) parameter specifying the
 convergence tolerance value.
 It must be zero or a positive value.
 (Default: 1e\-4)
@@ -173,9 +160,9 @@ a constant (intercept) should be added to the decision function.
 .PD
 \f[I]\f[B]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
-Its value is set as 0 by default(for INFO mode).
-But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for getting
-training time logs from frovedis server.
+Its value is set as 0 by default (for INFO mode).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
 .PD 0
 .P
 .PD
@@ -202,8 +189,8 @@ If it is None (not specified explicitly), it will be set as
 .PD 0
 .P
 .PD
-\f[I]\f[B]lr_rate\f[]\f[]: A positive double(float64) value of parameter
-containing the learning rate.
+\f[I]\f[B]lr_rate\f[]\f[]: A positive double (float64) value of
+parameter containing the learning rate.
 (Default: 0.01)
 .PD 0
 .P
@@ -227,16 +214,16 @@ otherwise, just erase the previous solution.
 .P
 .PD
 \f[I]\f[B]coef_\f[]\f[]: It is a python ndarray(containing float or
-double(float64) typed values depending on data\-type of input matrix
+double (float64) typed values depending on data\-type of input matrix
 (X)).
 It is the weights assigned to the features.
 It has shape \f[B](1, n_features)\f[].
 .PD 0
 .P
 .PD
-\f[I]\f[B]intercept_\f[]\f[]: It is a python ndarray(float or
-double(float64) values depending on input matrix data type) and has
-shape \f[B](1,)\f[].
+\f[I]\f[B]intercept_\f[]\f[]: It is a python ndarray(float or double
+(float64) values depending on input matrix data type) and has shape
+\f[B](1,)\f[].
 .PD 0
 .P
 .PD
@@ -273,14 +260,14 @@ It has shape \f[B](n_samples, n_features)\f[].
 .P
 .PD
 \f[I]\f[B]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+FrovedisDvector containing the target labels.
 It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
 \f[I]\f[B]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
-\f[B](nsamples, )\f[].
+\f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
@@ -404,7 +391,7 @@ Output
 .PD 0
 .P
 .PD
-It returns a numpy array of double(float64) type containing the
+It returns a numpy array of double (float64) type containing the
 predicted outputs.
 It has shape \f[B](n_samples,)\f[].
 .SS 4. load(fname, dtype = None)
@@ -419,7 +406,8 @@ model information to be loaded.
 .P
 .PD
 \f[B]dtype\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -512,15 +500,15 @@ It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
-\f[B]y\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+\f[I]\f[B]y\f[]\f[]: Any python array\-like object containing the target
+labels.
 It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
-\f[B]sample_weight\f[]: A python narray containing the intended weights
-for each input samples and it should be the shape of \f[B](nsamples,
-)\f[].
+\f[B]sample_weight\f[]: A python ndarray containing the intended weights
+for each input samples and it should be the shape of
+\f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
@@ -618,8 +606,10 @@ A dictionary of parameter names mapped to their values.
 .SS 8. set_params(**params)
 .PP
 \f[B]Parameters\f[]
-.PP
-\f[I]\f[B]params\f[]\f[]: All the keyword arguments are passed to this
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
 function as dictionary.
 This dictionary contains parameters of an estimator with its given
 values to set.
@@ -635,11 +625,13 @@ For example,
 .IP
 .nf
 \f[C]
-print("Get\ parameters\ before\ setting:",\ svr.get_params())
+print("Get\ parameters\ before\ setting:")\ 
+print(svr.get_params())
 #\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
 dictionary\ over\ the\ arguments\ given\ by\ user
 svr.set_params(\ penalty\ =\ \[aq]l1\[aq],\ dual\ =\ False)
-print("Get\ parameters\ after\ setting:",\ svr.get_params())
+print("Get\ parameters\ after\ setting:")\ 
+print(svr.get_params())
 \f[]
 .fi
 .PP
@@ -647,14 +639,14 @@ Output
 .IP
 .nf
 \f[C]
-Get\ parameters\ before\ setting:\ {\[aq]C\[aq]:\ 1.0,\ \[aq]dual\[aq]:\ True,\ \[aq]epsilon\[aq]:\ 0.0,\ \[aq]fit_intercept\[aq]:\ True,\ 
-\[aq]intercept_scaling\[aq]:\ 1,\ \[aq]loss\[aq]:\ \[aq]epsilon_insensitive\[aq],\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ 
-\[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\ 
-\[aq]warm_start\[aq]:\ False}
-Get\ parameters\ before\ setting:\ {\[aq]C\[aq]:\ 1.0,\ \[aq]dual\[aq]:\ False,\ \[aq]epsilon\[aq]:\ 0.0,\ \[aq]fit_intercept\[aq]:\ True,\ 
-\[aq]intercept_scaling\[aq]:\ 1,\ \[aq]loss\[aq]:\ \[aq]epsilon_insensitive\[aq],\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ 
-\[aq]penalty\[aq]:\ \[aq]l1\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\ 
-\[aq]warm_start\[aq]:\ False}
+Get\ parameters\ before\ setting:\ 
+{\[aq]C\[aq]:\ 1.0,\ \[aq]dual\[aq]:\ True,\ \[aq]epsilon\[aq]:\ 0.0,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]intercept_scaling\[aq]:\ 1,
+\[aq]loss\[aq]:\ \[aq]epsilon_insensitive\[aq],\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ \[aq]penalty\[aq]:\ \[aq]l2\[aq],\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+Get\ parameters\ before\ setting:
+{\[aq]C\[aq]:\ 1.0,\ \[aq]dual\[aq]:\ False,\ \[aq]epsilon\[aq]:\ 0.0,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]intercept_scaling\[aq]:\ 1,
+\[aq]loss\[aq]:\ \[aq]epsilon_insensitive\[aq],\ \[aq]lr_rate\[aq]:\ 0.01,\ \[aq]max_iter\[aq]:\ 1000,\ \[aq]penalty\[aq]:\ \[aq]l1\[aq],\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]solver\[aq]:\ \[aq]sag\[aq],\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
 \f[]
 .fi
 .PP
@@ -735,8 +727,8 @@ the user to train the model first.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
-SVM, LinearSVC, dvector, rowmajor_matrix, colmajor_matrix, crs_matrix
+svm, linear_svc, dvector, rowmajor_matrix, colmajor_matrix, crs_matrix

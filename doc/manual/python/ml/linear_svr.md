@@ -7,16 +7,11 @@ with L1 and L2 loss.
 
 # SYNOPSIS
 
-class frovedis.mllib.svm.LinearSVR(epsilon=0.0, tol=1e-4, C=1.0, loss='epsilon_insensitive',  
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  
-\  \  \  \  \  \ fit_intercept=True, intercept_scaling=1, dual=True,   
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  
-\  \  \  \  \  \ verbose=0, random_state=None, max_iter=1000,  
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  
-\  \  \  \  \  \ penalty='l2', lr_rate=0.01,  solver='sag',  
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  
-\  \  \  \  \  \ warm_start=False)  
-
+    class frovedis.mllib.svm.LinearSVR(epsilon=0.0, tol=1e-4, C=1.0, loss='epsilon_insensitive',  
+                                       fit_intercept=True, intercept_scaling=1, dual=True,   
+                                       verbose=0, random_state=None, max_iter=1000,  
+                                       penalty='l2', lr_rate=0.01, solver='sag',  
+                                       warm_start=False)  
 
 ## Public Member Functions
 
@@ -41,7 +36,7 @@ The model produced by Support Vector Regression depends only on a subset of the
 training data, because the cost function ignores samples whose prediction is close 
 to their target.  
 
-LinearSVR supports ZERO, L1 and L2 regularization to address the overfit problem.    
+**LinearSVR supports ZERO, L1 and L2 regularization to address the overfit problem.**    
 
 Frovedis provides implementation of LinearSVR with **stochastic gradient 
 descent with minibatch**. 
@@ -73,9 +68,9 @@ at the frovedis server, the output would be sent back to the python client.
 ### 1. LinearSVR()   
 
 __Parameters__       
-_**epsilon**_: A zero or positive double(float64) parameter used in the 
+_**epsilon**_: A zero or positive double (float64) parameter used in the 
 epsilon-insensitive loss function.  (Default: 0.0)  
-_**tol**_: A double(float64) parameter specifying the convergence tolerance value. 
+_**tol**_: A double (float64) parameter specifying the convergence tolerance value. 
 It must be zero or a positive value. (Default: 1e-4)     
 _**C**_: A positive float parameter, it is inversely proportional to regularization strength. (Default: 1.0)  
 _**loss**_: A string object containing the loss function type to use.  
@@ -89,15 +84,15 @@ should be added to the decision function. (Default: True)
 _**intercept\_scaling**_: An unused parameter. (Default: 1)  
 _**dual**_: An unused parameter. (Default: True)  
 _**verbose**_: An integer parameter specifying the log level to use. Its value 
-is set as 0 by default(for INFO mode). But it can be set to 1(for DEBUG mode) or 
-2(for TRACE mode) for getting training time logs from frovedis server.  
+is set as 0 by default (for INFO mode). But it can be set to 1 (for DEBUG mode) or 
+2 (for TRACE mode) for getting training time logs from frovedis server.  
 _**random\_state**_: An unused parameter. (Default: None)  
 _**max\_iter**_: A positive integer parameter specifying maximum iteration count. 
 (Default: 1000)  
 _**penalty**_: A string object containing the regularizer type to use. Currently
 none, l1 and l2 are supported by Frovedis. (Default: 'l2')  
 If it is None (not specified explicitly), it will be set as 'ZERO' regularization type.  
-_**lr\_rate**_: A positive double(float64) value of parameter containing the learning rate. 
+_**lr\_rate**_: A positive double (float64) value of parameter containing the learning rate. 
 (Default: 0.01)  
 _**solver**_: A string object specifying the solver to use. (Default: 'sag')  
 Currenlty, it only supports 'sag'.  
@@ -106,10 +101,10 @@ the previous call to fit as initialization, otherwise, just erase the previous s
 (Default: False)  
 
 __Attributes__  
-_**coef\_**_: It is a python ndarray(containing float or double(float64) typed values 
+_**coef\_**_: It is a python ndarray(containing float or double (float64) typed values 
 depending on data-type of input matrix (X)). It is the weights assigned to the features. 
 It has shape **(1, n_features)**.  
-_**intercept\_**_: It is a python ndarray(float or double(float64) values depending on 
+_**intercept\_**_: It is a python ndarray(float or double (float64) values depending on 
 input matrix data type) and has shape **(1,)**.  
 _**n_iter\_**_: An integer value used to get the actual iteration point at which the 
 problem is converged.  
@@ -129,10 +124,10 @@ __Parameters__
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or an 
 instance of FrovedisCRSMatrix for sparse data and FrovedisColmajorMatrix for 
 dense data. It has shape **(n_samples, n_features)**.  
-_**y**_: Any python array-like object or an instance of FrovedisDvector. It has shape 
-**(n_samples,)**.  
+_**y**_: Any python array-like object or an instance of FrovedisDvector containing the target labels.
+It has shape **(n_samples,)**.  
 _**sample\_weight**_: A python ndarray containing the intended weights for each input
-samples and it should be the shape of **(nsamples, )**.  
+samples and it should be the shape of **(n_samples,)**.  
 When it is None (not specified explicitly), an uniform weight vector is assigned on 
 each input sample. (Default: None)  
 
@@ -211,7 +206,7 @@ Output
     [-181.66076961 -162.62098062 -166.05339001 ... -170.80953572 -169.6636383 -171.76112166]
    
 __Return Value__  
-It returns a numpy array of double(float64) type containing the predicted 
+It returns a numpy array of double (float64) type containing the predicted 
 outputs. It has shape **(n_samples,)**.  
 
 ### 4. load(fname, dtype = None)
@@ -219,7 +214,7 @@ __Parameters__
 **fname**: A string object containing the name of the file having model information 
 to be loaded.  
 **dtype**: A data-type is inferred from the input data. Currently, expected input 
-data-type is either float or double(float64). (Default: None)  
+data-type is either float or double (float64). (Default: None)  
 
 __Purpose__  
 It loads the model from the specified file(having little-endian binary data).  
@@ -266,10 +261,10 @@ __Parameters__
 **X**: A numpy dense or scipy sparse matrix or any python array-like object or an 
 instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense 
 data. It has shape **(n_samples, n_features)**.  
-**y**: Any python array-like object or an instance of FrovedisDvector. It has shape 
-**(n_samples,)**.    
-**sample_weight**: A python narray containing the intended weights for each input
-samples and it should be the shape of **(nsamples, )**.  
+_**y**_: Any python array-like object containing the target labels. It has shape 
+**(n_samples,)**.  
+**sample_weight**: A python ndarray containing the intended weights for each input
+samples and it should be the shape of **(n_samples,)**.  
 When it is None (not specified explicitly), an uniform weight vector is assigned 
 on each input sample. (Default: None)  
 
@@ -323,12 +318,10 @@ Output
 __Return Value__  
 A dictionary of parameter names mapped to their values.  
 
-### 8. set_params(**params)  
-
-__Parameters__   
-
-_**params**_: All the keyword arguments are passed to this function as dictionary. 
-This dictionary contains parameters of an estimator with its given values to set.  
+### 8. set_params(\*\*params)  
+__Parameters__  
+_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+contains parameters of an estimator with its given values to set.  
 
 __Purpose__  
 This method belongs to the BaseEstimator class inherited by LinearSVR, used to set 
@@ -336,22 +329,24 @@ parameter values.
 
 For example,   
 
-    print("Get parameters before setting:", svr.get_params())
+    print("Get parameters before setting:") 
+    print(svr.get_params())
     # User just needs to provide the arguments and internally it will create a 
     dictionary over the arguments given by user
     svr.set_params( penalty = 'l1', dual = False)
-    print("Get parameters after setting:", svr.get_params())
+    print("Get parameters after setting:") 
+    print(svr.get_params())
 
 Output  
 
-    Get parameters before setting: {'C': 1.0, 'dual': True, 'epsilon': 0.0, 'fit_intercept': True, 
-    'intercept_scaling': 1, 'loss': 'epsilon_insensitive', 'lr_rate': 0.01, 'max_iter': 1000, 
-    'penalty': 'l2', 'random_state': None, 'solver': 'sag', 'tol': 0.0001, 'verbose': 0, 
-    'warm_start': False}
-    Get parameters before setting: {'C': 1.0, 'dual': False, 'epsilon': 0.0, 'fit_intercept': True, 
-    'intercept_scaling': 1, 'loss': 'epsilon_insensitive', 'lr_rate': 0.01, 'max_iter': 1000, 
-    'penalty': 'l1', 'random_state': None, 'solver': 'sag', 'tol': 0.0001, 'verbose': 0, 
-    'warm_start': False}
+    Get parameters before setting: 
+    {'C': 1.0, 'dual': True, 'epsilon': 0.0, 'fit_intercept': True, 'intercept_scaling': 1,
+    'loss': 'epsilon_insensitive', 'lr_rate': 0.01, 'max_iter': 1000, 'penalty': 'l2', 
+    'random_state': None, 'solver': 'sag', 'tol': 0.0001, 'verbose': 0, 'warm_start': False}
+    Get parameters before setting:
+    {'C': 1.0, 'dual': False, 'epsilon': 0.0, 'fit_intercept': True, 'intercept_scaling': 1,
+    'loss': 'epsilon_insensitive', 'lr_rate': 0.01, 'max_iter': 1000, 'penalty': 'l1', 
+    'random_state': None, 'solver': 'sag', 'tol': 0.0001, 'verbose': 0, 'warm_start': False}
 
 __Return Value__  
 It simply returns "self" reference.  
@@ -399,7 +394,7 @@ predict() is used before training the model, then it can prompt the user to
 train the model first.
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.
+It returns 'True', if the model is already fitted otherwise, it returns 'False'.
 
 # SEE ALSO  
-SVM, LinearSVC, dvector, rowmajor_matrix, colmajor_matrix, crs_matrix
+svm, linear_svc, dvector, rowmajor_matrix, colmajor_matrix, crs_matrix
