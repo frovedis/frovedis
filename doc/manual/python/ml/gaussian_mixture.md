@@ -85,8 +85,8 @@ Must be one of the following:
 _**weights\_init**_: An unused parameter. (Default: None)  
 _**means\_init**_: An unused parameter. (Default: None)  
 _**precisions\_init**_: An unused parameter. (Default: None)  
-_**random\_state**_: An integer, float parameter or a RandomState instance that controls 
-the random seed given to the method chosen to initialize the parameters. (Default: None)  
+_**random\_state**_: An integer, float parameter that controls the random seed given to 
+the method chosen to initialize the parameters. It does not support RandomState instance. (Default: None)  
 If it is None (not specified explicitly) or a RandomState instance, it will be set as 0.  
 _**warm\_start**_: An unused parameter. (Default: False)  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is set as 0 
@@ -304,7 +304,76 @@ __Return Value__
 It returns a numpy array of int64 type values containing the components labels. It has 
 a shape **(n_samples,)**.  
 
-### 5. sample(n_samples = 1)  
+### 5. predict_proba(X)  
+__Parameters__  
+**_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
+of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. It has 
+shape **(n_samples, n_features)**.  
+
+__Purpose__  
+
+It predict the labels for the data samples in X using trained model.  
+
+For example,  
+
+    # loading sample matrix dense data
+    # train_mat = np.array([[1., 2.], 
+                           [1., 4.], 
+                           [1., 0.], 
+                           [10., 2.], 
+                           [10., 4.], 
+                           [10., 0.]])
+    
+    # predicting on GaussianMixture model
+    from frovedis.mllib.mixture import GaussianMixture
+    gmm_model = GaussianMixture(n_components = 2).fit(train_mat)
+    print(gmm_model.predict_proba(train_mat))  
+    
+Output
+
+    [[1. 0.]
+     [1. 0.]
+     [1. 0.]
+     [0. 1.]
+     [0. 1.]
+     [0. 1.]]
+ 
+Like in fit(), frovedis-like input can be used to speed-up the prediction making on 
+the trained model at server side.  
+
+For example,   
+
+    # loading sample matrix dense data
+    # train_mat = np.array([[1., 2.], 
+                           [1., 4.], 
+                           [1., 0.], 
+                           [10., 2.], 
+                           [10., 4.], 
+                           [10., 0.]])
+    
+    # Since "train_mat" is numpy dense data, we have created FrovedisRowmajorMatrix.
+    from frovedis.matrix.dense import FrovedisRowmajorMatrix
+    rmat = FrovedisRowmajorMatrix(train_mat)
+
+    # predicting on GaussianMixture model using pre-constructed input
+    from frovedis.mllib.mixture import GaussianMixture
+    gmm_model = GaussianMixture(n_components = 2).fit(rmat)
+    print(gmm_model.predict_proba(rmat))  
+    
+Output
+
+    [[1. 0.]
+     [1. 0.]
+     [1. 0.]
+     [0. 1.]
+     [0. 1.]
+     [0. 1.]]
+
+__Return Value__  
+It returns a numpy array of double (float64) type values containing the density of 
+each gaussian component for each sample in X. It has a shape **(n_samples, n_components)**.  
+
+### 6. sample(n_samples = 1)  
 __Parameters__  
 _**n\_samples**_: A positive integer value that specifies the number of samples to 
 generate. (Default: 1)  
@@ -315,7 +384,7 @@ Currently this method is not supported for GaussianMixture in frovedis.
 __Return Value__  
 It simply raises a NotImplementedError.  
 
-### 6. score(X)  
+### 7. score(X)  
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. It has 
@@ -336,7 +405,7 @@ Output
 __Return Value__  
 It returns a score of double (float64) type.  
 
-### 7. score_samples(X)  
+### 8. score_samples(X)  
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. It has 
@@ -357,7 +426,7 @@ __Return Value__
 It returns a numpy array of double (float64) type containing log-likelihood of each sample 
 in 'X' under the current model. It has a shape **(n_samples,)**.  
 
-### 8. get_params(deep = True)  
+### 9. get_params(deep = True)  
 __Parameters__   
 _**deep**_: A boolean parameter, used to get parameters and their values for an 
 estimator. If True, will return the parameters for an estimator and contained subobjects 
@@ -381,7 +450,7 @@ Output
 __Return Value__  
 A dictionary of parameter names mapped to their values.  
 
-### 9. set_params(\*\*params)  
+### 10. set_params(\*\*params)  
 __Parameters__   
 _**\*\*params**_: All the keyword arguments are passed this function as dictionary. This 
 dictionary contains parameters of an estimator with its given values to set.  
@@ -416,7 +485,7 @@ Output
 __Return Value__  
 It simply returns "self" reference.  
 
-### 10. load(fname, dtype = None)
+### 11. load(fname, dtype = None)
 __Parameters__   
 _**fname**_: A string object containing the name of the file having model 
 information to be loaded.    
@@ -434,7 +503,7 @@ For example,
 __Return Value__  
 It simply returns "self" reference.  
 
-### 11. save(fname)  
+### 12. save(fname)  
 __Parameters__  
 _**fname**_: A string object containing the name of the file on which the target 
 model is to be saved.  
@@ -464,7 +533,7 @@ Here, the 'model' file contains information about gaussian mixture model in bina
 __Return Value__  
 It returns nothing.  
 
-### 12. bic(X)  
+### 13. bic(X)  
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. It has 
@@ -484,7 +553,7 @@ Output
 __Return Value__  
 It returns a bayesian information criterion of double (float64) type.  
 
-### 13. aic(X)  
+### 14. aic(X)  
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
 of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. It has 
@@ -504,7 +573,7 @@ Output
 __Return Value__  
 It returns an akaike information criterion of double (float64) type.  
 
-### 14. debug_print()
+### 15. debug_print()
 
 __Purpose__  
 It shows the target model information on the server side user terminal. It is mainly 
@@ -532,7 +601,7 @@ is currently present on the server.
 __Return Value__  
 It returns nothing.   
 
-### 15. release()
+### 16. release()
 
 __Purpose__    
 It can be used to release the in-memory model at frovedis server.   
@@ -547,7 +616,7 @@ None, along with releasing server side memory.
 __Return Value__  
 It returns nothing.   
 
-### 16. is_fitted()  
+### 17. is_fitted()  
 
 __Purpose__  
 It can be used to confirm if the model is already fitted or not. In case, predict() 

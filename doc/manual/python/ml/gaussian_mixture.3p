@@ -199,9 +199,10 @@ randomly.
 .PD 0
 .P
 .PD
-\f[I]\f[B]random_state\f[]\f[]: An integer, float parameter or a
-RandomState instance that controls the random seed given to the method
-chosen to initialize the parameters.
+\f[I]\f[B]random_state\f[]\f[]: An integer, float parameter that
+controls the random seed given to the method chosen to initialize the
+parameters.
+It does not support RandomState instance.
 (Default: None)
 .PD 0
 .P
@@ -554,7 +555,100 @@ Output
 It returns a numpy array of int64 type values containing the components
 labels.
 It has a shape \f[B](n_samples,)\f[].
-.SS 5. sample(n_samples = 1)
+.SS 5. predict_proba(X)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PP
+\f[B]Purpose\f[]
+.PP
+It predict the labels for the data samples in X using trained model.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ dense\ data
+#\ train_mat\ =\ np.array([[1.,\ 2.],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1.,\ 4.],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1.,\ 0.],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [10.,\ 2.],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [10.,\ 4.],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [10.,\ 0.]])
+
+#\ predicting\ on\ GaussianMixture\ model
+from\ frovedis.mllib.mixture\ import\ GaussianMixture
+gmm_model\ =\ GaussianMixture(n_components\ =\ 2).fit(train_mat)
+print(gmm_model.predict_proba(train_mat))\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[[1.\ 0.]
+\ [1.\ 0.]
+\ [1.\ 0.]
+\ [0.\ 1.]
+\ [0.\ 1.]
+\ [0.\ 1.]]
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ sample\ matrix\ dense\ data
+#\ train_mat\ =\ np.array([[1.,\ 2.],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1.,\ 4.],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1.,\ 0.],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [10.,\ 2.],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [10.,\ 4.],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [10.,\ 0.]])
+
+#\ Since\ "train_mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(train_mat)
+
+#\ predicting\ on\ GaussianMixture\ model\ using\ pre\-constructed\ input
+from\ frovedis.mllib.mixture\ import\ GaussianMixture
+gmm_model\ =\ GaussianMixture(n_components\ =\ 2).fit(rmat)
+print(gmm_model.predict_proba(rmat))\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[[1.\ 0.]
+\ [1.\ 0.]
+\ [1.\ 0.]
+\ [0.\ 1.]
+\ [0.\ 1.]
+\ [0.\ 1.]]
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of double (float64) type values containing the
+density of each gaussian component for each sample in X.
+It has a shape \f[B](n_samples, n_components)\f[].
+.SS 6. sample(n_samples = 1)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -575,7 +669,7 @@ Currently this method is not supported for GaussianMixture in frovedis.
 .P
 .PD
 It simply raises a NotImplementedError.
-.SS 6. score(X)
+.SS 7. score(X)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -614,7 +708,7 @@ Output
 .P
 .PD
 It returns a score of double (float64) type.
-.SS 7. score_samples(X)
+.SS 8. score_samples(X)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -654,7 +748,7 @@ Output
 It returns a numpy array of double (float64) type containing
 log\-likelihood of each sample in \[aq]X\[aq] under the current model.
 It has a shape \f[B](n_samples,)\f[].
-.SS 8. get_params(deep = True)
+.SS 9. get_params(deep = True)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -698,7 +792,7 @@ Output
 .P
 .PD
 A dictionary of parameter names mapped to their values.
-.SS 9. set_params(**params)
+.SS 10. set_params(**params)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -752,7 +846,7 @@ get\ parameters\ after\ setting:
 .P
 .PD
 It simply returns "self" reference.
-.SS 10. load(fname, dtype = None)
+.SS 11. load(fname, dtype = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -789,7 +883,7 @@ gmm_model.load("./out/MyGmmModel",dtype\ =\ np.float64)
 .P
 .PD
 It simply returns "self" reference.
-.SS 11. save(fname)
+.SS 12. save(fname)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -845,7 +939,7 @@ mixture model in binary format.
 .P
 .PD
 It returns nothing.
-.SS 12. bic(X)
+.SS 13. bic(X)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -884,7 +978,7 @@ Output
 .P
 .PD
 It returns a bayesian information criterion of double (float64) type.
-.SS 13. aic(X)
+.SS 14. aic(X)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -923,7 +1017,7 @@ Output
 .P
 .PD
 It returns an akaike information criterion of double (float64) type.
-.SS 14. debug_print()
+.SS 15. debug_print()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -964,7 +1058,7 @@ covariances which is currently present on the server.
 .P
 .PD
 It returns nothing.
-.SS 15. release()
+.SS 16. release()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -988,7 +1082,7 @@ means_, etc.) to None, along with releasing server side memory.
 .P
 .PD
 It returns nothing.
-.SS 16. is_fitted()
+.SS 17. is_fitted()
 .PP
 \f[B]Purpose\f[]
 .PD 0
