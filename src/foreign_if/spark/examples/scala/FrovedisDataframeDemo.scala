@@ -55,7 +55,7 @@ object FrovedisDataframeDemo {
     df1.filter(not($$"Country" === "France")).show()
 
     // select demo
-    df1.select($$"Age", $$"Age" * 2).show()
+    df1.select(lit(2), lit(false), $$"Age", $$"Age" * 2, $$"Age" > 19).to_spark_DF().show()
 
     // sort demo
     df1.sort(col("Country").asc, $$"Age".desc).show()
@@ -71,9 +71,10 @@ object FrovedisDataframeDemo {
        .sort($$"x").show()
 
     df1.filter($$"EName".startsWith("Ra")).show()
-    df1.withColumn("AgePlusOne", $$"Age" + 1).show()
-    df1.withColumn("lit(2)", lit(2)).show()
-    df1.withColumn("null_col", lit(null)).show()
+    df1.withColumn("AgePlusOne", $$"Age" + 1)
+       .withColumn("lit(2)", lit(2))
+       .withColumn("null_col", lit(null))
+       .withColumn("true_col", lit(true)).show()
 
     val countryDF2 = sc.textFile("./input/country.txt")
                       .map(_.split(","))
@@ -143,9 +144,11 @@ object FrovedisDataframeDemo {
             max("Age").as("max_age"),
             sum($$"Age").as("sum_age"),
             avg($$"Age").as("avg_age"),
-            stddev($$"Age")).show()
-            //sumDistinct($$"Age"),           // TODO
-            //countDistinct($$"Age")).show()  // TODO
+            stddev($$"Age"),
+            sum(lit(2)),
+            sumDistinct($$"Age"),
+            countDistinct($$"Age") // ignores null, like in spark-sql
+          ).show() 
 
     val dataWithNull = Seq(
       ("Smith","NY","M"),
@@ -160,6 +163,15 @@ object FrovedisDataframeDemo {
     frov_dfWithNull.filter($$"state".isNull).show()
     frov_dfWithNull.groupBy("state").agg(count("state"), count("*")).show()
     frov_dfWithNull.release()
+
+    val cc_df = Seq("China", "Canada", "Italy", "Tralfamadore").toDF("word")
+    val f_cc_df = new FrovedisDataFrame(cc_df)
+    f_cc_df.withColumn("continent",
+        when($$"word" === lit("China"), lit("Asia"))
+          .when($$"word" === lit("Canada"), lit("North Amerika"))
+          .when($$"word" === lit("Italy"), lit("Europe"))
+          .otherwise(lit("Not sure"))
+    ).show()
 
     val sampleDF = sc.textFile("./input/sample.txt")
                      .map(_.split(","))

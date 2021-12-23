@@ -424,9 +424,6 @@ class FrovedisDataFrame extends java.io.Serializable {
   }
   // for loading specific columns; 
   // TODO: improve existing limitations: 
-  //   - doesn't support StringType column
-  //   - assumes null is absent in target columns
-  //   - use some intermediate copies (memory-image copy can be done)
   //   - might cause bad-alloc in ve-memory when target columns are too large to fit
   def optimized_load (df: DataFrame) : Unit = {
     release()
@@ -520,23 +517,26 @@ class FrovedisDataFrame extends java.io.Serializable {
     val c_arr = c.toArray
     val size = c_arr.size
     val funcs = new Array[Long](size)
+    val bool_cols_id = new ArrayBuffer[Int]()
     var aggcnt = 0
     for (i <- 0 until size) { 
       val tmp = c_arr(i)
-      if(tmp.isSCALAR)
-        throw new IllegalArgumentException("select: currently doesn't support literals!\n")
       funcs(i) = tmp.get()
+      if (tmp.isCOND) bool_cols_id += i
       aggcnt = aggcnt + (if (tmp.isAGG) 1 else 0)
     }
     val fs = FrovedisServer.getServerInstance()
     var dummy: DummyDftable = null
     if (aggcnt > 0) {
       if (aggcnt != size)
-        throw new IllegalArgumentException("select: few non-aggregator functions are detected!")
+        throw new IllegalArgumentException(
+        "select: few non-aggregator functions are detected!")
       dummy = JNISupport.executeFrovedisAgg(fs.master_node, get(), funcs, size)
     } else {
       dummy = JNISupport.fselectFrovedisDataframe(fs.master_node, get(),
                                                   funcs, size)
+      // update types for bool columns
+      for (i <- 0 until bool_cols_id.size) dummy.types(bool_cols_id(i)) = DTYPE.BOOL 
     }
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
@@ -1234,13 +1234,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   def withColumn(cname: String, 
                  op: FrovedisColumn): FrovedisDataFrame = { 
     val fs = FrovedisServer.getServerInstance()
-    var dummy: DummyDftable = null
-    if (op.isSCALAR) {
-      dummy = JNISupport.appendScalar(fs.master_node, get(), cname, 
-                                      op.colName, op.get_dtype())
-    } else {
-      dummy = JNISupport.executeDFfunc(fs.master_node, get(), cname, op.get())
-    }
+    val dummy = JNISupport.executeDFfunc(fs.master_node, get(), cname, op.get())
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(dummy)
@@ -1274,6 +1268,14 @@ class FrovedisDataFrame extends java.io.Serializable {
     this
   }
 
+  private def mark_boolean_columns(dtypes: Array[(String, String)], dummy: DummyDftable): Unit = {
+    val bool_col_set = dtypes.filter(x=> x._2 == "BooleanType").map(x => x._1).toSet
+    val sz = dummy.names.size
+    for ( i <- 0 until sz) {
+      if  ( bool_col_set.contains(dummy.names(i)) )  dummy.types(i) = DTYPE.BOOL 
+    }
+  }
+
   def distinct(): FrovedisDataFrame = {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
     val fs = FrovedisServer.getServerInstance()
@@ -1293,6 +1295,7 @@ class FrovedisDataFrame extends java.io.Serializable {
                                           colNames.size, keep)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
+    mark_boolean_columns(this.dtypes, dummy)
     return new FrovedisDataFrame(dummy)
   }
 
@@ -1305,6 +1308,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     val dummy = JNISupport.limitDF(fs.master_node, get(), n)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
+    mark_boolean_columns(this.dtypes, dummy)
     return new FrovedisDataFrame(dummy)
   }
 }

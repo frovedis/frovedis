@@ -911,9 +911,13 @@ public class JNISupport {
   public static native long getCrossDfopt(Node master_node);
 
   public static native long getIDDFfunc(Node master_node, String col_name);
+  public static native long getIMDFfunc(Node master_node, String col_name, 
+                                        short dtype);
   public static native long getOptDFfunc(Node master_node, long left_fn, 
                                          long right_fn, short opt, 
                                          String col_name);
+  public static native long appendWhenCondition(Node master_node, long left_fn,
+                                                long right_fn, String col_name);
   public static native long getOptImmedDFfunc(Node master_node, long left_fn, 
                                               String right_str, short right_dtype,
                                               short opt, String col_name);

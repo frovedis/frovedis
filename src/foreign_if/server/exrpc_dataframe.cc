@@ -247,7 +247,7 @@ exrpc_ptr_t get_str_dfoperator(std::string& op1, std::string& op2,
       case LT: opt = new std::shared_ptr<dfoperator>(lt_im(op1,op2)); break;
       case LE: opt = new std::shared_ptr<dfoperator>(le_im(op1,op2)); break;
       default: REPORT_ERROR(USER_ERROR,
-               "Unsupported filter operation on string type column is encountered!\n");
+               "Unsupported operation on string type column is encountered!\n");
     }
   }
   else {
@@ -261,7 +261,7 @@ exrpc_ptr_t get_str_dfoperator(std::string& op1, std::string& op2,
       case LIKE: opt = new std::shared_ptr<dfoperator>(is_like(op1,op2)); break;
       case NLIKE: opt = new std::shared_ptr<dfoperator>(is_not_like(op1,op2)); break;
       default: REPORT_ERROR(USER_ERROR,
-               "Unsupported filter operation on string type column is encountered!\n");
+               "Unsupported operation on string type column is encountered!\n");
     }
   }
   if (!opt) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
@@ -2475,6 +2475,21 @@ exrpc_ptr_t get_dffunc_id(std::string& cname) {
   return reinterpret_cast<exrpc_ptr_t> (retptr);
 }
 
+exrpc_ptr_t get_dffunc_string_im(std::string& value) {
+  auto retptr = new std::shared_ptr<dffunction>(dic_string_im(value));
+  return reinterpret_cast<exrpc_ptr_t> (retptr);
+}
+
+int named_bool_toInt(std::string data) { // copying data since would be tolowered in-place
+  std::for_each(data.begin(), data.end(), [](char & c) { c = ::tolower(c); });
+  return data == "true"; 
+}
+
+exrpc_ptr_t get_dffunc_bool_im(std::string& value) {
+  auto retptr = new std::shared_ptr<dffunction>(im(named_bool_toInt(value)));
+  return reinterpret_cast<exrpc_ptr_t> (retptr);
+}
+
 exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
                            exrpc_ptr_t& rightp,
                            short& opt_id,
@@ -2496,6 +2511,20 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
     case NOT:       opt = new std::shared_ptr<dffunction>(not_op(left)->as(cname)); break;
     case ISNULL:    opt = new std::shared_ptr<dffunction>(is_null(left)->as(cname)); break;
     case ISNOTNULL: opt = new std::shared_ptr<dffunction>(is_not_null(left)->as(cname)); break;
+    case IF:        
+    case ELIF: {
+      auto& left = *reinterpret_cast<std::shared_ptr<dfoperator>*>(leftp);
+      opt = new std::shared_ptr<dffunction>(when({left >> right})->as(cname));
+      // ELIF: must also call append_when_condition() to update if-elif conditions from client side
+      break;
+    }
+    case ELSE: { 
+      auto& left = *reinterpret_cast<std::shared_ptr<dffunction_when>*>(leftp);
+      auto cond = left->cond;
+      auto func = left->func;
+      func.push_back(right); // added else function
+      opt = new std::shared_ptr<dffunction>(when(cond, func)->as(cname)); break;
+    }
     // --- mathematical ---
     case ADD:       opt = new std::shared_ptr<dffunction>(add_col_as(left, right, cname)); break;
     case SUB:       opt = new std::shared_ptr<dffunction>(sub_col_as(left, right, cname)); break;
@@ -2506,6 +2535,17 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
     case POW:       opt = new std::shared_ptr<dffunction>(pow_col_as(left, right, cname)); break;
     default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction/dfoperator is requested!\n");
   }
+  return reinterpret_cast<exrpc_ptr_t> (opt);
+}
+
+exrpc_ptr_t 
+append_when_condition(exrpc_ptr_t& leftp, exrpc_ptr_t& rightp,
+                      std::string& cname) {
+  auto& left  = *reinterpret_cast<std::shared_ptr<dffunction_when>*>(leftp);
+  auto& right = *reinterpret_cast<std::shared_ptr<dffunction_when>*>(rightp);
+  auto cond = vector_concat(left->cond, right->cond);
+  auto func = vector_concat(left->func, right->func);
+  auto opt = new std::shared_ptr<dffunction>(when(cond, func)->as(cname));
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }
 
@@ -2524,6 +2564,20 @@ exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
     case LE:    opt = new std::shared_ptr<dffunction>(le_im(left,right)->as(cname)); break;
     case LIKE:  opt = new std::shared_ptr<dffunction>(is_like(left, right)->as(cname)); break;
     case NLIKE: opt = new std::shared_ptr<dffunction>(is_not_like(left, right)->as(cname)); break;
+    case IF:        
+    case ELIF: {
+      auto& left = *reinterpret_cast<std::shared_ptr<dfoperator>*>(leftp);
+      opt = new std::shared_ptr<dffunction>(when({left >> dic_string_im(right)})->as(cname));
+      // ELIF: must also call append_when_condition() to update if-elif conditions from client side
+      break;
+    }
+    case ELSE: { 
+      auto& left = *reinterpret_cast<std::shared_ptr<dffunction_when>*>(leftp);
+      auto cond = left->cond;
+      auto func = left->func;
+      func.push_back(dic_string_im(right)); // added else function
+      opt = new std::shared_ptr<dffunction>(when(cond, func)->as(cname)); break;
+    }
     default: REPORT_ERROR(USER_ERROR,
              "Unsupported immed dffunction on string type column is encountered!\n");
   }
@@ -2565,6 +2619,7 @@ dummy_dftable append_scalar(exrpc_ptr_t& dfproxy, std::string& cname,
   require(size > 0, "append_scalar: is not allowed for empty dataframe!\n");
   if (value == "NULL") {
     switch (dtype) {
+      case BOOL:
       case INT:    append_null<int>(ret, cname, size); break;
       case LONG:   append_null<long>(ret, cname, size); break;
       case ULONG:  append_null<unsigned long>(ret, cname, size); break;
@@ -2577,6 +2632,7 @@ dummy_dftable append_scalar(exrpc_ptr_t& dfproxy, std::string& cname,
   } else {
     switch (dtype) {
       case INT:    append_value<int>(ret, cname, size, value); break;
+      case BOOL:   append_value<int>(ret, cname, size, std::to_string(named_bool_toInt(value))); break;
       case LONG:   append_value<long>(ret, cname, size, value); break;
       case ULONG:  append_value<unsigned long>(ret, cname, size, value); break;
       case FLOAT:  append_value<float>(ret, cname, size, value); break;

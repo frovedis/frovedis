@@ -121,10 +121,25 @@ exrpc_ptr_t create_dataframe_from_local_vectors (
 
 void show_dataframe(exrpc_ptr_t& df_proxy); 
 
+template <class T>
+exrpc_ptr_t get_dffunc_im(std::string& value) {
+  auto val = do_cast<T>(value);
+  auto retptr = new std::shared_ptr<dffunction>(im(val));
+  return reinterpret_cast<exrpc_ptr_t> (retptr);
+}
+
+exrpc_ptr_t get_dffunc_string_im(std::string& value);
+
+exrpc_ptr_t get_dffunc_bool_im(std::string& value);
+
 exrpc_ptr_t get_dffunc_id(std::string& cname);
 
 exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp, exrpc_ptr_t& rightp,
                            short& opt_id, std::string& cname);
+
+exrpc_ptr_t append_when_condition(exrpc_ptr_t& leftp, 
+                                  exrpc_ptr_t& rightp,
+                                  std::string& cname);
 
 exrpc_ptr_t get_dffunc_agg(exrpc_ptr_t& leftp,
                            short& opt_id, std::string& cname, 
@@ -172,6 +187,20 @@ exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
       case LE:   opt = new std::shared_ptr<dffunction>(le_im(left, right)->as(cname)); break;
       case GT:   opt = new std::shared_ptr<dffunction>(gt_im(left, right)->as(cname)); break;
       case GE:   opt = new std::shared_ptr<dffunction>(ge_im(left, right)->as(cname)); break;
+      case IF:        
+      case ELIF: {
+        auto& left = *reinterpret_cast<std::shared_ptr<dfoperator>*>(leftp);
+        opt = new std::shared_ptr<dffunction>(when({left >> im(right)})->as(cname));
+        // ELIF: must also call append_when_condition() to update if-elif conditions from client side
+        break;
+      }
+      case ELSE: { 
+        auto& left = *reinterpret_cast<std::shared_ptr<dffunction_when>*>(leftp);
+        auto cond = left->cond;
+        auto func = left->func;
+        func.push_back(im(right)); // added else function
+        opt = new std::shared_ptr<dffunction>(when(cond, func)->as(cname)); break;
+      }
       // --- mathematical ---
       case ADD:  opt = new std::shared_ptr<dffunction>(add_im_as(left, right, cname)); break;
       case SUB:  opt = new std::shared_ptr<dffunction>(sub_im_as(left, right, cname)); break;
@@ -203,7 +232,7 @@ exrpc_ptr_t get_dfoperator(std::string& op1, std::string& op2,
         case GT: opt = new std::shared_ptr<dfoperator>(gt_im(op1,data)); break;
         case GE: opt = new std::shared_ptr<dfoperator>(ge_im(op1,data)); break;
         default: REPORT_ERROR(USER_ERROR,
-                 "Unsupported filter operation is encountered!\n");
+                 "Unsupported conditional operation is encountered!\n");
     }
   }
   else {
@@ -217,7 +246,7 @@ exrpc_ptr_t get_dfoperator(std::string& op1, std::string& op2,
         case LIKE: opt = new std::shared_ptr<dfoperator>(is_like(op1,op2)); break;
         case NLIKE: opt = new std::shared_ptr<dfoperator>(is_not_like(op1,op2)); break;
         default: REPORT_ERROR(USER_ERROR,
-                 "Unsupported filter operation is encountered!\n");
+                 "Unsupported conditional operation is encountered!\n");
     }
   }
   if (!opt) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
@@ -848,13 +877,18 @@ dftable max_axis1_helper(dftable_base& df,
                          bool skip_na,
                          bool with_index) {
   dftable ret;
+  auto tmin = std::numeric_limits<T>::min();
   auto ncol = cols.size();
   if (ncol == 0 ) {
     append_null<T>(ret, "max", df.num_row());
   } 
   else {
     auto target_df = df.select(cols);  // no index in selected columns
-    if (skip_na) target_df = fillna_with_min(target_df, cols, types);
+    dftable count_na_df;
+    if (skip_na) {
+      count_na_df = target_df.count_nulls(1);
+      target_df = fillna_with_min(target_df, cols, types);
+    }
     std::string max = "max";
     auto func = when({(~cols[0] >= ~cols[1]) >> ~cols[0]}, ~cols[1])->as(max);
     target_df.call_function(func); 
@@ -872,11 +906,12 @@ dftable max_axis1_helper(dftable_base& df,
     } else {
       use_dfcolumn use(target_df.raw_column(max));
       ret.append_column(max, target_df.column(max));
-      /*append_na_count(ret, 1, nan_count);
-      ret.call_function(when({(~nan_count == 0) >> ~max})); 
+      ret.append_column("nan_count", count_na_df.column("count"));
+      ret.call_function(when({(~nan_count != ncol) >> ~max, 
+                              (~max != tmin) >> ~max})); 
       ret.drop(max);
       ret.drop(nan_count);
-      ret.rename("when", max);*/
+      ret.rename("when", max);
     }
   }
   // use index as it is in input dataframe, if any. otherwise add index.
@@ -969,13 +1004,18 @@ dftable min_axis1_helper(dftable_base& df,
                          bool skip_na,
                          bool with_index) {
   dftable ret;
+  auto tmax = std::numeric_limits<T>::max();
   auto ncol = cols.size();
   if (ncol == 0 ) {
     append_null<T>(ret, "min", df.num_row());
   } 
   else {
     auto target_df = df.select(cols);  // no index in selected columns
-    if (skip_na) target_df = fillna_with_max(target_df, cols, types);
+    dftable count_na_df;
+    if (skip_na) {
+      count_na_df = target_df.count_nulls(1);
+      target_df = fillna_with_max(target_df, cols, types);
+    }
     std::string min = "min";
     auto func = when({(~cols[0] <= ~cols[1]) >> ~cols[0]}, ~cols[1])->as(min);
     target_df.call_function(func); 
@@ -993,11 +1033,12 @@ dftable min_axis1_helper(dftable_base& df,
     } else {
       use_dfcolumn use(target_df.raw_column(min));
       ret.append_column(min, target_df.column(min));
-      /*append_na_count(ret, 1, nan_count);
-      ret.call_function(when({(~nan_count == 0) >> ~min})); 
+      ret.append_column("nan_count", count_na_df.column("count"));
+      ret.call_function(when({(~nan_count != ncol) >> ~min, 
+                              (~min != tmax) >> ~min})); 
       ret.drop(min);
       ret.drop(nan_count);
-      ret.rename("when", min);*/
+      ret.rename("when", min);
     }
   }
   // use index as it is in input dataframe, if any. otherwise add index.

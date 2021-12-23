@@ -606,6 +606,30 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getIDDFfunc
   return (jlong) proxy;
 }
 
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getIMDFfunc
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jstring colname, jshort dtype) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto cname = to_cstring(env, colname);
+  exrpc_ptr_t proxy = 0;
+  try {
+    switch(dtype) {
+      case INT:    proxy = exrpc_async(fm_node, get_dffunc_im<int>, cname).get(); break;
+      case LONG:   proxy = exrpc_async(fm_node, get_dffunc_im<long>, cname).get(); break;
+      case ULONG:  proxy = exrpc_async(fm_node, get_dffunc_im<unsigned long>, cname).get(); break;
+      case FLOAT:  proxy = exrpc_async(fm_node, get_dffunc_im<float>, cname).get(); break;
+      case DOUBLE: proxy = exrpc_async(fm_node, get_dffunc_im<double>, cname).get(); break;
+      case STRING: proxy = exrpc_async(fm_node, get_dffunc_string_im, cname).get(); break;
+      case BOOL:   proxy = exrpc_async(fm_node, get_dffunc_bool_im, cname).get(); break;
+      default:     REPORT_ERROR(USER_ERROR,
+                  "Unsupported datatype is encountered for immediate value!\n");
+    }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) proxy;
+}
+
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getOptDFfunc
   (JNIEnv *env, jclass thisCls, jobject master_node, 
    jlong left, jlong right, jshort opt, jstring colname) {
@@ -617,6 +641,23 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getOptDFfunc
   exrpc_ptr_t proxy = 0;
   try {
     proxy = exrpc_async(fm_node, get_dffunc_opt, leftp, rightp, opt, cname).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_appendWhenCondition
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jlong left, jlong right, jstring colname) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto leftp = (exrpc_ptr_t) left;
+  auto rightp = (exrpc_ptr_t) right;
+  auto cname = to_cstring(env, colname);
+  exrpc_ptr_t proxy = 0;
+  try {
+    proxy = exrpc_async(fm_node, append_when_condition, 
+                        leftp, rightp, cname).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) proxy;

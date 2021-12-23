@@ -140,6 +140,13 @@ void expose_frovedis_dataframe_functions() {
   // -- for spark wrapper ---
   expose(append_scalar);
   expose(get_dffunc_id);
+  expose(get_dffunc_im<int>);
+  expose(get_dffunc_im<long>);
+  expose(get_dffunc_im<unsigned long>);
+  expose(get_dffunc_im<float>);
+  expose(get_dffunc_im<double>);
+  expose(get_dffunc_bool_im);
+  expose(get_dffunc_string_im);
   expose(get_dffunc_opt);
   expose(get_immed_dffunc_opt<int>);
   expose(get_immed_dffunc_opt<long>);
@@ -152,6 +159,7 @@ void expose_frovedis_dataframe_functions() {
   expose(set_dfagg_asCol_name);
   expose(execute_dfagg);
   // -----------------------
+  expose(append_when_condition);
   expose(frov_get_bool_mask);
   expose(frov_df_filter_using_mask);
   expose(frov_df_distinct);

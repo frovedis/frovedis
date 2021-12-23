@@ -96,6 +96,9 @@ enum OPTYPE {
   NLIKE = 15,
   ISNULL = 16,
   ISNOTNULL = 17,
+  IF        = 18,
+  ELIF      = 19,
+  ELSE      = 20,
   // --- mathematical ---
   ADD = 21,
   SUB = 22,

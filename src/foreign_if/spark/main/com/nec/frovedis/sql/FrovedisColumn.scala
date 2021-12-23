@@ -13,6 +13,7 @@ object ColKind extends java.io.Serializable {
 }
 
 object OPTYPE extends java.io.Serializable {
+  val ID:        Short = 0 // for column-name or scalar
   // --- conditional ---
   val EQ:        Short = 1
   val NE:        Short = 2
@@ -28,6 +29,9 @@ object OPTYPE extends java.io.Serializable {
   val NLIKE:     Short = 15
   val ISNULL:    Short = 16
   val ISNOTNULL: Short = 17
+  val IF       : Short = 18
+  val ELIF     : Short = 19
+  val ELSE     : Short = 20
   // --- mathematical ---
   val ADD:       Short = 21
   val SUB:       Short = 22
@@ -56,13 +60,16 @@ object OPTYPE extends java.io.Serializable {
 class FrovedisColumn extends java.io.Serializable {
   private var col_name: String = null
   private var kind: Short = ColKind.DFID
+  private var opType: Short = OPTYPE.ID
   private var proxy: Long = 0
+  private var isCond: Boolean = false
   private var isDesc: Int = 0
   private var dtype: Short = 0 // would be set for scalar
 
   def this(n: String) = {
     this()
     this.col_name = n
+    this.opType = OPTYPE.ID
     this.kind = ColKind.DFID
     val fs = FrovedisServer.getServerInstance()
     this.proxy = JNISupport.getIDDFfunc(fs.master_node, col_name)
@@ -71,8 +78,11 @@ class FrovedisColumn extends java.io.Serializable {
   }
 
   // right can be FrovedisColumn, Spark column including literals
-  def this(left: FrovedisColumn, right: Any, opt: Short) = { 
+  def this(left: FrovedisColumn, right: Any, 
+           opt: Short, cond: Boolean = false) = { 
     this()
+    this.opType = opt
+    this.isCond = cond
     this.kind = ColKind.DFFUNC
     val right_str = right.toString
     this.col_name = get_name(left.col_name, right_str, opt)
@@ -105,18 +115,24 @@ class FrovedisColumn extends java.io.Serializable {
     if (info != "") throw new java.rmi.ServerException(info)
   }
 
-  def mark_scalar(dtype: Short): this.type = {
-    this.kind = ColKind.DFSCALAR
-    this.dtype = dtype
-    this
+  def get_immed(n: String, dtype: Short): FrovedisColumn = {
+    val ret = new FrovedisColumn()
+    ret.col_name = n
+    ret.opType = OPTYPE.ID
+    ret.kind = ColKind.DFSCALAR
+    ret.dtype = dtype
+    val fs = FrovedisServer.getServerInstance()
+    ret.proxy = JNISupport.getIMDFfunc(fs.master_node, ret.col_name, dtype)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return ret
   }
 
   def get_agg(agg: Short, ignoreNulls: Boolean = true): FrovedisColumn = {
     val ret = new FrovedisColumn()
+    ret.opType = agg
     ret.kind = ColKind.DFAGG
     ret.col_name = get_name(this.col_name, "", agg)
-    if (this.isSCALAR) // TODO: support this as literal
-      throw new IllegalArgumentException(ret.col_name + ": 'aggregator on literal' is currently not supported!\n")
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getDFagg(fs.master_node, this.proxy,
                                     agg, ret.col_name, ignoreNulls)
@@ -142,6 +158,16 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.NLIKE => "(NOT (" + left + " LIKE " + right + "))"
       case OPTYPE.ISNULL => "(" + left + " IS NULL)"
       case OPTYPE.ISNOTNULL => "(" + left + " IS NOT NULL)"
+      case OPTYPE.IF   => "CASE WHEN " + left + " THEN " + right + " END"
+      case OPTYPE.ELIF => {
+        val left2  = left.substring(0, left.length() - 4)
+        val right2 = right.substring(4, right.length())
+        left2 + right2
+      }
+      case OPTYPE.ELSE => {
+        val left2 = left.substring(0, left.length() - 4)
+        left2 + " ELSE " + right + " END"
+      } 
       // --- mathematical ---
       case OPTYPE.ADD => "(" + left + " + " + right + ")"
       case OPTYPE.SUB => "(" + left + " - " + right + ")"
@@ -169,28 +195,52 @@ class FrovedisColumn extends java.io.Serializable {
     }
   }
 
-  def >   (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.GT) 
-  def >=  (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.GE) 
-  def <   (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.LT) 
-  def <=  (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.LE) 
-  def === (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.EQ) 
-  def !== (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE) 
-  def =!= (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE) 
+  def >   (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.GT, true) 
+  def >=  (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.GE, true) 
+  def <   (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.LT, true) 
+  def <=  (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.LE, true) 
+  def === (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.EQ, true) 
+  def !== (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE, true) 
+  def =!= (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE, true) 
 
-  def &&  (arg: FrovedisColumn) = new FrovedisColumn(this, arg, OPTYPE.AND) 
-  def and (arg: FrovedisColumn) = new FrovedisColumn(this, arg, OPTYPE.AND) 
-  def ||  (arg: FrovedisColumn) = new FrovedisColumn(this, arg, OPTYPE.OR) 
-  def or  (arg: FrovedisColumn) = new FrovedisColumn(this, arg, OPTYPE.OR) 
+  def when (left: FrovedisColumn, arg: Any): FrovedisColumn = { // else-if when case
+    if (this.opType != OPTYPE.IF && this.opType != OPTYPE.ELIF) {
+      throw new IllegalArgumentException(
+      s"when() can only be applied on a Column previously generated by when()")
+    }
+    val fs = FrovedisServer.getServerInstance()
+    val ret = new FrovedisColumn(left, arg, OPTYPE.IF, true) // constructs a IF clause
+    ret.col_name = get_name(this.col_name, ret.col_name, OPTYPE.ELIF) // updates name
+    ret.opType = OPTYPE.ELIF // updates opType
+    ret.proxy = JNISupport.appendWhenCondition(fs.master_node, this.proxy, // updates proxy
+                                               ret.proxy, ret.col_name)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return ret
+  }
 
-  def like       (arg: String) = new FrovedisColumn(this, arg, OPTYPE.LIKE) 
-  def not_like   (arg: String) = new FrovedisColumn(this, arg, OPTYPE.NLIKE) // added specially
-  def startsWith (arg: String) = new FrovedisColumn(this, arg + "%", OPTYPE.LIKE)
-  def endsWith   (arg: String) = new FrovedisColumn(this, "%" + arg, OPTYPE.LIKE)
+  def otherwise (arg: Any): FrovedisColumn = {
+    if (this.opType != OPTYPE.IF && this.opType != OPTYPE.ELIF) {
+      throw new IllegalArgumentException(
+      s"otherwise() can only be applied on a Column previously generated by when()")
+    }
+    return new FrovedisColumn(this, arg, OPTYPE.ELSE, true)
+  }
+
+  def &&  (arg: FrovedisColumn) = new FrovedisColumn(this, arg, OPTYPE.AND, true) 
+  def and (arg: FrovedisColumn) = new FrovedisColumn(this, arg, OPTYPE.AND, true) 
+  def ||  (arg: FrovedisColumn) = new FrovedisColumn(this, arg, OPTYPE.OR, true) 
+  def or  (arg: FrovedisColumn) = new FrovedisColumn(this, arg, OPTYPE.OR, true) 
+
+  def like       (arg: String) = new FrovedisColumn(this, arg, OPTYPE.LIKE, true) 
+  def not_like   (arg: String) = new FrovedisColumn(this, arg, OPTYPE.NLIKE, true) // added specially
+  def startsWith (arg: String) = new FrovedisColumn(this, arg + "%", OPTYPE.LIKE, true)
+  def endsWith   (arg: String) = new FrovedisColumn(this, "%" + arg, OPTYPE.LIKE, true)
 
   def dummy     = new FrovedisColumn("0") // for dummy right
-  def unary_!   = new FrovedisColumn(this, dummy, OPTYPE.NOT) 
-  def isNull    = new FrovedisColumn(this, dummy, OPTYPE.ISNULL) 
-  def isNotNull = new FrovedisColumn(this, dummy, OPTYPE.ISNOTNULL) 
+  def unary_!   = new FrovedisColumn(this, dummy, OPTYPE.NOT, true) 
+  def isNull    = new FrovedisColumn(this, dummy, OPTYPE.ISNULL, true) 
+  def isNotNull = new FrovedisColumn(this, dummy, OPTYPE.ISNOTNULL, true) 
 
   // TODO: support other mathematical operators...
   def + (right: Any)  = new FrovedisColumn(this, right, OPTYPE.ADD)
@@ -203,12 +253,13 @@ class FrovedisColumn extends java.io.Serializable {
 
   def unary_- : FrovedisColumn = { // special case
     val ret = new FrovedisColumn()
+    ret.opType = OPTYPE.MUL
     ret.kind = ColKind.DFFUNC
-    val right_str = "-1.0"
+    val right_str = "-1"
     ret.col_name = "(- " + this.toString + ")"
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getOptImmedDFfunc(fs.master_node, this.proxy, 
-                                             right_str, DTYPE.DOUBLE,
+                                             right_str, DTYPE.INT,
                                              OPTYPE.MUL, col_name)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
@@ -243,6 +294,7 @@ class FrovedisColumn extends java.io.Serializable {
   }
   def get()    = proxy
   def colName  = col_name 
+  def isCOND   = isCond
   def isID     = (kind == ColKind.DFID)
   def isFUNC   = (kind == ColKind.DFFUNC)
   def isAGG    = (kind == ColKind.DFAGG)
@@ -269,9 +321,10 @@ object functions extends java.io.Serializable {
   def asc(col: String)         = new FrovedisColumn(col).asc
   def desc(col: String)        = new FrovedisColumn(col).desc
   def lit(x: Any): FrovedisColumn = {
-    if (x == null) return new FrovedisColumn("NULL").mark_scalar(DTYPE.INT) // null as INT.MAX
-    else           return new FrovedisColumn(x.toString).mark_scalar(DTYPE.detect(x))
+    if (x == null) new FrovedisColumn().get_immed("NULL", DTYPE.STRING)
+    else           new FrovedisColumn().get_immed(x.toString, DTYPE.detect(x))
   }
+  def when(left: FrovedisColumn, right: Any) = new FrovedisColumn(left, right, OPTYPE.IF, true)
 
   def max      (col: String) = new FrovedisColumn(col).get_agg(OPTYPE.aMAX)
   def min      (col: String) = new FrovedisColumn(col).get_agg(OPTYPE.aMIN)
