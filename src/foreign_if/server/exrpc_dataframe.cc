@@ -4,6 +4,80 @@
 
 using namespace frovedis;
 
+void append_na_count(dftable& df,
+                     int axis, const std::string& cname) { // assumes no index
+  auto count_na_df = df.count_nulls(axis); 
+  df.append_column(cname, count_na_df.column("count"));
+}
+
+dftable
+fillna_with_min(dftable& df, std::vector<std::string>& cols, 
+                std::vector<short>& types) {
+  dftable ret;
+  auto ncol = df.num_col();
+  for (size_t i = 0; i < ncol; ++i) {
+    use_dfcolumn use_col(df.raw_column(cols[i]));
+    auto dfcol = df.column(cols[i]);
+    fillna_column_min_typed_helper(dfcol, types[i]);
+    ret.append_column(cols[i], dfcol);
+  }
+  return ret;
+}
+
+void fillna_column_min_typed_helper(
+                         std::shared_ptr<frovedis::dfcolumn>& col,
+                         short type) {
+  switch(type) {
+    case BOOL:
+    case INT:    col = fillna_column<int>(col, 
+                         std::numeric_limits<int>::min());break;
+    case LONG:   col = fillna_column<long>(col, 
+                         std::numeric_limits<long>::min());break;
+    case FLOAT:  col = fillna_column<float>(col, 
+                         std::numeric_limits<float>::min());break;
+    case DOUBLE: col = fillna_column<double>(col, 
+                         std::numeric_limits<double>::min());break;
+    case ULONG:  col = fillna_column<unsigned long>(col, 
+                         std::numeric_limits<unsigned long>::min());break;
+    default:     REPORT_ERROR(USER_ERROR,
+                              "Not supported for non-numeric columns!\n");
+  }
+}
+
+dftable
+fillna_with_max(dftable& df, std::vector<std::string>& cols, 
+                std::vector<short>& types) {
+  dftable ret;
+  auto ncol = df.num_col();
+  for (size_t i = 0; i < ncol; ++i) {
+    use_dfcolumn use_col(df.raw_column(cols[i]));
+    auto dfcol = df.column(cols[i]);
+    fillna_column_max_typed_helper(dfcol, types[i]);
+    ret.append_column(cols[i], dfcol);
+  }
+  return ret;
+}
+
+/*void fillna_column_max_typed_helper(
+                         std::shared_ptr<frovedis::dfcolumn>& col,
+                         short type) {
+  switch(type) {
+    case BOOL:
+    case INT:    col = fillna_column<int>(col, 
+                         std::numeric_limits<int>::max());break;
+    case LONG:   col = fillna_column<long>(col, 
+                         std::numeric_limits<long>::max());break;
+    case FLOAT:  col = fillna_column<float>(col, 
+                         std::numeric_limits<float>::max());break;
+    case DOUBLE: col = fillna_column<double>(col, 
+                         std::numeric_limits<double>::max());break;
+    case ULONG:  col = fillna_column<unsigned long>(col, 
+                         std::numeric_limits<unsigned long>::max());break;
+    default:     REPORT_ERROR(USER_ERROR,
+                              "Not supported for non-numeric columns!\n");
+  }
+}*/
+
 bool is_present(const std::vector<std::string>& vec,
                 const std::string& val) {
   return std::find(vec.begin(), vec.end(), val) != vec.end();
@@ -2458,7 +2532,8 @@ exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
 
 exrpc_ptr_t get_dffunc_agg(exrpc_ptr_t& leftp,
                            short& opt_id,
-                           std::string& cname) {
+                           std::string& cname,
+                           bool& ignore_nulls) { // applicable for first/last
   auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
   std::shared_ptr<dfaggregator> *opt = NULL;
   switch(opt_id) {
@@ -2475,7 +2550,9 @@ exrpc_ptr_t get_dffunc_agg(exrpc_ptr_t& leftp,
     case aSIZE: opt = new std::shared_ptr<dfaggregator>(size_as(left, cname)); break;
     case aDSUM: opt = new std::shared_ptr<dfaggregator>(sum_distinct_as(left, cname)); break;
     case aDCNT: opt = new std::shared_ptr<dfaggregator>(count_distinct_as(left, cname)); break;
-    default:     REPORT_ERROR(USER_ERROR, "Unsupported dfaggregator is requested!\n");
+    case aFST:  opt = new std::shared_ptr<dfaggregator>(first_as(left, cname, ignore_nulls)); break;
+    case aLST:  opt = new std::shared_ptr<dfaggregator>(last_as(left, cname, ignore_nulls)); break;
+    default:    REPORT_ERROR(USER_ERROR, "Unsupported dfaggregator is requested!\n");
   }
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }

@@ -654,14 +654,15 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getOptImmedDFfun
 
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDFagg
   (JNIEnv *env, jclass thisCls, jobject master_node,
-   jlong left, jshort opt, jstring colname) {
+   jlong left, jshort opt, jstring colname, jboolean ignore_nulls) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto leftp = (exrpc_ptr_t) left;
   auto cname = to_cstring(env, colname);
+  bool ignore = (bool) ignore_nulls;
   exrpc_ptr_t proxy = 0;
   try {
-    proxy = exrpc_async(fm_node, get_dffunc_agg, leftp, opt, cname).get();
+    proxy = exrpc_async(fm_node, get_dffunc_agg, leftp, opt, cname, ignore).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) proxy;

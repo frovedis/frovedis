@@ -49,6 +49,8 @@ object OPTYPE extends java.io.Serializable {
   val aSIZE:     Short = 50
   val aDSUM:     Short = 51
   val aDCNT:     Short = 52
+  val aFST:      Short = 53
+  val aLST:      Short = 54
 }
 
 class FrovedisColumn extends java.io.Serializable {
@@ -109,7 +111,7 @@ class FrovedisColumn extends java.io.Serializable {
     this
   }
 
-  def get_agg(agg: Short): FrovedisColumn = {
+  def get_agg(agg: Short, ignoreNulls: Boolean = true): FrovedisColumn = {
     val ret = new FrovedisColumn()
     ret.kind = ColKind.DFAGG
     ret.col_name = get_name(this.col_name, "", agg)
@@ -117,7 +119,7 @@ class FrovedisColumn extends java.io.Serializable {
       throw new IllegalArgumentException(ret.col_name + ": 'aggregator on literal' is currently not supported!\n")
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getDFagg(fs.master_node, this.proxy,
-                                    agg, ret.col_name)
+                                    agg, ret.col_name, ignoreNulls)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return ret
@@ -161,6 +163,8 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.aSIZE => "count(1)"
       case OPTYPE.aDSUM => "sum(DISTINCT " + left + ")"
       case OPTYPE.aDCNT => "count(DISTINCT " + left + ")" // spark defaults: count(left)
+      case OPTYPE.aFST  => "first(" + left + ")"
+      case OPTYPE.aLST  => "last(" + left + ")"
       case _ => throw new IllegalArgumentException("Unsupported opt-type: " + opt)
     }
   }
@@ -291,6 +295,11 @@ object functions extends java.io.Serializable {
   def stddev   (col: FrovedisColumn) = col.get_agg(OPTYPE.aSTD)
   def mad      (col: FrovedisColumn) = col.get_agg(OPTYPE.aMAD)
   def count    (col: FrovedisColumn) = col.get_agg(OPTYPE.aCNT)
+
+  def first    (col: FrovedisColumn) = col.get_agg(OPTYPE.aFST, false)
+  def last     (col: FrovedisColumn) = col.get_agg(OPTYPE.aLST, false)
+  def first    (col: FrovedisColumn, ignoreNulls: Boolean) = col.get_agg(OPTYPE.aFST, ignoreNulls)
+  def last     (col: FrovedisColumn, ignoreNulls: Boolean) = col.get_agg(OPTYPE.aLST, ignoreNulls)
 
   def sumDistinct   (col: FrovedisColumn) = col.get_agg(OPTYPE.aDSUM)
   def countDistinct (col: FrovedisColumn) = col.get_agg(OPTYPE.aDCNT)

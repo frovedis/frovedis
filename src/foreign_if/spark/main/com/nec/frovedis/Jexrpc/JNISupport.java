@@ -918,7 +918,8 @@ public class JNISupport {
                                               String right_str, short right_dtype,
                                               short opt, String col_name);
   public static native long getDFagg(Node master_node, long left_fn, 
-                                     short opt, String col_name);
+                                     short opt, String col_name,
+                                     boolean ignore_nulls);
   public static native DummyDftable appendScalar(Node master_node, long df_proxy,
                                                  String name, 
                                                  String scalar, short dtype);

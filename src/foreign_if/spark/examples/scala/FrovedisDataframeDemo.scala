@@ -122,10 +122,15 @@ object FrovedisDataframeDemo {
     df1.groupBy("Country").min($$"Age" ** 2).show()
     val gdf = df1.groupBy("Country").agg(max($$"Age" * 2).as("max_twice_age"),
                                          min("Age").as("min_age"),
-                                         avg($$"Age").as("avg_age"),
-                                         mean("Age").as("mean_age"),
                                          sum($$"Age").as("sum_age"),
                                          sumDistinct($$"Age"),
+                                         mean($$"Age").as("avg_age"),
+                                         first($$"Age"),
+                                         last($$"Age"),
+                                         variance($$"Age"),
+                                         stddev($$"Age"),
+                                         sem($$"Age"),
+                                         count($$"Age"),
                                          countDistinct($$"Age"))
     gdf.show()
 
