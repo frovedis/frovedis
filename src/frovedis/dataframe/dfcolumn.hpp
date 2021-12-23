@@ -291,6 +291,8 @@ public:
   virtual double mad() = 0;
   template <class T> T max();
   template <class T> T min();
+  template <class T> T first(bool ignore_nulls = false);
+  template <class T> T last(bool ignore_nulls = false);
   template <class T> T at(size_t i);
   template <class T> dvector<T> as_dvector();
   // cast to float/double; throw exception when string 
@@ -799,6 +801,8 @@ public:
   virtual double mad();
   T max();
   T min();
+  T first(bool ignore_nulls = false);
+  T last(bool ignore_nulls = false);
   T at(size_t i);
   virtual dvector<float> as_dvector_float(); 
   virtual dvector<double> as_dvector_double();
@@ -1331,6 +1335,8 @@ public:
   std::string min() {
     throw std::runtime_error("min of string is not defined");
   }
+  std::string first(bool ignore_nulls = false);
+  std::string last(bool ignore_nulls = false);
   std::string at(size_t i) {
     throw std::runtime_error("at of string is not defined");
   }
@@ -1706,6 +1712,8 @@ public:
   dic_string min() {
     throw std::runtime_error("min of dic_string is not defined");
   }
+  std::string first(bool ignore_nulls = false);
+  std::string last(bool ignore_nulls = false);
   dic_string at(size_t i) {
     throw std::runtime_error("at of dic_string is not defined");
   }
@@ -2320,6 +2328,8 @@ public:
   virtual double avg() {
     throw std::runtime_error("avg of datetime is not defined");
   }
+  datetime_t first(bool ignore_nulls = false);
+  datetime_t last(bool ignore_nulls = false);
   virtual std::shared_ptr<dfcolumn>
   datetime_extract(datetime_type kind);
   virtual std::shared_ptr<dfcolumn>
@@ -2397,6 +2407,30 @@ T dfcolumn::min() {
     throw std::runtime_error("type mismatch of min<T>()");
   }
 }
+
+template <class T>
+T dfcolumn::first(bool ignore_nulls) {
+  try {
+    return dynamic_cast<typed_dfcolumn<T>&>(*this).first(ignore_nulls);
+  } catch (std::bad_cast& e) {
+    throw std::runtime_error("type mismatch of first<T>()");
+  }
+}
+
+template <>
+std::string dfcolumn::first(bool ignore_nulls);
+
+template <class T>
+T dfcolumn::last(bool ignore_nulls) {
+  try {
+    return dynamic_cast<typed_dfcolumn<T>&>(*this).last(ignore_nulls);
+  } catch (std::bad_cast& e) {
+    throw std::runtime_error("type mismatch of last<T>()");
+  }
+}
+
+template <>
+std::string dfcolumn::last(bool ignore_nulls);
 
 template <class T>
 T dfcolumn::at(size_t i) {

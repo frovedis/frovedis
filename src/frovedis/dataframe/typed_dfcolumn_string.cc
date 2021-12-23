@@ -1134,6 +1134,62 @@ typed_dfcolumn<string>::last
   return ret;
 }
 
+std::string
+typed_dfcolumn<string>::first(bool ignore_nulls) {
+#ifndef DONOT_ALLOW_MAX_AS_VALUE
+  throw std::runtime_error
+    ("define DONOT_ALLOW_MAX_AS_VALUE to use first");
+#endif
+  auto firsts = val.map(first_helper2<size_t>,broadcast(ignore_nulls)).gather();
+  auto firsts_size = firsts.size();
+  size_t max = std::numeric_limits<size_t>::max();
+  size_t ret = max;
+  for(size_t i = 0; i < firsts_size; i++) {
+    auto crnt = firsts[firsts_size - 1 - i];
+    if(!ignore_nulls) {
+      if(crnt.size() != 0) ret = crnt[0];
+    } else {
+      if(crnt.size() != 0 && crnt[0] != max) ret = crnt[0];
+    }
+  }
+  auto gdic_idx = dic_idx->gather();    
+  if(ret == numeric_limits<size_t>::max()) return "NULL";
+  else {
+    size_t nodemask = (size_t(1) << DFNODESHIFT) - 1;
+    auto node = ret >> DFNODESHIFT;
+    auto idx = ret & nodemask;
+    return gdic_idx[node][idx];
+  }
+}
+
+std::string
+typed_dfcolumn<string>::last(bool ignore_nulls) {
+#ifndef DONOT_ALLOW_MAX_AS_VALUE
+  throw std::runtime_error
+    ("define DONOT_ALLOW_MAX_AS_VALUE to use last");
+#endif
+  auto lasts = val.map(last_helper2<size_t>,broadcast(ignore_nulls)).gather();
+  auto lasts_size = lasts.size();
+  size_t max = std::numeric_limits<size_t>::max();
+  size_t ret = max;
+  for(size_t i = 0; i < lasts_size; i++) {
+    auto crnt = lasts[i];
+    if(!ignore_nulls) {
+      if(crnt.size() != 0) ret = crnt[0];
+    } else {
+      if(crnt.size() != 0 && crnt[0] != max) ret = crnt[0];
+    }
+  }
+  auto gdic_idx = dic_idx->gather();    
+  if(ret == numeric_limits<size_t>::max()) return "NULL";
+  else {
+    size_t nodemask = (size_t(1) << DFNODESHIFT) - 1;
+    auto node = ret >> DFNODESHIFT;
+    auto idx = ret & nodemask;
+    return gdic_idx[node][idx];
+  }
+}
+
 size_t typed_dfcolumn<string>::count() {
   size_t size = val.viewas_dvector<size_t>().size();
   if(contain_nulls) {

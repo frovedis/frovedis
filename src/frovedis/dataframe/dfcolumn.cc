@@ -621,6 +621,32 @@ fill_sized_idx(const size_t* idxp, const size_t* idx_lenp, size_t size) {
   }
 }
 
+template <>
+std::string dfcolumn::first(bool ignore_nulls) {
+  if(dtype() == "string") {
+    auto colp2 = dynamic_cast<typed_dfcolumn<std::string>*>(this);
+    if(!colp2) throw std::runtime_error("internal type error");
+    return colp2->first(ignore_nulls);
+  } else if(dtype() == "dic_string") {
+    auto colp2 = dynamic_cast<typed_dfcolumn<dic_string>*>(this);
+    if(!colp2) throw std::runtime_error("internal type error");
+    return colp2->first(ignore_nulls);
+  } else throw std::runtime_error("unsupported type: " + dtype());
+}
+
+template <>
+std::string dfcolumn::last(bool ignore_nulls) {
+  if(dtype() == "string") {
+    auto colp2 = dynamic_cast<typed_dfcolumn<std::string>*>(this);
+    if(!colp2) throw std::runtime_error("internal type error");
+    return colp2->last(ignore_nulls);
+  } else if(dtype() == "dic_string") {
+    auto colp2 = dynamic_cast<typed_dfcolumn<dic_string>*>(this);
+    if(!colp2) throw std::runtime_error("internal type error");
+    return colp2->last(ignore_nulls);
+  } else throw std::runtime_error("unsupported type: " + dtype());
+}
+
 std::vector<std::string> 
 words_to_string_vector(words& ws, 
                        std::vector<size_t>& nulls,

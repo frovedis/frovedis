@@ -293,6 +293,8 @@ struct dfaggregator_first : public dfaggregator {
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
             node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn>
+  whole_column_aggregate(dftable_base& table);
   bool ignore_nulls;
 };
 
@@ -316,8 +318,29 @@ struct dfaggregator_last : public dfaggregator {
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
             node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn>
+  whole_column_aggregate(dftable_base& table);
   bool ignore_nulls;
 };
+
+// for whole_column_aggregate
+template <class T>
+bool is_all_null(std::shared_ptr<typed_dfcolumn<T>>& col) {
+  return col->val.map(+[](std::vector<T>& val, std::vector<size_t>&nulls)
+                      {return val.size() == nulls.size();}, col->nulls).
+    reduce(+[](bool left, bool right){return left && right;});
+}
+
+template <class T>
+std::shared_ptr<typed_dfcolumn<T>>
+one_null_column() {
+  auto max = std::numeric_limits<T>::max();
+  std::vector<T> v = {max};
+  std::vector<size_t> nullsv = {0};
+  auto val = make_dvector_scatter(v).moveto_node_local();
+  auto nulls = make_dvector_scatter(nullsv).moveto_node_local();
+  return std::make_shared<typed_dfcolumn<T>>(std::move(val),std::move(nulls));
+}
 
 std::shared_ptr<dfaggregator>
 sum(const std::string& col);

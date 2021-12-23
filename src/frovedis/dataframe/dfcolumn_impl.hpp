@@ -3962,6 +3962,100 @@ T typed_dfcolumn<T>::min() {
 }
 
 template <class T>
+std::vector<T> first_helper2(std::vector<T>& val,
+                             bool ignore_nulls) {
+  auto val_size = val.size();
+  if(!ignore_nulls) {
+    if(val_size != 0) return {val[0]};
+    else return std::vector<T>();
+  } else {
+    if(val_size != 0) {
+      T max = std::numeric_limits<T>::max();
+      T ret = max;
+      auto valp = val.data();
+      for(size_t i = 0; i < val_size; i++) {
+        if(valp[i] == max) continue;
+        else {
+          ret = valp[i];
+          break;
+        }
+      }
+      return {ret};
+    } else {
+      return std::vector<T>();
+    }
+  }
+}
+
+template <class T>
+T typed_dfcolumn<T>::first(bool ignore_nulls) {
+#ifndef DONOT_ALLOW_MAX_AS_VALUE
+  throw std::runtime_error
+    ("define DONOT_ALLOW_MAX_AS_VALUE to use first");
+#endif
+  auto firsts = val.map(first_helper2<T>,broadcast(ignore_nulls)).gather();
+  auto firsts_size = firsts.size();
+  T max = std::numeric_limits<T>::max();
+  T ret = max;
+  for(size_t i = 0; i < firsts_size; i++) {
+    auto crnt = firsts[firsts_size - 1 - i];
+    if(!ignore_nulls) {
+      if(crnt.size() != 0) ret = crnt[0];
+    } else {
+      if(crnt.size() != 0 && crnt[0] != max) ret = crnt[0];
+    }
+  }
+  return ret;
+}
+
+template <class T>
+std::vector<T> last_helper2(std::vector<T>& val,
+                            bool ignore_nulls) {
+  auto val_size = val.size();
+  if(!ignore_nulls) {
+    if(val_size != 0) return {val[val_size-1]};
+    else return std::vector<T>();
+  } else {
+    if(val_size != 0) {
+      T max = std::numeric_limits<T>::max();
+      T ret = max;
+      auto valp = val.data();
+      for(size_t i = 0; i < val_size; i++) {
+        if(valp[val_size - 1 - i] == max) continue;
+        else {
+          ret = valp[val_size - 1 - i];
+          break;
+        }
+      }
+      return {ret};
+    } else {
+      return std::vector<T>();
+    }
+  }
+}
+
+template <class T>
+T typed_dfcolumn<T>::last(bool ignore_nulls) {
+#ifndef DONOT_ALLOW_MAX_AS_VALUE
+  throw std::runtime_error
+    ("define DONOT_ALLOW_MAX_AS_VALUE to use last");
+#endif
+  auto lasts = val.map(last_helper2<T>,broadcast(ignore_nulls)).gather();
+  auto lasts_size = lasts.size();
+  T max = std::numeric_limits<T>::max();
+  T ret = max;
+  for(size_t i = 0; i < lasts_size; i++) {
+    auto crnt = lasts[i];
+    if(!ignore_nulls) {
+      if(crnt.size() != 0) ret = crnt[0];
+    } else {
+      if(crnt.size() != 0 && crnt[0] != max) ret = crnt[0];
+    }
+  }
+  return ret;
+}
+
+template <class T>
 T typed_dfcolumn<T>::at(size_t i) {
   auto sizes = val.template viewas_dvector<T>().sizes();
   auto nproc = sizes.size();

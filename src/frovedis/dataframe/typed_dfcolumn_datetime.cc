@@ -524,6 +524,14 @@ typed_dfcolumn<datetime>::last
   return ret;
 }
 
+datetime_t typed_dfcolumn<datetime>::first(bool ignore_nulls) {
+  return typed_dfcolumn<datetime_t>::first(ignore_nulls);
+}
+
+datetime_t typed_dfcolumn<datetime>::last(bool ignore_nulls) {
+  return typed_dfcolumn<datetime_t>::last(ignore_nulls);
+}
+
 void typed_dfcolumn<datetime>::debug_print() {
   std::cout << "dtype: " << dtype() << std::endl;
   std::cout << "values: ";
