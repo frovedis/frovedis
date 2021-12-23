@@ -398,6 +398,28 @@ whole_column_aggregate(dftable_base& table) {
   } else throw std::runtime_error("unsupported type: " + colp->dtype());
 }
 
+std::shared_ptr<dfcolumn>
+dfaggregator_count_distinct::
+whole_column_aggregate(dftable_base& table) {
+  auto colp = col->execute(table);
+  dftable tmp;
+  std::string c("tmp");
+  tmp.append_column(c, colp);
+  auto tmp2 = tmp.group_by({c}).select({c}).aggregate({count_as(c,c)});
+  return tmp2.column(c);
+}
+
+std::shared_ptr<dfcolumn>
+dfaggregator_sum_distinct::
+whole_column_aggregate(dftable_base& table) {
+  auto colp = col->execute(table);
+  dftable tmp;
+  std::string c("tmp");
+  tmp.append_column(c, colp);
+  auto tmp2 = tmp.group_by({c}).select({c}).aggregate({sum_as(c,c)});
+  return tmp2.column(c);
+}
+
 std::shared_ptr<dfaggregator> sum(const std::string& col) {
   return std::make_shared<dfaggregator_sum>(id_col(col));
 }

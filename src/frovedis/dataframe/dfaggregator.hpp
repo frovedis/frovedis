@@ -248,6 +248,8 @@ struct dfaggregator_count_distinct : public dfaggregator {
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
             node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn>
+  whole_column_aggregate(dftable_base& table);
 };
 
 struct dfaggregator_sum_distinct : public dfaggregator {
@@ -267,6 +269,8 @@ struct dfaggregator_sum_distinct : public dfaggregator {
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
             node_local<size_t>& row_sizes);
+  virtual std::shared_ptr<dfcolumn>
+  whole_column_aggregate(dftable_base& table);
 };
 
 struct dfaggregator_first : public dfaggregator {
