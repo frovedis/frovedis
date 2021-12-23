@@ -1,0 +1,938 @@
+.TH "SGDClassifier" "" "" "" ""
+.SH NAME
+.PP
+SGDClassifier \- A classification algorithm used to predict the labels
+with various loss functions.
+This estimator implements regularized linear models with stochastic
+gradient descent (SGD) learning.
+.SH SYNOPSIS
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.linear_model.SGDClassifier(loss=\[aq]hinge\[aq],\ penalty=\[aq]l2\[aq],\ alpha=0.0001,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ l1_ratio=0.15,\ fit_intercept=True,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ max_iter=1000,\ tol=1e\-3,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ shuffle=True,\ verbose=0,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ epsilon=0.1,\ n_jobs=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ learning_rate="invscaling",\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ eta0=1.0,\ power_t=0.5,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ early_stopping=False,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ validation_fraction=0.1,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_iter_no_change=5,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ class_weight=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ warm_start=False,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ average=False)\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
+\f[]
+.fi
+.SS Public Member Functions
+.PP
+fit(X, y, coef_init = None, intercept_init = None, sample_weight = None)
+.PD 0
+.P
+.PD
+predict(X)
+.PD 0
+.P
+.PD
+predict_proba(X)
+.PD 0
+.P
+.PD
+score(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+load(fname, dtype = None)
+.PD 0
+.P
+.PD
+save(fname)
+.PD 0
+.P
+.PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.PD 0
+.P
+.PD
+is_fitted()
+.SH DESCRIPTION
+.PP
+Stochastic Gradient Descent (SGD) is used for discriminative learning of
+linear classifiers under convex loss functions such as SVM and Logistic
+regression.
+It has been successfully applied to large\-scale datasets because the
+update to the coefficients is performed for each training instance,
+rather than at the end of instances.
+\f[B]Frovedis supports both binary and multinomial Stochastic Gradient
+Descent (SGD) classifier algorithms.\f[]
+.PP
+Stochastic Gradient Descent (SGD) classifier basically implements a
+plain SGD learning routine supporting various loss functions and
+penalties for classification.
+It implements regularized linear models with stochastic gradient descent
+(SGD) learning: the gradient of the loss is estimated each sample at a
+time and the model is updated along the way with a decreasing strength
+schedule.
+It is a linear method which uses the following loss functions:
+.PD 0
+.P
+.PD
+\f[B]1) hinge\f[]
+.PD 0
+.P
+.PD
+\f[B]2) log\f[]
+.PD 0
+.P
+.PD
+\f[B]3) squared_loss\f[]
+.PP
+\f[B]It supports ZERO, L1 and L2 regularization to address the overfit
+problem.\f[]
+.PP
+During training, the input \f[B]X\f[] is the training data and
+\f[B]y\f[] are their corresponding label values (Frovedis supports any
+values as for labels, but internally it encodes the input binary labels
+to \-1 and 1, before training at Frovedis server) which we want to
+predict.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The frovedis interface is almost same as Scikit\-learn SGDClassifier
+(Stochastic Gradient Descent Classification) interface, but it
+doesn\[aq]t have any dependency with Scikit\-learn.
+It can be used simply even if the system doesn\[aq]t have Scikit\-learn
+installed.
+Thus in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for SGDClassifier on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
+.PP
+When prediction\-like request would be made on the trained model, python
+program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
+.SS Detailed Description
+.SS 1. SGDClassifier()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]loss\f[]\f[]: A string object parameter containing the loss
+function type to use.
+Currently, frovedis supports ‘hinge', ‘log'and ‘squared_loss' functions.
+(Default: \[aq]hinge\[aq])
+.PD 0
+.P
+.PD
+\f[I]\f[B]penalty\f[]\f[]: A string object parameter containing the
+regularizer type to use.
+Currently none, l1 and l2 are supported by Frovedis.
+(Default: \[aq]l2\[aq])
+.PD 0
+.P
+.PD
+If it is None (not specified explicitly), it will be set as
+\[aq]ZERO\[aq] regularization type.
+.PD 0
+.P
+.PD
+\f[I]\f[B]alpha\f[]\f[]: Zero or a positive double (float64) smoothing
+parameter.
+(Default: 0.0001)
+.PD 0
+.P
+.PD
+\f[I]\f[B]l1_ratio\f[]\f[]: An unused parameter.
+(Default: 0.15)
+.PD 0
+.P
+.PD
+\f[I]\f[B]fit_intercept\f[]\f[]: A boolean parameter specifying whether
+a constant (intercept) should be added to the decision function.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[I]\f[B]max_iter\f[]\f[]: A positive integer parameter specifying
+maximum iteration count.
+(Default: 1000)
+.PD 0
+.P
+.PD
+\f[I]\f[B]tol\f[]\f[]: A double (float64) parameter specifying the
+convergence tolerance value.
+It must be zero or a positive value.
+(Default: 1e\-3)
+.PD 0
+.P
+.PD
+\f[I]\f[B]shuffle\f[]\f[]: An unused parameter.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[I]\f[B]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is set as 0 by default (for INFO mode).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
+.PD 0
+.P
+.PD
+\f[I]\f[B]epsilon\f[]\f[]: An unused parameter.
+(Default: 0.1)
+.PD 0
+.P
+.PD
+\f[I]\f[B]n_jobs\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]random_state\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]learning_rate\f[]\f[]: A string object parameter containing
+the learning rate.
+(Default: \[aq]invscaling\[aq])
+.PD 0
+.P
+.PD
+Unlike sklearn, Frovedis only supports \[aq]invscaling\[aq] learning
+rate.
+\[aq]invscaling\[aq] gradually decreases the learning rate
+\f[B]\[aq]learning_rate_\[aq]\f[] at each time step \f[B]\[aq]t\[aq]\f[]
+using an inverse scaling exponent of \f[B]\[aq]power_t\[aq]\f[].
+.PD 0
+.P
+.PD
+\f[B]learning_rate_ = eta0 / pow(t, power_t)\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]eta0\f[]\f[]: A double (float64) parameter specifying the
+initial learning rate for the ‘invscaling' schedules.
+(Default: 1.0)
+.PD 0
+.P
+.PD
+\f[I]\f[B]power_t\f[]\f[]: A double (float64) parameter specifying the
+exponent for inverse scaling learning rate.
+(Default: 0.5)
+.PD 0
+.P
+.PD
+\f[I]\f[B]early_stopping\f[]\f[]: An unused parameter.
+(Default: False)
+.PD 0
+.P
+.PD
+\f[I]\f[B]validation_fraction\f[]\f[]: An unused parameter.
+(Default: 0.1)
+.PD 0
+.P
+.PD
+\f[I]\f[B]n_iter_no_change\f[]\f[]: An unused parameter.
+(Default: 5)
+.PD 0
+.P
+.PD
+\f[I]\f[B]class_weight\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]warm_start\f[]\f[]: A boolean parameter which when set to
+True, reuses the solution of the previous call to fit as initialization,
+otherwise, just erase the previous solution.
+(Default: False)
+.PD 0
+.P
+.PD
+\f[I]\f[B]average\f[]\f[]: An unused parameter.
+(Default: False)
+.PP
+\f[B]Attributes\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]coef_\f[]\f[]: It is a python ndarray(containing float or
+double (float64) typed values depending on data\-type of input matrix
+(X)).
+It is the weights assigned to the features.
+.PD 0
+.P
+.PD
+Shape of this attribute depends on the n_classes.
+.PD 0
+.P
+.PD
+\- If \[aq]classes_\[aq] is 2, then the shape \f[B](1, n_features)\f[]
+.PD 0
+.P
+.PD
+\- If \[aq]classes_\[aq] is more then 2, then the shape is
+\f[B](n_classes, n_features)\f[].
+.PP
+\f[I]\f[B]intercept_\f[]\f[]: It is a python ndarray(float or double
+(float64) values depending on input matrix data type) and has shape
+\f[B](1,)\f[].
+It specifies the constants in decision function.
+.PD 0
+.P
+.PD
+\f[I]\f[B]classes_\f[]\f[]: It is a python ndarray(any type) of unique
+labels given to the classifier during training.
+It has shape \f[B](n_classes,)\f[].
+This attribute is not available for \f[B]squared_loss\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]n_iter\f[]\f[]: An integer value used to get the actual
+iteration point at which the problem is converged.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes a SGDClassifier object with the given parameters.
+.PP
+The parameters: "l1_ratio", "shuffle", "epsilon", "n_jobs",
+"random_state", "early_stopping", "validation_fraction",
+"n_iter_no_change", "class_weight" and "average" are simply kept to make
+the interface uniform to Scikit\-learn SGDClassifier module.
+They are not used anywhere within frovedis implementation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 2. fit(X, y, coef_init = None, intercept_init = None, sample_weight
+= None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisColmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]y\f[]\f[]: Any python array\-like object or an instance of
+FrovedisDvector containing the target labels.
+It has shape \f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]coef_init\f[]\f[]: An unused parameter that specifies the
+initial coefficients to warm\-start the optimization.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]intercept_init\f[]\f[]: An unused parameter that specifies the
+initial intercept to warm\-start the optimization.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]sample_weight\f[]\f[]: A python ndarray containing the
+intended weights for each input samples and it should be the shape of
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the training feature matrix (X) and corresponding output
+labels (y) as inputs from the user and trains a SGDClassifier model with
+specified regularization with those data at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ matrix\ and\ labels\ data
+from\ sklearn.datasets\ import\ load_breast_cancer
+mat,\ lbl\ =\ load_breast_cancer(return_X_y\ =\ True)
+
+#\ fitting\ input\ matrix\ and\ label\ on\ SGDClassifier\ object
+from\ frovedis.mllib.linear_model\ import\ SGDClassifier
+sgd_clf\ =\ SGDClassifier().fit(mat,\ lbl)
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ matrix\ and\ labels\ data
+from\ sklearn.datasets\ import\ load_breast_cancer
+mat,\ lbl\ =\ load_breast_cancer(return_X_y\ =\ True)
+
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisColmajorMatrix.
+and\ for\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used.\ 
+from\ frovedis.matrix.dense\ import\ FrovedisColmajorMatrix
+from\ frovedis.matrix.dvector\ import\ FrovedisDvector
+cmat\ =\ FrovedisColmajorMatrix(mat)
+dlbl\ =\ FrovedisDvector(lbl)
+
+#\ Linear\ SVC\ with\ pre\-constructed\ frovedis\-like\ inputs
+from\ frovedis.mllib.linear_model\ import\ SGDClassifier
+sgd_clf\ =\ SGDClassifier().fit(cmat,dlbl)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 3. predict(X)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the test feature matrix (X) in order to make prediction on
+the trained model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+sgd_clf.predict(mat)\ \ 
+\f[]
+.fi
+.PP
+Output:
+.IP
+.nf
+\f[C]
+[0\ 0\ 0\ 1\ .\ .\ .\ .\ 0\ 0\ 0\ 1]
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "cmat"\ is\ FrovedisColmajorMatrix,\ we\ have\ created\ FrovedisRowmajorMatrix.
+#\ predicting\ on\ SGDClassifier\ using\ frovedis\-like\ input\ 
+sgd_clf.predict(cmat.to_frovedis_rowmatrix())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[0\ 0\ 0\ 1\ .\ .\ .\ .\ 0\ 0\ 0\ 1]
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+For \f[B]squared_loss\f[] loss, it returns a numpy array of \f[B]double
+(float64)\f[] type and for other loss functions it returns a numpy array
+of \f[B]int64\f[] type containing the predicted outputs.
+It has shape \f[B](n_samples,)\f[].
+.SS 4. predict_proba(X)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Perform classification on an array and return probability estimates for
+the test vector X.
+.PP
+It accepts the test feature matrix (X) in order to make prediction on
+the trained model at frovedis server.
+Unlike sklearn, it performs the classification on an array and returns
+the probability estimates for the test feature matrix (X).
+.PP
+\f[B]This method is not available for "hinge" and "squared_loss"
+function.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ finds\ the\ probablity\ sample\ for\ each\ class\ in\ the\ model
+sgd_clf.predict_proba(mat)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[[0.\ 1.]
+[0.\ 1.]
+[0.\ 1.]
+\&...
+[0.\ 1.]
+[0.\ 1.]
+[0.\ 1.]]
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(mat)
+
+#\ finds\ the\ probablity\ sample\ for\ each\ class\ in\ the\ model
+sgd_clf.predict_proba(rmat)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[[0.\ 1.]
+[0.\ 1.]
+[0.\ 1.]
+\&...
+[0.\ 1.]
+[0.\ 1.]
+[0.\ 1.]]
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of float or double (float64) type and of shape
+\f[B](n_samples, n_classes)\f[] containing the predicted probability
+values.
+.SS 5. score(X, y, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]X\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object or an instance of FrovedisCRSMatrix for sparse data
+and FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]y\f[]\f[]: Any python array\-like object containing the target
+labels.
+It has shape \f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
+\f[B]sample_weight\f[]: A python narray containing the intended weights
+for each input samples and it should be the shape of
+\f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Calculate mean accuracy on the given test data and labels i.e.
+mean accuracy of self.predict(X) wrt.
+y.
+.PP
+\f[B]For \[aq]log\[aq] and \[aq]hinge\[aq] loss,
+\[aq]accuracy_score\[aq] is calculated and for \[aq]squared_loss\[aq],
+\[aq]r2_score\[aq] is calculated.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ calculate\ mean\ accuracy\ score\ on\ given\ test\ data\ and\ labels
+sgd_clf.score(mat,\ lbl)
+\ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+0.91\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+For \[aq]log\[aq] and \[aq]hinge\[aq] loss, it returns
+\[aq]accuracy_score\[aq] and for \[aq]squared_loss\[aq], it returns
+\[aq]r2_score\[aq] of double (float64) type.
+.SS 6. load(fname, dtype = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]fname\f[]: A string object containing the name of the file having
+model information to be loaded.
+.PD 0
+.P
+.PD
+\f[B]dtype\f[]: A data\-type is inferred from the input data.
+Currently, expected input data\-type is either float or double
+(float64).
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]For \[aq]squared_loss\[aq] this method doesn\[aq]t load the saved
+file \[aq]label_map\[aq].\f[]
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads the model from the specified file(having little\-endian binary
+data).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ the\ SGDClassifier\ model
+sgd_clf.load("./out/SCLFModel")
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" instance.
+.SS 7. save(fname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]fname\f[]: A string object containing the name of the file on which
+the target model is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+On success, it writes the model information (label_map, metadata and
+model) in the specified file as little\-endian binary data.
+Otherwise, it throws an exception.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ saving\ the\ model
+sgd_clf.save("./out/SCLFModel")
+\f[]
+.fi
+.PP
+The SCLFModel contains below directory structure:
+.PD 0
+.P
+.PD
+\f[B]SCLFModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-label_map
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-model
+.PP
+\[aq]label_map\[aq] contains information about labels mapped with their
+encoded value.
+\f[B]This information is not saved for \[aq]squared_loss\[aq] loss
+function.\f[]
+.PP
+\[aq]metadata\[aq] represents the detail about loss function, model_kind
+and datatype of training vector.
+.PD 0
+.P
+.PD
+Here, the model file contains information about model_id, model_kind and
+datatype of training vector.
+.PP
+This will save the SGDClassifier model on the path ‘/out/SCLFModel'.
+It would raise exception if the directory already exists with same name.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 8. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+SGDClassifier.
+It is used to get parameters and their values of SGDClassifier class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print(sgd_clf.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]alpha\[aq]:\ 0.0001,\ \[aq]average\[aq]:\ False,\ \[aq]class_weight\[aq]:\ None,\ 
+\[aq]early_stopping\[aq]:\ False,\ \[aq]epsilon\[aq]:\ 0.1,\ \[aq]eta0\[aq]:\ 1.0,\ \[aq]fit_intercept\[aq]:\ True,\ 
+\[aq]l1_ratio\[aq]:\ 0.15,\ \[aq]learning_rate\[aq]:\ \[aq]invscaling\[aq],\ \[aq]loss\[aq]:\ \[aq]hinge\[aq],\ \[aq]max_iter\[aq]:\ 1000,\ 
+\[aq]n_iter_no_change\[aq]:\ 5,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]power_t\[aq]:\ 0.5,\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]shuffle\[aq]:\ True,\ \[aq]tol\[aq]:\ 0.001,\ \[aq]validation_fraction\[aq]:\ 0.1,\ 
+\[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 9. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by
+SGDClassifier, used to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("Get\ parameters\ before\ setting:")
+print(sgd_clf.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+sgd_clf.set_params(penalty\ =\ \[aq]l1\[aq],\ fit_intercept\ =\ False)
+print("Get\ parameters\ before\ setting:")
+print(sgd_clf.get_params())\ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Get\ parameters\ before\ setting:\ 
+{\[aq]alpha\[aq]:\ 0.0001,\ \[aq]average\[aq]:\ False,\ \[aq]class_weight\[aq]:\ None,\ \[aq]early_stopping\[aq]:\ False,\ 
+\[aq]epsilon\[aq]:\ 0.1,\ \[aq]eta0\[aq]:\ 1.0,\ \[aq]fit_intercept\[aq]:\ True,\ \[aq]l1_ratio\[aq]:\ 0.15,\ 
+\[aq]learning_rate\[aq]:\ \[aq]invscaling\[aq],\ \[aq]loss\[aq]:\ \[aq]hinge\[aq],\ \[aq]max_iter\[aq]:\ 1000,\ 
+\[aq]n_iter_no_change\[aq]:\ 5,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]penalty\[aq]:\ \[aq]l2\[aq],\ \[aq]power_t\[aq]:\ 0.5,\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]shuffle\[aq]:\ True,\ \[aq]tol\[aq]:\ 0.001,\ \[aq]validation_fraction\[aq]:\ 0.1,\ 
+\[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+Get\ parameters\ before\ setting:\ 
+{\[aq]alpha\[aq]:\ 0.0001,\ \[aq]average\[aq]:\ False,\ \[aq]class_weight\[aq]:\ None,\ \[aq]early_stopping\[aq]:\ False,\ 
+\[aq]epsilon\[aq]:\ 0.1,\ \[aq]eta0\[aq]:\ 1.0,\ \[aq]fit_intercept\[aq]:\ False,\ \[aq]l1_ratio\[aq]:\ 0.15,\ 
+\[aq]learning_rate\[aq]:\ \[aq]invscaling\[aq],\ \[aq]loss\[aq]:\ \[aq]hinge\[aq],\ \[aq]max_iter\[aq]:\ 1000,\ 
+\[aq]n_iter_no_change\[aq]:\ 5,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]penalty\[aq]:\ \[aq]l1\[aq],\ \[aq]power_t\[aq]:\ 0.5,\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]shuffle\[aq]:\ True,\ \[aq]tol\[aq]:\ 0.001,\ \[aq]validation_fraction\[aq]:\ 0.1,\ 
+\[aq]verbose\[aq]:\ 0,\ \[aq]warm_start\[aq]:\ False}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 10. debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It shows the target model information(weight values, intercept, etc.) on
+the server side user terminal.
+It is mainly used for debugging purpose.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+sgd_clf.debug_print()\ 
+\f[]
+.fi
+.PP
+Output:
+.IP
+.nf
+\f[C]
+\-\-\-\-\-\-\-\-\ Weight\ Vector::\ \-\-\-\-\-\-\-\-
+14072.2\ 22454.1\ 83330.6\ 45451.2\ 139.907\ \-12.3658\ \-191.893\ \-82.7364\ 265.627\ 109.118\ 
+46.0452\ 1510.72\ \-250.729\ \-38123.1\ 9.74564\ \-4.16035\ \-16.0092\ 0.837207\ 26.3526\ 3.59399\ 
+14821.1\ 29161.9\ 85356\ \-57710.4\ 183.668\ \-99.8164\ \-348.61\ \-70.554\ 386.649\ 113.928
+Intercept::\ 1845.32
+Threshold::\ 0
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 11. release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+sgd_clf.release()
+\f[]
+.fi
+.PP
+This will reset the after\-fit populated attributes to None, along with
+releasing server side memory.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 12. is_fitted()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to confirm if the model is already fitted or not.
+In case, predict() is used before training the model, then it can prompt
+the user to train the model first.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns \[aq]True\[aq], if the model is already fitted otherwise, it
+returns \[aq]False\[aq].
+.SH SEE ALSO
+.PP
+rowmajor_matrix, colmajor_matrix, dvector, crs_matrix, sgd_regressor
