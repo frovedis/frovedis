@@ -1473,6 +1473,15 @@ class DataFrame(object):
                 res[col].replace(to_replace={"NULL": np.nan}, inplace=True)
         return res
 
+    def to_pandas_series(self):
+        """
+        returns a pandas series object from frovedis dataframe in case is_series=True
+        """
+        if not self.is_series:
+            raise TypeError("to_pandas_series: target is not a series")
+        col = self.columns[0]
+        return self.to_pandas_dataframe()[col]
+
     @deprecated("Use to_pandas_dataframe() instead!\n")
     def to_panda_dataframe(self):
         return self.to_pandas_dataframe()
