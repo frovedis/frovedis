@@ -70,10 +70,10 @@ clusters should be greater than 0 and less than n_samples. (Default: 2)
 **_linkage_**: A string parameter used to specify linkage criterion. It determines 
 which distance to use between sets of observation. The algorithm will merge the pairs of 
 clusters that minimize this criterion.   
-- 'average' uses the average of the distances of each observation of the two sets.  
-- 'complete' linkage uses the maximum distances between all observations of the 
+- **'average'**: uses the average of the distances of each observation of the two sets.  
+- **'complete'**: linkage uses the maximum distances between all observations of the 
 two sets.  
-- 'single' uses the minimum of the distances between all observations of the two sets.  
+- **'single'**: uses the minimum of the distances between all observations of the two sets.  
 
 Only 'average', 'complete' and 'single' are supported. (Default: 'average')  
 **_distance\_threshold_**: A float or double(float64) type parameter, is the linkage distance

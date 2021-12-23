@@ -377,7 +377,7 @@ an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
 It has shape **(n_samples, n_features)**.  
 **_y_**: Any python array-like object containing the true labels for X. It has shape **(n_samples,)**.  
 **_sample\_weight_**: Python ndarray containing the intended weights for each input
-samples and it should be the shape of **(n_samples, )**.  
+samples and it should be the shape of **(n_samples,)**.  
 When it is None (not specified explicitly), an uniform weight vector is assigned on 
 each input sample. (Default: None)  
 
