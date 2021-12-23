@@ -2,18 +2,15 @@
 
 # NAME
 
-KMeans- is a clustering algorithm commonly used in EDA 
+KMeans - is a clustering algorithm commonly used in EDA 
 (exploratory data analysis).    
 
 # SYNOPSIS
 
-class frovedis.mllib.cluster.KMeans(n_clusters=8, init='random', n_init=10, max_iter=300,  
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  
-\  \  \  \  \  \ tol=1e-4, precompute_distances='auto', verbose=0,   
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  
-\  \  \  \  \  \ random_state=None, copy_x=True, n_jobs=1,  
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  
-\  \  \  \  \  \ algorithm='auto', use_shrink=False)  
+    class frovedis.mllib.cluster.KMeans(n_clusters=8, init='random', n_init=10, max_iter=300,  
+                                        tol=1e-4, precompute_distances='auto', verbose=0,   
+                                        random_state=None, copy_x=True, n_jobs=1,  
+                                        algorithm='auto', use_shrink=False)  
 
 ## Public Member Functions
 
@@ -43,7 +40,7 @@ Under unsupervised learning, there are two clustering methods- 'k-means' and
 the centroids (we assume centroid is the center of the cluster) around which the 
 clustering takes place.  
 
-Frovedis supports only k-means clustering method (i.e. init ='random') which will 
+**Frovedis supports only k-means clustering method (i.e. init ='random')** which will 
 randomly initialize the data points called centroid. Further, each data point is 
 clustered to its nearest centroid and after every iteration the centroid is updated 
 for each cluster. This cycle continues for a given number of repetitions and after 
@@ -75,7 +72,7 @@ frovedis server, the output would be sent back to the python client.
 __Parameters__  
 _**n\_clusters**_: An integer parameter specifying the number of clusters. The number 
 of clusters should be greater than zero and less than n_samples. (Default: 8)  
-When it is None (specified explicitly), then it will be set as min(8, nsamples).  
+When it is None (specified explicitly), then it will be set as min(8, n_samples).  
 _**init**_: A string object parameter specifies the method of initialization. (Default: 'random')  
 Unlike Scikit-learn, currently it only supports 'random' initialization.  
 _**n\_init**_: A positive integer specifying the number of times the kmeans algorithm 
@@ -83,10 +80,10 @@ will be run with different centroid seeds. (Default: 10)
 When it is None (specified explicitly), then it will be set as default 10.  
 _**max\_iter**_: A positive integer parameter specifying the maximum iteration count. 
 (Default: 300)   
-_**tol**_: Zero or a positive double(float64) parameter specifying the convergence tolerance. (Default: 1e-4)    
+_**tol**_: Zero or a positive double (float64) parameter specifying the convergence tolerance. (Default: 1e-4)    
 _**precompute\_distances**_: A string object parameter. (unused)   
 _**verbose**_: An integer parameter specifying the log level to use. Its value is set 
-as 0 by default(for INFO mode). But it can be set to 1(for DEBUG mode) or 2(for TRACE 
+as 0 by default (for INFO mode). But it can be set to 1 (for DEBUG mode) or 2 (for TRACE 
 mode) for getting training time logs from frovedis server.  
 _**random\_state**_: A zero or positive integer parameter. When it is None (not specified explicitly), 
 it will be set as 0. (unused)  
@@ -99,7 +96,7 @@ to True for sparse input, it can improve training performance by reducing commun
 overhead across participating processes. (Default: False)  
 
 __Attribute__  
-_**cluster\_centers\_**_: It is a python ndarray, containing float or double(float64) typed 
+_**cluster\_centers\_**_: It is a python ndarray, containing float or double (float64) typed 
 values and has shape **(n_clusters, n_features)**. These are the coordinates of cluster centers.  
 _**labels\_**_: A python ndarray of int64 values and has shape **(n_clusters,)**. It contains predicted cluster 
 labels for each point.  
@@ -121,14 +118,13 @@ It simply returns "self" reference.
 __Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
-dense data of float or double(float64) type. It has shape **(n_samples, n_features)**.   
+dense data of float or double (float64) type. It has shape **(n_samples, n_features)**.   
 _**y**_: None or any python array-like object (any shape). It is simply ignored 
 in frovedis implementation, like in Scikit-learn.  
 _**sample\_weight**_: An unused parameter whose default value is None. 
 It is simply ignored in frovedis implementation, like in Scikit-learn.  
 
 __Purpose__    
-
 It clusters the given data points (X) into a predefined number of clusters (n_clusters).   
 
 For example,   
@@ -166,14 +162,13 @@ It simply returns "self" reference.
 __Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
-dense data of float or double(float64) type. It has shape **(n_samples, n_features)**.   
+dense data of float or double (float64) type. It has shape **(n_samples, n_features)**.   
 _**y**_: None or any python array-like object (any shape). It is simply ignored 
 in frovedis implementation, like in Scikit-learn.  
 _**sample\_weight**_: An unused parameter whose default value is None. It is 
 simply ignored in frovedis implementation.  
 
 __Purpose__    
-
 It clusters the given data points (X) into a predefined number of clusters (n_clusters)
 and predicts the cluster index for each sample.  
 
@@ -217,9 +212,10 @@ It returns a numpy array of int64 type containing the cluster labels.
 It has a shape **(n_samples,)**.   
 
 ### 4. fit_transform(X, y = None, sample_weight = None)  
+__Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
-dense data of float or double(float64) type. It has shape **(n_samples, n_features)**.  
+dense data of float or double (float64) type. It has shape **(n_samples, n_features)**.  
 _**y**_: None or any python array-like object (any shape). It is simply ignored 
 in frovedis implementation, like in Scikit-learn.  
 _**sample\_weight**_: An unused parameter whose default value is None and
@@ -271,18 +267,21 @@ If training data (X) is a frovedis-like input, it will return a FrovedisRowmajor
 object.  
 
 __Return Value__  
-**When training data is native-python data, then the output will be a numpy array containing 
-the transformed matrix.**  
-**When training data is frovedis-like data is input, then the output will be a FrovedisRowmajorMatrix.**  
+- **When training data is native-python data**:  
+Then the output will be a numpy array containing the transformed matrix.  
+- **When training data is frovedis-like data**:  
+Then the output will be a FrovedisRowmajorMatrix.  
+
 In both cases output would be of float or double (float64) type (depending upon input dtype) and of 
 shape **(n_samples, n_clusters)**.  
 
 Note that even if training data (X) is sparse, the output would typically be dense.  
 
 ### 5. transform(X)  
+__Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
-dense data of float or double(float64) type. It has shape **(n_samples, n_features)**.
+dense data of float or double (float64) type. It has shape **(n_samples, n_features)**.
 
 __Purpose__    
 It transforms the test data (X) to a cluster-distance space.
@@ -328,10 +327,13 @@ For example,
 If test data (X) is a frovedis-like input, it  will return FrovedisRowmajorMatrix object.  
 
 __Return Value__  
-If native-python data is input, it would output a numpy array containing the transformed matrix. 
-If frovedis-like data is input, it would output a FrovedisRowmajorMatrix. In both cases output 
-would be of float or double (float64) type (depending upon input dtype) and of 
-shape **(n_samples, n_clusters)**.  
+- **If native-python data is input:**  
+Then it returns a numpy array containing the transformed matrix.  
+- **If frovedis-like data is input:**  
+Then it returns a FrovedisRowmajorMatrix.  
+
+In both cases output would be of float or double (float64) type (depending upon input dtype) 
+and of shape **(n_samples, n_clusters)**.  
 
 Note that even if test data (X) is sparse, the output would typically be dense.  
 
@@ -339,10 +341,11 @@ Note that even if test data (X) is sparse, the output would typically be dense.
 __Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
-dense data of float or double(float64) type. It has shape **(n_samples, n_features)**.  
+dense data of float or double (float64) type. It has shape **(n_samples, n_features)**.  
 _**sample\_weight**_: None or any python array-like object containing the 
 intended weights for each input samples. It is simply ignored in frovedis 
 implementation, like in Scikit-learn.  
+
 __Purpose__  
 It accepts the test data points (X) and returns the closest cluster each sample in X belongs to.  
 
@@ -386,9 +389,10 @@ It returns a numpy array of int32 type containing the centroid values. It has a
 shape **(n_samples,)**.  
 
 ### 7. score(X, y = None, sample_weight = None)  
+__Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
-dense data of float or double(float64) type. It has shape **(n_samples, n_features)**.  
+dense data of float or double (float64) type. It has shape **(n_samples, n_features)**.  
 _**y**_: None or any python array-like object (any shape). It is simply ignored 
 in frovedis implementation, like in Scikit-learn.  
 _**sample\_weight**_: None or any python array-like object containing the 
@@ -417,7 +421,7 @@ __Parameters__
 _**fname**_: A string object containing the name of the file having model 
 information to be loaded.    
 _**dtype**_: A data-type is inferred from the input data. Currently, 
-expected input data-type is either float or double(float64). (Default: None)  
+expected input data-type is either float or double (float64). (Default: None)  
 
 __Purpose__    
 It loads the model from the specified file(having little-endian binary data). 
@@ -436,7 +440,8 @@ _**fname**_: A string object containing the name of the file on which the target
 model is to be saved.    
 
 __Purpose__    
-On success, it writes the model information in the specified file as little-endian binary data. Otherwise, it throws an exception. 
+On success, it writes the model information(metadata and model) in the specified 
+file as little-endian binary data. Otherwise, it throws an exception. 
 
 For example,   
 
@@ -458,7 +463,6 @@ __Return Value__
 It returns nothing.   
 
 ### 10. get_params(deep = True)  
-
 __Parameters__   
 _**deep**_: A boolean parameter, used to get parameters and their values for an estimator. If True, will return the 
 parameters for an estimator and contained subobjects that are estimators. (Default: True)
@@ -469,41 +473,45 @@ Kmeans class.
 
 For example, 
  
-      print(kmeans.get_params())
+    print(kmeans.get_params())
 
 Output  
 
-     {'algorithm': 'auto', 'copy_x': True, 'init': 'random', 'max_iter': 300, 'n_clusters': 2, 
-     'n_init': 1, 'n_jobs': 1, 'precompute_distances': 'auto', 'random_state': None, 'tol': 0.0001, 
-     'use_shrink': False, 'verbose': 0}
+    {'algorithm': 'auto', 'copy_x': True, 'init': 'random', 'max_iter': 300, 'n_clusters': 2, 
+    'n_init': 1, 'n_jobs': 1, 'precompute_distances': 'auto', 'random_state': None, 
+    'tol': 0.0001, 'use_shrink': False, 'verbose': 0}
 
 __Return Value__  
 A dictionary of parameter names mapped to their values.  
 
-### 11. set_params(**params)  
-
-__Parameters__   
-
-_**params**_: All the keyword arguments are passed this function as dictionary. This dictionary contains 
-parameters of an estimator with its given values to set.  
+### 11. set_params(\*\*params)  
+__Parameters__  
+_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+contains parameters of an estimator with its given values to set.  
 
 __Purpose__  
 This method belongs to the BaseEstimator class inherited by Kmeans, used to set parameter values.  
 
 For example,   
 
-    print("get parameters before setting:", kmeans.get_params())
+    print("Get parameters before setting:") 
+    print(kmeans.get_params())
+    # User just needs to provide the arguments and internally it will create a 
+    dictionary over the arguments given by user    
     kmeans.set_params(n_clusters = 4, n_init = 5)
-    print("get parameters after setting:", kmeans.get_params())
+    print("Get parameters after setting:") 
+    print(kmeans.get_params())
 
 Output  
      
-    get parameters before setting: {'algorithm': 'auto', 'copy_x': True, 'init': 'random', 
-    'max_iter': 300, 'n_clusters': 2, 'n_init': 1, 'n_jobs': 1,'precompute_distances': 'auto', 
+    Get parameters before setting: 
+    {'algorithm': 'auto', 'copy_x': True, 'init': 'random', 'max_iter': 300, 
+    'n_clusters': 2, 'n_init': 1, 'n_jobs': 1,'precompute_distances': 'auto', 
     'random_state': None,'tol': 0.0001,'use_shrink': False, 'verbose': 0}
-    get parameters after setting: {'algorithm': 'auto', 'copy_x': True, 'init': 'random',
-    'max_iter': 300, 'n_clusters': 4, 'n_init': 5, 'n_jobs': 1, 'precompute_distances': 'auto', 
-    'random_state': None, 'tol': 0.0001,'use_shrink': False, 'verbose': 0}
+    Get parameters after setting: {'algorithm': 'auto', 'copy_x': True, 
+    'init': 'random', 'max_iter': 300, 'n_clusters': 4, 'n_init': 5, 
+    'n_jobs': 1, 'precompute_distances': 'auto', 'random_state': None, 
+    'tol': 0.0001,'use_shrink': False, 'verbose': 0}
 
 __Return Value__  
 It simply returns "self" reference.  
@@ -551,7 +559,7 @@ is used before training the model, then it can prompt the user to train the clus
 model first.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.  
+It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
 
 ## SEE ALSO  
-rowmajor_matrix, crs_matrix
+rowmajor_matrix, crs_matrix, agglomerative_clustering, spectral_clustering, dbscan

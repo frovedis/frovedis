@@ -4,19 +4,14 @@
 Matrix Factorization using Alternating Least Square (ALS) \- is a matrix
 factorization algorithm commonly used for recommender systems.
 .SH SYNOPSIS
-.PP
-class frovedis.mllib.recommendation.ALS(rank=None, max_iter=100,
-alpha=0.01,
-.PD 0
-.P
-.PD
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
-\  \  \  \ reg_param=0.01, similarity_factor=0.1,
-.PD 0
-.P
-.PD
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
-\  \  \  \ seed=0, verbose=0)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.recommendation.ALS(rank=None,\ max_iter=100,\ alpha=0.01,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ reg_param=0.01,\ similarity_factor=0.1,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ seed=0,\ verbose=0)\ \ \ \ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X)
@@ -140,9 +135,9 @@ initialize the model structures with random values.
 .PD
 \f[I]\f[B]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
-Its value is 0 by default(for INFO mode and not speicifed explicitly).
-But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for getting
-training time logs from frovedis server.
+Its value is 0 by default (for INFO mode and not speicifed explicitly).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
 .PP
 \f[B]Purpose\f[]
 .PP
@@ -161,7 +156,7 @@ It simply returns "self" reference.
 .PD
 \f[I]\f[B]X\f[]\f[]: A scipy sparse matrix or any python array\-like
 object or an instance of FrovedisCRSMatrix.
-It has shape (n_samples, n_features).
+It has shape \f[B](n_samples, n_features)\f[].
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -170,10 +165,10 @@ It has shape (n_samples, n_features).
 It accepts the training sparse matrix (X) and trains a matrix
 factorization model on that at frovedis server.
 .PP
-It starts with initializing the model structures of the size MxF and
-NxF(where M is the number of users, N is the products in the given
-rating matrix and F is the given rank) with random values and keeps
-updating them until maximum iteration count is reached.
+It starts with initializing the model structures of the size MxF and NxF
+(where M is the number of users, N is the products in the given rating
+matrix and F is the given rank) with random values and keeps updating
+them until maximum iteration count is reached.
 .PP
 For example,
 .IP
@@ -184,7 +179,8 @@ import\ numpy\ as\ np
 from\ scipy.sparse\ import\ csr_matrix\ 
 row\ =\ np.array([0,\ 0,\ 1,\ 2,\ 2,\ 3,\ 3,\ 3,\ 4,\ 4,\ 5,\ 6,\ 6,\ 7,\ 7,\ 7])
 col\ =\ np.array([0,\ 4,\ 0,\ 2,\ 3,\ 0,\ 1,\ 6,\ 0,\ 4,\ 0,\ 2,\ 3,\ 0,\ 1,\ 6])
-data\ =\ np.array([2.0,\ 9.0,\ 1.0,\ 4.0,\ 8.0,\ 2.0,\ 3.0,\ 8.9,\ 2.0,\ 9.0,\ 1.0,\ 4.0,\ 8.0,\ 2.0,3.0,\ 8.9])
+data\ =\ np.array([2.0,\ 9.0,\ 1.0,\ 4.0,\ 8.0,\ 2.0,\ 3.0,\ 8.9,\ 2.0,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 9.0,\ 1.0,\ 4.0,\ 8.0,\ 2.0,3.0,\ 8.9])
 csr_matrix\ =\ csr_matrix((data,\ (row,\ col)),\ shape\ =\ (8,\ 7))
 \ \ \ \ 
 #\ fitting\ input\ matrix\ on\ ALS\ object
@@ -232,7 +228,7 @@ pairs of user id and product id to predict.
 .PD 0
 .P
 .PD
-It accepts a list of pair of user ids and product ids(0\-based Id) in
+It accepts a list of pair of user ids and product ids (0\-based Id) in
 order to make prediction for their ratings from the trained model at
 frovedis server.
 .PP
@@ -258,15 +254,15 @@ Output:
 .P
 .PD
 It returns a numpy array containing the predicted ratings, of float or
-double(float64) type depending upon the input type.
+double (float64) type depending upon the input type.
 .SS 4. recommend_users(pid, k)
 .PP
 \f[B]Parameters\f[]
 .PD 0
 .P
 .PD
-\f[I]\f[B]pid\f[]\f[]: An integer parameter specifying the product
-ID(0\-based Id) for which to recommend users.
+\f[I]\f[B]pid\f[]\f[]: An integer parameter specifying the product ID
+(0\-based Id) for which to recommend users.
 .PD 0
 .P
 .PD
@@ -309,7 +305,7 @@ Output:
 .P
 .PD
 It returns a python list containing the pairs of recommended users and
-their corresponding rating confidence values(double(float64)) in
+their corresponding rating confidence values (double (float64)) in
 descending order.
 .SS 5. recommend_products(uid, k)
 .PP
@@ -317,8 +313,8 @@ descending order.
 .PD 0
 .P
 .PD
-\f[I]\f[B]uid\f[]\f[]: An integer parameter specifying the user
-ID(0\-based Id) for which to recommend products.
+\f[I]\f[B]uid\f[]\f[]: An integer parameter specifying the user ID
+(0\-based Id) for which to recommend products.
 .PD 0
 .P
 .PD
@@ -361,7 +357,7 @@ Output:
 .P
 .PD
 It returns a python list containing the pairs of recommended products
-and their corresponding rating confidence values(double(float64)) in
+and their corresponding rating confidence values (double (float64)) in
 descending order.
 .SS 6. save(fname)
 .PP
@@ -376,8 +372,8 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information(user\-product features etc.)
-in the specified file as little\-endian binary data.
+On success, it writes the model information(metadata and model) in the
+specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -385,9 +381,39 @@ For example,
 .nf
 \f[C]
 #\ saving\ the\ model
-als.save("./out/MyMFModel")
+als.save("./out/MyALSModel")
 \f[]
 .fi
+.PP
+The MyALSModel contains below directory structure:
+.PD 0
+.P
+.PD
+\f[B]MyALSModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-\f[B]model\f[]
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ |\-\-\-\-\-\-\f[B]X\f[]
+.PD 0
+.P
+.PD
+\ \ \ \ \ \ \ \ |\-\-\-\-\-\-\f[B]Y\f[]
+.PP
+\[aq]metadata\[aq] represents the detail about model_kind and datatype
+of training vector.
+Here, the \f[B]model\f[] directory contains information about user and
+product features.
+.PP
+If the directory already exists with the same name then it will raise an
+exception.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -406,7 +432,8 @@ having model information to be loaded.
 .P
 .PD
 \f[I]\f[B]dtype\f[]\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -421,7 +448,7 @@ For example,
 .nf
 \f[C]
 #\ loading\ the\ same\ model
-als.load("./out/MyMFModel")
+als.load("./out/MyALSModel")
 \f[]
 .fi
 .PP

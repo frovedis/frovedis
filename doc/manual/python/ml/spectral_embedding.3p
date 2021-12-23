@@ -8,27 +8,15 @@ spectral decomposition to the corresponding graph laplacian.
 The resulting transformation is given by the value of the normalized
 eigenvectors for each data point.
 .SH SYNOPSIS
-.PP
-class frovedis.mllib.manifold.SpectralEmbedding(n_components=2,
-affinity=\[aq]nearest_neighbors\[aq],
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ gamma=1.0,
-random_state=None, eigen_solver=None,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_neighbors=None,
-n_jobs=None, verbose=0,
-.PD 0
-.P
-.PD
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ norm_laplacian=True,
-mode=3, drop_first=True)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.manifold.SpectralEmbedding(n_components=2,\ affinity=\[aq]nearest_neighbors\[aq],\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ gamma=1.0,\ random_state=None,\ eigen_solver=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_neighbors=None,\ n_jobs=None,\ verbose=0,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ norm_laplacian=True,\ mode=3,\ drop_first=True)\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y = None)
@@ -114,19 +102,21 @@ how to construct the affinity matrix.
 .PD 0
 .P
 .PD
-‘nearest_neighbors': construct the affinity matrix by computing a graph
-of nearest neighbors.
+\- \f[B]\[aq]nearest_neighbors\[aq]\f[]: construct the affinity matrix
+by computing a graph of nearest neighbors.
 .PD 0
 .P
 .PD
-‘precomputed': interpret X as a precomputed affinity matrix, where
-larger values indicate greater similarity between instances.
+\- \f[B]\[aq]precomputed\[aq]\f[]: interpret X as a precomputed affinity
+matrix, where larger values indicate greater similarity between
+instances.
+.PP
 Only \[aq]nearest_neighbors\[aq] and \[aq]precomputed\[aq] are
 supported.
 .PD 0
 .P
 .PD
-\f[I]\f[B]gamma\f[]\f[]: The double(float64) parameter required for
+\f[I]\f[B]gamma\f[]\f[]: The double (float64) parameter required for
 computing nearby relational meaningful eigenvalues.
 (Default: 1.0)
 .PD 0
@@ -137,21 +127,18 @@ computing nearby relational meaningful eigenvalues.
 .PD 0
 .P
 .PD
-\f[I]\f[B]eigen_solver\f[]\f[]: A string object parameter, specifies the
-eigenvalue decomposition strategy to use.
-(unused)
+\f[I]\f[B]eigen_solver\f[]\f[]: An unused parameter.
+(Default: None)
 .PD 0
 .P
 .PD
-\f[I]\f[B]n_neighbors\f[]\f[]: An string object parameter, specifies the
-number of neighbors to use when constructing the affinity matrix using
-the nearest neighbors method.
-(unused)
+\f[I]\f[B]n_neighbors\f[]\f[]: An unused parameter.
+(Default: None)
 .PD 0
 .P
 .PD
-\f[I]\f[B]n_jobs\f[]\f[]: The number of parallel jobs to run.
-(unused)
+\f[I]\f[B]n_jobs\f[]\f[]: An unused parameter.
+(Default: None)
 .PD 0
 .P
 .PD
@@ -189,109 +176,101 @@ Otherwise, it will calculate ‘n_components' number of eigenvectors.
 .P
 .PD
 \f[I]\f[B]affinity_matrix\f[]\f[]:
-.PP
-For python native dense input:
+.IP "1." 3
+\f[B]For python native dense input:\f[]
+.RS 4
+.IP \[bu] 2
+When affinity = ‘precomputed', it returns a numpy array
 .PD 0
 .P
 .PD
-\- When affinity = ‘precomputed', it returns a numpy array
+.IP \[bu] 2
+When affinity = ‘nearest_neighbors', it returns a numpy array
+.RE
+.IP "2." 3
+\f[B]For frovedis\-like dense input:\f[]
+.RS 4
+.IP \[bu] 2
+When affinity = ‘precomputed\[aq], returns a FrovedisRowmajorMatrix
 .PD 0
 .P
 .PD
-\- When affinity = ‘nearest_neighbors', it returns a numpy array
+.IP \[bu] 2
+When affinity = ‘nearest_neighbors', returns a FrovedisRowmajorMatrix
+.RE
+.IP "3." 3
+\f[B]For python native sparse input:\f[]
+.RS 4
+.IP \[bu] 2
+When affinity = ‘precomputed', it returns a scipy matrix
 .PD 0
 .P
 .PD
-For frovedis\-like dense input:
-.PD 0
-.P
-.PD
-\- When affinity = ‘precomputed\[aq], returns a FrovedisRowmajorMatrix
-.PD 0
-.P
-.PD
-\- When affinity = ‘nearest_neighbors', returns a FrovedisRowmajorMatrix
-.PD 0
-.P
-.PD
-For python native sparse input:
-.PD 0
-.P
-.PD
-\- When affinity = ‘precomputed', it returns a scipy matrix
-.PD 0
-.P
-.PD
-\- When affinity = \[aq]nearest_neighbors\[aq], it returns a numpy array
-.PD 0
-.P
-.PD
-For frovedis\-like sparse input:
-.PD 0
-.P
-.PD
-\- When affinity = ‘nearest_neighbors', it a returns a
+.IP \[bu] 2
+When affinity = \[aq]nearest_neighbors\[aq], it returns a numpy array
+.RE
+.IP "4." 3
+\f[B]For frovedis\-like sparse input:\f[]
+.RS 4
+.IP \[bu] 2
+When affinity = ‘nearest_neighbors', it a returns a
 FrovedisRowmajorMatrix
 .PD 0
 .P
 .PD
-\- When affinity = ‘precomputed', it returns a FrovedisRowmajorMatrix
-.PD 0
-.P
-.PD
+.IP \[bu] 2
+When affinity = ‘precomputed', it returns a FrovedisRowmajorMatrix
+.RE
+.PP
 In all cases, the output is of float or double (float64) type and of
 shape \f[B](n_samples, n_samples)\f[].
 .PP
 \f[I]\f[B]embedding_\f[]\f[]:
+.IP "1." 3
+\f[B]For python native dense input:\f[]
+.RS 4
+.IP \[bu] 2
+When affinity = ‘precomputed', it returns a numpy array
 .PD 0
 .P
 .PD
-For python native dense input:
+.IP \[bu] 2
+When affinity = ‘nearest_neighbors', it returns a numpy array
+.RE
+.IP "2." 3
+\f[B]For frovedis\-like dense input:\f[]
+.RS 4
+.IP \[bu] 2
+When affinity = ‘precomputed\[aq], returns a FrovedisRowmajorMatrix
 .PD 0
 .P
 .PD
-\- When affinity = ‘precomputed', it returns a numpy array
+.IP \[bu] 2
+When affinity = ‘nearest_neighbors', returns a FrovedisRowmajorMatrix
+.RE
+.IP "3." 3
+\f[B]For python native sparse input:\f[]
+.RS 4
+.IP \[bu] 2
+When affinity = ‘precomputed', it returns a numpy array
 .PD 0
 .P
 .PD
-\- When affinity = ‘nearest_neighbors', it returns a numpy array
-.PD 0
-.P
-.PD
-For frovedis\-like dense input:
-.PD 0
-.P
-.PD
-\- When affinity = ‘precomputed\[aq], returns a FrovedisRowmajorMatrix
-.PD 0
-.P
-.PD
-\- When affinity = ‘nearest_neighbors', returns a FrovedisRowmajorMatrix
-.PD 0
-.P
-.PD
-For python native sparse input:
-.PD 0
-.P
-.PD
-\- When affinity = ‘precomputed', it returns a numpy array
-.PD 0
-.P
-.PD
-\- When affinity = \[aq]nearest_neighbors\[aq], it returns a numpy array
-.PD 0
-.P
-.PD
-For frovedis\-like sparse input:
-.PD 0
-.P
-.PD
-\- When affinity = ‘nearest_neighbors', it a returns a
+.IP \[bu] 2
+When affinity = \[aq]nearest_neighbors\[aq], it returns a numpy array
+.RE
+.IP "4." 3
+\f[B]For frovedis\-like sparse input:\f[]
+.RS 4
+.IP \[bu] 2
+When affinity = ‘nearest_neighbors', it a returns a
 FrovedisRowmajorMatrix
 .PD 0
 .P
 .PD
-\- When affinity = ‘precomputed', it returns a FrovedisRowmajorMatrix
+.IP \[bu] 2
+When affinity = ‘precomputed', it returns a FrovedisRowmajorMatrix
+.RE
 .PP
 In all cases, the output is of float or double (float64) type and of
 shape \f[B](n_samples, n_components)\f[].
@@ -326,7 +305,7 @@ It simply returns “self” reference.
 .PD
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
@@ -393,7 +372,8 @@ having model information to be loaded.
 .P
 .PD
 \f[I]\f[B]dtype\f[]\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -426,8 +406,8 @@ on which the target model is to be saved.
 .PP
 \f[B]Purpose\f[]
 .PP
-On success, it writes the model information in the specified file as
-little\-endian binary data.
+On success, it writes the model information(metadata and model) in the
+specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -503,7 +483,7 @@ For example,
 .IP
 .nf
 \f[C]
-\ \ print(sem.get_params())
+print(sem.get_params())
 \f[]
 .fi
 .PP
@@ -511,9 +491,9 @@ Output
 .IP
 .nf
 \f[C]
-\ {\[aq]affinity\[aq]:\ \[aq]nearest_neighbors\[aq],\ \[aq]drop_first\[aq]:\ True,\ \[aq]eigen_solver\[aq]:\ None,\ \[aq]gamma\[aq]:\ 1.0,\ \[aq]mode\[aq]:\ 3,\ 
-\ \[aq]n_components\[aq]:\ 2,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ None,\ \[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ 
-\ \[aq]verbose\[aq]:\ 0}
+{\[aq]affinity\[aq]:\ \[aq]nearest_neighbors\[aq],\ \[aq]drop_first\[aq]:\ True,\ \[aq]eigen_solver\[aq]:\ None,\ \[aq]gamma\[aq]:\ 1.0,\ 
+\[aq]mode\[aq]:\ 3,\ \[aq]n_components\[aq]:\ 2,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ None,\ \[aq]norm_laplacian\[aq]:\ True,\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP
@@ -525,8 +505,10 @@ A dictionary of parameter names mapped to their values.
 .SS 6. set_params(**params)
 .PP
 \f[B]Parameters\f[]
-.PP
-\f[I]\f[B]params\f[]\f[]: All the keyword arguments are passed this
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
 function as dictionary.
 This dictionary contains parameters of an estimator with its given
 values to set.
@@ -542,11 +524,13 @@ For example,
 .IP
 .nf
 \f[C]
-print("get\ parameters\ before\ setting:",\ sem.get_params())
+print("get\ parameters\ before\ setting:")
+print(sem.get_params())
 #\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
 dictionary\ over\ the\ arguments\ given\ by\ user
 sem.set_params(n_components\ =\ 3,\ drop_first\ =\ False)
-print("get\ parameters\ after\ setting:",\ sem.get_params())
+print("get\ parameters\ after\ setting:")
+print(sem.get_params())
 \f[]
 .fi
 .PP
@@ -554,12 +538,14 @@ Output
 .IP
 .nf
 \f[C]
-\ get\ parameters\ before\ setting:\ {\[aq]affinity\[aq]:\ \[aq]nearest_neighbors\[aq],\ \[aq]drop_first\[aq]:\ True,\ 
-\ \[aq]eigen_solver\[aq]:\ None,\ \[aq]gamma\[aq]:\ 1.0,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_components\[aq]:\ 2,\ \[aq]n_jobs\[aq]:\ None,\ 
-\ \[aq]n_neighbors\[aq]:\ None,\ \[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
-\ get\ parameters\ after\ setting:\ {\[aq]affinity\[aq]:\ \[aq]nearest_neighbors\[aq],\ \[aq]drop_first\[aq]:\ False,\ 
-\ \[aq]eigen_solver\[aq]:\ None,\ \[aq]gamma\[aq]:\ 1.0,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_components\[aq]:\ 3,\ \[aq]n_jobs\[aq]:\ None,\ 
-\ \[aq]n_neighbors\[aq]:\ None,\ \[aq]norm_laplacian\[aq]:\ True,\ random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}\ \ 
+get\ parameters\ before\ setting:\ 
+{\[aq]affinity\[aq]:\ \[aq]nearest_neighbors\[aq],\ \[aq]drop_first\[aq]:\ True,\ \[aq]eigen_solver\[aq]:\ None,\ 
+\[aq]gamma\[aq]:\ 1.0,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_components\[aq]:\ 2,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ None,\ 
+\[aq]norm_laplacian\[aq]:\ True,\ \[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+get\ parameters\ after\ setting:\ 
+{\[aq]affinity\[aq]:\ \[aq]nearest_neighbors\[aq],\ \[aq]drop_first\[aq]:\ False,\ \[aq]eigen_solver\[aq]:\ None,\ 
+\[aq]gamma\[aq]:\ 1.0,\ \[aq]mode\[aq]:\ 3,\ \[aq]n_components\[aq]:\ 3,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]n_neighbors\[aq]:\ None,\ 
+\[aq]norm_laplacian\[aq]:\ True,\ random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}\ \ 
 \f[]
 .fi
 .PP
@@ -593,14 +579,15 @@ Output
 affinity\ matrix:
 num_row\ =\ 5,\ num_col\ =\ 5
 node\ 0
-node\ =\ 0,\ local_num_row\ =\ 5,\ local_num_col\ =\ 5,\ val\ =\ 1\ 0.970446\ 6.2893e\-104\ 2.92712e\-106\ 1.28299e\-108\ 
-0.970446\ 1\ 1.27264e\-101\ 6.2893e\-104\ 2.92712e\-106\ 6.2893e\-104\ 1.27264e\-101\ 1\ 0.970446\ 0.88692\ 
-2.92712e\-106\ 6.2893e\-104\ 0.970446\ 1\ 0.970446\ 1.28299e\-108\ 2.92712e\-106\ 0.88692\ 0.970446\ 1
+node\ =\ 0,\ local_num_row\ =\ 5,\ local_num_col\ =\ 5,\ val\ =\ 1\ 0.970446\ 6.2893e\-104\ 2.92712e\-106\ 
+1.28299e\-108\ 0.970446\ 1\ 1.27264e\-101\ 6.2893e\-104\ 2.92712e\-106\ 6.2893e\-104\ 1.27264e\-101\ 
+1\ 0.970446\ 0.88692\ 2.92712e\-106\ 6.2893e\-104\ 0.970446\ 1\ 0.970446\ 1.28299e\-108\ 2.92712e\-106\ 
+0.88692\ 0.970446\ 1
 embed\ matrix:
 num_row\ =\ 5,\ num_col\ =\ 2
 node\ 0
-node\ =\ 0,\ local_num_row\ =\ 5,\ local_num_col\ =\ 2,\ val\ =\ \-0.628988\ \-0.345834\ \-0.628988\ \-0.345834\ \-0.202594\ 
-0.368471\ \-0.202594\ 0.368471\ \-0.202594\ 0.368471
+node\ =\ 0,\ local_num_row\ =\ 5,\ local_num_col\ =\ 2,\ val\ =\ \-0.628988\ \-0.345834\ \-0.628988\ 
+\-0.345834\ \-0.202594\ 0.368471\ \-0.202594\ 0.368471\ \-0.202594\ 0.368471
 \f[]
 .fi
 .PP
@@ -647,8 +634,8 @@ prompt the user to train the clustering model first.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted otherwise, it
+returns \[aq]False\[aq].
 .SS SEE ALSO
 .PP
-rowmajor_matrix, crs_matrix
+rowmajor_matrix, crs_matrix, spectral_clustering

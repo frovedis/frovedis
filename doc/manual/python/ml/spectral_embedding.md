@@ -8,13 +8,10 @@ is given by the value of the normalized eigenvectors for each data point.
 
 # SYNOPSIS
 
-class frovedis.mllib.manifold.SpectralEmbedding(n_components=2, affinity='nearest_neighbors',  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ gamma=1.0, random_state=None, eigen_solver=None,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_neighbors=None, n_jobs=None, verbose=0,  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ norm_laplacian=True, mode=3, drop_first=True)  
+    class frovedis.mllib.manifold.SpectralEmbedding(n_components=2, affinity='nearest_neighbors',  
+                                                    gamma=1.0, random_state=None, eigen_solver=None,  
+                                                    n_neighbors=None, n_jobs=None, verbose=0,  
+                                                    norm_laplacian=True, mode=3, drop_first=True)  
 
 ## Public Member Functions
 
@@ -62,18 +59,17 @@ _**n\_components**_: An integer parameter containing the number of component cou
 (Default: 2)  
 _**affinity**_: A string object parameter which specifies how to construct the affinity matrix. 
 (Default: 'nearest_neighbors')  
-‘nearest_neighbors’: construct the affinity matrix by computing a graph of nearest neighbors.  
-‘precomputed’: interpret X as a precomputed affinity matrix, where larger values indicate greater 
+- **'nearest_neighbors'**: construct the affinity matrix by computing a graph of nearest neighbors.  
+- **'precomputed'**: interpret X as a precomputed affinity matrix, where larger values indicate greater 
 similarity between instances.
+
 Only 'nearest_neighbors' and 'precomputed' are supported.  
-_**gamma**_: The double(float64) parameter required for computing nearby relational meaningful 
+_**gamma**_: The double (float64) parameter required for computing nearby relational meaningful 
 eigenvalues. (Default: 1.0)  
 _**random_state**_: An unused parameter. (Default: None)  
-_**eigen\_solver**_: A string object parameter, specifies the eigenvalue decomposition 
-strategy to use. (unused)  
-_**n_neighbors**_: An string object parameter, specifies the number of neighbors to use when 
-constructing the affinity matrix using the nearest neighbors method. (unused)  
-_**n\_jobs**_: The number of parallel jobs to run. (unused)  
+_**eigen\_solver**_: An unused parameter. (Default: None)  
+_**n_neighbors**_: An unused parameter. (Default: None)  
+_**n\_jobs**_: An unused parameter. (Default: None)  
 _**verbose**_: An integer parameter specifying the log level to use. Its value is 0 by default 
 (for INFO mode and not specified explicitly). But it can be set to 1 (for DEBUG mode) or 2 (for 
 TRACE mode) for getting training time logs from frovedis server.  
@@ -89,33 +85,41 @@ calculate ‘n_components’ number of eigenvectors. (Default: True)
 __Attribute__  
 _**affinity\_matrix**_:  
 
-For python native dense input:  
-- When affinity = ‘precomputed’, it returns a numpy array  
-- When affinity = ‘nearest_neighbors’, it returns a numpy array  
-For frovedis-like dense input:  
-- When affinity = ‘precomputed', returns a FrovedisRowmajorMatrix  
-- When affinity = ‘nearest_neighbors’, returns a FrovedisRowmajorMatrix  
-For python native sparse input:  
-- When affinity = ‘precomputed’, it returns a scipy matrix  
-- When affinity = 'nearest_neighbors', it returns a numpy array  
-For frovedis-like sparse input:  
-- When affinity = ‘nearest_neighbors’, it a returns a FrovedisRowmajorMatrix  
-- When affinity = ‘precomputed’, it returns a FrovedisRowmajorMatrix  
+1. **For python native dense input:**  
+     - When affinity = ‘precomputed’, it returns a numpy array  
+     - When affinity = ‘nearest_neighbors’, it returns a numpy array  
+
+2. **For frovedis-like dense input:**  
+     - When affinity = ‘precomputed', returns a FrovedisRowmajorMatrix  
+     - When affinity = ‘nearest_neighbors’, returns a FrovedisRowmajorMatrix  
+
+3. **For python native sparse input:**  
+     - When affinity = ‘precomputed’, it returns a scipy matrix  
+     - When affinity = 'nearest_neighbors', it returns a numpy array  
+
+4. **For frovedis-like sparse input:**  
+     - When affinity = ‘nearest_neighbors’, it a returns a FrovedisRowmajorMatrix  
+     - When affinity = ‘precomputed’, it returns a FrovedisRowmajorMatrix  
+
 In all cases, the output is of float or double (float64) type and of shape **(n_samples, n_samples)**.  
 
 _**embedding\_**_:  
-For python native dense input:  
-- When affinity = ‘precomputed’, it returns a numpy array  
-- When affinity = ‘nearest_neighbors’, it returns a numpy array  
-For frovedis-like dense input:  
-- When affinity = ‘precomputed', returns a FrovedisRowmajorMatrix  
-- When affinity = ‘nearest_neighbors’, returns a FrovedisRowmajorMatrix  
-For python native sparse input:  
-- When affinity = ‘precomputed’, it returns a numpy array  
-- When affinity = 'nearest_neighbors', it returns a numpy array  
-For frovedis-like sparse input:  
-- When affinity = ‘nearest_neighbors’, it a returns a FrovedisRowmajorMatrix  
-- When affinity = ‘precomputed’, it returns a FrovedisRowmajorMatrix  
+
+1. **For python native dense input:**  
+     - When affinity = ‘precomputed’, it returns a numpy array  
+     - When affinity = ‘nearest_neighbors’, it returns a numpy array  
+
+2. **For frovedis-like dense input:**  
+     - When affinity = ‘precomputed', returns a FrovedisRowmajorMatrix  
+     - When affinity = ‘nearest_neighbors’, returns a FrovedisRowmajorMatrix  
+
+3. **For python native sparse input:**  
+     - When affinity = ‘precomputed’, it returns a numpy array  
+     - When affinity = 'nearest_neighbors', it returns a numpy array  
+
+4. **For frovedis-like sparse input:**  
+     - When affinity = ‘nearest_neighbors’, it a returns a FrovedisRowmajorMatrix  
+     - When affinity = ‘precomputed’, it returns a FrovedisRowmajorMatrix  
 
 In all cases, the output is of float or double (float64) type and of shape **(n_samples, n_components)**.  
 
@@ -140,7 +144,7 @@ It simply returns “self” reference.
 __Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
-dense data of float or double(float64) type. It has shape **(n_samples, n_features)**.   
+dense data of float or double (float64) type. It has shape **(n_samples, n_features)**.   
 _**y**_: None or any python array-like object (any shape). It is simply ignored 
 in frovedis implementation, like in Scikit-learn.  
 
@@ -186,7 +190,7 @@ __Parameters__
 _**fname**_: A string object containing the name of the file having model 
 information to be loaded.  
 _**dtype**_: A data-type is inferred from the input data. Currently, 
-expected input data-type is either float or double(float64). (Default: None)  
+expected input data-type is either float or double (float64). (Default: None)  
 
 __Purpose__    
 It loads the model from the specified file(having little-endian binary data).
@@ -208,8 +212,8 @@ model is to be saved.
 
 __Purpose__    
 
-On success, it writes the model information in the specified file as little-endian 
-binary data. Otherwise, it throws an exception. 
+On success, it writes the model information(metadata and model) in the specified 
+file as little-endian binary data. Otherwise, it throws an exception. 
 
 For example,   
 
@@ -245,43 +249,45 @@ and their values of Spectral Embedding class.
 
 For example, 
  
-      print(sem.get_params())
+    print(sem.get_params())
 
 Output  
 
-     {'affinity': 'nearest_neighbors', 'drop_first': True, 'eigen_solver': None, 'gamma': 1.0, 'mode': 3, 
-     'n_components': 2, 'n_jobs': None, 'n_neighbors': None, 'norm_laplacian': True, 'random_state': None, 
-     'verbose': 0}
+    {'affinity': 'nearest_neighbors', 'drop_first': True, 'eigen_solver': None, 'gamma': 1.0, 
+    'mode': 3, 'n_components': 2, 'n_jobs': None, 'n_neighbors': None, 'norm_laplacian': True, 
+    'random_state': None, 'verbose': 0}
 
 __Return Value__  
 A dictionary of parameter names mapped to their values.  
 
-### 6. set_params(**params)  
-
-__Parameters__   
-
-_**params**_: All the keyword arguments are passed this function as dictionary. This dictionary contains 
-parameters of an estimator with its given values to set.  
+### 6. set_params(\*\*params)  
+__Parameters__  
+_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+contains parameters of an estimator with its given values to set.  
 
 __Purpose__  
 This method belongs to the BaseEstimator class inherited by Spectral Embedding, used to set parameter values.  
 
 For example,   
 
-    print("get parameters before setting:", sem.get_params())
+    print("get parameters before setting:")
+    print(sem.get_params())
     # User just needs to provide the arguments and internally it will create a 
     dictionary over the arguments given by user
     sem.set_params(n_components = 3, drop_first = False)
-    print("get parameters after setting:", sem.get_params())
+    print("get parameters after setting:")
+    print(sem.get_params())
 
 Output  
      
-     get parameters before setting: {'affinity': 'nearest_neighbors', 'drop_first': True, 
-     'eigen_solver': None, 'gamma': 1.0, 'mode': 3, 'n_components': 2, 'n_jobs': None, 
-     'n_neighbors': None, 'norm_laplacian': True, 'random_state': None, 'verbose': 0}
-     get parameters after setting: {'affinity': 'nearest_neighbors', 'drop_first': False, 
-     'eigen_solver': None, 'gamma': 1.0, 'mode': 3, 'n_components': 3, 'n_jobs': None, 
-     'n_neighbors': None, 'norm_laplacian': True, random_state': None, 'verbose': 0}  
+    get parameters before setting: 
+    {'affinity': 'nearest_neighbors', 'drop_first': True, 'eigen_solver': None, 
+    'gamma': 1.0, 'mode': 3, 'n_components': 2, 'n_jobs': None, 'n_neighbors': None, 
+    'norm_laplacian': True, 'random_state': None, 'verbose': 0}
+    get parameters after setting: 
+    {'affinity': 'nearest_neighbors', 'drop_first': False, 'eigen_solver': None, 
+    'gamma': 1.0, 'mode': 3, 'n_components': 3, 'n_jobs': None, 'n_neighbors': None, 
+    'norm_laplacian': True, random_state': None, 'verbose': 0}  
     
 __Return Value__  
 It simply returns "self" reference.  
@@ -302,14 +308,15 @@ Output
     affinity matrix:
     num_row = 5, num_col = 5
     node 0
-    node = 0, local_num_row = 5, local_num_col = 5, val = 1 0.970446 6.2893e-104 2.92712e-106 1.28299e-108 
-    0.970446 1 1.27264e-101 6.2893e-104 2.92712e-106 6.2893e-104 1.27264e-101 1 0.970446 0.88692 
-    2.92712e-106 6.2893e-104 0.970446 1 0.970446 1.28299e-108 2.92712e-106 0.88692 0.970446 1
+    node = 0, local_num_row = 5, local_num_col = 5, val = 1 0.970446 6.2893e-104 2.92712e-106 
+    1.28299e-108 0.970446 1 1.27264e-101 6.2893e-104 2.92712e-106 6.2893e-104 1.27264e-101 
+    1 0.970446 0.88692 2.92712e-106 6.2893e-104 0.970446 1 0.970446 1.28299e-108 2.92712e-106 
+    0.88692 0.970446 1
     embed matrix:
     num_row = 5, num_col = 2
     node 0
-    node = 0, local_num_row = 5, local_num_col = 2, val = -0.628988 -0.345834 -0.628988 -0.345834 -0.202594 
-    0.368471 -0.202594 0.368471 -0.202594 0.368471
+    node = 0, local_num_row = 5, local_num_col = 2, val = -0.628988 -0.345834 -0.628988 
+    -0.345834 -0.202594 0.368471 -0.202594 0.368471 -0.202594 0.368471
 
 __Return Value__  
 It returns nothing.  
@@ -339,8 +346,8 @@ is used before training the model, then it can prompt the user to train the clus
 model first.  
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.  
+It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
 
 ## SEE ALSO  
-rowmajor_matrix, crs_matrix
+rowmajor_matrix, crs_matrix, spectral_clustering
 

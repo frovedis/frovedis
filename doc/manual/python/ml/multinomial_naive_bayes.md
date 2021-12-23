@@ -2,12 +2,13 @@
 
 # NAME
 
-Multinomial Naive Bayes- One of the variations of Naive Bayes algorithm. It is a 
+Multinomial Naive Bayes - One of the variations of Naive Bayes algorithm. It is a 
 multinomial classification algorithm.  
 
 # SYNOPSIS
 
-class frovedis.mllib.naive_bayes.MultinomialNB(alpha=1.0, fit_prior=True, class_prior=None, verbose=0)  
+    class frovedis.mllib.naive_bayes.MultinomialNB(alpha=1.0, fit_prior=True, class_prior=None, 
+                                                   verbose=0)  
 
 
 ## Public Member Functions
@@ -52,11 +53,11 @@ server, the output would be sent back to the python client.
 ### 1. MultinomialNB()  
 
 __Parameters__  
-**_alpha_**: A positive double(float64) smoothing parameter. It must be greater than or
+**_alpha_**: A positive double (float64) smoothing parameter. It must be greater than or
 equal to 1. (Default: 1.0)  
 **_fit\_prior_**: A boolean parameter specifying whether to learn class prior probabilities 
 or not. If False, a uniform prior will be used. (Default: True)  
-**_class\_prior_**: A numpy ndarray of double(float64) type values and must be of shape 
+**_class\_prior_**: A numpy ndarray of double (float64) type values and must be of shape 
 **(n_classes,)**. It gives prior probabilities of the classes. (Default: None)  
 When it is None (not specified explicitly), the priors are adjusted according to the data.  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is 0 by 
@@ -64,23 +65,28 @@ default (for INFO mode and not specified explicitly). But it can be set to 1 (fo
 or 2 (for TRACE mode) for getting training time logs from frovedis server.  
 
 __Attributes__  
-**_class\_log\_prior\__**: A python ndarray of double(float64) type values and has shape (n_classes,). It
+**_class\_log\_prior\__**: A python ndarray of double (float64) type values and has shape **(n_classes,)**. It
 contains log probability of each class (smoothed).  
-**_feature\_log\_prob\__**: A python ndarray of double(float64) type values and has shape (n_classes,
-n_features). It contains empirical log probability of features given a class.  
-**_class\_count\__**: A python ndarray of double(float64) type values and has shape (n_classes,). It contains
+**_feature\_log\_prob\__**: A python ndarray of double (float64) type values and has shape **(n_classes,
+n_features)**. It contains empirical log probability of features given a class.  
+**_class\_count\__**: A python ndarray of double (float64) type values and has shape **(n_classes,)**. It contains
 the number of samples encountered for each class during fitting. This value is weighted by the sample weight
 when provided.  
-**_classes\__**: A python ndarray of double(float64) type values and has shape (n_classes,). It contains the of
+**_classes\__**: A python ndarray of double (float64) type values and has shape **(n_classes,)**. It contains the of
 unique labels given to the classifier during training.  
-**_feature\_count\__**: A python ndarray of double(float64) type values and has shape (n_classes,
-n_features). It contains the number of samples encountered for each (class, feature) during fitting. This
+**_feature\_count\__**: A python ndarray of double (float64) type values and has shape **(n_classes,
+n_features)**. It contains the number of samples encountered for each (class, feature) during fitting. This
 value is weighted by the sample weight when provided.  
-**_coef\__**: A python ndarray of double(float64) type values. If 'classes_' are 2 then the shape (1, n_features), 
-otherwise, the shape is (n_classes,n_features). It mirrors ‘feature_log_prob_’ for interpreting MultinomialNB as a 
-linear model.  
- **_intercept\__**:  A python ndarray of double(float64) type values. If 'classes_' are 2 then the shape (1,), 
-otherwise, the shape is (n_classes,). It mirrors ‘class_log_prior_’ for interpreting MultinomialNB as a linear model.  
+**_coef\__**: A python ndarray of double (float64) type values.  
+- If 'classes_' is 2, then the shape **(1, n_features)**  
+- If 'classes_' is more then 2, then the shape is **(n_classes, n_features)**.  
+
+It mirrors ‘feature_log_prob_’ for interpreting MultinomialNB as a linear model.  
+**_intercept\__**:  A python ndarray of double (float64) type values.  
+- If 'classes_' are 2, then the shape **(1,)**  
+- If 'classes_' is more then 2, then the shape is **(n_classes,)**.  
+
+It mirrors ‘class_log_prior_’ for interpreting MultinomialNB as a linear model.  
 
 __Purpose__  
 It initializes a MultinomialNB object with the given parameters.  
@@ -91,10 +97,12 @@ It simply returns "self" reference.
 ### 2. fit(X, y, sample_weight = None)  
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
-an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector.  
+an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. 
+It has shape **(n_samples, n_features)**.  
+_**y**_: Any python array-like object or an instance of FrovedisDvector containing the target labels.
+It has shape **(n_samples,)**.  
 **_sample\_weight_**: A python ndarray containing the intended weights for each input samples 
-and it should be the shape of (n_samples, ). (Default: None)  
+and it should be the shape of **(n_samples,)**. (Default: None)  
 When it is None (not specified explicitly), an uniform weight vector is assigned on each input 
 sample.  
 
@@ -139,7 +147,8 @@ It simply returns "self" reference.
 ### 3. predict(X)
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or an instance 
-of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
+of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. It has shape 
+**(n_samples, n_features)**.  
 
 __Purpose__  
 It accepts the test feature matrix (X) in order to make prediction on the
@@ -179,7 +188,8 @@ outputs.
   
 __Parameters__  
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
-an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
+an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. 
+ It has shape **(n_samples, n_features)**.  
 
 __Purpose__  
 Perform classification on an array and return probability estimates for the test vector X.  
@@ -227,17 +237,18 @@ Output
     [3.87284789e-18 1.00000000e+00]]
 
 __Return Value__  
-It returns a numpy array of float or double(float64) type and of shape **(n_samples, n_classes)** containing
+It returns a numpy array of float or double (float64) type and of shape **(n_samples, n_classes)** containing
 the predicted probability values.  
 
 
 ### 5. score(X, y, sample_weight = None)  
 __Parameters__   
 **_X_**: A numpy dense or scipy sparse matrix or any python array-like object or 
-an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data.  
-**_y_**: Any python array-like object or an instance of FrovedisDvector.  
+an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for dense data. 
+It has shape **(n_samples, n_features)**.  
+_**y**_: Any python array-like object containing the target labels. It has shape **(n_samples,)**.  
 **_sample\_weight_**: A python ndarray containing the intended weights for each input samples 
-and it should be the shape of (n_samples, ). (Default: None)  
+and it should be the shape of **(n_samples,)**. (Default: None)  
 When it is None (not specified explicitly), an uniform weight vector is assigned on each input 
 sample.  
 
@@ -253,7 +264,7 @@ Output
     0.89 
 
 __Return Value__  
-It returns an accuracy score of double(float64) type.  
+It returns an accuracy score of double (float64) type.  
 
 ### 6. get_params(deep = True)  
 
@@ -267,36 +278,39 @@ and their values of MultinomialNB class.
 
 For example, 
  
-      print(mnb.get_params())
+    print(mnb.get_params())
 
 Output  
 
-     {'alpha': 1.0, 'class_prior': None, 'fit_prior': True, 'verbose': 0}
+    {'alpha': 1.0, 'class_prior': None, 'fit_prior': True, 'verbose': 0}
 
 __Return Value__  
 A dictionary of parameter names mapped to their values.  
 
-### 7. set_params(**params)  
-
-__Parameters__   
-
-_**params**_: All the keyword arguments are passed this function as dictionary. This dictionary contains 
-parameters of an estimator with its given values to set.  
+### 7. set_params(\*\*params)  
+__Parameters__  
+_**\*\*params**_: All the keyword arguments are passed this function as dictionary. This dictionary 
+contains parameters of an estimator with its given values to set.  
 
 __Purpose__  
 This method belongs to the BaseEstimator class inherited by MultinomialNB, used to set parameter values.  
 
 For example,   
 
-    print("get parameters before setting:", mnb.get_params())
+    print("Get parameters before setting:")
+    print(mnb.get_params())
+    # User just needs to provide the arguments and internally it will create a 
+    dictionary over the arguments given by user    
     mnb.set_params(fit_prior = False)
-    print("get parameters after setting:", mnb.get_params())
-
+    print("Get parameters after setting:")
+    print(mnb.get_params())
 
 Output  
      
-    get parameters before setting: {'alpha': 1.0, 'class_prior': None, 'fit_prior': True, 'verbose': 0}
-    get parameters after setting: {'alpha': 1.0, 'class_prior': None, 'fit_prior': False, 'verbose': 0}
+    Get parameters before setting: 
+    {'alpha': 1.0, 'class_prior': None, 'fit_prior': True, 'verbose': 0}
+    Get parameters after setting: 
+    {'alpha': 1.0, 'class_prior': None, 'fit_prior': False, 'verbose': 0}
 
 __Return Value__  
 It simply returns "self" reference.  
@@ -306,7 +320,7 @@ __Parameters__
 **_fname_**:  A string object containing the name of the file having model information such as theta, 
 cls_count, feature_count, label, pi, type to be loaded.  
 **_dtype_**: A data-type is inferred from the input data. Currently, expected input data-type is either 
-float or double(float64). (Default: None)  
+float or double (float64). (Default: None)  
 
 __Purpose__  
 It loads the model stored previously from the specified file (having little-endian binary data).  
@@ -324,7 +338,7 @@ __Parameters__
 model is to be saved.  
 
 __Purpose__  
-On success, it writes the model information(theta, cls_count, feature_count, label, pi, type) in the 
+On success, it writes the model information(label_map, metadata and model) in the 
 specified file as little-endian binary data. Otherwise, it throws an exception.  
 
 For example,   
@@ -405,7 +419,7 @@ It can be used to confirm if the model is already fitted or not.  In case, predi
 model, then it can prompt the user to train the naive bayes model first.   
 
 __Return Value__  
-It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.  
+It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
 
 # SEE ALSO  
-rowmajor_matrix, crs_matrix, dvector
+rowmajor_matrix, crs_matrix, dvector, bernoulli_naive_bayes

@@ -7,11 +7,9 @@ factorization algorithm commonly used for recommender systems.
 
 # SYNOPSIS
 
-class frovedis.mllib.recommendation.ALS(rank=None, max_iter=100, alpha=0.01,  
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  
-\  \  \  \  \  \  \  \  \  \ reg_param=0.01, similarity_factor=0.1,  
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  
-\  \  \  \  \  \  \  \  \  \ seed=0, verbose=0)     
+    class frovedis.mllib.recommendation.ALS(rank=None, max_iter=100, alpha=0.01,  
+                                            reg_param=0.01, similarity_factor=0.1,  
+                                            seed=0, verbose=0)     
 
 ## Public Member Functions
 
@@ -77,8 +75,8 @@ to <= 1.0. (Default: 0.1)
 _**seed**_: An int64 parameter containing the seed value to initialize the model 
 structures with random values. (Default: 0)  
 _**verbose**_: An integer parameter specifying the log level to use. Its value 
-is 0 by default(for INFO mode and not speicifed explicitly). But it can be set 
-to 1(for DEBUG mode) or 2(for TRACE mode) for getting training time logs from 
+is 0 by default (for INFO mode and not speicifed explicitly). But it can be set 
+to 1 (for DEBUG mode) or 2 (for TRACE mode) for getting training time logs from 
 frovedis server.  
 
 __Purpose__    
@@ -91,14 +89,14 @@ It simply returns "self" reference.
 ### 2. fit(X)
 __Parameters__   
 _**X**_: A scipy sparse matrix or any python array-like object or an instance 
-of FrovedisCRSMatrix. It has shape (n_samples, n_features).  
+of FrovedisCRSMatrix. It has shape **(n_samples, n_features)**.  
  
 __Purpose__    
 It accepts the training sparse matrix (X) and trains a matrix factorization model 
 on that at frovedis server. 
 
 It starts with initializing the model structures of the size MxF 
-and NxF(where M is the number of users, N is the products in the given 
+and NxF (where M is the number of users, N is the products in the given 
 rating matrix and F is the given rank) with random values and keeps updating 
 them until maximum iteration count is reached. 
 
@@ -109,7 +107,8 @@ For example,
     from scipy.sparse import csr_matrix 
     row = np.array([0, 0, 1, 2, 2, 3, 3, 3, 4, 4, 5, 6, 6, 7, 7, 7])
     col = np.array([0, 4, 0, 2, 3, 0, 1, 6, 0, 4, 0, 2, 3, 0, 1, 6])
-    data = np.array([2.0, 9.0, 1.0, 4.0, 8.0, 2.0, 3.0, 8.9, 2.0, 9.0, 1.0, 4.0, 8.0, 2.0,3.0, 8.9])
+    data = np.array([2.0, 9.0, 1.0, 4.0, 8.0, 2.0, 3.0, 8.9, 2.0, 
+                     9.0, 1.0, 4.0, 8.0, 2.0,3.0, 8.9])
     csr_matrix = csr_matrix((data, (row, col)), shape = (8, 7))
         
     # fitting input matrix on ALS object
@@ -140,7 +139,7 @@ _**ids**_: A python tuple or list object containing the pairs of user id and pro
 id to predict.       
 
 __Purpose__    
-It accepts a list of pair of user ids and product ids(0-based Id) in order to make 
+It accepts a list of pair of user ids and product ids (0-based Id) in order to make 
 prediction for their ratings from the trained model at frovedis server. 
 
 For example,
@@ -153,12 +152,12 @@ Output:
     [ 0.00224735  0.00152505  0.99515575  0.99588757]
     
 __Return Value__  
-It returns a numpy array containing the predicted ratings, of float or double(float64) 
+It returns a numpy array containing the predicted ratings, of float or double (float64) 
 type depending upon the input type.
 
 ### 4. recommend_users(pid, k)
 __Parameters__   
-_**pid**_: An integer parameter specifying the product ID(0-based Id) for which
+_**pid**_: An integer parameter specifying the product ID (0-based Id) for which
 to recommend users.   
 _**k**_: An integer parameter specifying the number of users to be recommended.   
 
@@ -183,11 +182,11 @@ Output:
 
 __Return Value__  
 It returns a python list containing the pairs of recommended users and 
-their corresponding rating confidence values(double(float64)) in descending order.    
+their corresponding rating confidence values (double (float64)) in descending order.    
 
 ### 5. recommend_products(uid, k)
 __Parameters__   
-_**uid**_: An integer parameter specifying the user ID(0-based Id) for which
+_**uid**_: An integer parameter specifying the user ID (0-based Id) for which
 to recommend products.  
 _**k**_: An integer parameter specifying the number of products to be recommended.  
 
@@ -212,7 +211,7 @@ Output:
 
 __Return Value__  
 It returns a python list containing the pairs of recommended products and 
-their corresponding rating confidence values(double(float64)) in descending order.    
+their corresponding rating confidence values (double (float64)) in descending order.    
 
 ### 6. save(fname)
 __Parameters__   
@@ -220,13 +219,25 @@ _**fname**_: A string object containing the name of the file on which the target
 model is to be saved.    
 
 __Purpose__    
-On success, it writes the model information(user-product features etc.) in the 
+On success, it writes the model information(metadata and model) in the 
 specified file as little-endian binary data. Otherwise, it throws an exception. 
 
 For example,   
 
     # saving the model
-    als.save("./out/MyMFModel")
+    als.save("./out/MyALSModel")
+
+The MyALSModel contains below directory structure:  
+**MyALSModel**  
+    |------metadata  
+    |------**model**    
+\ \ \ \ \ \ \ \ |------**X**  
+\ \ \ \ \ \ \ \ |------**Y**  
+             
+'metadata' represents the detail about model_kind and datatype of training vector.
+Here, the **model** directory contains information about user and product features.
+
+If the directory already exists with the same name then it will raise an exception.  
 
 __Return Value__  
 It returns nothing.   
@@ -236,7 +247,7 @@ __Parameters__
 _**fname**_: A string object containing the name of the file having model 
 information to be loaded.    
 _**dtype**_: A data-type is inferred from the input data. Currently, expected 
-input data-type is either float or double(float64). (Default: None)
+input data-type is either float or double (float64). (Default: None)
 
 __Purpose__    
 It loads the model from the specified file(having little-endian binary data). 
@@ -244,7 +255,7 @@ It loads the model from the specified file(having little-endian binary data).
 For example,  
 
     # loading the same model
-    als.load("./out/MyMFModel")
+    als.load("./out/MyALSModel")
 
 __Return Value__  
 It simply returns "self" instance.   

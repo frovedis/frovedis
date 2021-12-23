@@ -8,19 +8,15 @@ It is a base algorithm for density\-based clustering, which can discover
 clusters of different shapes and sizes from a large amount of data,
 containing noise and outliers.
 .SH SYNOPSIS
-.PP
-class frovedis.mllib.cluster.DBSCAN(eps=0.5, min_samples=5,
-metric=‘euclidean',metric_params=None,
-.PD 0
-.P
-.PD
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
-\ algorithm=‘auto', leaf_size=30, p=None, n_jobs=None,
-.PD 0
-.P
-.PD
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
-\ batch_fraction=None, verbose=0)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.cluster.DBSCAN(eps=0.5,\ min_samples=5,\ metric=‘euclidean',\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ metric_params=None,\ algorithm=‘auto',\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ leaf_size=30,\ p=None,\ n_jobs=None,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ batch_fraction=None,\ verbose=0)\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y = None, sample_weight = None)
@@ -72,19 +68,19 @@ border point, or outlier:
 .PD 0
 .P
 .PD
-\f[B]Core point\f[]: A point is a core point if there are at least
+\- \f[B]Core point\f[]: A point is a core point if there are at least
 minPts number of points (including the point itself) in its surrounding
 area with radius eps.
 .PD 0
 .P
 .PD
-\f[B]Border point\f[]: A point is a border point if it is reachable from
-a core point and there are less than minPts number of points within its
-surrounding area.
+\- \f[B]Border point\f[]: A point is a border point if it is reachable
+from a core point and there are less than minPts number of points within
+its surrounding area.
 .PD 0
 .P
 .PD
-\f[B]Outlier\f[]: A point is an outlier if it is not a core point and
+\- \f[B]Outlier\f[]: A point is an outlier if it is not a core point and
 not reachable from any core points.
 .PP
 The main advantage of using DBSCAN is that it is able to find
@@ -118,7 +114,7 @@ sent back to the python client.
 .PP
 \f[B]Parameters\f[]
 .PP
-\f[I]\f[B]eps\f[]\f[]: A positive double(float64) parameter containing
+\f[I]\f[B]eps\f[]\f[]: A positive double (float64) parameter containing
 the epsilon value or distance that specifies the neighborhoods.
 (Default: 0.5)
 .PD 0
@@ -186,7 +182,7 @@ parallel jobs to run.
 .PD 0
 .P
 .PD
-\f[I]\f[B]batch_fraction\f[]\f[]: A positive double(float64) parameter
+\f[I]\f[B]batch_fraction\f[]\f[]: A positive double (float64) parameter
 used to calculate the batches of specific size.
 These batches are used to construct the distance matrix.
 (Default: None)
@@ -201,9 +197,9 @@ np.finfo(np.float64).max value.
 .PD
 \f[I]\f[B]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
-Its value is set as 0 by default(for INFO mode).
-But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for getting
-training time logs from frovedis server.
+Its value is set as 0 by default (for INFO mode).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
 .PP
 \f[B]Attributes\f[]
 .PD 0
@@ -217,14 +213,14 @@ These are the coordinates of cluster centers.
 .PD
 \f[I]\f[B]core_sample_indices_\f[]\f[]: It is a python ndarray,
 containing int32 or int64 typed values and has shape
-\f[B](n_samples)\f[].
+\f[B](n_samples,)\f[].
 These are the core samples indices.
 .PD 0
 .P
 .PD
 \f[I]\f[B]components_\f[]\f[]: It is a numpy array or
-FrovedisRowmajorMatrix, containing float or double(float64) typed values
-and has shape \f[B](n_samples, n_features)\f[].
+FrovedisRowmajorMatrix, containing float or double (float64) typed
+values and has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
@@ -254,7 +250,7 @@ It simply returns "self" reference.
 .PD
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
@@ -267,7 +263,10 @@ It is simply ignored in frovedis implementation, like in Scikit\-learn.
 .PD
 \f[I]\f[B]sample_weight\f[]\f[]: Python array\-like containing the
 intended weights for each input samples and it should be the shape of
-\f[B](nsamples, )\f[].
+\f[B](n_samples, )\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 .PP
@@ -326,7 +325,7 @@ It simply returns "self" reference.
 .PD
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
@@ -334,7 +333,10 @@ It has shape \f[B](n_samples, n_features)\f[].
 .PD
 \f[I]\f[B]sample_weight\f[]\f[]: Python array\-like containing the
 intended weights for each input samples and it should be the shape of
-\f[B](nsamples, )\f[].
+\f[B](n_samples, )\f[].
+.PD 0
+.P
+.PD
 When it is None (not specified explicitly), an uniform weight vector is
 assigned on each input sample.
 .PP
@@ -405,13 +407,14 @@ with shape \f[B](n_samples,)\f[].
 .PP
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
-\f[I]\f[B]y\f[]\f[]: A python ndarray of int64 type.
+\f[I]\f[B]y\f[]\f[]: A python ndarray or an instance of FrovedisVector
+containing the true labels for X.
 It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
@@ -473,7 +476,7 @@ For example,
 .IP
 .nf
 \f[C]
-\ \ print(dbm.get_params())
+print(dbm.get_params())
 \f[]
 .fi
 .PP
@@ -481,8 +484,9 @@ Output
 .IP
 .nf
 \f[C]
-\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]batch_fraction\[aq]:\ None,\ \[aq]eps\[aq]:\ 5,\ \[aq]leaf_size\[aq]:\ 30,\ \[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ 
-\ \[aq]metric_params\[aq]:\ None,\ \[aq]min_samples\[aq]:\ 2,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]p\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+{\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]batch_fraction\[aq]:\ None,\ \[aq]eps\[aq]:\ 5,\ \[aq]leaf_size\[aq]:\ 30,\ 
+\[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ \[aq]metric_params\[aq]:\ None,\ \[aq]min_samples\[aq]:\ 2,\ \[aq]n_jobs\[aq]:\ None,\ 
+\[aq]p\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP
@@ -494,8 +498,10 @@ A dictionary of parameter names mapped to their values.
 .SS 6. set_params(**params)
 .PP
 \f[B]Parameters\f[]
-.PP
-\f[I]\f[B]params\f[]\f[]: All the keyword arguments are passed this
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed to this
 function as dictionary.
 This dictionary contains parameters of an estimator with its given
 values to set.
@@ -511,9 +517,13 @@ For example,
 .IP
 .nf
 \f[C]
-print("get\ parameters\ before\ setting:",\ kmeans.get_params())
+print("Get\ parameters\ before\ setting:")\ 
+print(kmeans.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
 kmeans.set_params(n_clusters=4,\ n_init=5)
-print("get\ parameters\ after\ setting:",\ kmeans.get_params())
+print("Get\ parameters\ after\ setting:")\ 
+print(kmeans.get_params())
 \f[]
 .fi
 .PP
@@ -521,11 +531,13 @@ Output
 .IP
 .nf
 \f[C]
-get\ parameters\ before\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\[aq]random\[aq],\ 
-\[aq]max_iter\[aq]:\ 300,\ \[aq]n_clusters\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],
+Get\ parameters\ before\ setting:\ 
+{\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ 
+\[aq]n_clusters\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],
 \[aq]random_state\[aq]:\ None,\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
-get\ parameters\ after\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ 
-\[aq]max_iter\[aq]:\ 300,\ \[aq]n_clusters\[aq]:\ 4,\ \[aq]n_init\[aq]:\ 5,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ 
+Get\ parameters\ after\ setting:\ 
+{\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ 
+\[aq]n_clusters\[aq]:\ 4,\ \[aq]n_init\[aq]:\ 5,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ 
 \[aq]random_state\[aq]:\ None,\ \[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
@@ -577,4 +589,5 @@ It returns ‘True', if the model is already fitted otherwise, it returns
 ‘False'.
 .SS SEE ALSO
 .PP
-rowmajor_matrix, crs_matrix
+rowmajor_matrix, crs_matrix, agglomerative_clustering,
+spectral_clustering, kmeans

@@ -1,27 +1,18 @@
 .TH "KMeans Clustering" "" "" "" ""
 .SH NAME
 .PP
-KMeans\- is a clustering algorithm commonly used in EDA (exploratory
+KMeans \- is a clustering algorithm commonly used in EDA (exploratory
 data analysis).
 .SH SYNOPSIS
-.PP
-class frovedis.mllib.cluster.KMeans(n_clusters=8, init=\[aq]random\[aq],
-n_init=10, max_iter=300,
-.PD 0
-.P
-.PD
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
-\ tol=1e\-4, precompute_distances=\[aq]auto\[aq], verbose=0,
-.PD 0
-.P
-.PD
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
-\ random_state=None, copy_x=True, n_jobs=1,
-.PD 0
-.P
-.PD
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \ 
-\ algorithm=\[aq]auto\[aq], use_shrink=False)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.cluster.KMeans(n_clusters=8,\ init=\[aq]random\[aq],\ n_init=10,\ max_iter=300,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ tol=1e\-4,\ precompute_distances=\[aq]auto\[aq],\ verbose=0,\ \ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None,\ copy_x=True,\ n_jobs=1,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ algorithm=\[aq]auto\[aq],\ use_shrink=False)\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y = None, sample_weight = None)
@@ -86,8 +77,8 @@ The main difference between these two lies in the selection of the
 centroids (we assume centroid is the center of the cluster) around which
 the clustering takes place.
 .PP
-Frovedis supports only k\-means clustering method (i.e.
-init =\[aq]random\[aq]) which will randomly initialize the data points
+\f[B]Frovedis supports only k\-means clustering method (i.e. init
+=\[aq]random\[aq])\f[] which will randomly initialize the data points
 called centroid.
 Further, each data point is clustered to its nearest centroid and after
 every iteration the centroid is updated for each cluster.
@@ -132,7 +123,7 @@ n_samples.
 .P
 .PD
 When it is None (specified explicitly), then it will be set as min(8,
-nsamples).
+n_samples).
 .PD 0
 .P
 .PD
@@ -164,7 +155,7 @@ maximum iteration count.
 .PD 0
 .P
 .PD
-\f[I]\f[B]tol\f[]\f[]: Zero or a positive double(float64) parameter
+\f[I]\f[B]tol\f[]\f[]: Zero or a positive double (float64) parameter
 specifying the convergence tolerance.
 (Default: 1e\-4)
 .PD 0
@@ -177,9 +168,9 @@ specifying the convergence tolerance.
 .PD
 \f[I]\f[B]verbose\f[]\f[]: An integer parameter specifying the log level
 to use.
-Its value is set as 0 by default(for INFO mode).
-But it can be set to 1(for DEBUG mode) or 2(for TRACE mode) for getting
-training time logs from frovedis server.
+Its value is set as 0 by default (for INFO mode).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
 .PD 0
 .P
 .PD
@@ -221,7 +212,7 @@ by reducing communication overhead across participating processes.
 .P
 .PD
 \f[I]\f[B]cluster_centers_\f[]\f[]: It is a python ndarray, containing
-float or double(float64) typed values and has shape \f[B](n_clusters,
+float or double (float64) typed values and has shape \f[B](n_clusters,
 n_features)\f[].
 These are the coordinates of cluster centers.
 .PD 0
@@ -266,7 +257,7 @@ It simply returns "self" reference.
 .PD
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
@@ -282,7 +273,9 @@ is None.
 It is simply ignored in frovedis implementation, like in Scikit\-learn.
 .PP
 \f[B]Purpose\f[]
-.PP
+.PD 0
+.P
+.PD
 It clusters the given data points (X) into a predefined number of
 clusters (n_clusters).
 .PP
@@ -337,7 +330,7 @@ It simply returns "self" reference.
 .PD
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
@@ -353,7 +346,9 @@ is None.
 It is simply ignored in frovedis implementation.
 .PP
 \f[B]Purpose\f[]
-.PP
+.PD 0
+.P
+.PD
 It clusters the given data points (X) into a predefined number of
 clusters (n_clusters) and predicts the cluster index for each sample.
 .PP
@@ -417,9 +412,13 @@ It returns a numpy array of int64 type containing the cluster labels.
 It has a shape \f[B](n_samples,)\f[].
 .SS 4. fit_transform(X, y = None, sample_weight = None)
 .PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
@@ -499,16 +498,20 @@ FrovedisRowmajorMatrix object.
 .PD 0
 .P
 .PD
-\f[B]When training data is native\-python data, then the output will be
-a numpy array containing the transformed matrix.\f[]
+\- \f[B]When training data is native\-python data\f[]:
 .PD 0
 .P
 .PD
-\f[B]When training data is frovedis\-like data is input, then the output
-will be a FrovedisRowmajorMatrix.\f[]
+Then the output will be a numpy array containing the transformed matrix.
 .PD 0
 .P
 .PD
+\- \f[B]When training data is frovedis\-like data\f[]:
+.PD 0
+.P
+.PD
+Then the output will be a FrovedisRowmajorMatrix.
+.PP
 In both cases output would be of float or double (float64) type
 (depending upon input dtype) and of shape \f[B](n_samples,
 n_clusters)\f[].
@@ -517,9 +520,13 @@ Note that even if training data (X) is sparse, the output would
 typically be dense.
 .SS 5. transform(X)
 .PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PP
@@ -587,10 +594,20 @@ FrovedisRowmajorMatrix object.
 .PD 0
 .P
 .PD
-If native\-python data is input, it would output a numpy array
-containing the transformed matrix.
-If frovedis\-like data is input, it would output a
-FrovedisRowmajorMatrix.
+\- \f[B]If native\-python data is input:\f[]
+.PD 0
+.P
+.PD
+Then it returns a numpy array containing the transformed matrix.
+.PD 0
+.P
+.PD
+\- \f[B]If frovedis\-like data is input:\f[]
+.PD 0
+.P
+.PD
+Then it returns a FrovedisRowmajorMatrix.
+.PP
 In both cases output would be of float or double (float64) type
 (depending upon input dtype) and of shape \f[B](n_samples,
 n_clusters)\f[].
@@ -605,7 +622,7 @@ dense.
 .PD
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
@@ -614,9 +631,7 @@ It has shape \f[B](n_samples, n_features)\f[].
 \f[I]\f[B]sample_weight\f[]\f[]: None or any python array\-like object
 containing the intended weights for each input samples.
 It is simply ignored in frovedis implementation, like in Scikit\-learn.
-.PD 0
-.P
-.PD
+.PP
 \f[B]Purpose\f[]
 .PD 0
 .P
@@ -684,9 +699,13 @@ It returns a numpy array of int32 type containing the centroid values.
 It has a shape \f[B](n_samples,)\f[].
 .SS 7. score(X, y = None, sample_weight = None)
 .PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
 \f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
-and FrovedisRowmajorMatrix for dense data of float or double(float64)
+and FrovedisRowmajorMatrix for dense data of float or double (float64)
 type.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
@@ -743,7 +762,8 @@ having model information to be loaded.
 .P
 .PD
 \f[I]\f[B]dtype\f[]\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -780,8 +800,8 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information in the specified file as
-little\-endian binary data.
+On success, it writes the model information(metadata and model) in the
+specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -846,7 +866,7 @@ For example,
 .IP
 .nf
 \f[C]
-\ \ print(kmeans.get_params())
+print(kmeans.get_params())
 \f[]
 .fi
 .PP
@@ -854,9 +874,9 @@ Output
 .IP
 .nf
 \f[C]
-\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ \[aq]n_clusters\[aq]:\ 2,\ 
-\ \[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ \[aq]random_state\[aq]:\ None,\ \[aq]tol\[aq]:\ 0.0001,\ 
-\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
+{\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ \[aq]n_clusters\[aq]:\ 2,\ 
+\[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ \[aq]random_state\[aq]:\ None,\ 
+\[aq]tol\[aq]:\ 0.0001,\ \[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP
@@ -868,8 +888,10 @@ A dictionary of parameter names mapped to their values.
 .SS 11. set_params(**params)
 .PP
 \f[B]Parameters\f[]
-.PP
-\f[I]\f[B]params\f[]\f[]: All the keyword arguments are passed this
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
 function as dictionary.
 This dictionary contains parameters of an estimator with its given
 values to set.
@@ -885,9 +907,13 @@ For example,
 .IP
 .nf
 \f[C]
-print("get\ parameters\ before\ setting:",\ kmeans.get_params())
+print("Get\ parameters\ before\ setting:")\ 
+print(kmeans.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user\ \ \ \ 
 kmeans.set_params(n_clusters\ =\ 4,\ n_init\ =\ 5)
-print("get\ parameters\ after\ setting:",\ kmeans.get_params())
+print("Get\ parameters\ after\ setting:")\ 
+print(kmeans.get_params())
 \f[]
 .fi
 .PP
@@ -895,12 +921,14 @@ Output
 .IP
 .nf
 \f[C]
-get\ parameters\ before\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ 
-\[aq]max_iter\[aq]:\ 300,\ \[aq]n_clusters\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ 
+Get\ parameters\ before\ setting:\ 
+{\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ 
+\[aq]n_clusters\[aq]:\ 2,\ \[aq]n_init\[aq]:\ 1,\ \[aq]n_jobs\[aq]:\ 1,\[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ 
 \[aq]random_state\[aq]:\ None,\[aq]tol\[aq]:\ 0.0001,\[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
-get\ parameters\ after\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ \[aq]init\[aq]:\ \[aq]random\[aq],
-\[aq]max_iter\[aq]:\ 300,\ \[aq]n_clusters\[aq]:\ 4,\ \[aq]n_init\[aq]:\ 5,\ \[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ 
-\[aq]random_state\[aq]:\ None,\ \[aq]tol\[aq]:\ 0.0001,\[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
+Get\ parameters\ after\ setting:\ {\[aq]algorithm\[aq]:\ \[aq]auto\[aq],\ \[aq]copy_x\[aq]:\ True,\ 
+\[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]max_iter\[aq]:\ 300,\ \[aq]n_clusters\[aq]:\ 4,\ \[aq]n_init\[aq]:\ 5,\ 
+\[aq]n_jobs\[aq]:\ 1,\ \[aq]precompute_distances\[aq]:\ \[aq]auto\[aq],\ \[aq]random_state\[aq]:\ None,\ 
+\[aq]tol\[aq]:\ 0.0001,\[aq]use_shrink\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP
@@ -981,8 +1009,9 @@ the user to train the clustering model first.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted otherwise, it
+returns \[aq]False\[aq].
 .SS SEE ALSO
 .PP
-rowmajor_matrix, crs_matrix
+rowmajor_matrix, crs_matrix, agglomerative_clustering,
+spectral_clustering, dbscan

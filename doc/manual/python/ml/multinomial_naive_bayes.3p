@@ -1,13 +1,17 @@
 .TH "Multinomial Naive Bayes" "" "" "" ""
 .SH NAME
 .PP
-Multinomial Naive Bayes\- One of the variations of Naive Bayes
+Multinomial Naive Bayes \- One of the variations of Naive Bayes
 algorithm.
 It is a multinomial classification algorithm.
 .SH SYNOPSIS
-.PP
-class frovedis.mllib.naive_bayes.MultinomialNB(alpha=1.0,
-fit_prior=True, class_prior=None, verbose=0)
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.naive_bayes.MultinomialNB(alpha=1.0,\ fit_prior=True,\ class_prior=None,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0)\ \ 
+\f[]
+.fi
 .SS Public Member Functions
 .PP
 fit(X, y, sample_weight = None)
@@ -86,7 +90,8 @@ sent back to the python client.
 .PD 0
 .P
 .PD
-\f[B]\f[I]alpha\f[]\f[]: A positive double(float64) smoothing parameter.
+\f[B]\f[I]alpha\f[]\f[]: A positive double (float64) smoothing
+parameter.
 It must be greater than or equal to 1.
 (Default: 1.0)
 .PD 0
@@ -99,7 +104,7 @@ If False, a uniform prior will be used.
 .PD 0
 .P
 .PD
-\f[B]\f[I]class_prior\f[]\f[]: A numpy ndarray of double(float64) type
+\f[B]\f[I]class_prior\f[]\f[]: A numpy ndarray of double (float64) type
 values and must be of shape \f[B](n_classes,)\f[].
 It gives prior probabilities of the classes.
 (Default: None)
@@ -121,54 +126,70 @@ getting training time logs from frovedis server.
 .PD 0
 .P
 .PD
-\f[B]\f[I]class_log_prior_\f[]\f[]: A python ndarray of double(float64)
-type values and has shape (n_classes,).
+\f[B]\f[I]class_log_prior_\f[]\f[]: A python ndarray of double (float64)
+type values and has shape \f[B](n_classes,)\f[].
 It contains log probability of each class (smoothed).
 .PD 0
 .P
 .PD
-\f[B]\f[I]feature_log_prob_\f[]\f[]: A python ndarray of double(float64)
-type values and has shape (n_classes, n_features).
+\f[B]\f[I]feature_log_prob_\f[]\f[]: A python ndarray of double
+(float64) type values and has shape \f[B](n_classes, n_features)\f[].
 It contains empirical log probability of features given a class.
 .PD 0
 .P
 .PD
-\f[B]\f[I]class_count_\f[]\f[]: A python ndarray of double(float64) type
-values and has shape (n_classes,).
+\f[B]\f[I]class_count_\f[]\f[]: A python ndarray of double (float64)
+type values and has shape \f[B](n_classes,)\f[].
 It contains the number of samples encountered for each class during
 fitting.
 This value is weighted by the sample weight when provided.
 .PD 0
 .P
 .PD
-\f[B]\f[I]classes_\f[]\f[]: A python ndarray of double(float64) type
-values and has shape (n_classes,).
+\f[B]\f[I]classes_\f[]\f[]: A python ndarray of double (float64) type
+values and has shape \f[B](n_classes,)\f[].
 It contains the of unique labels given to the classifier during
 training.
 .PD 0
 .P
 .PD
-\f[B]\f[I]feature_count_\f[]\f[]: A python ndarray of double(float64)
-type values and has shape (n_classes, n_features).
+\f[B]\f[I]feature_count_\f[]\f[]: A python ndarray of double (float64)
+type values and has shape \f[B](n_classes, n_features)\f[].
 It contains the number of samples encountered for each (class, feature)
 during fitting.
 This value is weighted by the sample weight when provided.
 .PD 0
 .P
 .PD
-\f[B]\f[I]coef_\f[]\f[]: A python ndarray of double(float64) type
+\f[B]\f[I]coef_\f[]\f[]: A python ndarray of double (float64) type
 values.
-If \[aq]classes_\[aq] are 2 then the shape (1, n_features), otherwise,
-the shape is (n_classes,n_features).
+.PD 0
+.P
+.PD
+\- If \[aq]classes_\[aq] is 2, then the shape \f[B](1, n_features)\f[]
+.PD 0
+.P
+.PD
+\- If \[aq]classes_\[aq] is more then 2, then the shape is
+\f[B](n_classes, n_features)\f[].
+.PP
 It mirrors ‘feature_log_prob_' for interpreting MultinomialNB as a
 linear model.
 .PD 0
 .P
 .PD
-\f[B]\f[I]intercept_\f[]\f[]: A python ndarray of double(float64) type
+\f[B]\f[I]intercept_\f[]\f[]: A python ndarray of double (float64) type
 values.
-If \[aq]classes_\[aq] are 2 then the shape (1,), otherwise, the shape is
-(n_classes,).
+.PD 0
+.P
+.PD
+\- If \[aq]classes_\[aq] are 2, then the shape \f[B](1,)\f[]
+.PD 0
+.P
+.PD
+\- If \[aq]classes_\[aq] is more then 2, then the shape is
+\f[B](n_classes,)\f[].
+.PP
 It mirrors ‘class_log_prior_' for interpreting MultinomialNB as a linear
 model.
 .PP
@@ -192,17 +213,19 @@ It simply returns "self" reference.
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+\f[I]\f[B]y\f[]\f[]: Any python array\-like object or an instance of
+FrovedisDvector containing the target labels.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
 \f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
-(n_samples, ).
+\f[B](n_samples,)\f[].
 (Default: None)
 .PD 0
 .P
@@ -273,6 +296,7 @@ It simply returns "self" reference.
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -338,6 +362,7 @@ It returns a numpy array of long (int64) type and of shape
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -409,7 +434,7 @@ Output
 .PD 0
 .P
 .PD
-It returns a numpy array of float or double(float64) type and of shape
+It returns a numpy array of float or double (float64) type and of shape
 \f[B](n_samples, n_classes)\f[] containing the predicted probability
 values.
 .SS 5. score(X, y, sample_weight = None)
@@ -421,17 +446,19 @@ values.
 \f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
 array\-like object or an instance of FrovedisCRSMatrix for sparse data
 and FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
 .PD
-\f[B]\f[I]y\f[]\f[]: Any python array\-like object or an instance of
-FrovedisDvector.
+\f[I]\f[B]y\f[]\f[]: Any python array\-like object containing the target
+labels.
+It has shape \f[B](n_samples,)\f[].
 .PD 0
 .P
 .PD
 \f[B]\f[I]sample_weight\f[]\f[]: A python ndarray containing the
 intended weights for each input samples and it should be the shape of
-(n_samples, ).
+\f[B](n_samples,)\f[].
 (Default: None)
 .PD 0
 .P
@@ -467,7 +494,7 @@ Output
 .PD 0
 .P
 .PD
-It returns an accuracy score of double(float64) type.
+It returns an accuracy score of double (float64) type.
 .SS 6. get_params(deep = True)
 .PP
 \f[B]Parameters\f[]
@@ -492,7 +519,7 @@ For example,
 .IP
 .nf
 \f[C]
-\ \ print(mnb.get_params())
+print(mnb.get_params())
 \f[]
 .fi
 .PP
@@ -500,7 +527,7 @@ Output
 .IP
 .nf
 \f[C]
-\ {\[aq]alpha\[aq]:\ 1.0,\ \[aq]class_prior\[aq]:\ None,\ \[aq]fit_prior\[aq]:\ True,\ \[aq]verbose\[aq]:\ 0}
+{\[aq]alpha\[aq]:\ 1.0,\ \[aq]class_prior\[aq]:\ None,\ \[aq]fit_prior\[aq]:\ True,\ \[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP
@@ -512,8 +539,10 @@ A dictionary of parameter names mapped to their values.
 .SS 7. set_params(**params)
 .PP
 \f[B]Parameters\f[]
-.PP
-\f[I]\f[B]params\f[]\f[]: All the keyword arguments are passed this
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
 function as dictionary.
 This dictionary contains parameters of an estimator with its given
 values to set.
@@ -529,9 +558,13 @@ For example,
 .IP
 .nf
 \f[C]
-print("get\ parameters\ before\ setting:",\ mnb.get_params())
+print("Get\ parameters\ before\ setting:")
+print(mnb.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user\ \ \ \ 
 mnb.set_params(fit_prior\ =\ False)
-print("get\ parameters\ after\ setting:",\ mnb.get_params())
+print("Get\ parameters\ after\ setting:")
+print(mnb.get_params())
 \f[]
 .fi
 .PP
@@ -539,8 +572,10 @@ Output
 .IP
 .nf
 \f[C]
-get\ parameters\ before\ setting:\ {\[aq]alpha\[aq]:\ 1.0,\ \[aq]class_prior\[aq]:\ None,\ \[aq]fit_prior\[aq]:\ True,\ \[aq]verbose\[aq]:\ 0}
-get\ parameters\ after\ setting:\ {\[aq]alpha\[aq]:\ 1.0,\ \[aq]class_prior\[aq]:\ None,\ \[aq]fit_prior\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
+Get\ parameters\ before\ setting:\ 
+{\[aq]alpha\[aq]:\ 1.0,\ \[aq]class_prior\[aq]:\ None,\ \[aq]fit_prior\[aq]:\ True,\ \[aq]verbose\[aq]:\ 0}
+Get\ parameters\ after\ setting:\ 
+{\[aq]alpha\[aq]:\ 1.0,\ \[aq]class_prior\[aq]:\ None,\ \[aq]fit_prior\[aq]:\ False,\ \[aq]verbose\[aq]:\ 0}
 \f[]
 .fi
 .PP
@@ -562,7 +597,8 @@ pi, type to be loaded.
 .P
 .PD
 \f[B]\f[I]dtype\f[]\f[]: A data\-type is inferred from the input data.
-Currently, expected input data\-type is either float or double(float64).
+Currently, expected input data\-type is either float or double
+(float64).
 (Default: None)
 .PP
 \f[B]Purpose\f[]
@@ -598,9 +634,8 @@ on which the target model is to be saved.
 .PD 0
 .P
 .PD
-On success, it writes the model information(theta, cls_count,
-feature_count, label, pi, type) in the specified file as little\-endian
-binary data.
+On success, it writes the model information(label_map, metadata and
+model) in the specified file as little\-endian binary data.
 Otherwise, it throws an exception.
 .PP
 For example,
@@ -756,8 +791,8 @@ the user to train the naive bayes model first.
 .PD 0
 .P
 .PD
-It returns ‘True', if the model is already fitted otherwise, it returns
-‘False'.
+It returns \[aq]True\[aq], if the model is already fitted otherwise, it
+returns \[aq]False\[aq].
 .SH SEE ALSO
 .PP
-rowmajor_matrix, crs_matrix, dvector
+rowmajor_matrix, crs_matrix, dvector, bernoulli_naive_bayes

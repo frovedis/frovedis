@@ -10,11 +10,10 @@ data, containing noise and outliers.
 
 # SYNOPSIS
 
-class frovedis.mllib.cluster.DBSCAN(eps=0.5, min_samples=5, metric=‘euclidean’,metric_params=None,  
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  
-\  \  \  \  \  \  \ algorithm=‘auto’, leaf_size=30, p=None, n_jobs=None,  
-\  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  \  
-\  \  \  \  \  \  \ batch_fraction=None, verbose=0)  
+    class frovedis.mllib.cluster.DBSCAN(eps=0.5, min_samples=5, metric=‘euclidean’,  
+                                        metric_params=None, algorithm=‘auto’,  
+                                        leaf_size=30, p=None, n_jobs=None,  
+                                        batch_fraction=None, verbose=0)  
 
 ## Public Member Functions
 
@@ -40,11 +39,11 @@ DBSCAN algorithm requires two key parameters: **eps** and **min_samples**.
 
 Based on these two parameters, the points are classified as core point, border point, 
 or outlier:  
-**Core point**: A point is a core point if there are at least minPts number of points 
+- **Core point**: A point is a core point if there are at least minPts number of points 
 (including the point itself) in its surrounding area with radius eps.  
-**Border point**: A point is a border point if it is reachable from a core point 
+- **Border point**: A point is a border point if it is reachable from a core point 
 and there are less than minPts number of points within its surrounding area.  
-**Outlier**: A point is an outlier if it is not a core point and not reachable 
+- **Outlier**: A point is an outlier if it is not a core point and not reachable 
 from any core points.  
 
 The main advantage of using DBSCAN is that it is able to find arbitrarily size and 
@@ -73,7 +72,7 @@ the frovedis server, the output would be sent back to the python client.
 
 __Parameters__  
 
-_**eps**_: A positive double(float64) parameter containing the epsilon value or distance 
+_**eps**_: A positive double (float64) parameter containing the epsilon value or distance 
 that specifies the neighborhoods. (Default: 0.5)  
 Two points are considered to be neighbors if the distance between them is less than or equal to eps.  
 _**min_samples**_: A positive integer parameter which specifies the number of samples in a 
@@ -93,21 +92,21 @@ construction and query. (Default: 30)
 _**p**_: An unused parameter specifying the power of the Minkowski metric to be 
 used to calculate distance between points. (Default: None)  
 _**n_jobs**_:  An unused parameter specifying the number of parallel jobs to run. (Default: None)  
-_**batch_fraction**_: A positive double(float64) parameter used to calculate the batches of specific 
+_**batch_fraction**_: A positive double (float64) parameter used to calculate the batches of specific 
 size. These batches are used to construct the distance matrix. (Default: None)  
 It must be within the range of 0.0 to 1.0. When it is None (not specified explicitly), 
 it will be set as np.finfo(np.float64).max value.  
 _**verbose**_: An integer parameter specifying the log level to use. Its value is set 
-as 0 by default(for INFO mode). But it can be set to 1(for DEBUG mode) or 2(for TRACE 
+as 0 by default (for INFO mode). But it can be set to 1 (for DEBUG mode) or 2 (for TRACE 
 mode) for getting training time logs from frovedis server.  
 
 __Attributes__  
 _**labels\_**_: It is a python ndarray, containing int64 typed values and has shape 
 **(n_samples,)**. These are the coordinates of cluster centers.  
 _**core_sample_indices\_**_:  It is a python ndarray, containing int32 or int64 typed values
-and has shape **(n_samples)**.  These are the core samples indices.  
+and has shape **(n_samples,)**.  These are the core samples indices.  
 _**components\_**_:  It is a numpy array or FrovedisRowmajorMatrix, containing float 
-or double(float64) typed values and has shape **(n_samples, n_features)**.  
+or double (float64) typed values and has shape **(n_samples, n_features)**.  
 These are the copy of each core sample found by training.
 
 __Purpose__  
@@ -124,12 +123,13 @@ It simply returns "self" reference.
 __Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
-dense data of float or double(float64) type. It has shape **(n_samples, n_features)**.   
+dense data of float or double (float64) type. It has shape **(n_samples, n_features)**.   
 _**y**_: None or any python array-like object (any shape). It is simply ignored 
 in frovedis implementation, like in Scikit-learn.  
 _**sample\_weight**_: Python array-like containing the intended weights for each input 
-samples and it should be the shape of **(nsamples, )**. When it is None (not specified explicitly), 
-an uniform weight vector is assigned on each input sample. 
+samples and it should be the shape of **(n_samples, )**.  
+When it is None (not specified explicitly), an uniform weight vector is assigned on 
+each input sample.  
 
 __Purpose__    
 
@@ -170,10 +170,11 @@ It simply returns "self" reference.
 __Parameters__   
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
-dense data of float or double(float64) type. It has shape **(n_samples, n_features)**.   
+dense data of float or double (float64) type. It has shape **(n_samples, n_features)**.   
 _**sample\_weight**_: Python array-like containing the intended weights for each input 
-samples and it should be the shape of **(nsamples, )**. When it is None (not specified explicitly), 
-an uniform weight vector is assigned on each input sample. 
+samples and it should be the shape of **(n_samples, )**.  
+When it is None (not specified explicitly), an uniform weight vector is assigned on 
+each input sample.  
 
 __Purpose__    
 
@@ -222,8 +223,9 @@ with shape **(n_samples,)**.
 ### 4. score(X, y, sample_weight = None)  
 _**X**_: A numpy dense or scipy sparse matrix or any python array-like object or
 an instance of FrovedisCRSMatrix for sparse data and FrovedisRowmajorMatrix for 
-dense data of float or double(float64) type. It has shape **(n_samples, n_features)**.  
-_**y**_: A python ndarray of int64 type. It has shape **(n_samples,)**.  
+dense data of float or double (float64) type. It has shape **(n_samples, n_features)**.  
+_**y**_: A python ndarray or an instance of FrovedisVector containing the true 
+labels for X. It has shape **(n_samples,)**.  
 _**sample\_weight**_: An unused parameter whose default value is None. It is simply 
 ignored in frovedis implementation, like in Scikit-learn as well.  
 
@@ -255,39 +257,44 @@ DBSCAN class.
 
 For example, 
  
-      print(dbm.get_params())
+    print(dbm.get_params())
 
 Output  
 
-     {'algorithm': 'auto', 'batch_fraction': None, 'eps': 5, 'leaf_size': 30, 'metric': 'euclidean', 
-     'metric_params': None, 'min_samples': 2, 'n_jobs': None, 'p': None, 'verbose': 0}
+    {'algorithm': 'auto', 'batch_fraction': None, 'eps': 5, 'leaf_size': 30, 
+    'metric': 'euclidean', 'metric_params': None, 'min_samples': 2, 'n_jobs': None, 
+    'p': None, 'verbose': 0}
 
 __Return Value__  
 A dictionary of parameter names mapped to their values.  
 
-### 6. set_params(**params)  
-
-__Parameters__   
-
-_**params**_: All the keyword arguments are passed this function as dictionary. This dictionary contains 
-parameters of an estimator with its given values to set.  
+### 6. set_params(\*\*params)  
+__Parameters__  
+_**\*\*params**_: All the keyword arguments are passed to this function as dictionary. This dictionary 
+contains parameters of an estimator with its given values to set.  
 
 __Purpose__  
 This method belongs to the BaseEstimator class inherited by DBSCAN, used to set parameter values.  
 
 For example,   
 
-    print("get parameters before setting:", kmeans.get_params())
+    print("Get parameters before setting:") 
+    print(kmeans.get_params())
+    # User just needs to provide the arguments and internally it will create a 
+    dictionary over the arguments given by user
     kmeans.set_params(n_clusters=4, n_init=5)
-    print("get parameters after setting:", kmeans.get_params())
+    print("Get parameters after setting:") 
+    print(kmeans.get_params())
 
 Output  
      
-    get parameters before setting: {'algorithm': 'auto', 'copy_x': True, 'init':'random', 
-    'max_iter': 300, 'n_clusters': 2, 'n_init': 1, 'n_jobs': 1, 'precompute_distances': 'auto',
+    Get parameters before setting: 
+    {'algorithm': 'auto', 'copy_x': True, 'init':'random', 'max_iter': 300, 
+    'n_clusters': 2, 'n_init': 1, 'n_jobs': 1, 'precompute_distances': 'auto',
     'random_state': None, 'tol': 0.0001, 'use_shrink': False, 'verbose': 0}
-    get parameters after setting: {'algorithm': 'auto', 'copy_x': True, 'init': 'random', 
-    'max_iter': 300, 'n_clusters': 4, 'n_init': 5, 'n_jobs': 1, 'precompute_distances': 'auto', 
+    Get parameters after setting: 
+    {'algorithm': 'auto', 'copy_x': True, 'init': 'random', 'max_iter': 300, 
+    'n_clusters': 4, 'n_init': 5, 'n_jobs': 1, 'precompute_distances': 'auto', 
     'random_state': None, 'tol': 0.0001, 'use_shrink': False, 'verbose': 0}
 
 __Return Value__  
@@ -320,4 +327,4 @@ __Return Value__
 It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.  
 
 ## SEE ALSO  
-rowmajor_matrix, crs_matrix
+rowmajor_matrix, crs_matrix, agglomerative_clustering, spectral_clustering, kmeans
