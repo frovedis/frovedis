@@ -35,6 +35,7 @@ void expose_frovedis_dataframe_functions() {
   expose(sort_df);
   expose(join_df);
   expose(group_by_df);
+  expose(fgroup_by_df);
   expose(frovedis_df_size);
   expose(frovedis_df_cnt);
   expose(frovedis_df_sum);

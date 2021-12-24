@@ -3,7 +3,39 @@ package com.nec.frovedis.sql;
 import com.nec.frovedis.Jexrpc._
 import com.nec.frovedis.matrix.DTYPE
 import scala.collection.mutable
+import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
+import org.apache.spark.sql.types._
 
+object TMAPPER extends java.io.Serializable {
+  val spk2frov_namedDT = Map("IntegerType" -> "int", "LongType" -> "long",
+                             "FloatType" -> "float", "DoubleType" -> "double",
+                             "StringType" -> "dic_string", 
+                             "BooleanType" -> "boolean")
+
+  val castedName = Map("int" -> "INT", "long" -> "BIGINT",
+                       "float" -> "FLOAT", "double" -> "DOUBLE",
+                       "dic_string" -> "STRING", "string" -> "STRING",
+                       "boolean" -> "BOOLEAN")
+
+  val id2field = Map(DTYPE.INT -> IntegerType,   DTYPE.LONG -> LongType,
+                     DTYPE.FLOAT -> FloatType,   DTYPE.DOUBLE -> DoubleType,
+                     DTYPE.STRING -> StringType, DTYPE.WORDS -> StringType,
+                     DTYPE.BOOL -> BooleanType)
+
+  val id2string = Map(DTYPE.INT -> "IntegerType",   DTYPE.LONG -> "LongType",
+                      DTYPE.FLOAT -> "FloatType",   DTYPE.DOUBLE -> "DoubleType",
+                      DTYPE.STRING -> "StringType", DTYPE.WORDS -> "StringType",
+                      DTYPE.BOOL -> "BooleanType")
+
+  // string2id: only used in dataframe load and in cast
+  // used WORDS instead of STRING, while loading string column (RDD[STRING]) as Dvector for better performance
+  // simply enable ["StringType"  -> DTYPE.STRING] if you want to use the STRING type instead
+  val string2id = Map("IntegerType" -> DTYPE.INT,    "LongType" -> DTYPE.LONG,
+                   "FloatType"   -> DTYPE.FLOAT,  "DoubleType" -> DTYPE.DOUBLE,
+                   //"StringType"  -> DTYPE.STRING, 
+                   "StringType"  -> DTYPE.WORDS,
+                   "BooleanType" -> DTYPE.BOOL)
+}
 
 object ColKind extends java.io.Serializable {
   val DFID:     Short = 0
@@ -55,6 +87,8 @@ object OPTYPE extends java.io.Serializable {
   val aDCNT:     Short = 52
   val aFST:      Short = 53
   val aLST:      Short = 54
+  // --- other ---
+  val CAST:      Short = 100
 }
 
 class FrovedisColumn extends java.io.Serializable {
@@ -166,6 +200,7 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.NLIKE => "(NOT (" + left + " LIKE " + right + "))"
       case OPTYPE.ISNULL => "(" + left + " IS NULL)"
       case OPTYPE.ISNOTNULL => "(" + left + " IS NOT NULL)"
+      case OPTYPE.CAST => "CAST(" + left + " AS " + TMAPPER.castedName(right) + ")"
       case OPTYPE.IF   => "CASE WHEN " + left + " THEN " + right + " END"
       case OPTYPE.ELIF => {
         val left2  = left.substring(0, left.length() - 4)
@@ -209,7 +244,10 @@ class FrovedisColumn extends java.io.Serializable {
   def <=  (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.LE, true) 
   def === (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.EQ, true) 
   def !== (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE, true) 
-  def =!= (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE, true) 
+  def =!= (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE, true)
+ 
+  def cast(to: DataType) = new FrovedisColumn(this, TMAPPER.spk2frov_namedDT(to.toString), OPTYPE.CAST)
+  def cast(to: String): FrovedisColumn = cast(CatalystSqlParser.parseDataType(to))
 
   def when (left: FrovedisColumn, arg: Any): FrovedisColumn = { // else-if when case
     if (this.opType != OPTYPE.IF && this.opType != OPTYPE.ELIF) {
@@ -285,6 +323,7 @@ class FrovedisColumn extends java.io.Serializable {
     if (info != "") throw new java.rmi.ServerException(info)
     this
   }
+
   def getIsDesc() = isDesc
   def setIsDesc(isDesc: Int): this.type = {
     this.isDesc = isDesc

@@ -816,6 +816,9 @@ public class JNISupport {
   public static native void releaseDFColumnPointer(Node master_node, 
                                                    long cptr, short tid);
 
+  public static native DummyDftable castFrovedisDataframe(Node master_node,
+                                                          long proxy, String cols[],
+                                                          short ctypes[], long size);
   public static native long createFrovedisDataframe(Node master_node,
                                                   short dtypes[],
                                                   String cols_names[],
@@ -856,6 +859,9 @@ public class JNISupport {
                                                   long targets[], long size);
   public static native long groupFrovedisDataframe(Node master_node,
                                                  long dproxy, String targets[],
+                                                 long size);
+  public static native long fgroupFrovedisDataframe(Node master_node,
+                                                 long dproxy, long targets[],
                                                  long size);
   public static native long renameFrovedisDataframe(Node master_node,
                                                     long dproxy,

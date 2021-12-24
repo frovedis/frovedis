@@ -23,6 +23,15 @@ class FrovedisGroupedDF extends java.io.Serializable {
     groupedCols = g_cc.clone()
     groupedTypes = g_tt.clone()
   }
+  def this(proxy: Long, 
+           cc: Array[String], tt: Array[Short],
+           g_cc: Array[String]) = { 
+    this()
+    fdata = proxy
+    cols = cc.clone()
+    types = tt.clone()
+    groupedCols = g_cc.clone()
+  }
   def release () : Unit = {
     if (fdata != -1) {
       val fs = FrovedisServer.getServerInstance()

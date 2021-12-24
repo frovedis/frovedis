@@ -57,7 +57,8 @@ object FrovedisDataframeDemo {
 
     // select demo
     df1.select(lit(2).as("const_two"), 
-               lit(false).as("false_col"), 
+               lit(false).as("false_col"),
+               $$"Age".cast("double"), 
                $$"Age", $$"Age" * 2, $$"Age" > 19).to_spark_DF().show()
 
     // sort demo
@@ -140,12 +141,10 @@ object FrovedisDataframeDemo {
                                stddev($$"Age"),
                                sem($$"Age"),
                                count($$"Age"),
-                               countDistinct($$"Age")).show() // aggregate using only aggregator
-                               //countDistinct($$"Age")).to_spark_DF().show() // (FIXME: ULONG) aggregate using only aggregator
+                               countDistinct($$"Age")).to_spark_DF().show() // aggregate using only aggregator
     df1.groupBy("Age").agg($$"Age" * 2, $$"Age", $$"Age" + 1).to_spark_DF().show() // aggregate using only columns, no agregator
-    df1.groupBy("Age").agg($$"Age" * 2, min($$"Age")).to_spark_DF().show() // aggregate using only columns + aggregator
-    //df1.groupBy("Age").agg($$"Age" * 2, min($$"Age"), countDistinct("Country")).to_spark_DF().show() // (FIXME: ULONG) aggregate using only columns + aggregator
-    df1.groupBy("Age").min().to_spark_DF().show() // group-wise (by Age) min of all numeric columns
+    df1.groupBy("Age").agg($$"Age" * 2, min($$"Age"), countDistinct("Country")).to_spark_DF().show() // aggregate using columns + aggregator
+    df1.groupBy("Age").max().to_spark_DF().show() // group-wise (by Age) max of all numeric columns
 
     // miscellaneous
     df1.withColumnRenamed("Country", "Cname").show()

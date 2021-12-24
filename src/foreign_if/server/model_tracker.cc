@@ -111,6 +111,7 @@ std::string get_string_dtype(short dt) {
   else if (dt == FLOAT) return "float"; 
   else if (dt == DOUBLE) return "double"; 
   else if (dt == STRING) return "dic_string"; 
+  else if (dt == WORDS) return "dic_string"; 
   else if (dt == ULONG) return "unsigned long";
   else throw std::runtime_error(STR(dt) + ": unsupported dtype encountered!\n");
 }

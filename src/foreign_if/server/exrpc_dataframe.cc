@@ -400,6 +400,15 @@ exrpc_ptr_t group_by_df(exrpc_ptr_t& df_proxy, std::vector<std::string>& cols) {
   return reinterpret_cast<exrpc_ptr_t> (g_df_ptr);
 }
 
+exrpc_ptr_t fgroup_by_df(exrpc_ptr_t& df_proxy, 
+                         std::vector<exrpc_ptr_t>& funcp) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto func = to_dffunction(funcp);
+  grouped_dftable *g_df_ptr = new grouped_dftable(df.fgroup_by(func));
+  if (!g_df_ptr) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return reinterpret_cast<exrpc_ptr_t> (g_df_ptr);
+}
+
 std::shared_ptr<dfaggregator> 
 get_aggr(std::string& funcname, 
          std::string& col, 
@@ -2564,6 +2573,7 @@ exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
     case LE:    opt = new std::shared_ptr<dffunction>(le_im(left,right)->as(cname)); break;
     case LIKE:  opt = new std::shared_ptr<dffunction>(is_like(left, right)->as(cname)); break;
     case NLIKE: opt = new std::shared_ptr<dffunction>(is_not_like(left, right)->as(cname)); break;
+    case CAST:  opt = new std::shared_ptr<dffunction>(cast_col_as(left, right, cname)); break;
     case IF:        
     case ELIF: {
       auto& left = *reinterpret_cast<std::shared_ptr<dfoperator>*>(leftp);
@@ -2766,4 +2776,5 @@ double frov_series_cov(exrpc_ptr_t& self_proxy, std::string& col1,
   }
   return ret;
 }
+
 

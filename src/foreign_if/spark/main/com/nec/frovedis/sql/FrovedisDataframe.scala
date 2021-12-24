@@ -27,41 +27,9 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
 import org.apache.log4j.{Level, Logger}
 
-object TMAPPER {
-  val func2id = Map("sum" -> DTYPE.NONE, "max" -> DTYPE.NONE, "min" -> DTYPE.NONE,
-                    "mean" -> DTYPE.DOUBLE, "avg" -> DTYPE.DOUBLE, 
-                    "std" -> DTYPE.DOUBLE,  "count" -> DTYPE.LONG)
-
-  val id2field = Map(DTYPE.INT -> IntegerType,   DTYPE.LONG -> LongType,
-                     DTYPE.FLOAT -> FloatType,   DTYPE.DOUBLE -> DoubleType,
-                     DTYPE.STRING -> StringType, DTYPE.WORDS -> StringType,
-                     DTYPE.BOOL -> BooleanType)
-
-  val id2string = Map(DTYPE.INT -> "IntegerType",   DTYPE.LONG -> "LongType",
-                      DTYPE.FLOAT -> "FloatType",   DTYPE.DOUBLE -> "DoubleType",
-                      DTYPE.STRING -> "StringType", DTYPE.WORDS -> "StringType",
-                      DTYPE.BOOL -> "BooleanType")
-
-  // string2id: only used in dataframe load
-  // used WORDS instead of STRING, while loading string column (RDD[STRING]) as Dvector for better performance
-  // simply enable ["StringType"  -> DTYPE.STRING] if you want to use the STRING type instead
-  val string2id = Map("IntegerType" -> DTYPE.INT,    "LongType" -> DTYPE.LONG,
-                   "FloatType"   -> DTYPE.FLOAT,  "DoubleType" -> DTYPE.DOUBLE,
-                   //"StringType"  -> DTYPE.STRING, 
-                   "StringType"  -> DTYPE.WORDS,
-                   "BooleanType" -> DTYPE.BOOL)
-
-  val spark = SparkSession.builder.getOrCreate()
-  import spark.implicits._
-
-  def bool2int(a: Any): Int = {
-      if(a == null) return Int.MaxValue
-      if(a == true) return 1
-      else return 0
-  }
- 
-  def toTypedDvector(rddData: RDD[InternalRow], dtype: Short, i: Int,
-                     part_sizes: RDD[Int]): Long = {
+object Dvec {
+  def get(rddData: RDD[InternalRow], dtype: Short, i: Int,
+          part_sizes: RDD[Int]): Long = {
     val t0 = new TimeSpent(Level.DEBUG)
     return dtype match {
         case DTYPE.BOOL => {
@@ -377,6 +345,24 @@ class FrovedisDataFrame extends java.io.Serializable {
     fdata = dummy.dfptr
     cols = dummy.names.clone()
     types = dummy.types.clone()
+    // casting ULONG -> LONG (since spark doesn't support Unsigned Long)
+    val ulong_cols = new ArrayBuffer[String]()
+    for (i <- 0 until types.size) {
+      if (types(i) == DTYPE.ULONG) {
+        ulong_cols += cols(i)        
+        types(i) = DTYPE.LONG
+      }
+    }
+    val ulong_sz = ulong_cols.size
+    if (ulong_sz > 0) {
+      val ctypes = new Array[Short](ulong_sz)
+      for (i <- 0 until ulong_sz) ctypes(i) = DTYPE.LONG
+      val fs = FrovedisServer.getServerInstance()
+      JNISupport.castFrovedisDataframe(fs.master_node, fdata, 
+                                       ulong_cols.toArray, ctypes, ulong_sz)
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
+    }
   }
   // to release a frovedis dataframe from frovedis server -> User API
   def release () : Unit = {
@@ -417,7 +403,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       val tname = tt(i)
       val dtype = TMAPPER.string2id(tname)
       types(i) = dtype
-      dvecs(i) = TMAPPER.toTypedDvector(rddData, dtype, i, part_sizes)
+      dvecs(i) = Dvec.get(rddData, dtype, i, part_sizes)
     }
     val fs = FrovedisServer.getServerInstance()
     fdata = JNISupport.createFrovedisDataframe(fs.master_node,types,cols,dvecs,size)
@@ -605,11 +591,21 @@ class FrovedisDataFrame extends java.io.Serializable {
   // Usage: df.groupBy($$"colA", $$"colB") // ... any number of cols in $$"name" form
   def groupBy(c: FrovedisColumn*): FrovedisGroupedDF = {
     val all = c.toArray
-    for (i <- 0 until all.size) {
-      if (!all(i).isID) throw new java.lang.UnsupportedOperationException( // TODO
-      s"Currently frovedis supports groupBy based on only existing columns!")
+    val size = all.size
+    val funcs = new Array[Long](size)
+    val groupedCols = new Array[String](size)
+    for (i <- 0 until size) {
+      val fn = all(i)
+      if (fn.isAGG) throw new IllegalArgumentException(
+      s"aggregate functions are not allowed in groupBy!")
+      funcs(i) = fn.get()
+      groupedCols(i) = fn.colName
     }
-    return groupBy(all.map(x => x.toString))
+    val fs = FrovedisServer.getServerInstance()
+    val proxy = JNISupport.fgroupFrovedisDataframe(fs.master_node,get(),funcs,size)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return new FrovedisGroupedDF(proxy,cols,types,groupedCols)
   }
 
   private def getFrovedisJoinType(join_type: String): String = {

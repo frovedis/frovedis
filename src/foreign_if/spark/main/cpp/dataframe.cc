@@ -233,6 +233,21 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_groupFrovedisDat
   return (jlong) ret_proxy;
 }
 
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_fgroupFrovedisDataframe
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl,
+   jlongArray target, jlong size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (dftbl);
+  auto funcs = to_exrpc_vector(env,target,size);
+  exrpc_ptr_t ret_proxy = 0;
+  try {
+    ret_proxy = exrpc_async(fm_node,fgroup_by_df,df_proxy,funcs).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) ret_proxy;
+}
+
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_sortFrovedisDataframe
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong dftbl,
    jobjectArray targets, jintArray isDescArr, jlong size) {
@@ -830,6 +845,23 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_limitDF
   dummy_dftable ret;
   try {
     ret = exrpc_async(fm_node, frov_df_head, df_proxy, limit_).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_spark_dummy_df(env, ret);
+}
+
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_castFrovedisDataframe
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy,
+   jobjectArray cols, jshortArray ctypes, jlong size) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+  auto names = to_string_vector(env, cols, size);
+  auto types = to_short_vector(env, ctypes, size);
+  bool check_bool_like = false; // no need for spark
+  dummy_dftable ret;
+  try {
+    ret = exrpc_async(fm_node, frov_df_astype, df_proxy, 
+                      names, types, check_bool_like).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_spark_dummy_df(env, ret);
