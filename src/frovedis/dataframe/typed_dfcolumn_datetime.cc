@@ -1370,4 +1370,28 @@ typed_dfcolumn<datetime>::datetime_next_day_im(int right) {
   }
 }
 
+template <>
+std::shared_ptr<dfcolumn>
+create_null_column<datetime>(const std::vector<size_t>& sizes) {
+  auto nlsizes = make_node_local_scatter(sizes);
+  auto val = make_node_local_allocate<std::vector<datetime_t>>();
+  auto nulls = val.map(+[](std::vector<datetime_t>& val, size_t size) {
+      val.resize(size);
+      auto valp = val.data();
+      auto max = std::numeric_limits<datetime_t>::max();
+      std::vector<size_t> nulls(size);
+      auto nullsp = nulls.data();
+      for(size_t i = 0; i < size; i++) {
+        valp[i] = max;
+        nullsp[i] = i;
+      }
+      return nulls;
+    }, nlsizes);
+  auto ret = make_shared<typed_dfcolumn<datetime>>();
+  ret->val = std::move(val);
+  ret->nulls = std::move(nulls);
+  ret->contain_nulls_check();
+  return ret;
+}
+
 }

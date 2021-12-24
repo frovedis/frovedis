@@ -1311,6 +1311,57 @@ dic_string_im_as(const std::string& value, const std::string& as) {
 }
 
 
+// ----- null_string_column -----
+std::shared_ptr<dfcolumn>
+dffunction_null_string_column::execute(dftable_base& t) const {
+  return create_null_column<std::string>(t.num_rows());
+}
+
+std::shared_ptr<dffunction>
+null_string_column() {
+  return std::make_shared<dffunction_null_string_column>();
+}
+
+std::shared_ptr<dffunction>
+null_string_column_as(const std::string& as) {
+  return std::make_shared<dffunction_null_string_column>(as);
+}
+
+
+// ----- null_dic_string_column -----
+std::shared_ptr<dfcolumn>
+dffunction_null_dic_string_column::execute(dftable_base& t) const {
+  return create_null_column<dic_string>(t.num_rows());
+}
+
+std::shared_ptr<dffunction>
+null_dic_string_column() {
+  return std::make_shared<dffunction_null_dic_string_column>();
+}
+
+std::shared_ptr<dffunction>
+null_dic_string_column_as(const std::string& as) {
+  return std::make_shared<dffunction_null_dic_string_column>(as);
+}
+
+
+// ----- null_datetime_column -----
+std::shared_ptr<dfcolumn>
+dffunction_null_datetime_column::execute(dftable_base& t) const {
+  return create_null_column<datetime>(t.num_rows());
+}
+
+std::shared_ptr<dffunction>
+null_datetime_column() {
+  return std::make_shared<dffunction_null_datetime_column>();
+}
+
+std::shared_ptr<dffunction>
+null_datetime_column_as(const std::string& as) {
+  return std::make_shared<dffunction_null_datetime_column>(as);
+}
+
+
 // ----- utility functions for user's direct use -----
 
 std::shared_ptr<dffunction> col(const std::string& col) {

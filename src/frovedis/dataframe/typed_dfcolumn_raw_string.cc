@@ -554,6 +554,12 @@ bool typed_dfcolumn<raw_string>::is_all_null() {
     reduce(+[](bool left, bool right){return left && right;});
 }
 
+template <>
+std::shared_ptr<dfcolumn>
+create_null_column<raw_string>(const std::vector<size_t>& sizes) {
+  throw std::runtime_error("raw_string does not support create_null_column");
+}
+
 // for spill-restore
 
 void save_compressed_words(const compressed_words& cw,

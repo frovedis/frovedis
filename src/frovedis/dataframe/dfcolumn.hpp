@@ -2624,6 +2624,44 @@ template <>
 std::vector<size_t>
 get_null_like_positions (std::vector<std::string>& col);
 
+
+template <class T>
+std::shared_ptr<dfcolumn>
+create_null_column(const std::vector<size_t>& sizes) {
+  auto nlsizes = make_node_local_scatter(sizes);
+  auto val = make_node_local_allocate<std::vector<T>>();
+  auto nulls = val.map(+[](std::vector<T>& val, size_t size) {
+      val.resize(size);
+      auto valp = val.data();
+      auto max = std::numeric_limits<T>::max();
+      std::vector<size_t> nulls(size);
+      auto nullsp = nulls.data();
+      for(size_t i = 0; i < size; i++) {
+        valp[i] = max;
+        nullsp[i] = i;
+      }
+      return nulls;
+    }, nlsizes);
+  return std::make_shared<typed_dfcolumn<T>>(std::move(val), std::move(nulls));
+}
+
+template <>
+std::shared_ptr<dfcolumn>
+create_null_column<std::string>(const std::vector<size_t>& sizes);
+
+template <>
+std::shared_ptr<dfcolumn>
+create_null_column<dic_string>(const std::vector<size_t>& sizes);
+
+template <>
+std::shared_ptr<dfcolumn>
+create_null_column<raw_string>(const std::vector<size_t>& sizes);
+
+template <>
+std::shared_ptr<dfcolumn>
+create_null_column<datetime>(const std::vector<size_t>& sizes);
+
+
 // for spill-restore
 
 // for doing spill-restore in RAII manner, which is exception safe

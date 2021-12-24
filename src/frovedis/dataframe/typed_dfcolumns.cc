@@ -88,9 +88,18 @@ std::string merge_type(const std::string& left, const std::string& right) {
 }
 
 std::string merge_type(const std::vector<std::shared_ptr<dfcolumn>>& columns) {
-  auto type = columns[0]->dtype();
-  for(size_t i = 1; i < columns.size(); i++) {
-    type = merge_type(type, columns[i]->dtype());
+  auto columns_size = columns.size();
+  size_t i = 0;
+  std::string type = "int"; // if all columns are all null, type is int
+  for(; i < columns_size; i++) {
+    if(!columns[i]->is_all_null()) {
+      type = columns[i]->dtype();
+      break;
+    }
+  }
+  for(; i < columns_size; i++) {
+    if(!columns[i]->is_all_null())
+      type = merge_type(type, columns[i]->dtype());
   }
   return type;
 }
@@ -105,8 +114,10 @@ merge_column_helper(std::vector<std::shared_ptr<dfcolumn>>& columns,
   auto retval = table_idx.map(+[](const std::vector<size_t>& table_idx) {
       return std::vector<T>(table_idx.size());
     });
+  auto retnull = make_node_local_allocate<std::vector<size_t>>();
   auto conv_table = table_idx.map(+[](const std::vector<size_t>& table_idx) {
       auto table_idx_size = table_idx.size();
+      if(table_idx_size == 0) return std::vector<size_t>();
       auto max_size = table_idx[table_idx_size - 1];
       std::vector<size_t> ret(max_size+1);
       auto retp = ret.data();
@@ -123,6 +134,9 @@ merge_column_helper(std::vector<std::shared_ptr<dfcolumn>>& columns,
     std::shared_ptr<typed_dfcolumn<T>> tcol;
     if(get_dftype_name<T>() == columns[i]->dtype()) {
       tcol = std::dynamic_pointer_cast<typed_dfcolumn<T>>(columns[i]);
+    } else if(columns[i]->is_all_null()) {
+      tcol = std::dynamic_pointer_cast<typed_dfcolumn<T>>
+        (create_null_column<T>(columns[i]->sizes()));
     } else {
       auto ccol = columns[i]->type_cast(get_dftype_name<T>());
       tcol = std::dynamic_pointer_cast<typed_dfcolumn<T>>(ccol);
@@ -131,6 +145,8 @@ merge_column_helper(std::vector<std::shared_ptr<dfcolumn>>& columns,
     retval.mapv
       (+[](std::vector<T>& retval,
            const std::vector<T>& colval,
+           std::vector<size_t>& retnull,
+           const std::vector<size_t>& colnull,
            const std::vector<size_t>& idx,
            const std::vector<size_t>& conv_table) {
         auto retvalp = retval.data();
@@ -144,31 +160,65 @@ merge_column_helper(std::vector<std::shared_ptr<dfcolumn>>& columns,
         for(size_t i = 0; i < colval_size; i++) {
           retvalp[conv_tablep[idxp[i]]] = colvalp[i];
         }
-      }, tcol->val, idx[i], conv_table);
+        auto colnull_size = colnull.size();
+        if(colnull_size > 0) {
+          auto retnullp = retnull.data();
+          auto colnullp = colnull.data();
+          auto crnt_retnull_size = retnull.size();
+          auto new_retnull_size = crnt_retnull_size + colnull_size;
+          std::vector<size_t> new_retnull(new_retnull_size);
+          auto new_retnullp = new_retnull.data();
+          for(size_t i = 0; i < crnt_retnull_size; i++) {
+            new_retnullp[i] = retnullp[i];
+          }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+          for(size_t i = 0; i < colnull_size; i++) {
+            new_retnullp[crnt_retnull_size + i] =
+              conv_tablep[idxp[colnullp[i]]];
+          }
+          retnull.swap(new_retnull);
+          // sort will be done afterwards
+        }
+      }, tcol->val, retnull, tcol->nulls, idx[i], conv_table);
   }
   if(use_null_idx) {
-    auto retnull = null_idx.map
+    null_idx.mapv
       (+[](const std::vector<size_t>& null_idx,
+           std::vector<size_t>& retnull,
+           std::vector<T>& retval,
            const std::vector<size_t>& conv_table) {
         auto null_idx_size = null_idx.size();
-        std::vector<size_t> ret(null_idx_size);
         auto null_idxp = null_idx.data();
-        auto retp = ret.data();
         auto conv_tablep = conv_table.data();
+        auto retnullp = retnull.data();
+        auto crnt_retnull_size = retnull.size();
+        auto new_retnull_size = crnt_retnull_size + null_idx_size;
+        std::vector<size_t> new_retnull(new_retnull_size);
+        auto new_retnullp = new_retnull.data();
+        for(size_t i = 0; i < crnt_retnull_size; i++) {
+          new_retnullp[i] = retnullp[i];
+        }
+        auto retvalp = retval.data();
+        auto max = std::numeric_limits<T>::max();
 #pragma _NEC ivdep
 #pragma _NEC vovertake
 #pragma _NEC vob
         for(size_t i = 0; i < null_idx_size; i++) {
-          retp[i] = conv_tablep[null_idxp[i]];
+          auto pos = conv_tablep[null_idxp[i]];
+          new_retnullp[crnt_retnull_size + i] = pos;
+          retvalp[pos] = max;
         }
-        return ret;
-      }, conv_table);
-    // reset_null is in dfcolumn_impl.hpp
-    retval.mapv(reset_null<T>, retnull);
-    return std::make_shared<typed_dfcolumn<T>>(std::move(retval), retnull);
+        radix_sort(new_retnull);
+        retnull.swap(new_retnull);
+      }, retnull, retval, conv_table);
+    return std::make_shared<typed_dfcolumn<T>>(std::move(retval),
+                                               std::move(retnull));
   } else {
-    auto dvval = retval.template moveto_dvector<T>();
-    return std::make_shared<typed_dfcolumn<T>>(std::move(dvval));
+    retnull.mapv(+[](std::vector<size_t>& nulls){radix_sort(nulls);});
+    return std::make_shared<typed_dfcolumn<T>>(std::move(retval),
+                                               std::move(retnull));
   }
 }
 
@@ -197,7 +247,16 @@ merge_column_dic_string_helper
     columns2(columns_size);
   std::vector<dict*> dic_colsp(columns_size);
   for(size_t i = 0; i < columns_size; i++) {
-    columns2[i] = dynamic_pointer_cast<typed_dfcolumn<dic_string>>(columns[i]);
+    if(columns[i]->is_all_null()) {
+      columns2[i] = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>
+        (create_null_column<dic_string>(columns[i]->sizes()));
+    } else {
+      columns2[i] =
+        dynamic_pointer_cast<typed_dfcolumn<dic_string>>(columns[i]);
+    }
+    if(!columns2[i])
+      throw std::runtime_error
+        ("merge_column_dic_string_helper: internal dynamic_pointer_cast error");
     dic_colsp[i] = &(*columns2[i]->dic);
   }
   auto newdic =
@@ -207,8 +266,8 @@ merge_column_dic_string_helper
   for(size_t i = 0; i < columns_size; i++) {
     auto newval = union_columns_dic_string_prepare
       (*newdic, *columns2[i]->dic, columns2[i]->val);
-    auto dvval = newval.template moveto_dvector<size_t>();
-    tmp_columns[i] = std::make_shared<typed_dfcolumn<size_t>>(std::move(dvval));
+    tmp_columns[i] = std::make_shared<typed_dfcolumn<size_t>>
+      (std::move(newval), std::move(columns2[i]->nulls));
   }
   auto tmpret_column = merge_column_helper<size_t>(tmp_columns, idx, table_idx,
                                                    null_idx, use_null_idx);

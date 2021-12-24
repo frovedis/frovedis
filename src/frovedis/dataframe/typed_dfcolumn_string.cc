@@ -1616,6 +1616,34 @@ bool typed_dfcolumn<string>::is_all_null() {
     reduce(+[](bool left, bool right){return left && right;});
 }
 
+template <>
+std::shared_ptr<dfcolumn>
+create_null_column<string>(const std::vector<size_t>& sizes) {
+  auto nlsizes = make_node_local_scatter(sizes);
+  auto val = make_node_local_allocate<std::vector<size_t>>();
+  auto nulls = val.map(+[](std::vector<size_t>& val, size_t size) {
+      val.resize(size);
+      auto valp = val.data();
+      auto max = std::numeric_limits<size_t>::max();
+      std::vector<size_t> nulls(size);
+      auto nullsp = nulls.data();
+      for(size_t i = 0; i < size; i++) {
+        valp[i] = max;
+        nullsp[i] = i;
+      }
+      return nulls;
+    }, nlsizes);
+  auto ret = make_shared<typed_dfcolumn<string>>();
+  ret->val = std::move(val);
+  ret->nulls = std::move(nulls);
+  ret->contain_nulls_check();
+  ret->dic = make_shared<dunordered_map<std::string, size_t>>
+    (make_dunordered_map_allocate<std::string,size_t>());
+  ret->dic_idx = make_shared<node_local<std::vector<std::string>>>
+    (make_node_local_allocate<std::vector<std::string>>());
+  return ret;
+}
+
 // for spill-restore
 
 // TODO: spill dic and dic_idx; currently they are shared_ptr,

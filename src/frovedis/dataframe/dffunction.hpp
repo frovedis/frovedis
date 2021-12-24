@@ -2146,6 +2146,171 @@ dic_string_im(const std::string& value);
 std::shared_ptr<dffunction>
 dic_string_im_as(const std::string& value, const std::string& as);
 
+
+// ----- null_column -----
+template <class T>
+struct dffunction_null_column : public dffunction {
+  dffunction_null_column() { 
+    as_name = "null_column";
+  }
+  dffunction_null_column(const std::string& as_name) :
+    as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_null_column<T>>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1, t2: is not available for dffunction_null_column operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return std::vector<std::shared_ptr<dfcolumn>>();
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  
+  std::string as_name;
+};
+
+template <class T>
+std::shared_ptr<dfcolumn>
+dffunction_null_column<T>::execute(dftable_base& t) const {
+  return create_null_column<T>(t.num_rows());
+}
+
+template <class T>
+std::shared_ptr<dffunction>
+null_column() {
+  return std::make_shared<dffunction_null_column<T>>();
+}
+
+template <class T>
+std::shared_ptr<dffunction>
+null_column_as(const std::string& as) {
+  return std::make_shared<dffunction_null_column<T>>(as);
+}
+
+
+// ----- null_string_column -----
+struct dffunction_null_string_column : public dffunction {
+  dffunction_null_string_column() { 
+    as_name = "null_string_column";
+  }
+  dffunction_null_string_column(const std::string& as_name) :
+    as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_null_string_column>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1, t2: is not available for dffunction_null_string_column operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return std::vector<std::shared_ptr<dfcolumn>>();
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+null_string_column();
+
+std::shared_ptr<dffunction>
+null_string_column_as(const std::string& as);
+
+// ----- null_dic_string_column -----
+struct dffunction_null_dic_string_column : public dffunction {
+  dffunction_null_dic_string_column() { 
+    as_name = "null_dic_string_column";
+  }
+  dffunction_null_dic_string_column(const std::string& as_name) :
+    as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_null_dic_string_column>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1, t2: is not available for dffunction_null_dic_string_column operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return std::vector<std::shared_ptr<dfcolumn>>();
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+null_dic_string_column();
+
+std::shared_ptr<dffunction>
+null_dic_string_column_as(const std::string& as);
+
+
+// ----- null_datetime_column -----
+struct dffunction_null_datetime_column : public dffunction {
+  dffunction_null_datetime_column() { 
+    as_name = "null_datetime_column";
+  }
+  dffunction_null_datetime_column(const std::string& as_name) :
+    as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_null_datetime_column>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1, t2: is not available for dffunction_null_datetime_column operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return std::vector<std::shared_ptr<dfcolumn>>();
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+null_datetime_column();
+
+std::shared_ptr<dffunction>
+null_datetime_column_as(const std::string& as);
+
+
 // ----- utility functions for user's direct use -----
 
 // alias of id_col

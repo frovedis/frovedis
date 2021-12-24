@@ -547,14 +547,18 @@ dic_string_equal_prepare_helper(const std::vector<size_t>& rval,
   auto rvalp = rval.data();
   auto transp = trans.data();
   auto NOT_FOUND_TRANS = numeric_limits<size_t>::max();
+  auto nullvalue = numeric_limits<size_t>::max();
   auto NOT_FOUND = NOT_FOUND_TRANS - 1;
 #pragma _NEC ivdep
 #pragma _NEC vovertake
 #pragma _NEC vob
   for(size_t i = 0; i < rval_size; i++) {
-    auto v = transp[rvalp[i]];
-    if(v == NOT_FOUND_TRANS) retp[i] = NOT_FOUND; // to distinguish from NULL
-    else retp[i] = v;
+    if(rvalp[i] == nullvalue) retp[i] = nullvalue;
+    else {
+      auto v = transp[rvalp[i]];
+      if(v == NOT_FOUND_TRANS) retp[i] = NOT_FOUND; // to distinguish from NULL
+      else retp[i] = v;
+    }
   }
   return ret;
 }
@@ -667,11 +671,13 @@ dic_string_compare_prepare_helper(const std::vector<size_t>& val,
   auto size = val.size();
   std::vector<size_t> ret(size);
   auto retp = ret.data();
+  auto max = std::numeric_limits<size_t>::max();
 #pragma _NEC ivdep
 #pragma _NEC vovertake
 #pragma _NEC vob
   for(size_t i = 0; i < size; i++) {
-    retp[i] = sort_orderp[transp[valp[i]]];
+    if(valp[i] == max) retp[i] = max;
+    else retp[i] = sort_orderp[transp[valp[i]]];
   }
   return ret;
 }
@@ -684,11 +690,13 @@ dic_string_compare_prepare_helper2(const std::vector<size_t>& val,
   auto size = val.size();
   std::vector<size_t> ret(size);
   auto retp = ret.data();
+  auto max = std::numeric_limits<size_t>::max();
 #pragma _NEC ivdep
 #pragma _NEC vovertake
 #pragma _NEC vob
   for(size_t i = 0; i < size; i++) {
-    retp[i] = sort_orderp[valp[i]];
+    if(valp[i] == max) retp[i] = max;
+    else retp[i] = sort_orderp[valp[i]];
   }
   return ret;
 }
@@ -1646,6 +1654,31 @@ bool typed_dfcolumn<dic_string>::is_all_null() {
   return val.map(+[](std::vector<size_t>& val, std::vector<size_t>& nulls)
                  {return val.size() == nulls.size();}, nulls).
     reduce(+[](bool left, bool right){return left && right;});
+}
+
+template <>
+std::shared_ptr<dfcolumn>
+create_null_column<dic_string>(const std::vector<size_t>& sizes) {
+  auto nlsizes = make_node_local_scatter(sizes);
+  auto val = make_node_local_allocate<std::vector<size_t>>();
+  auto nulls = val.map(+[](std::vector<size_t>& val, size_t size) {
+      val.resize(size);
+      auto valp = val.data();
+      auto max = std::numeric_limits<size_t>::max();
+      std::vector<size_t> nulls(size);
+      auto nullsp = nulls.data();
+      for(size_t i = 0; i < size; i++) {
+        valp[i] = max;
+        nullsp[i] = i;
+      }
+      return nulls;
+    }, nlsizes);
+  auto ret = make_shared<typed_dfcolumn<dic_string>>();
+  ret->val = std::move(val);
+  ret->nulls = std::move(nulls);
+  ret->dic = make_shared<dict>();
+  ret->contain_nulls_check();
+  return ret;
 }
 
 // for spill-restore
