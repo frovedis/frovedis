@@ -39,11 +39,9 @@ class FrovedisGroupedDF extends java.io.Serializable {
   }
   def getNumericCols(): Array[String] = {
     if(this.numericCols == null) {
-      var numericColsBuffer = ArrayBuffer[String]() 
+      val numericColsBuffer = ArrayBuffer[String]() 
       for (i <- 0 until cols.length) {
-        if ( !groupedCols.contains(cols(i)) && types(i) != DTYPE.STRING ){
-          numericColsBuffer += cols(i)
-        }
+        if(DTYPE.is_numeric(types(i))) numericColsBuffer += cols(i)
       }
       this.numericCols = numericColsBuffer.toArray      
     }

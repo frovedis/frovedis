@@ -56,7 +56,9 @@ object FrovedisDataframeDemo {
     df1.filter(not($$"Country" === "France")).show()
 
     // select demo
-    df1.select(lit(2), lit(false), $$"Age", $$"Age" * 2, $$"Age" > 19).to_spark_DF().show()
+    df1.select(lit(2).as("const_two"), 
+               lit(false).as("false_col"), 
+               $$"Age", $$"Age" * 2, $$"Age" > 19).to_spark_DF().show()
 
     // sort demo
     df1.sort(col("Country").asc, $$"Age".desc).show()
@@ -124,22 +126,26 @@ object FrovedisDataframeDemo {
     // self-join
     country_frov2.join(country_frov2, $$"ElectricalRating" < $$"ElectricalRating").show()
 
-    // groupBy demo
+    // groupBy demo along with to_spark_DF()
     df1.groupBy("Country").select("Country").show()
     df1.groupBy("Country").min(pow($$"Age", 2)).show()
-    val gdf = df1.groupBy("Country").agg(max($$"Age" * 2).as("max_twice_age"),
-                                         min("Age").as("min_age"),
-                                         sum($$"Age").as("sum_age"),
-                                         sumDistinct($$"Age"),
-                                         mean($$"Age").as("avg_age"),
-                                         first($$"Age"),
-                                         last($$"Age"),
-                                         variance($$"Age"),
-                                         stddev($$"Age"),
-                                         sem($$"Age"),
-                                         count($$"Age"),
-                                         countDistinct($$"Age"))
-    gdf.show()
+    df1.groupBy("Country").agg(count($$"Age" >= 20).as("no_of_adults"),
+                               min("Age").as("min_age"),
+                               sum($$"Age").as("sum_age"),
+                               sumDistinct($$"Age"),
+                               mean($$"Age").as("avg_age"),
+                               first($$"Age"),
+                               last($$"Age"),
+                               variance($$"Age"),
+                               stddev($$"Age"),
+                               sem($$"Age"),
+                               count($$"Age"),
+                               countDistinct($$"Age")).show() // aggregate using only aggregator
+                               //countDistinct($$"Age")).to_spark_DF().show() // (FIXME: ULONG) aggregate using only aggregator
+    df1.groupBy("Age").agg($$"Age" * 2, $$"Age", $$"Age" + 1).to_spark_DF().show() // aggregate using only columns, no agregator
+    df1.groupBy("Age").agg($$"Age" * 2, min($$"Age")).to_spark_DF().show() // aggregate using only columns + aggregator
+    //df1.groupBy("Age").agg($$"Age" * 2, min($$"Age"), countDistinct("Country")).to_spark_DF().show() // (FIXME: ULONG) aggregate using only columns + aggregator
+    df1.groupBy("Age").min().to_spark_DF().show() // group-wise (by Age) min of all numeric columns
 
     // miscellaneous
     df1.withColumnRenamed("Country", "Cname").show()
@@ -205,7 +211,6 @@ object FrovedisDataframeDemo {
     df2.release()
     df3.release()
     df5.release()
-    gdf.release()
     rmat.release()
     cmat.release()
     crsmat1.release()

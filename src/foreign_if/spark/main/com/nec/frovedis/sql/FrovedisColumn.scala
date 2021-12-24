@@ -58,7 +58,8 @@ object OPTYPE extends java.io.Serializable {
 }
 
 class FrovedisColumn extends java.io.Serializable {
-  private var col_name: String = null
+  private var init_name: String = null
+  private var col_name: String = null // would be updated if as() is performed
   private var kind: Short = ColKind.DFID
   private var opType: Short = OPTYPE.ID
   private var proxy: Long = 0
@@ -68,6 +69,7 @@ class FrovedisColumn extends java.io.Serializable {
 
   def this(n: String) = {
     this()
+    this.init_name = n
     this.col_name = n
     this.opType = OPTYPE.ID
     this.kind = ColKind.DFID
@@ -84,10 +86,12 @@ class FrovedisColumn extends java.io.Serializable {
     this.opType = opt
     this.isBool = cond
     this.kind = ColKind.DFFUNC
-    val right_str = right.toString
-    this.col_name = get_name(left.col_name, right_str, opt)
+    var right_str = right.toString
+    this.init_name = get_name(left.col_name, right_str, opt)
+    this.col_name = this.init_name
     if (left.isSCALAR) // TODO: support left as literal
-      throw new IllegalArgumentException(this.col_name + ": 'left as literal' is currently not supported!\n")
+      throw new java.lang.UnsupportedOperationException(
+      this.col_name + ": 'left as literal' is currently not supported!\n")
     var leftp = left.proxy
     val is_immed = checkIsImmed(right)
     val fs = FrovedisServer.getServerInstance()
@@ -101,6 +105,7 @@ class FrovedisColumn extends java.io.Serializable {
           throw new IllegalArgumentException(this.col_name + 
           ": is not supported! Use isNull/isNotNull instead.\n")
         im_dt = tmp.get_dtype()
+        right_str = tmp.init_name // col_name might be changed due to as()
       }
       this.proxy = JNISupport.getOptImmedDFfunc(fs.master_node, leftp, 
                                                 right_str, im_dt,
@@ -117,6 +122,7 @@ class FrovedisColumn extends java.io.Serializable {
 
   def get_immed(n: String, dtype: Short): FrovedisColumn = {
     val ret = new FrovedisColumn()
+    ret.init_name = n
     ret.col_name = n
     ret.opType = OPTYPE.ID
     ret.kind = ColKind.DFSCALAR
@@ -133,7 +139,8 @@ class FrovedisColumn extends java.io.Serializable {
     val ret = new FrovedisColumn()
     ret.opType = agg
     ret.kind = ColKind.DFAGG
-    ret.col_name = get_name(this.col_name, "", agg)
+    ret.init_name = get_name(this.col_name, "", agg)
+    ret.col_name = ret.init_name
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getDFagg(fs.master_node, this.proxy,
                                     agg, ret.col_name, ignoreNulls)
@@ -211,7 +218,8 @@ class FrovedisColumn extends java.io.Serializable {
     }
     val fs = FrovedisServer.getServerInstance()
     val ret = new FrovedisColumn(left, arg, OPTYPE.IF, true) // constructs a IF clause
-    ret.col_name = get_name(this.col_name, ret.col_name, OPTYPE.ELIF) // updates name
+    ret.init_name = get_name(this.col_name, ret.col_name, OPTYPE.ELIF) // updates name
+    ret.col_name = ret.init_name
     ret.opType = OPTYPE.ELIF // updates opType
     ret.proxy = JNISupport.appendWhenCondition(fs.master_node, this.proxy, // updates proxy
                                                ret.proxy, ret.col_name)
@@ -256,7 +264,8 @@ class FrovedisColumn extends java.io.Serializable {
     ret.opType = OPTYPE.MUL
     ret.kind = ColKind.DFFUNC
     val right_str = "-1"
-    ret.col_name = "(- " + this.toString + ")"
+    ret.init_name = "(- " + this.toString + ")"
+    ret.col_name = ret.init_name
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getOptImmedDFfunc(fs.master_node, this.proxy, 
                                              right_str, DTYPE.INT,
@@ -266,11 +275,9 @@ class FrovedisColumn extends java.io.Serializable {
     return ret
   }
   def as(new_name: String): this.type = {
-    this.col_name = new_name
+    this.col_name = new_name // init_name remains same
     val fs = FrovedisServer.getServerInstance()
-    if (isSCALAR)
-      throw new IllegalArgumentException("as: currently is not supported for literals!\n")
-    else if (isAGG)
+    if (isAGG)
       JNISupport.setDFAggAsColName(fs.master_node, proxy, col_name)
     else
       JNISupport.setDFfuncAsColName(fs.master_node, proxy, col_name)
@@ -294,6 +301,7 @@ class FrovedisColumn extends java.io.Serializable {
   }
   def get()    = proxy
   def colName  = col_name 
+  def value    = init_name
   def isBOOL   = isBool
   def isID     = (kind == ColKind.DFID)
   def isFUNC   = (kind == ColKind.DFFUNC)
@@ -324,7 +332,8 @@ object functions extends java.io.Serializable {
     if (x == null) new FrovedisColumn().get_immed("NULL", DTYPE.STRING)
     else           new FrovedisColumn().get_immed(x.toString, DTYPE.detect(x))
   }
-  def when(left: FrovedisColumn, right: Any) = new FrovedisColumn(left, right, OPTYPE.IF, true)
+  def when(left: FrovedisColumn, right: Any) = 
+    new FrovedisColumn(left, right, OPTYPE.IF, true)
 
   def max      (col: String) = new FrovedisColumn(col).get_agg(OPTYPE.aMAX)
   def min      (col: String) = new FrovedisColumn(col).get_agg(OPTYPE.aMIN)
@@ -339,6 +348,20 @@ object functions extends java.io.Serializable {
     else                 return new FrovedisColumn(col).get_agg(OPTYPE.aCNT)
   }
 
+  def first    (col: String) = new FrovedisColumn(col)
+                                             .get_agg(OPTYPE.aFST, false)
+  def last     (col: String) = new FrovedisColumn(col)
+                                             .get_agg(OPTYPE.aLST, false)
+  def first    (col: String, ignoreNulls: Boolean) = new FrovedisColumn(col)
+                                             .get_agg(OPTYPE.aFST, ignoreNulls)
+  def last     (col: String, ignoreNulls: Boolean) = new FrovedisColumn(col)
+                                             .get_agg(OPTYPE.aLST, ignoreNulls)
+
+  def sumDistinct   (col: String) = new FrovedisColumn(col)
+                                             .get_agg(OPTYPE.aDSUM)
+  def countDistinct (col: String) = new FrovedisColumn(col)
+                                             .get_agg(OPTYPE.aDCNT)
+
   def max      (col: FrovedisColumn) = col.get_agg(OPTYPE.aMAX)
   def min      (col: FrovedisColumn) = col.get_agg(OPTYPE.aMIN)
   def sum      (col: FrovedisColumn) = col.get_agg(OPTYPE.aSUM)
@@ -351,8 +374,10 @@ object functions extends java.io.Serializable {
 
   def first    (col: FrovedisColumn) = col.get_agg(OPTYPE.aFST, false)
   def last     (col: FrovedisColumn) = col.get_agg(OPTYPE.aLST, false)
-  def first    (col: FrovedisColumn, ignoreNulls: Boolean) = col.get_agg(OPTYPE.aFST, ignoreNulls)
-  def last     (col: FrovedisColumn, ignoreNulls: Boolean) = col.get_agg(OPTYPE.aLST, ignoreNulls)
+  def first    (col: FrovedisColumn, ignoreNulls: Boolean) = 
+    col.get_agg(OPTYPE.aFST, ignoreNulls)
+  def last     (col: FrovedisColumn, ignoreNulls: Boolean) = 
+    col.get_agg(OPTYPE.aLST, ignoreNulls)
 
   def sumDistinct   (col: FrovedisColumn) = col.get_agg(OPTYPE.aDSUM)
   def countDistinct (col: FrovedisColumn) = col.get_agg(OPTYPE.aDCNT)

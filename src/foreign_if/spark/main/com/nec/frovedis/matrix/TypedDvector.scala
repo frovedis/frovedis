@@ -32,6 +32,8 @@ object DTYPE extends java.io.Serializable {
     else throw new IllegalArgumentException("Unknown Any Type!") 
     return ret
   }
+
+  def is_numeric(tid: Short) = (tid != STRING && tid != WORDS)
 }
 
 object TransferData extends java.io.Serializable {
