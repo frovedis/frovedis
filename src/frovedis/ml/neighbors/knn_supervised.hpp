@@ -79,7 +79,6 @@ get_count_matrix_helper(rowmajor_matrix_local<I>& model_indx,
   rowmajor_matrix_local<I> count(nrow, nclasses);
   auto indxptr = model_indx.val.data();
   auto countptr = count.val.data();
-  // FIXME: label might be same, ivdep might be destructive
   for(size_t j = 0; j < ncol; ++j) {
 #pragma _NEC ivdep
     for(size_t i = 0; i < nrow; ++i) {  // nodep since vectorization on i-direction
