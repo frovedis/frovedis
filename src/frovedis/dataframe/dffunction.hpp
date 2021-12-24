@@ -30,6 +30,44 @@ bool verify_column_identicality(dftable_base& left,
     because immediate is template type
 */
 
+// ----- cast -----
+struct dffunction_cast : public dffunction {
+  dffunction_cast(const std::shared_ptr<dffunction>& left,
+                  const std::string& to): left(left), to_type(to) {
+    as_name = "CAST(" + left->get_as() + " AS " + to + ")";
+  }
+  dffunction_cast(const std::shared_ptr<dffunction>& left,
+                 const std::string& to,
+                 const std::string& as_name) :
+    left(left), to_type(to), as_name(as_name) {}
+
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_cast>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) { return left->columns_to_use(t); }
+
+  std::shared_ptr<dffunction> left;
+  std::string to_type, as_name;
+};
+
+std::shared_ptr<dffunction>
+cast_col(const std::string& left, const std::string& to);
+ 
+std::shared_ptr<dffunction>
+cast_col(const std::shared_ptr<dffunction>& left, const std::string& to); 
+
+std::shared_ptr<dffunction>
+cast_col_as(const std::string& left, const std::string& to,
+            const std::string& as);
+
+std::shared_ptr<dffunction>
+cast_col_as(const std::shared_ptr<dffunction>& left, const std::string& to,
+            const std::string& as);
+
 // ----- add -----
 struct dffunction_add : public dffunction {
   dffunction_add(const std::shared_ptr<dffunction>& left, 

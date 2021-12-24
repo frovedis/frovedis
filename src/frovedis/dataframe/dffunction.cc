@@ -99,6 +99,33 @@ std::shared_ptr<dffunction> id_col_as(const std::string& left,
   return std::make_shared<dffunction_id>(left, as);
 }
 
+// ----- cast -----
+std::shared_ptr<dfcolumn> dffunction_cast::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->type_cast(to_type);
+}
+
+std::shared_ptr<dffunction> cast_col(const std::string& left,
+                                     const std::string& to) {
+  return std::make_shared<dffunction_cast>(id_col(left), to);
+}
+
+std::shared_ptr<dffunction>
+cast_col(const std::shared_ptr<dffunction>& left, const std::string& to){
+  return std::make_shared<dffunction_cast>(left, to);
+}
+
+std::shared_ptr<dffunction>
+cast_col_as(const std::string& left, const std::string& to,
+            const std::string& as) {
+  return std::make_shared<dffunction_cast>(id_col(left), to, as);
+}
+
+std::shared_ptr<dffunction>
+cast_col_as(const std::shared_ptr<dffunction>& left, const std::string& to,
+            const std::string& as) {
+  return std::make_shared<dffunction_cast>(left, to, as);
+}
 
 // ----- add -----
 std::shared_ptr<dfcolumn> dffunction_add::execute(dftable_base& t) const {
