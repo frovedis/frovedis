@@ -613,21 +613,6 @@ double frov_col2_cov(exrpc_ptr_t& df_proxy,
 double frov_series_cov(exrpc_ptr_t& self_proxy, std::string& col1,
                        exrpc_ptr_t& other_proxy, std::string& col2,
                        int& min_periods, double& ddof);
-dummy_dftable frov_df_sum(exrpc_ptr_t& df_proxy,
-                          std::vector<std::string>& cols,
-                          std::vector<short>& types,
-                          int& axis, bool& skip_na, int& min_count,
-                          bool& with_index);
-dummy_dftable frov_df_min(exrpc_ptr_t& df_proxy,
-                          std::vector<std::string>& cols,
-                          std::vector<short>& types,
-                          int& axis, bool& skip_na,
-                          bool& with_index);
-dummy_dftable frov_df_max(exrpc_ptr_t& df_proxy,
-                          std::vector<std::string>& cols,
-                          std::vector<short>& types,
-                          int& axis, bool& skip_na,
-                          bool& with_index);
 dummy_dftable 
 frovedis_gdf_aggr_with_ddof(exrpc_ptr_t& df_proxy,
                           std::vector<std::string>& groupedCols,
@@ -792,7 +777,7 @@ dftable sum_axis1_helper(dftable_base& df,
 }
 
 template <class T>
-dftable frov_df_sum2_impl(exrpc_ptr_t& df_proxy,
+dftable frov_df_sum_impl(exrpc_ptr_t& df_proxy,
                           std::vector<std::string>& cols,
                           std::vector<short>& types,
                           int& axis, bool& skip_na, 
@@ -810,12 +795,12 @@ dftable frov_df_sum2_impl(exrpc_ptr_t& df_proxy,
 
 template <class T>
 dummy_dftable 
-frov_df_sum2(exrpc_ptr_t& df_proxy,
+frov_df_sum(exrpc_ptr_t& df_proxy,
              std::vector<std::string>& cols,
              std::vector<short>& types,
              int& axis, bool& skip_na, int& min_count,
              bool& with_index) {
-  auto ret = frov_df_sum2_impl<T>(df_proxy, cols, types, axis, skip_na, 
+  auto ret = frov_df_sum_impl<T>(df_proxy, cols, types, axis, skip_na, 
                                   min_count, with_index);
   auto retp = new dftable(std::move(ret));
   return to_dummy_dftable(retp);
@@ -834,8 +819,7 @@ dftable max_axis0_helper(dftable_base& df,
   
   for(size_t i = 0; i < ncol; ++i) {
     auto col = cols[i];
-    auto is_invalid = skip_na ? false
-                              : df.count(col) != nrow;     // one or more nulls
+    auto is_invalid = !skip_na && df.count(col) != nrow;
     if (is_invalid) resp[i] = tmax;
     else {
       switch(types[i]) {
@@ -870,7 +854,6 @@ dftable max_axis1_helper(dftable_base& df,
                          bool skip_na,
                          bool with_index) {
   dftable ret;
-  auto tmin = std::numeric_limits<T>::min();
   auto ncol = cols.size();
   if (ncol == 0 ) {
     append_null<T>(ret, "max", df.num_row());
@@ -878,30 +861,27 @@ dftable max_axis1_helper(dftable_base& df,
   else {
     auto target_df = df.select(cols);  // no index in selected columns
     dftable count_na_df;
-    if (skip_na) {
-      count_na_df = target_df.count_nulls(1);
-      target_df = fillna_with_min(target_df, cols, types);
-    }
+    count_na_df = target_df.count_nulls(1);
+    if (skip_na) target_df = fillna_with_min(target_df, cols, types);
     std::string max = "max";
-    auto func = when({(~cols[0] >= ~cols[1]) >> ~cols[0]}, ~cols[1])->as(max);
-    target_df.call_function(func); 
-    for(size_t i = 2; i < ncol; ++i) {
-      target_df.call_function(when({(~max >= ~cols[i]) >> ~max}, ~cols[i])); 
-      target_df.drop(max);
-      target_df.rename("when", max);
+    if (ncol == 1) {
+      use_dfcolumn use(target_df.raw_column(cols[0]));
+      ret.append_column(max, target_df.column(cols[0]));
     }
-    std::string nan_count = "nan_count";
-    if (!skip_na) {
-      append_na_count(target_df, 1, nan_count);
-      auto cond = when({(~nan_count == 0) >> ~max});
-      use_dfcolumn use(cond->columns_to_use(target_df));
-      ret.append_column(max, cond->execute(target_df));
-    } else {
+    else {
+      auto func = when({(~cols[0] >= ~cols[1]) >> ~cols[0]}, ~cols[1])->as(max);
+      target_df.call_function(func); 
+      for(size_t i = 2; i < ncol; ++i) {
+        target_df.call_function(when({(~max >= ~cols[i]) >> ~max}, ~cols[i])); 
+        target_df.drop(max);
+        target_df.rename("when", max);
+      }
+      std::string nan_count = "nan_count";
       use_dfcolumn use(target_df.raw_column(max));
       ret.append_column(max, target_df.column(max));
-      ret.append_column("nan_count", count_na_df.column("count"));
-      ret.call_function(when({(~nan_count != ncol) >> ~max, 
-                              (~max != tmin) >> ~max})); 
+      ret.append_column(nan_count, count_na_df.column("count"));
+      if (skip_na) ret.call_function(when({(~nan_count != ncol) >> ~max}));
+      else ret.call_function(when({(~nan_count == 0) >> ~max}));
       ret.drop(max);
       ret.drop(nan_count);
       ret.rename("when", max);
@@ -920,7 +900,7 @@ dftable max_axis1_helper(dftable_base& df,
 }
 
 template <class T>
-dftable frov_df_max2_impl(exrpc_ptr_t& df_proxy,
+dftable frov_df_max_impl(exrpc_ptr_t& df_proxy,
                           std::vector<std::string>& cols,
                           std::vector<short>& types,
                           int& axis, bool& skip_na, 
@@ -937,12 +917,12 @@ dftable frov_df_max2_impl(exrpc_ptr_t& df_proxy,
 
 template <class T>
 dummy_dftable 
-frov_df_max2(exrpc_ptr_t& df_proxy,
+frov_df_max(exrpc_ptr_t& df_proxy,
              std::vector<std::string>& cols,
              std::vector<short>& types,
              int& axis, bool& skip_na,
              bool& with_index) {
-  auto ret = frov_df_max2_impl<T>(df_proxy, cols, types, axis, skip_na, 
+  auto ret = frov_df_max_impl<T>(df_proxy, cols, types, axis, skip_na, 
                                   with_index);
   auto retp = new dftable(std::move(ret));
   return to_dummy_dftable(retp);
@@ -961,8 +941,7 @@ dftable min_axis0_helper(dftable_base& df,
   
   for(size_t i = 0; i < ncol; ++i) {
     auto col = cols[i];
-    auto is_invalid = skip_na ? false
-                              : df.count(col) != nrow;     // one or more nulls
+    auto is_invalid = !skip_na && df.count(col) != nrow;
     if (is_invalid) resp[i] = tmax;
     else {
       switch(types[i]) {
@@ -983,9 +962,6 @@ dftable min_axis0_helper(dftable_base& df,
   return ret;
 }
 
-void fillna_column_max_typed_helper(
-                         std::shared_ptr<frovedis::dfcolumn>& col,
-                         short type);
 dftable
 fillna_with_max(dftable& df, std::vector<std::string>& cols, 
                 std::vector<short>& types);
@@ -997,7 +973,6 @@ dftable min_axis1_helper(dftable_base& df,
                          bool skip_na,
                          bool with_index) {
   dftable ret;
-  auto tmax = std::numeric_limits<T>::max();
   auto ncol = cols.size();
   if (ncol == 0 ) {
     append_null<T>(ret, "min", df.num_row());
@@ -1005,30 +980,27 @@ dftable min_axis1_helper(dftable_base& df,
   else {
     auto target_df = df.select(cols);  // no index in selected columns
     dftable count_na_df;
-    if (skip_na) {
-      count_na_df = target_df.count_nulls(1);
-      target_df = fillna_with_max(target_df, cols, types);
-    }
+    count_na_df = target_df.count_nulls(1);
+    if (skip_na) target_df = fillna_with_max(target_df, cols, types);
     std::string min = "min";
-    auto func = when({(~cols[0] <= ~cols[1]) >> ~cols[0]}, ~cols[1])->as(min);
-    target_df.call_function(func); 
-    for(size_t i = 2; i < ncol; ++i) {
-      target_df.call_function(when({(~min <= ~cols[i]) >> ~min}, ~cols[i])); 
-      target_df.drop(min);
-      target_df.rename("when", min);
+    if (ncol == 1) {
+      use_dfcolumn use(target_df.raw_column(cols[0]));
+      ret.append_column(min, target_df.column(cols[0]));
     }
-    std::string nan_count = "nan_count";
-    if (!skip_na) {
-      append_na_count(target_df, 1, nan_count);
-      auto cond = when({(~nan_count == 0) >> ~min});
-      use_dfcolumn use(cond->columns_to_use(target_df));
-      ret.append_column(min, cond->execute(target_df));
-    } else {
+    else {
+      auto func = when({(~cols[0] <= ~cols[1]) >> ~cols[0]}, ~cols[1])->as(min);
+      target_df.call_function(func);
+      for(size_t i = 2; i < ncol; ++i) {
+        target_df.call_function(when({(~min <= ~cols[i]) >> ~min}, ~cols[i])); 
+        target_df.drop(min);
+        target_df.rename("when", min);
+      }
+      std::string nan_count = "nan_count";
       use_dfcolumn use(target_df.raw_column(min));
       ret.append_column(min, target_df.column(min));
-      ret.append_column("nan_count", count_na_df.column("count"));
-      ret.call_function(when({(~nan_count != ncol) >> ~min, 
-                              (~min != tmax) >> ~min})); 
+      ret.append_column(nan_count, count_na_df.column("count"));
+      if (skip_na) ret.call_function(when({(~nan_count != ncol) >> ~min})); 
+      else ret.call_function(when({(~nan_count == 0) >> ~min})); 
       ret.drop(min);
       ret.drop(nan_count);
       ret.rename("when", min);
@@ -1047,7 +1019,7 @@ dftable min_axis1_helper(dftable_base& df,
 }
 
 template <class T>
-dftable frov_df_min2_impl(exrpc_ptr_t& df_proxy,
+dftable frov_df_min_impl(exrpc_ptr_t& df_proxy,
                           std::vector<std::string>& cols,
                           std::vector<short>& types,
                           int& axis, bool& skip_na, 
@@ -1064,12 +1036,12 @@ dftable frov_df_min2_impl(exrpc_ptr_t& df_proxy,
 
 template <class T>
 dummy_dftable 
-frov_df_min2(exrpc_ptr_t& df_proxy,
+frov_df_min(exrpc_ptr_t& df_proxy,
              std::vector<std::string>& cols,
              std::vector<short>& types,
              int& axis, bool& skip_na,
              bool& with_index) {
-  auto ret = frov_df_min2_impl<T>(df_proxy, cols, types, axis, skip_na, 
+  auto ret = frov_df_min_impl<T>(df_proxy, cols, types, axis, skip_na, 
                                   with_index);
   auto retp = new dftable(std::move(ret));
   return to_dummy_dftable(retp);

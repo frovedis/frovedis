@@ -3126,43 +3126,6 @@ class DataFrame(object):
                                    numeric_only_= numeric_only, \
                                    min_count_ = min_count)
         if param.numeric_only_ == False:
-            non_num_cols, non_num_types = self.__get_non_numeric_columns()
-            if len(non_num_types) > 0:
-                raise TypeError("sum: Currently supported only for numeric columns!")
-        cols, types = self.__get_numeric_columns()
-
-        ncol = len(cols)
-        cols_arr = get_string_array_pointer(cols)
-        type_arr = np.asarray(types, dtype=c_short)
-        tptr = type_arr.ctypes.data_as(POINTER(c_short))
-        (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_sum(host, port, self.get(), \
-                                 cols_arr, tptr, ncol, \
-                                 param.axis_, param.skipna_, 
-                                 param.min_count_, self.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        # returns a series
-        ret = DataFrame(is_series=True)
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-        ret.num_row = dummy_df["nrow"]
-        ret.index = FrovedisColumn(names[0], types[0]) #setting index
-        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        return ret
-
-    @check_association
-    def sum2(self, axis=None, skipna=None, level=None,
-             numeric_only=None, min_count=0, **kwargs):
-        """
-        returns the sum of the values over the requested axis.
-        """
-        param  = check_stat_error( axis_ = axis, skipna_ = skipna, \
-                                   level_ = level, \
-                                   numeric_only_= numeric_only, \
-                                   min_count_ = min_count)
-        if param.numeric_only_ == False:
             if DTYPE.STRING in self.__types:
                 raise TypeError("sum: Currently supported only for numeric columns!")
         cols, types = self.__get_numeric_columns()
@@ -3174,7 +3137,7 @@ class DataFrame(object):
         type_arr = np.asarray(types, dtype=c_short)
         tptr = type_arr.ctypes.data_as(POINTER(c_short))
         (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_sum2(host, port, self.get(), \
+        dummy_df = rpclib.df_sum(host, port, self.get(), \
                                  cols_arr, tptr, ncol, \
                                  param.axis_, res_type, \
                                  param.skipna_, param.min_count_, \
@@ -3196,42 +3159,6 @@ class DataFrame(object):
     def min(self, axis=None, skipna=None, level=None,
              numeric_only=None, **kwargs):
         """
-        returns the minimum of the values over the requested axis.
-        """
-        param = check_stat_error( axis_ = axis, skipna_ = skipna, \
-                                  numeric_only_= numeric_only, \
-                                  level_ = level)
-        if param.numeric_only_ == False:
-            non_num_cols, non_num_types = self.__get_non_numeric_columns()
-            if len(non_num_types) > 0:
-                raise TypeError("min: Currently supported only for numeric columns!")
-        cols, types = self.__get_numeric_columns()
-
-        ncol = len(cols)
-        cols_arr = get_string_array_pointer(cols)
-        type_arr = np.asarray(types, dtype=c_short)
-        tptr = type_arr.ctypes.data_as(POINTER(c_short))
-        (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_min(host, port, self.get(), \
-                                 cols_arr, tptr, ncol, \
-                                 param.axis_, param.skipna_, \
-                                 self.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        # returns a series
-        ret = DataFrame(is_series=True)
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-        ret.num_row = dummy_df["nrow"]
-        ret.index = FrovedisColumn(names[0], types[0]) #setting index
-        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        return ret
-
-    @check_association
-    def min2(self, axis=None, skipna=None, level=None,
-             numeric_only=None, **kwargs):
-        """
         returns the min of the values over the requested axis.
         """
         param  = check_stat_error( axis_ = axis, skipna_ = skipna, \
@@ -3249,7 +3176,7 @@ class DataFrame(object):
         type_arr = np.asarray(types, dtype=c_short)
         tptr = type_arr.ctypes.data_as(POINTER(c_short))
         (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_min2(host, port, self.get(), \
+        dummy_df = rpclib.df_min(host, port, self.get(), \
                                  cols_arr, tptr, ncol, \
                                  param.axis_, res_type, \
                                  param.skipna_, \
@@ -3271,42 +3198,6 @@ class DataFrame(object):
     def max(self, axis=None, skipna=None, level=None,
              numeric_only=None, **kwargs):
         """
-        returns the maximum of the values over the requested axis.
-        """
-        param = check_stat_error( axis_ = axis, skipna_ = skipna, \
-                                  numeric_only_= numeric_only, \
-                                  level_ = level)
-        if param.numeric_only_ == False:
-            non_num_cols, non_num_types = self.__get_non_numeric_columns()
-            if len(non_num_types) > 0:
-                raise TypeError("max: Currently supported only for numeric columns!")
-        cols, types = self.__get_numeric_columns()
-
-        ncol = len(cols)
-        cols_arr = get_string_array_pointer(cols)
-        type_arr = np.asarray(types, dtype=c_short)
-        tptr = type_arr.ctypes.data_as(POINTER(c_short))
-        (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_max(host, port, self.get(), \
-                                 cols_arr, tptr, ncol, \
-                                 param.axis_, param.skipna_, \
-                                 self.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        # returns a series
-        ret = DataFrame(is_series=True)
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-        ret.num_row = dummy_df["nrow"]
-        ret.index = FrovedisColumn(names[0], types[0]) #setting index
-        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        return ret
-
-    @check_association
-    def max2(self, axis=None, skipna=None, level=None,
-             numeric_only=None, **kwargs):
-        """
         returns the max of the values over the requested axis.
         """
         param  = check_stat_error( axis_ = axis, skipna_ = skipna, \
@@ -3324,7 +3215,7 @@ class DataFrame(object):
         type_arr = np.asarray(types, dtype=c_short)
         tptr = type_arr.ctypes.data_as(POINTER(c_short))
         (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_max2(host, port, self.get(), \
+        dummy_df = rpclib.df_max(host, port, self.get(), \
                                  cols_arr, tptr, ncol, \
                                  param.axis_, res_type, \
                                  param.skipna_, \

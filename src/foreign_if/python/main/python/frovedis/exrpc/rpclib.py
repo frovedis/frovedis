@@ -384,50 +384,28 @@ df_mean.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
 df_mean.restype = py_object
 
 df_sum = LIB.df_sum
-df_sum.argtypes = [c_char_p, c_int, c_long,       # host, port, proxy
-                    POINTER(c_char_p),           # cols_arr,
-                    POINTER(c_short), c_ulong,   # types_arr, ncol
-                    c_int, c_bool, c_int,         # axis, skip_na, min_cunt
-                    c_bool]                       # with_index
-df_sum.restype = py_object
-
-df_sum2 = LIB.df_sum2
-df_sum2.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
+df_sum.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
                     POINTER(c_char_p),           # cols_arr,
                     POINTER(c_short), c_ulong,   # types_arr, ncol
                     c_int, c_short, c_bool,      # axis, res_type, skip_na
                     c_int, c_bool]               # min_cunt, with_index
-df_sum2.restype = py_object
+df_sum.restype = py_object
 
 df_min = LIB.df_min
-df_min.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
+df_min.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
                     POINTER(c_char_p),           # cols_arr,
                     POINTER(c_short), c_ulong,   # types_arr, ncol
-                    c_int, c_bool, c_bool]        # axis, skip_na, with_index
+                    c_int, c_short, c_bool,      # axis, res_type, skip_na
+                    c_bool]                      # with_index
 df_min.restype = py_object
 
-df_min2 = LIB.df_min2
-df_min2.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
-                    POINTER(c_char_p),           # cols_arr,
-                    POINTER(c_short), c_ulong,   # types_arr, ncol
-                    c_int, c_short, c_bool,      # axis, res_type, skip_na
-                    c_bool]                      # with_index
-df_min2.restype = py_object
-
 df_max = LIB.df_max
-df_max.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
-                    POINTER(c_char_p),           # cols_arr,
-                    POINTER(c_short), c_ulong,   # types_arr, ncol
-                    c_int, c_bool, c_bool]        # axis, skip_na, with_index
-df_max.restype = py_object
-
-df_max2 = LIB.df_max2
-df_max2.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
+df_max.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
                     POINTER(c_char_p),           # cols_arr,
                     POINTER(c_short), c_ulong,   # types_arr, ncol
                     c_int, c_short, c_bool,      # axis, res_type, skip_na
                     c_bool]                      # with_index
-df_max2.restype = py_object
+df_max.restype = py_object
 
 df_var = LIB.df_var
 df_var.argtypes = [c_char_p, c_int, c_long,      # host, port, proxy
