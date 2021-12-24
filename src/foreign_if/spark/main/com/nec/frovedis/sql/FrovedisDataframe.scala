@@ -22,6 +22,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow
+import scala.collection.mutable.{Map => mMap}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
 import org.apache.log4j.{Level, Logger}
@@ -403,8 +404,9 @@ class FrovedisDataFrame extends java.io.Serializable {
 
   def load (df: DataFrame) : Unit = {
     release()
-    cols = df.dtypes.map(_._1)
-    val tt = df.dtypes.map(_._2)
+    val name_type_pair = df.dtypes
+    cols = name_type_pair.map(_._1)
+    val tt = name_type_pair.map(_._2)
     val size = cols.size
     val dvecs = new Array[Long](size)
     types = new Array[Short](size)
@@ -427,8 +429,9 @@ class FrovedisDataFrame extends java.io.Serializable {
   //   - might cause bad-alloc in ve-memory when target columns are too large to fit
   def optimized_load (df: DataFrame) : Unit = {
     release()
-    cols = df.dtypes.map(_._1)
-    types = df.dtypes.map(_._2).map(x => TMAPPER.string2id(x))
+    val name_type_pair = df.dtypes
+    cols = name_type_pair.map(_._1)
+    types = name_type_pair.map(_._2).map(x => TMAPPER.string2id(x))
     val ncol = cols.size
     val rddData = df.queryExecution.toRdd
     val offset = new Array[Int](ncol)
@@ -522,7 +525,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     for (i <- 0 until size) { 
       val tmp = c_arr(i)
       funcs(i) = tmp.get()
-      if (tmp.isCOND) bool_cols_id += i
+      if (tmp.isBOOL) bool_cols_id += i
       aggcnt = aggcnt + (if (tmp.isAGG) 1 else 0)
     }
     val fs = FrovedisServer.getServerInstance()
@@ -944,6 +947,25 @@ class FrovedisDataFrame extends java.io.Serializable {
   def get() = fdata
   def columns = cols
   def dtypes = cols.zip(get_types())
+
+  // for internal purpose
+  private def dtypes_as_map: mMap[String, Short] = {
+    val ret = mMap[String, Short]()
+    for (i <- 0 until cols.size) ret(cols(i)) = types(i)
+    return ret
+  }
+
+  // for internal purpose
+  private def mark_boolean_columns(dt: mMap[String, Short], 
+                                   dummy: DummyDftable): Unit = {
+    val bool_id = DTYPE.BOOL
+    val ncol = dummy.names.size
+    for (i <- 0 until ncol) {
+      val c = dummy.names(i)
+      if (dt.contains(c) && dt(c) == bool_id) dummy.types(i) = bool_id
+    }
+  }
+
   def hasColumn(c: String) = cols.indexOf(c) != -1
   def getColumnType(c: String): Short = { 
     val index = cols.indexOf(c)
@@ -1088,7 +1110,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     val dummy = JNISupport.executeFrovedisAgg(fs.master_node,get(),agg_proxies,size)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    return new FrovedisDataFrame(dummy)
+    return new FrovedisDataFrame(dummy) // TODO: mark bool (difficult to deduce)
   }
   def agg(x: FrovedisColumn, y: FrovedisColumn*): FrovedisDataFrame = {
     val arr = (Array(x) ++ y).toArray
@@ -1237,6 +1259,11 @@ class FrovedisDataFrame extends java.io.Serializable {
     val dummy = JNISupport.executeDFfunc(fs.master_node, get(), cname, op.get())
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
+    mark_boolean_columns(this.dtypes_as_map, dummy)
+    if (op.isBOOL) { // mark newly added column (cname) as BOOL
+      val ncol = dummy.names.size
+      dummy.types(ncol - 1) = DTYPE.BOOL
+    }
     return new FrovedisDataFrame(dummy)
   }
 
@@ -1268,14 +1295,6 @@ class FrovedisDataFrame extends java.io.Serializable {
     this
   }
 
-  private def mark_boolean_columns(dtypes: Array[(String, String)], dummy: DummyDftable): Unit = {
-    val bool_col_set = dtypes.filter(x=> x._2 == "BooleanType").map(x => x._1).toSet
-    val sz = dummy.names.size
-    for ( i <- 0 until sz) {
-      if  ( bool_col_set.contains(dummy.names(i)) )  dummy.types(i) = DTYPE.BOOL 
-    }
-  }
-
   def distinct(): FrovedisDataFrame = {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
     val fs = FrovedisServer.getServerInstance()
@@ -1295,9 +1314,15 @@ class FrovedisDataFrame extends java.io.Serializable {
                                           colNames.size, keep)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    mark_boolean_columns(this.dtypes, dummy)
+    mark_boolean_columns(this.dtypes_as_map, dummy)
     return new FrovedisDataFrame(dummy)
   }
+
+  def dropDuplicates(col1: String, cols: String*): 
+    FrovedisDataFrame = dropDuplicates(Array(col1) ++ cols) 
+
+  def dropDuplicates(cols: Seq[String]): 
+    FrovedisDataFrame = dropDuplicates(cols.toArray) 
 
   def limit(n: Int): FrovedisDataFrame = {
     if(fdata == -1) throw new IllegalArgumentException("Invalid Frovedis dataframe!")
@@ -1308,7 +1333,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     val dummy = JNISupport.limitDF(fs.master_node, get(), n)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    mark_boolean_columns(this.dtypes, dummy)
+    mark_boolean_columns(this.dtypes_as_map, dummy)
     return new FrovedisDataFrame(dummy)
   }
 }

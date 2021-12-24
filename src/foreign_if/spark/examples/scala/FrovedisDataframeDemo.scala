@@ -49,6 +49,7 @@ object FrovedisDataframeDemo {
     df1.filter($$"Country" =!= lit("USA")).show()
     df1.filter($$"Country" >= "Japan").show()
     df1.filter(($$"Country" =!= "Japan") && ($$"Age" > 19)).show()
+    df1.filter($$"EName".startsWith("Ra")).show()
     
     // not operator
     df1.filter(!($$"Country" === "France")).show()
@@ -70,11 +71,16 @@ object FrovedisDataframeDemo {
        .where($$"y" > 20)
        .sort($$"x").show()
 
-    df1.filter($$"EName".startsWith("Ra")).show()
-    df1.withColumn("AgePlusOne", $$"Age" + 1)
+    // dwithColumn, distinct, dropDuplicates, limit demo
+    val ddf = df1.withColumn("AgePlusOne", $$"Age" + 1)
+       .withColumn("is_adult", $$"Age" >= 20)
        .withColumn("lit(2)", lit(2))
        .withColumn("null_col", lit(null))
-       .withColumn("true_col", lit(true)).show()
+       .withColumn("true_col", lit(true))
+    ddf.to_spark_DF().show()
+    ddf.dropDuplicates("is_adult").to_spark_DF().show()
+    ddf.select("is_adult").distinct().to_spark_DF().show()
+    ddf.select("is_adult").limit(3).to_spark_DF().show()
 
     val countryDF2 = sc.textFile("./input/country.txt")
                       .map(_.split(","))
@@ -120,7 +126,7 @@ object FrovedisDataframeDemo {
 
     // groupBy demo
     df1.groupBy("Country").select("Country").show()
-    df1.groupBy("Country").min($$"Age" ** 2).show()
+    df1.groupBy("Country").min(pow($$"Age", 2)).show()
     val gdf = df1.groupBy("Country").agg(max($$"Age" * 2).as("max_twice_age"),
                                          min("Age").as("min_age"),
                                          sum($$"Age").as("sum_age"),
@@ -161,6 +167,8 @@ object FrovedisDataframeDemo {
     frov_dfWithNull.show()
     frov_dfWithNull.filter($$"state".isNotNull).show()
     frov_dfWithNull.filter($$"state".isNull).show()
+    //frov_dfWithNull.filter(($$"state" === "NY").isNull).show() // FIXME
+    //frov_dfWithNull.filter($$"state".like("N%").isNull).show() // FIXME
     frov_dfWithNull.groupBy("state").agg(count("state"), count("*")).show()
     frov_dfWithNull.release()
 

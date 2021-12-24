@@ -62,7 +62,7 @@ class FrovedisColumn extends java.io.Serializable {
   private var kind: Short = ColKind.DFID
   private var opType: Short = OPTYPE.ID
   private var proxy: Long = 0
-  private var isCond: Boolean = false
+  private var isBool: Boolean = false
   private var isDesc: Int = 0
   private var dtype: Short = 0 // would be set for scalar
 
@@ -82,7 +82,7 @@ class FrovedisColumn extends java.io.Serializable {
            opt: Short, cond: Boolean = false) = { 
     this()
     this.opType = opt
-    this.isCond = cond
+    this.isBool = cond
     this.kind = ColKind.DFFUNC
     val right_str = right.toString
     this.col_name = get_name(left.col_name, right_str, opt)
@@ -97,7 +97,7 @@ class FrovedisColumn extends java.io.Serializable {
       var im_dt: Short = 0
       if (tmp == null) im_dt = DTYPE.detect(right) 
       else { // tmp is an instance of FrovedisColumn and it must be a SCALAR
-        if (tmp.colName.equals("NULL"))  
+        if (tmp.colName.equals("NULL") && this.isBool)  
           throw new IllegalArgumentException(this.col_name + 
           ": is not supported! Use isNull/isNotNull instead.\n")
         im_dt = tmp.get_dtype()
@@ -121,6 +121,7 @@ class FrovedisColumn extends java.io.Serializable {
     ret.opType = OPTYPE.ID
     ret.kind = ColKind.DFSCALAR
     ret.dtype = dtype
+    ret.isBool = (dtype == DTYPE.BOOL)
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getIMDFfunc(fs.master_node, ret.col_name, dtype)
     val info = JNISupport.checkServerException()
@@ -249,7 +250,6 @@ class FrovedisColumn extends java.io.Serializable {
   def / (right: Any)  = new FrovedisColumn(this, right, OPTYPE.FDIV)
   def % (right: Any)  = new FrovedisColumn(this, right, OPTYPE.MOD)
   def **(right: Any)  = new FrovedisColumn(this, right, OPTYPE.POW)
-  def pow(right: Any) = new FrovedisColumn(this, right, OPTYPE.POW)
 
   def unary_- : FrovedisColumn = { // special case
     val ret = new FrovedisColumn()
@@ -294,7 +294,7 @@ class FrovedisColumn extends java.io.Serializable {
   }
   def get()    = proxy
   def colName  = col_name 
-  def isCOND   = isCond
+  def isBOOL   = isBool
   def isID     = (kind == ColKind.DFID)
   def isFUNC   = (kind == ColKind.DFFUNC)
   def isAGG    = (kind == ColKind.DFAGG)
@@ -364,5 +364,6 @@ object functions extends java.io.Serializable {
   def stddev_samp(col: FrovedisColumn) = stddev(col)
   def var_samp(col: String)            = variance(col)
   def var_samp(col: FrovedisColumn)    = variance(col)
+  def pow(col: FrovedisColumn, right: Any) = col ** right
 }
 
