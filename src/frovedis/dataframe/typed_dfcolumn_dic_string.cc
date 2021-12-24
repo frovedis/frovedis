@@ -1642,6 +1642,12 @@ bool typed_dfcolumn<dic_string>::is_unique() {
   return (nulls_count <= 1) && vector_is_unique(key);
 }
 
+bool typed_dfcolumn<dic_string>::is_all_null() {
+  return val.map(+[](std::vector<size_t>& val, std::vector<size_t>& nulls)
+                 {return val.size() == nulls.size();}, nulls).
+    reduce(+[](bool left, bool right){return left && right;});
+}
+
 // for spill-restore
 
 void typed_dfcolumn<dic_string>::spill_to_disk() {

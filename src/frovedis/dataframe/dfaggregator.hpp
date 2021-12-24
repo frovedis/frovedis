@@ -323,14 +323,6 @@ struct dfaggregator_last : public dfaggregator {
   bool ignore_nulls;
 };
 
-// for whole_column_aggregate
-template <class T>
-bool is_all_null(std::shared_ptr<typed_dfcolumn<T>>& col) {
-  return col->val.map(+[](std::vector<T>& val, std::vector<size_t>&nulls)
-                      {return val.size() == nulls.size();}, col->nulls).
-    reduce(+[](bool left, bool right){return left && right;});
-}
-
 template <class T>
 std::shared_ptr<typed_dfcolumn<T>>
 one_null_column() {

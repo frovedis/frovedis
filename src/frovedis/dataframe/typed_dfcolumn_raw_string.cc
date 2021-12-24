@@ -547,6 +547,13 @@ typed_dfcolumn<raw_string>::union_columns
     (std::move(newcomp_words), std::move(newnulls));
 }
 
+bool typed_dfcolumn<raw_string>::is_all_null() {
+  return comp_words.
+    map(+[](compressed_words& comp_words, std::vector<size_t>& nulls)
+        {return comp_words.num_words() == nulls.size();}, nulls).
+    reduce(+[](bool left, bool right){return left && right;});
+}
+
 // for spill-restore
 
 void save_compressed_words(const compressed_words& cw,

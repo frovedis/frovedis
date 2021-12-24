@@ -6760,6 +6760,13 @@ bool typed_dfcolumn<T>::is_unique() {
   return (nulls_count <= 1) && vector_is_unique(key);
 }
 
+template <class T>
+bool typed_dfcolumn<T>::is_all_null() {
+  return val.map(+[](std::vector<T>& val, std::vector<size_t>& nulls)
+                 {return val.size() == nulls.size();}, nulls).
+    reduce(+[](bool left, bool right){return left && right;});
+}
+
 // for spill-restore
 
 template <class T>

@@ -514,6 +514,7 @@ public:
   virtual node_local<std::vector<size_t>> get_nulls() = 0;
   virtual bool if_contain_nulls() = 0;
   virtual bool is_unique() = 0;
+  virtual bool is_all_null() = 0;
 
   // for spill-restore
   void spill();
@@ -991,6 +992,7 @@ public:
   bool contain_nulls;
   virtual bool if_contain_nulls(){return contain_nulls;}
   virtual bool is_unique();
+  virtual bool is_all_null();
 
   // for spill-restore
   virtual void spill_to_disk();
@@ -1369,6 +1371,8 @@ public:
   bool contain_nulls;
   virtual bool if_contain_nulls(){return contain_nulls;}
   virtual bool is_unique();
+  virtual bool is_all_null();
+
   // for spill-restore
   virtual void spill_to_disk();
   virtual void restore_from_disk();
@@ -1752,6 +1756,7 @@ public:
   bool contain_nulls;
   virtual bool if_contain_nulls(){return contain_nulls;}
   virtual bool is_unique();
+  virtual bool is_all_null();
   // for spill-restore
   virtual void spill_to_disk();
   virtual void restore_from_disk();
@@ -2149,6 +2154,7 @@ public:
   virtual bool is_unique() {
     throw std::runtime_error("is_unique is not defined for raw_string");
   }
+  virtual bool is_all_null();
   // for spill-restore
   virtual void spill_to_disk();
   virtual void restore_from_disk();

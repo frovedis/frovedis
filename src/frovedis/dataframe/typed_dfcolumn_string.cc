@@ -1610,6 +1610,12 @@ bool typed_dfcolumn<string>::is_unique() {
   return (nulls_count <= 1) && vector_is_unique(key);
 }
 
+bool typed_dfcolumn<string>::is_all_null() {
+  return val.map(+[](std::vector<size_t>& val, std::vector<size_t>& nulls)
+                 {return val.size() == nulls.size();}, nulls).
+    reduce(+[](bool left, bool right){return left && right;});
+}
+
 // for spill-restore
 
 // TODO: spill dic and dic_idx; currently they are shared_ptr,
