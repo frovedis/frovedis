@@ -1450,7 +1450,7 @@ class DataFrame(object):
         return out_data
 
     @check_association
-    def to_pandas_dataframe(self):
+    def to_pandas(self):
         """
         returns a pandas dataframe object from frovedis dataframe
         """
@@ -1471,20 +1471,19 @@ class DataFrame(object):
             # NULL treatment for string columns
             elif (self.__dict__[col].dtype == DTYPE.STRING):
                 res[col].replace(to_replace={"NULL": np.nan}, inplace=True)
-        return res
 
-    def to_pandas_series(self):
-        """
-        returns a pandas series object from frovedis dataframe in case is_series=True
-        """
-        if not self.is_series:
-            raise TypeError("to_pandas_series: target is not a series")
-        col = self.columns[0]
-        return self.to_pandas_dataframe()[col]
+        if self.is_series:
+            return res[self.columns[0]]
+        else:
+            return res
 
-    @deprecated("Use to_pandas_dataframe() instead!\n")
+    @deprecated("Use to_pandas() instead!\n")
     def to_panda_dataframe(self):
-        return self.to_pandas_dataframe()
+        return self.to_pandas()
+
+    @deprecated("Use to_pandas() instead!\n")
+    def to_pandas_dataframe(self):
+        return self.to_pandas()
 
     @check_association
     def to_numpy(self, dtype=None, copy=False, na_value=None):
