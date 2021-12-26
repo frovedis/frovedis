@@ -1299,14 +1299,25 @@ struct dfoperator_regex : public dfoperator {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
   }
-  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
+  node_local<std::vector<size_t>> 
+  filter_impl(std::shared_ptr<dfcolumn>& tcol) const {
     auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(left->execute(t));
+      std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(tcol);
     if(!left_column)
       throw std::runtime_error("dfoperator_regex: column type is not string");
     return left_column->filter_regex(pattern);
   }
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
+    auto tcol = left->execute(t);
+    return filter_impl(tcol);
+  }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const {
+    auto tcol = left->execute(t);
+    auto filter_idx = filter_impl(tcol);
+    auto t_nulls  = tcol->get_nulls();
+    return create_boolean_column(filter_idx, t_nulls, tcol->sizes());
+  }
 
   std::shared_ptr<dffunction> left;
   std::string pattern;
@@ -1346,9 +1357,10 @@ struct dfoperator_not_regex : public dfoperator {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
   }
-  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
+  node_local<std::vector<size_t>> 
+  filter_impl(std::shared_ptr<dfcolumn>& tcol) const {
     auto left_column =
-      std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(left->execute(t));
+      std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(tcol);
     if(!left_column)
       throw std::runtime_error
         ("dfoperator_not_regex: column type is not string");
@@ -1356,6 +1368,16 @@ struct dfoperator_not_regex : public dfoperator {
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_regex(left, pattern).filter(t);
+  }
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
+    auto tcol = left->execute(t);
+    return filter_impl(tcol);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const {
+    auto tcol = left->execute(t);
+    auto filter_idx = filter_impl(tcol);
+    auto t_nulls  = tcol->get_nulls();
+    return create_boolean_column(filter_idx, t_nulls, tcol->sizes());
   }
 
   std::shared_ptr<dffunction> left;
@@ -1403,8 +1425,8 @@ struct dfoperator_like : public dfoperator {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
   }
-  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
-    auto tcol = left->execute(t);
+  node_local<std::vector<size_t>> 
+  filter_impl(std::shared_ptr<dfcolumn>& tcol) const {
     if(tcol->dtype() == "dic_string") {
       auto left_column_dic =
         std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(tcol);
@@ -1423,7 +1445,17 @@ struct dfoperator_like : public dfoperator {
       return tmp->filter_like(pattern);
     }
   }
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
+    auto tcol = left->execute(t);
+    return filter_impl(tcol);
+  }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const {
+    auto tcol = left->execute(t);
+    auto filter_idx = filter_impl(tcol);
+    auto t_nulls  = tcol->get_nulls();
+    return create_boolean_column(filter_idx, t_nulls, tcol->sizes());
+  }
 
   std::shared_ptr<dffunction> left;
   std::string pattern;
@@ -1463,8 +1495,8 @@ struct dfoperator_not_like : public dfoperator {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
   }
-  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
-    auto tcol = left->execute(t);
+  node_local<std::vector<size_t>> 
+  filter_impl(std::shared_ptr<dfcolumn>& tcol) const {
     if(tcol->dtype() == "dic_string") {
       auto left_column_dic =
         std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(tcol);
@@ -1483,8 +1515,18 @@ struct dfoperator_not_like : public dfoperator {
       return tmp->filter_not_like(pattern);
     }
   }
+  virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
+    auto tcol = left->execute(t);
+    return filter_impl(tcol);
+  }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_like(left, pattern).filter(t);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const {
+    auto tcol = left->execute(t);
+    auto filter_idx = filter_impl(tcol);
+    auto t_nulls  = tcol->get_nulls();
+    return create_boolean_column(filter_idx, t_nulls, tcol->sizes());
   }
 
   std::shared_ptr<dffunction> left;

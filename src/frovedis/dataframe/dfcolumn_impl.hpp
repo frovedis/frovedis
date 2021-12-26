@@ -6473,6 +6473,7 @@ typed_dfcolumn<T>::ge_im(const std::shared_ptr<dfscalar>& right) {
   } else throw std::runtime_error("ge_im: unsupported type: " + right_type);
 }
 
+/*
 template <class T>
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::is_null() {
@@ -6510,6 +6511,7 @@ typed_dfcolumn<T>::is_not_null() {
   auto dvval = ret.template moveto_dvector<int>();
   return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
 }
+*/
 
 template <class T>
 template <class U>

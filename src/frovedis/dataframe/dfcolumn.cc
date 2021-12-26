@@ -1040,5 +1040,168 @@ words_to_bool(words& w) {
   return word_to_bool_map;
 }
 
+std::vector<int>
+get_bool_mask_helper(std::vector<size_t>& local_idx, size_t size) {
+  std::vector<int> res(size, 0);
+  auto resp = res.data();
+  auto idxp = local_idx.data();
+  auto local_idx_size = local_idx.size();
+  #pragma _NEC ivdep
+  #pragma _NEC vovertake
+  #pragma _NEC vob
+  for (size_t i = 0; i < local_idx_size; i++) resp[idxp[i]] = 1;
+  return res;
 }
 
+std::shared_ptr<dfcolumn>
+create_boolean_column(node_local<std::vector<size_t>>& filter_idx,
+                      node_local<std::vector<size_t>>& ret_nulls,
+                      const std::vector<size_t>& sizes) {
+  auto ret_val = filter_idx.map(get_bool_mask_helper,
+                                make_node_local_scatter(sizes));
+  auto has_null = ret_nulls.viewas_dvector<size_t>().size() > 0;
+  if (has_null) {
+    ret_val.mapv(reset_null<int>, ret_nulls);
+    return std::make_shared<typed_dfcolumn<int>>(std::move(ret_val),
+                                                 std::move(ret_nulls));
+  } else {
+    auto dvval = ret_val.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::eq(const std::shared_ptr<dfcolumn>& right) {
+  auto nrows = sizes();
+  checkAssumption(nrows == right->sizes());
+  auto& right_ = const_cast<std::shared_ptr<dfcolumn>&>(right);
+  auto filter_idx = filter_eq(right_);
+  auto ret_nulls = get_nulls().map(set_union<size_t>, right->get_nulls());
+  return create_boolean_column(filter_idx, ret_nulls, nrows);
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::eq_im(const std::shared_ptr<frovedis::dfscalar>& right) {
+  auto& right_ = const_cast<std::shared_ptr<dfscalar>&>(right);
+  auto filter_idx = filter_eq_immed(right_);
+  auto left_nulls  = get_nulls();
+  return create_boolean_column(filter_idx, left_nulls, sizes());
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::neq(const std::shared_ptr<dfcolumn>& right) {
+  auto nrows = sizes();
+  checkAssumption(nrows == right->sizes());
+  auto& right_ = const_cast<std::shared_ptr<dfcolumn>&>(right);
+  auto filter_idx = filter_neq(right_);
+  auto ret_nulls = get_nulls().map(set_union<size_t>, right->get_nulls());
+  return create_boolean_column(filter_idx, ret_nulls, nrows);
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::neq_im(const std::shared_ptr<frovedis::dfscalar>& right) {
+  auto& right_ = const_cast<std::shared_ptr<dfscalar>&>(right);
+  auto filter_idx = filter_neq_immed(right_);
+  auto left_nulls  = get_nulls();
+  return create_boolean_column(filter_idx, left_nulls, sizes());
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::gt(const std::shared_ptr<dfcolumn>& right) {
+  auto nrows = sizes();
+  checkAssumption(nrows == right->sizes());
+  auto& right_ = const_cast<std::shared_ptr<dfcolumn>&>(right);
+  auto filter_idx = filter_gt(right_);
+  auto ret_nulls = get_nulls().map(set_union<size_t>, right->get_nulls());
+  return create_boolean_column(filter_idx, ret_nulls, nrows);
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::gt_im(const std::shared_ptr<frovedis::dfscalar>& right) {
+  auto& right_ = const_cast<std::shared_ptr<dfscalar>&>(right);
+  auto filter_idx = filter_gt_immed(right_);
+  auto left_nulls  = get_nulls();
+  return create_boolean_column(filter_idx, left_nulls, sizes());
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::ge(const std::shared_ptr<dfcolumn>& right) {
+  auto nrows = sizes();
+  checkAssumption(nrows == right->sizes());
+  auto& right_ = const_cast<std::shared_ptr<dfcolumn>&>(right);
+  auto filter_idx = filter_ge(right_);
+  auto ret_nulls = get_nulls().map(set_union<size_t>, right->get_nulls());
+  return create_boolean_column(filter_idx, ret_nulls, nrows);
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::ge_im(const std::shared_ptr<frovedis::dfscalar>& right) {
+  auto& right_ = const_cast<std::shared_ptr<dfscalar>&>(right);
+  auto filter_idx = filter_ge_immed(right_);
+  auto left_nulls  = get_nulls();
+  return create_boolean_column(filter_idx, left_nulls, sizes());
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::lt(const std::shared_ptr<dfcolumn>& right) {
+  auto nrows = sizes();
+  checkAssumption(nrows == right->sizes());
+  auto& right_ = const_cast<std::shared_ptr<dfcolumn>&>(right);
+  auto filter_idx = filter_lt(right_);
+  auto ret_nulls = get_nulls().map(set_union<size_t>, right->get_nulls());
+  return create_boolean_column(filter_idx, ret_nulls, nrows);
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::lt_im(const std::shared_ptr<frovedis::dfscalar>& right) {
+  auto& right_ = const_cast<std::shared_ptr<dfscalar>&>(right);
+  auto filter_idx = filter_lt_immed(right_);
+  auto left_nulls  = get_nulls();
+  return create_boolean_column(filter_idx, left_nulls, sizes());
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::le(const std::shared_ptr<dfcolumn>& right) {
+  auto nrows = sizes();
+  checkAssumption(nrows == right->sizes());
+  auto& right_ = const_cast<std::shared_ptr<dfcolumn>&>(right);
+  auto filter_idx = filter_le(right_);
+  auto ret_nulls = get_nulls().map(set_union<size_t>, right->get_nulls());
+  return create_boolean_column(filter_idx, ret_nulls, nrows);
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::le_im(const std::shared_ptr<frovedis::dfscalar>& right) {
+  auto& right_ = const_cast<std::shared_ptr<dfscalar>&>(right);
+  auto filter_idx = filter_le_immed(right_);
+  auto left_nulls  = get_nulls();
+  return create_boolean_column(filter_idx, left_nulls, sizes());
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::is_null() {
+  auto ret_val = get_nulls().map(get_bool_mask_helper,
+                                 make_node_local_scatter(sizes()));
+  auto dvval = ret_val.template moveto_dvector<int>();
+  return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::is_not_null() {
+  auto ret_val = get_nulls().map(+[](const std::vector<size_t>& nulls, 
+                                     size_t size) {
+      std::vector<int> ret(size, 1);
+      auto retp = ret.data();
+      auto nullsp = nulls.data();
+      auto nulls_size = nulls.size();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+      for(size_t i = 0; i < nulls_size; i++) retp[nullsp[i]] = 0;
+      return ret;
+    }, make_node_local_scatter(sizes()));
+  auto dvval = ret_val.template moveto_dvector<int>();
+  return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+}
+
+}

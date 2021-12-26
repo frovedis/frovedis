@@ -381,61 +381,31 @@ public:
   virtual std::shared_ptr<dfcolumn>
   abs() {throw std::runtime_error("abs is not supported for this type");}
   virtual std::shared_ptr<dfcolumn>
-  eq(const std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("eq is not supported for this type");
-  }
+  eq(const std::shared_ptr<dfcolumn>& right); 
   virtual std::shared_ptr<dfcolumn>
-  eq_im(const std::shared_ptr<dfscalar>& right) {
-    throw std::runtime_error("eq_im is not supported for this type");
-  }
+  eq_im(const std::shared_ptr<dfscalar>& right); 
   virtual std::shared_ptr<dfcolumn>
-  neq(const std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("neq is not supported for this type");
-  }
+  neq(const std::shared_ptr<dfcolumn>& right);
   virtual std::shared_ptr<dfcolumn>
-  neq_im(const std::shared_ptr<dfscalar>& right) {
-    throw std::runtime_error("neq_im is not supported for this type");
-  }
+  neq_im(const std::shared_ptr<dfscalar>& right);
   virtual std::shared_ptr<dfcolumn>
-  lt(const std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("lt is not supported for this type");
-  }
+  lt(const std::shared_ptr<dfcolumn>& right);
   virtual std::shared_ptr<dfcolumn>
-  lt_im(const std::shared_ptr<dfscalar>& right) {
-    throw std::runtime_error("lt_im is not supported for this type");
-  }
+  lt_im(const std::shared_ptr<dfscalar>& right);
   virtual std::shared_ptr<dfcolumn>
-  le(const std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("le is not supported for this type");
-  }
+  le(const std::shared_ptr<dfcolumn>& right);
   virtual std::shared_ptr<dfcolumn>
-  le_im(const std::shared_ptr<dfscalar>& right) {
-    throw std::runtime_error("le_im is not supported for this type");
-  }
+  le_im(const std::shared_ptr<dfscalar>& right);
   virtual std::shared_ptr<dfcolumn>
-  gt(const std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("gt is not supported for this type");
-  }
+  gt(const std::shared_ptr<dfcolumn>& right);
   virtual std::shared_ptr<dfcolumn>
-  gt_im(const std::shared_ptr<dfscalar>& right) {
-    throw std::runtime_error("gt_im is not supported for this type");
-  }
+  gt_im(const std::shared_ptr<dfscalar>& right);
   virtual std::shared_ptr<dfcolumn>
-  ge(const std::shared_ptr<dfcolumn>& right) {
-    throw std::runtime_error("gt is not supported for this type");
-  }
+  ge(const std::shared_ptr<dfcolumn>& right);
   virtual std::shared_ptr<dfcolumn>
-  ge_im(const std::shared_ptr<dfscalar>& right) {
-    throw std::runtime_error("ge_im is not supported for this type");
-  }
-  virtual std::shared_ptr<dfcolumn>
-  is_null() {
-    throw std::runtime_error("is_null is not supported for this type");
-  }
-  virtual std::shared_ptr<dfcolumn>
-  is_not_null() {
-    throw std::runtime_error("is_not_null is not supported for this type");
-  }
+  ge_im(const std::shared_ptr<dfscalar>& right);
+  virtual std::shared_ptr<dfcolumn> is_null();
+  virtual std::shared_ptr<dfcolumn> is_not_null();
   virtual std::shared_ptr<dfcolumn>
   and_op(const std::shared_ptr<dfcolumn>& right) {
     throw std::runtime_error("and_op is not supported for this type");
@@ -961,10 +931,12 @@ public:
   typed_ge_im(const std::shared_ptr<typed_dfscalar<U>>& right);
   virtual std::shared_ptr<dfcolumn>
   ge_im(const std::shared_ptr<dfscalar>& right);
+/*
   virtual std::shared_ptr<dfcolumn>
   is_null();
   virtual std::shared_ptr<dfcolumn>
   is_not_null();
+*/
   template <class U>
   std::shared_ptr<dfcolumn>
   typed_and_op(const std::shared_ptr<typed_dfcolumn<U>>& right);
@@ -2768,6 +2740,14 @@ struct dfcolumn_spill_queue_t {
 };
 
 extern dfcolumn_spill_queue_t dfcolumn_spill_queue;
+
+std::vector<int> 
+get_bool_mask_helper(std::vector<size_t>& local_idx, size_t size);
+
+std::shared_ptr<dfcolumn>
+create_boolean_column(node_local<std::vector<size_t>>& filter_idx,
+                      node_local<std::vector<size_t>>& ret_nulls,
+                      const std::vector<size_t>& sizes);
 
 }
 #endif
