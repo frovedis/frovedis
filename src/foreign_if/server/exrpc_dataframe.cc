@@ -2257,19 +2257,6 @@ void set_dfagg_asCol_name(exrpc_ptr_t& fn, std::string& cname) {
   agg->as(cname);
 }
 
-std::vector<int>
-get_bool_mask_helper(std::vector<size_t>& local_idx, size_t sz){
-  std::vector<int> res(sz, 0);
-  auto resp = res.data();
-  auto idxp = local_idx.data();
-  auto local_idx_size = local_idx.size();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-  for (size_t i = 0; i < local_idx_size; i++) resp[idxp[i]] = 1;
-  return res;
-}
-
 dummy_vector
 frov_get_bool_mask(exrpc_ptr_t& df_opt_proxy, 
                    exrpc_ptr_t& df_proxy,
