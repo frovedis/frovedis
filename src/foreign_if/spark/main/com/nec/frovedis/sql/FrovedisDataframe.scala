@@ -358,8 +358,9 @@ class FrovedisDataFrame extends java.io.Serializable {
       val ctypes = new Array[Short](ulong_sz)
       for (i <- 0 until ulong_sz) ctypes(i) = DTYPE.LONG
       val fs = FrovedisServer.getServerInstance()
-      JNISupport.castFrovedisDataframe(fs.master_node, fdata, 
+      val ret = JNISupport.castFrovedisDataframe(fs.master_node, fdata, 
                                        ulong_cols.toArray, ctypes, ulong_sz)
+      fdata = ret.dfptr
       val info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)
     }

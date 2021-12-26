@@ -246,7 +246,10 @@ class FrovedisColumn extends java.io.Serializable {
   def !== (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE, true) 
   def =!= (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE, true)
  
-  def cast(to: DataType) = new FrovedisColumn(this, TMAPPER.spk2frov_namedDT(to.toString), OPTYPE.CAST)
+  def cast(to: DataType): FrovedisColumn = {
+    val dt = TMAPPER.spk2frov_namedDT(to.toString)
+    new FrovedisColumn(this, dt, OPTYPE.CAST, dt.equals("boolean"))
+  }
   def cast(to: String): FrovedisColumn = cast(CatalystSqlParser.parseDataType(to))
 
   def when (left: FrovedisColumn, arg: Any): FrovedisColumn = { // else-if when case
