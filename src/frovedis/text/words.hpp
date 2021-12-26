@@ -108,11 +108,43 @@ void substr(std::vector<size_t>& starts,
             int pos, int num);
 
 void substr(size_t* starts, size_t* lens, size_t num_words,
+            const int* pos, int num);
+               
+void substr(std::vector<size_t>& starts,
+            std::vector<size_t>& lens,
+            const std::vector<int>& pos, int num);
+
+void substr(size_t* starts, size_t* lens, size_t num_words,
+            int pos, const int* num);
+               
+void substr(std::vector<size_t>& starts,
+            std::vector<size_t>& lens,
+            int pos, const std::vector<int>& num);
+
+void substr(std::vector<size_t>& starts,
+            std::vector<size_t>& lens,
+            const std::vector<int>& pos, int num);
+
+void substr(size_t* starts, size_t* lens, size_t num_words,
+            const int* pos, const int* num);
+               
+void substr(std::vector<size_t>& starts,
+            std::vector<size_t>& lens,
+            const std::vector<int>& pos, const std::vector<int>& num);
+
+void substr(size_t* starts, size_t* lens, size_t num_words,
             int pos);
                
 void substr(std::vector<size_t>& starts,
             std::vector<size_t>& lens,
             int pos);
+
+void substr(size_t* starts, size_t* lens, size_t num_words,
+            const int* pos);
+               
+void substr(std::vector<size_t>& starts,
+            std::vector<size_t>& lens,
+            const std::vector<int>& pos);
 
 /*
   idx: index of words that contains the string
@@ -179,6 +211,14 @@ struct words {
   void substr(int pos, int num)
     {frovedis::substr(starts, lens, pos, num);}
   void substr(int pos)
+    {frovedis::substr(starts, lens, pos);}
+  void substr(const std::vector<int>& pos, const std::vector<int>& num)
+    {frovedis::substr(starts, lens, pos, num);}
+  void substr(int pos, const std::vector<int>& num)
+    {frovedis::substr(starts, lens, pos, num);}
+  void substr(const std::vector<int>& pos, int num)
+    {frovedis::substr(starts, lens, pos, num);}
+  void substr(const std::vector<int>& pos)
     {frovedis::substr(starts, lens, pos);}
   void replace(const std::string& from, const std::string& to) { // destructive
     std::vector<int> ret_chars;
