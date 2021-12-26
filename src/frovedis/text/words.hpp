@@ -101,18 +101,18 @@ void remove_null(std::vector<size_t>& starts,
                  std::vector<size_t>& lens);
 
 void substr(size_t* starts, size_t* lens, size_t num_words,
-            size_t pos, size_t num);
+            int pos, int num);
                
 void substr(std::vector<size_t>& starts,
             std::vector<size_t>& lens,
-            size_t pos, size_t num);
+            int pos, int num);
 
 void substr(size_t* starts, size_t* lens, size_t num_words,
-            size_t pos);
+            int pos);
                
 void substr(std::vector<size_t>& starts,
             std::vector<size_t>& lens,
-            size_t pos);
+            int pos);
 
 /*
   idx: index of words that contains the string
@@ -176,9 +176,9 @@ struct words {
     {frovedis::trim_noalpha(chars, starts, lens);}
   void remove_null()
     {frovedis::remove_null(starts, lens);}
-  void substr(size_t pos, size_t num)
+  void substr(int pos, int num)
     {frovedis::substr(starts, lens, pos, num);}
-  void substr(size_t pos)
+  void substr(int pos)
     {frovedis::substr(starts, lens, pos);}
   void replace(const std::string& from, const std::string& to) { // destructive
     std::vector<int> ret_chars;
