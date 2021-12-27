@@ -643,7 +643,8 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
     auto fail = find_condition(lens, num_words, words_substr_helper(pos+num));
     if(fail.size() != 0)
       throw std::runtime_error("substr: pos + num is larger than length at: " +
-                               std::to_string(fail[0]));
+                               std::to_string(fail[0])
+                               + " (local index)");
     for(size_t i = 0; i < num_words; i++) {
       starts[i] += pos;
       lens[i] = num;
@@ -654,7 +655,8 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
     auto fail = find_condition(lens, num_words, words_substr_helper(-pos));
     if(fail.size() != 0)
       throw std::runtime_error("substr: abs(pos) is larger than length at: " +
-                               std::to_string(fail[0]));
+                               std::to_string(fail[0])
+                               + " (local index)");
     for(size_t i = 0; i < num_words; i++) {
       starts[i] = starts[i] + lens[i] + pos;
       lens[i] = num;
@@ -692,11 +694,13 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
   if(fail.size() != 0)
     throw std::runtime_error
       ("substr: pos + num or abs(pos) is larger than length at: " +
-       std::to_string(fail[0]));
+       std::to_string(fail[0])
+       + " (local index)");
   auto fail2 = find_condition(pos, num_words, words_substr_helper_posv2(num));
   if(fail2.size() != 0)
     throw std::runtime_error("substr: num is larger than abs(pos) at: " +
-                             std::to_string(fail2[0]));
+                             std::to_string(fail2[0])
+                             + " (local index)");
   for(size_t i = 0; i < num_words; i++) {
     if(pos[i] >= 0) {
       starts[i] += pos[i];
@@ -732,13 +736,15 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
   auto fail = find_condition(num, num_words, is_lt<int>(0));
   if(fail.size() != 0) 
     throw std::runtime_error("substr: num is negative at:" +
-                             std::to_string(fail[0]));
+                             std::to_string(fail[0])
+                             + " (local index)");
   if(pos >= 0) {
     auto fail = find_condition_pair(lens, num, num_words,
                                     words_substr_helper_numv1(pos));
     if(fail.size() != 0)
       throw std::runtime_error("substr: pos + num is larger than length at: " +
-                               std::to_string(fail[0]));
+                               std::to_string(fail[0])
+                               + " (local index)");
     for(size_t i = 0; i < num_words; i++) {
       starts[i] += pos;
       lens[i] = num[i];
@@ -747,11 +753,13 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
     auto fail = find_condition(num, num_words, words_substr_helper_numv2(pos));
     if(fail.size() != 0)
       throw std::runtime_error("substr: num is larger than abs(pos) at: " +
-                               std::to_string(fail[0]));
+                               std::to_string(fail[0])
+                               + " (local index)");
     auto fail2 = find_condition(lens, num_words, words_substr_helper(-pos));
     if(fail2.size() != 0)
       throw std::runtime_error("substr: abs(pos) is larger than length at: " +
-                               std::to_string(fail2[0]));
+                               std::to_string(fail2[0])
+                               + " (local index)");
     for(size_t i = 0; i < num_words; i++) {
       starts[i] = starts[i] + lens[i] + pos;
       lens[i] = num[i];
@@ -789,7 +797,8 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
   auto fail = find_condition(num, num_words, is_lt<int>(0));
   if(fail.size() != 0) 
     throw std::runtime_error("substr: num is negative at:" +
-                             std::to_string(fail[0]));
+                             std::to_string(fail[0])
+                             + " (local index)");
   std::vector<int> posnum(num_words);
   auto posnump = posnum.data();
   for(size_t i = 0; i < num_words; i++) posnump[i] = pos[i] + num[i];
@@ -798,18 +807,21 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
                                    words_substr_helper_posnumv1());
   if(fail2.size() != 0)
     throw std::runtime_error("substr: pos + num is larger than length at: " +
-                             std::to_string(fail2[0]));
+                             std::to_string(fail2[0])
+                             + " (local index)");
   // if pos is positive, this should be OK
   auto fail3 = find_condition_pair(lens, pos, num_words,
                                    words_substr_helper_posnumv2());
   if(fail3.size() != 0)
     throw std::runtime_error("substr: abs(pos) is larger than length at: " +
-                             std::to_string(fail3[0]));
+                             std::to_string(fail3[0])
+                             + " (local index)");
   auto fail4 = find_condition_pair(pos, num, num_words,
                                    words_substr_helper_posnumv3());
   if(fail4.size() != 0)
     throw std::runtime_error("substr: num is larger than abs(pos) at: " +
-                             std::to_string(fail4[0]));
+                             std::to_string(fail4[0])
+                             + " (local index)");
   for(size_t i = 0; i < num_words; i++) {
     if(pos[i] >= 0) {
       starts[i] += pos[i];
@@ -827,7 +839,8 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
     auto fail = find_condition(lens, num_words, words_substr_helper(pos));
     if(fail.size() != 0)
       throw std::runtime_error("substr: pos is larger than length at: " +
-                               std::to_string(fail[0]));
+                               std::to_string(fail[0])
+                               + " (local index)");
     for(size_t i = 0; i < num_words; i++) {
       starts[i] += pos;
       lens[i] -= pos;
@@ -836,7 +849,8 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
     auto fail = find_condition(lens, num_words, words_substr_helper(-pos));
     if(fail.size() != 0)
       throw std::runtime_error("substr: abs(pos) is larger than length at: " +
-                               std::to_string(fail[0]));
+                               std::to_string(fail[0])
+                               + " (local index)");
     for(size_t i = 0; i < num_words; i++) {
       starts[i] = starts[i] + lens[i] + pos;
       lens[i] = -pos;
@@ -861,7 +875,8 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
   if(fail.size() != 0)
     throw std::runtime_error
       ("substr: pos or abs(pos) is larger than length at: " +
-       std::to_string(fail[0]));
+       std::to_string(fail[0])
+       + " (local index)");
   for(size_t i = 0; i < num_words; i++) {
     if(pos[i] >= 0) {
       starts[i] += pos[i];
