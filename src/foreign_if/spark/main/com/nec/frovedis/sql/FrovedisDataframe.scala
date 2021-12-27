@@ -522,14 +522,16 @@ class FrovedisDataFrame extends java.io.Serializable {
         throw new IllegalArgumentException(
         "select: few non-aggregator functions are detected!")
       dummy = JNISupport.executeFrovedisAgg(fs.master_node, get(), funcs, size)
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
     } else {
       dummy = JNISupport.fselectFrovedisDataframe(fs.master_node, get(),
                                                   funcs, size)
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
       // update types for bool columns
       for (i <- 0 until bool_cols_id.size) dummy.types(bool_cols_id(i)) = DTYPE.BOOL 
     }
-    val info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(dummy)
   } 
 
@@ -818,6 +820,8 @@ class FrovedisDataFrame extends java.io.Serializable {
     val proxy = JNISupport.joinFrovedisDataframes(fs.master_node,
                 this.get(), df_right.get(), opt_proxy, "inner",
                 "bcast", check_opt, rsuf)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return new FrovedisDataFrame(proxy, t_cols, t_types) 
   }
 
