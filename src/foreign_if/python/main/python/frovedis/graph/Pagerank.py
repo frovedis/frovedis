@@ -23,6 +23,8 @@ def pagerank(G, alpha=0.85, personalization=None, max_iter=100, tol=1.0e-6, \
     RETURN: dict of ranks
     """
     G, inp_movable = validate_graph(G)
+    if max_iter < 1:
+        raise ValueError("Expected a positive max_iter count!")
     (host, port) = FrovedisServer.getServerInstance()
     result = rpclib.call_frovedis_pagerank(host, port,\
                 G.get(), tol, alpha, max_iter, verbose)
