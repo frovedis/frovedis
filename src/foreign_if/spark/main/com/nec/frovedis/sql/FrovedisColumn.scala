@@ -92,18 +92,17 @@ object OPTYPE extends java.io.Serializable {
 }
 
 class FrovedisColumn extends java.io.Serializable {
-  private var init_name: String = null
   private var col_name: String = null // would be updated if as() is performed
   private var kind: Short = ColKind.DFID
   private var opType: Short = OPTYPE.ID
   private var proxy: Long = 0
   private var isBool: Boolean = false
   private var isDesc: Int = 0
-  private var dtype: Short = 0 // would be set for scalar
+  private var dtype: Short = 0  // would be set only for scalar
+  private var value: Any = null // would be set for scalar
 
   def this(n: String) = {
     this()
-    this.init_name = n
     this.col_name = n
     this.opType = OPTYPE.ID
     this.kind = ColKind.DFID
@@ -120,61 +119,95 @@ class FrovedisColumn extends java.io.Serializable {
     this.opType = opt
     this.isBool = cond
     this.kind = ColKind.DFFUNC
-    var right_str = right.toString
-    this.init_name = get_name(left.col_name, right_str, opt)
-    this.col_name = this.init_name
-    if (left.isSCALAR) // TODO: support left as literal
-      throw new java.lang.UnsupportedOperationException(
-      this.col_name + ": 'left as literal' is currently not supported!\n")
-    var leftp = left.proxy
-    val is_immed = checkIsImmed(right)
+
+    var right2: FrovedisColumn = null
+    val right_is_immed = checkIsImmed(right)
+    if (right_is_immed) {
+      if (right.isInstanceOf[FrovedisColumn]) right2 = right.asInstanceOf[FrovedisColumn] 
+      else right2 = new FrovedisColumn().as_immed(right)
+    } 
+    else { // column
+      if (right.isInstanceOf[FrovedisColumn]) right2 = right.asInstanceOf[FrovedisColumn] 
+      else right2 = new FrovedisColumn(right.toString) // spark column -> frovedis column
+    }
+    this.col_name = get_name(left.col_name, right2.col_name, opt)
+
+    var rev_op = false
+    var im_op = false
+    if (!left.isSCALAR && right2.isSCALAR) { 
+      im_op = true
+      rev_op = false
+    }
+    else if (left.isSCALAR && !right2.isSCALAR) { // right can be dummy 
+      val unary = Array(OPTYPE.NOT, OPTYPE.ISNULL, OPTYPE.ISNOTNULL)
+      if (unary contains opt) { // right2 is dummy
+        im_op = false
+        rev_op = false
+      }
+      else {
+        im_op = true
+        rev_op = true
+      }
+    }
+    else { // either both scalar (immed-column)  or both column
+      im_op = false
+      rev_op = false
+    }
+
     val fs = FrovedisServer.getServerInstance()
-    var tmp: FrovedisColumn = null
-    if (right.isInstanceOf[FrovedisColumn]) tmp = right.asInstanceOf[FrovedisColumn] // casting from Any
-    if (is_immed) {
-      var im_dt: Short = 0
-      if (tmp == null) im_dt = DTYPE.detect(right) 
-      else { // tmp is an instance of FrovedisColumn and it must be a SCALAR
-        if (tmp.colName.equals("NULL") && this.isBool)  
-          throw new IllegalArgumentException(this.col_name + 
-          ": is not supported! Use isNull/isNotNull instead.\n")
-        im_dt = tmp.get_dtype()
-        right_str = tmp.init_name // col_name might be changed due to as()
+    if (im_op) {
+      var leftp: Long = 0
+      var right_str: String = null
+      var right_dtype: Short = 0
+      if (rev_op) {
+        leftp = right2.proxy
+        right_str = left.get_value_as_string() // col_name might be changed due to as()
+        right_dtype = left.get_dtype()
+      }
+      else {
+        leftp = left.proxy
+        right_str = right2.get_value_as_string() // col_name might be changed due to as()
+        right_dtype = right2.get_dtype()
       }
       this.proxy = JNISupport.getOptImmedDFfunc(fs.master_node, leftp, 
-                                                right_str, im_dt,
-                                                opt, col_name)
-    } else {
-      if (!right.isInstanceOf[FrovedisColumn]) tmp = new FrovedisColumn(right_str) // for spark column
-      var rightp = tmp.proxy
+                                                right_str, right_dtype,
+                                                opt, col_name, rev_op)
+    }
+    else {
+      var leftp = left.proxy
+      var rightp = right2.proxy
       this.proxy = JNISupport.getOptDFfunc(fs.master_node, leftp, rightp,
                                            opt, col_name)
+
     }
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
   }
 
-  def get_immed(n: String, dtype: Short): FrovedisColumn = {
-    val ret = new FrovedisColumn()
-    ret.init_name = n
-    ret.col_name = n
-    ret.opType = OPTYPE.ID
-    ret.kind = ColKind.DFSCALAR
-    ret.dtype = dtype
-    ret.isBool = (dtype == DTYPE.BOOL)
+  def as_immed(n: Any): this.type = {
+    if (n == null) {
+      this.col_name = "NULL"
+      this.dtype = DTYPE.INT // null would be constructed as INTMAX at server side
+    } else {
+      this.col_name = n.toString()
+      this.dtype = DTYPE.detect(n)
+    }
+    this.value = n
+    this.isBool = (dtype == DTYPE.BOOL)
+    this.opType = OPTYPE.ID
+    this.kind = ColKind.DFSCALAR
     val fs = FrovedisServer.getServerInstance()
-    ret.proxy = JNISupport.getIMDFfunc(fs.master_node, ret.col_name, dtype)
+    this.proxy = JNISupport.getIMDFfunc(fs.master_node, col_name, dtype)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    return ret
+    this
   }
 
   def get_agg(agg: Short, ignoreNulls: Boolean = true): FrovedisColumn = {
     val ret = new FrovedisColumn()
     ret.opType = agg
     ret.kind = ColKind.DFAGG
-    ret.init_name = get_name(this.col_name, "", agg)
-    ret.col_name = ret.init_name
+    ret.col_name = get_name(this.col_name, "", agg)
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getDFagg(fs.master_node, this.proxy,
                                     agg, ret.col_name, ignoreNulls)
@@ -259,8 +292,7 @@ class FrovedisColumn extends java.io.Serializable {
     }
     val fs = FrovedisServer.getServerInstance()
     val ret = new FrovedisColumn(left, arg, OPTYPE.IF, true) // constructs a IF clause
-    ret.init_name = get_name(this.col_name, ret.col_name, OPTYPE.ELIF) // updates name
-    ret.col_name = ret.init_name
+    ret.col_name = get_name(this.col_name, ret.col_name, OPTYPE.ELIF) // updates name
     ret.opType = OPTYPE.ELIF // updates opType
     ret.proxy = JNISupport.appendWhenCondition(fs.master_node, this.proxy, // updates proxy
                                                ret.proxy, ret.col_name)
@@ -287,12 +319,13 @@ class FrovedisColumn extends java.io.Serializable {
   def startsWith (arg: String) = new FrovedisColumn(this, arg + "%", OPTYPE.LIKE, true)
   def endsWith   (arg: String) = new FrovedisColumn(this, "%" + arg, OPTYPE.LIKE, true)
 
+  // use "dummy" as right in order to mark the operation as not-immed
   def dummy     = new FrovedisColumn("0") // for dummy right
-  def unary_!   = new FrovedisColumn(this, dummy, OPTYPE.NOT, true) 
-  def isNull    = new FrovedisColumn(this, dummy, OPTYPE.ISNULL, true) 
-  def isNotNull = new FrovedisColumn(this, dummy, OPTYPE.ISNOTNULL, true) 
+  def unary_!   = new FrovedisColumn(this, dummy, OPTYPE.NOT, true)
+  def isNull    = new FrovedisColumn(this, dummy, OPTYPE.ISNULL, true)
+  def isNotNull = new FrovedisColumn(this, dummy, OPTYPE.ISNOTNULL, true)
 
-  // TODO: support other mathematical operators...
+  // TODO: support other mathematical operators like abs() etc.
   def + (right: Any)  = new FrovedisColumn(this, right, OPTYPE.ADD)
   def - (right: Any)  = new FrovedisColumn(this, right, OPTYPE.SUB)
   def * (right: Any)  = new FrovedisColumn(this, right, OPTYPE.MUL)
@@ -305,18 +338,18 @@ class FrovedisColumn extends java.io.Serializable {
     ret.opType = OPTYPE.MUL
     ret.kind = ColKind.DFFUNC
     val right_str = "-1"
-    ret.init_name = "(- " + this.toString + ")"
-    ret.col_name = ret.init_name
+    ret.col_name = "(- " + this.toString + ")"
+    val is_rev = false
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getOptImmedDFfunc(fs.master_node, this.proxy, 
                                              right_str, DTYPE.INT,
-                                             OPTYPE.MUL, col_name)
+                                             OPTYPE.MUL, col_name, is_rev)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return ret
   }
   def as(new_name: String): this.type = {
-    this.col_name = new_name // init_name remains same
+    this.col_name = new_name
     val fs = FrovedisServer.getServerInstance()
     if (isAGG)
       JNISupport.setDFAggAsColName(fs.master_node, proxy, col_name)
@@ -343,15 +376,22 @@ class FrovedisColumn extends java.io.Serializable {
   }
   def get()    = proxy
   def colName  = col_name 
-  def value    = init_name
   def isBOOL   = isBool
   def isID     = (kind == ColKind.DFID)
   def isFUNC   = (kind == ColKind.DFFUNC)
   def isAGG    = (kind == ColKind.DFAGG)
   def isSCALAR = (kind == ColKind.DFSCALAR)
   def get_dtype(): Short = {
-    if (isSCALAR) return this.dtype
+    if (isSCALAR) return dtype
     else throw new IllegalArgumentException("get_dtype: cannot detect dtype for non-literals!\n")
+  }
+  def get_value(): Any = {
+    if (isSCALAR) return value
+    else throw new IllegalArgumentException("get_value: can only be obtained for literals!\n")
+  }
+  def get_value_as_string(): String = {
+    if (isSCALAR) return if (value == null) "NULL" else this.value.toString()
+    else throw new IllegalArgumentException("get_value: can only be obtained for literals!\n")
   }
   override def toString = col_name
 }
@@ -370,10 +410,7 @@ object functions extends java.io.Serializable {
   def column(col: String)      = new FrovedisColumn(col)
   def asc(col: String)         = new FrovedisColumn(col).asc
   def desc(col: String)        = new FrovedisColumn(col).desc
-  def lit(x: Any): FrovedisColumn = {
-    if (x == null) new FrovedisColumn().get_immed("NULL", DTYPE.STRING)
-    else           new FrovedisColumn().get_immed(x.toString, DTYPE.detect(x))
-  }
+  def lit(x: Any)              = new FrovedisColumn().as_immed(x)
   def when(left: FrovedisColumn, right: Any) = 
     new FrovedisColumn(left, right, OPTYPE.IF, true)
 

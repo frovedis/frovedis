@@ -123,8 +123,13 @@ void show_dataframe(exrpc_ptr_t& df_proxy);
 
 template <class T>
 exrpc_ptr_t get_dffunc_im(std::string& value) {
-  auto val = do_cast<T>(value);
-  auto retptr = new std::shared_ptr<dffunction>(im(val));
+  std::shared_ptr<dffunction> *retptr = NULL;
+  if (value == "NULL") {
+    retptr = new std::shared_ptr<dffunction>(null_column<T>());
+  } else {
+    auto val = do_cast<T>(value);
+    retptr = new std::shared_ptr<dffunction>(im(val));
+  }
   return reinterpret_cast<exrpc_ptr_t> (retptr);
 }
 
@@ -160,26 +165,16 @@ void set_dfagg_asCol_name(exrpc_ptr_t& fn, std::string& cname);
 exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
                                         std::string& right,
                                         short& opt_id,
-                                        std::string& cname);
+                                        std::string& cname,
+                                        bool& is_rev);
 
-// for immediate value (right) of non-string type, T
-// where left is a "dffunction", used in spark wrapper
 template <class T>
-exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
-                                 std::string& right_str,
-                                 short& opt_id,
-                                 std::string& cname) {
-  auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
+exrpc_ptr_t get_immed_when_dffunc(exrpc_ptr_t& leftp,
+                                  T& right,
+                                  short& opt_id,
+                                  std::string& cname) {
   std::shared_ptr<dffunction> *opt = NULL;
-  auto right = do_cast<T>(right_str);
   switch(opt_id) {
-    // --- conditional ---
-    case EQ:   opt = new std::shared_ptr<dffunction>(eq_im(left, right)->as(cname)); break;
-    case NE:   opt = new std::shared_ptr<dffunction>(neq_im(left, right)->as(cname)); break;
-    case LT:   opt = new std::shared_ptr<dffunction>(lt_im(left, right)->as(cname)); break;
-    case LE:   opt = new std::shared_ptr<dffunction>(le_im(left, right)->as(cname)); break;
-    case GT:   opt = new std::shared_ptr<dffunction>(gt_im(left, right)->as(cname)); break;
-    case GE:   opt = new std::shared_ptr<dffunction>(ge_im(left, right)->as(cname)); break;
     case IF:        
     case ELIF: {
       auto& left = *reinterpret_cast<std::shared_ptr<dfoperator>*>(leftp);
@@ -194,15 +189,63 @@ exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
       func.push_back(im(right)); // added else function
       opt = new std::shared_ptr<dffunction>(when(cond, func)->as(cname)); break;
     }
-    // --- mathematical ---
-    case ADD:  opt = new std::shared_ptr<dffunction>(add_im_as(left, right, cname)); break;
-    case SUB:  opt = new std::shared_ptr<dffunction>(sub_im_as(left, right, cname)); break;
-    case MUL:  opt = new std::shared_ptr<dffunction>(mul_im_as(left, right, cname)); break;
-    case IDIV: opt = new std::shared_ptr<dffunction>(idiv_im_as(left, right, cname)); break;
-    case FDIV: opt = new std::shared_ptr<dffunction>(fdiv_im_as(left, right, cname)); break;
-    case MOD:  opt = new std::shared_ptr<dffunction>(mod_im_as(left, right, cname)); break;
-    case POW:  opt = new std::shared_ptr<dffunction>(pow_im_as(left, right, cname)); break;
-    default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
+    default: REPORT_ERROR(USER_ERROR, "when: Unsupported dffunction is requested!\n");
+  }
+  return reinterpret_cast<exrpc_ptr_t> (opt);
+}
+
+// for immediate value (right) of non-string type, T
+// where left is a "dffunction", used in spark wrapper
+template <class T>
+exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
+                                 std::string& right_str,
+                                 short& opt_id,
+                                 std::string& cname,
+                                 bool& is_rev) {
+  auto right = do_cast<T>(right_str);
+  if (opt_id == IF || opt_id == ELIF || opt_id == ELSE)
+    return get_immed_when_dffunc(leftp, right, opt_id, cname);
+
+  auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
+  std::shared_ptr<dffunction> *opt = NULL;
+  if (!is_rev) {
+    switch(opt_id) {
+      // --- conditional ---
+      case EQ:   opt = new std::shared_ptr<dffunction>((left == right)->as(cname)); break;
+      case NE:   opt = new std::shared_ptr<dffunction>((left != right)->as(cname)); break;
+      case LT:   opt = new std::shared_ptr<dffunction>((left < right)->as(cname)); break;
+      case LE:   opt = new std::shared_ptr<dffunction>((left <= right)->as(cname)); break;
+      case GT:   opt = new std::shared_ptr<dffunction>((left > right)->as(cname)); break;
+      case GE:   opt = new std::shared_ptr<dffunction>((left >= right)->as(cname)); break;
+      // --- mathematical ---
+      case ADD:  opt = new std::shared_ptr<dffunction>(add_im_as (left, right, cname)); break;
+      case SUB:  opt = new std::shared_ptr<dffunction>(sub_im_as (left, right, cname)); break;
+      case MUL:  opt = new std::shared_ptr<dffunction>(mul_im_as (left, right, cname)); break;
+      case IDIV: opt = new std::shared_ptr<dffunction>(idiv_im_as(left, right, cname)); break;
+      case FDIV: opt = new std::shared_ptr<dffunction>(fdiv_im_as(left, right, cname)); break;
+      case MOD:  opt = new std::shared_ptr<dffunction>(mod_im_as (left, right, cname)); break;
+      case POW:  opt = new std::shared_ptr<dffunction>(pow_im_as (left, right, cname)); break;
+      default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
+    }
+  } else {
+    switch(opt_id) {
+      // --- conditional ---
+      case EQ:   opt = new std::shared_ptr<dffunction>((right == left)->as(cname)); break;
+      case NE:   opt = new std::shared_ptr<dffunction>((right != left)->as(cname)); break;
+      case LT:   opt = new std::shared_ptr<dffunction>((right < left)->as(cname)); break;
+      case LE:   opt = new std::shared_ptr<dffunction>((right <= left)->as(cname)); break;
+      case GT:   opt = new std::shared_ptr<dffunction>((right > left)->as(cname)); break;
+      case GE:   opt = new std::shared_ptr<dffunction>((right >= left)->as(cname)); break;
+      // --- mathematical ---
+      case ADD:  opt = new std::shared_ptr<dffunction>(add_im_as (right, left, cname)); break;
+      case SUB:  opt = new std::shared_ptr<dffunction>(sub_im_as (right, left, cname)); break;
+      case MUL:  opt = new std::shared_ptr<dffunction>(mul_im_as (right, left, cname)); break;
+      case IDIV: opt = new std::shared_ptr<dffunction>(idiv_im_as(right, left, cname)); break;
+      case FDIV: opt = new std::shared_ptr<dffunction>(fdiv_im_as(right, left, cname)); break;
+      case MOD:  opt = new std::shared_ptr<dffunction>(mod_im_as (right, left, cname)); break;
+      case POW:  opt = new std::shared_ptr<dffunction>(pow_im_as (right, left, cname)); break;
+      default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
+    }
   }
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }

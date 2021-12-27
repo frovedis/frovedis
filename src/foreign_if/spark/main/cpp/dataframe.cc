@@ -15,7 +15,7 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDa
   auto col_names = to_string_vector(env, cols, size);
   auto dvecps = to_exrpc_vector(env, dvec_proxies, size);
   exrpc_ptr_t df_proxy = 0;
-  bool nan_as_null = false; // TODO: confirm spark's null treatment case
+  bool nan_as_null = false; // spark doesn't treat nan as null
   try {
     df_proxy = exrpc_async(fm_node,create_dataframe,dtypes,col_names,dvecps,nan_as_null).get();
   }
@@ -681,25 +681,26 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_appendWhenCondit
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getOptImmedDFfunc
   (JNIEnv *env, jclass thisCls, jobject master_node, 
    jlong left, jstring right, jshort right_dtype,
-   jshort opt, jstring colname) {
+   jshort opt, jstring colname, jboolean isRev) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto leftp = (exrpc_ptr_t) left;
   auto right_str = to_cstring(env, right);
   auto cname = to_cstring(env, colname);
+  bool is_rev = (bool) isRev;
   exrpc_ptr_t proxy = 0;
   try {
     switch(right_dtype) {
       case INT:    proxy = exrpc_async(fm_node, get_immed_dffunc_opt<int>, 
-                                       leftp, right_str, opt, cname).get(); break;
+                                       leftp, right_str, opt, cname, is_rev).get(); break;
       case LONG:   proxy = exrpc_async(fm_node, get_immed_dffunc_opt<long>, 
-                                       leftp, right_str, opt, cname).get(); break;
+                                       leftp, right_str, opt, cname, is_rev).get(); break;
       case FLOAT:  proxy = exrpc_async(fm_node, get_immed_dffunc_opt<float>, 
-                                       leftp, right_str, opt, cname).get(); break;
+                                       leftp, right_str, opt, cname, is_rev).get(); break;
       case DOUBLE: proxy = exrpc_async(fm_node, get_immed_dffunc_opt<double>, 
-                                       leftp, right_str, opt, cname).get(); break;
+                                       leftp, right_str, opt, cname, is_rev).get(); break;
       case STRING: proxy = exrpc_async(fm_node, get_immed_string_dffunc_opt, 
-                                       leftp, right_str, opt, cname).get(); break;
+                                       leftp, right_str, opt, cname, is_rev).get(); break;
       default:     REPORT_ERROR(USER_ERROR,
                   "Unsupported datatype is encountered for immediate value!\n");
     }

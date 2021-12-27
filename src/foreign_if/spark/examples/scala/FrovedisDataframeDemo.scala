@@ -56,10 +56,13 @@ object FrovedisDataframeDemo {
     df1.filter(not($$"Country" === "France")).show()
 
     // select demo
-    df1.select(lit(2).as("const_two"), 
+    df1.select(lit(2).as("const_two"),
+               lit(null).isNull, 
                lit(false).as("false_col"),
                $$"Age".cast("double"), 
-               $$"Age", $$"Age" * 2, $$"Age" > 19).to_spark_DF().show()
+               $$"Country" === "Japan",
+               lit(2) * $$"Age", // reversed operation
+               $$"Age" > 19).to_spark_DF().show()
 
     // sort demo
     df1.sort(col("Country").asc, $$"Age".desc).show()
@@ -172,8 +175,6 @@ object FrovedisDataframeDemo {
     frov_dfWithNull.show()
     frov_dfWithNull.filter($$"state".isNotNull).show()
     frov_dfWithNull.filter($$"state".isNull).show()
-    //frov_dfWithNull.filter(($$"state" === "NY").isNull).show() // FIXME
-    //frov_dfWithNull.filter($$"state".like("N%").isNull).show() // FIXME
     frov_dfWithNull.groupBy("state").agg(count("state"), count("*")).show()
     frov_dfWithNull.release()
 

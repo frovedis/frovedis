@@ -34,6 +34,7 @@ object DTYPE extends java.io.Serializable {
   }
 
   def is_numeric(tid: Short) = (tid != STRING && tid != WORDS)
+  def cast[T: ClassTag] (data: String): T = data.asInstanceOf[T]
 }
 
 object TransferData extends java.io.Serializable {

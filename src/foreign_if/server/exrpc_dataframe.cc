@@ -2054,7 +2054,12 @@ exrpc_ptr_t get_dffunc_id(std::string& cname) {
 }
 
 exrpc_ptr_t get_dffunc_string_im(std::string& value) {
-  auto retptr = new std::shared_ptr<dffunction>(dic_string_im(value));
+  std::shared_ptr<dffunction> *retptr = NULL;
+  if (value == "NULL") {
+    retptr = new std::shared_ptr<dffunction>(null_dic_string_column());
+  } else {
+    retptr = new std::shared_ptr<dffunction>(dic_string_im(value));
+  }
   return reinterpret_cast<exrpc_ptr_t> (retptr);
 }
 
@@ -2064,14 +2069,48 @@ int named_bool_toInt(std::string data) { // copying data since would be tolowere
 }
 
 exrpc_ptr_t get_dffunc_bool_im(std::string& value) {
-  auto retptr = new std::shared_ptr<dffunction>(im(named_bool_toInt(value)));
+  std::shared_ptr<dffunction> *retptr = NULL;
+  if (value == "NULL") {
+    retptr = new std::shared_ptr<dffunction>(null_column<int>());
+  } else {
+    retptr = new std::shared_ptr<dffunction>(im(named_bool_toInt(value)));
+  }
   return reinterpret_cast<exrpc_ptr_t> (retptr);
+}
+
+exrpc_ptr_t get_when_dffunc(exrpc_ptr_t& leftp,
+                            exrpc_ptr_t& rightp,
+                            short& opt_id,
+                            std::string& cname) {
+  auto& right = *reinterpret_cast<std::shared_ptr<dffunction>*>(rightp);
+  std::shared_ptr<dffunction> *opt = NULL;
+  switch(opt_id) {
+    case IF:
+    case ELIF: {
+      auto& left = *reinterpret_cast<std::shared_ptr<dfoperator>*>(leftp);
+      opt = new std::shared_ptr<dffunction>(when({left >> right})->as(cname));
+      // ELIF: must also call append_when_condition() to update if-elif conditions from client side
+      break;
+    }
+    case ELSE: {
+      auto& left = *reinterpret_cast<std::shared_ptr<dffunction_when>*>(leftp);
+      auto cond = left->cond;
+      auto func = left->func;
+      func.push_back(right); // added else function
+      opt = new std::shared_ptr<dffunction>(when(cond, func)->as(cname)); break;
+    }
+    default: REPORT_ERROR(USER_ERROR, "when: Unsupported dffunction is requested!\n");
+  }
+  return reinterpret_cast<exrpc_ptr_t> (opt);
 }
 
 exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
                            exrpc_ptr_t& rightp,
                            short& opt_id,
                            std::string& cname) {
+  if (opt_id == IF || opt_id == ELIF || opt_id == ELSE)
+    return get_when_dffunc(leftp, rightp, opt_id, cname);
+
   auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
   auto& right = *reinterpret_cast<std::shared_ptr<dffunction>*>(rightp);
   std::shared_ptr<dffunction> *opt = NULL;
@@ -2089,20 +2128,6 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
     case NOT:       opt = new std::shared_ptr<dffunction>(not_op(left)->as(cname)); break;
     case ISNULL:    opt = new std::shared_ptr<dffunction>(is_null(left)->as(cname)); break;
     case ISNOTNULL: opt = new std::shared_ptr<dffunction>(is_not_null(left)->as(cname)); break;
-    case IF:        
-    case ELIF: {
-      auto& left = *reinterpret_cast<std::shared_ptr<dfoperator>*>(leftp);
-      opt = new std::shared_ptr<dffunction>(when({left >> right})->as(cname));
-      // ELIF: must also call append_when_condition() to update if-elif conditions from client side
-      break;
-    }
-    case ELSE: { 
-      auto& left = *reinterpret_cast<std::shared_ptr<dffunction_when>*>(leftp);
-      auto cond = left->cond;
-      auto func = left->func;
-      func.push_back(right); // added else function
-      opt = new std::shared_ptr<dffunction>(when(cond, func)->as(cname)); break;
-    }
     // --- mathematical ---
     case ADD:       opt = new std::shared_ptr<dffunction>(add_col_as(left, right, cname)); break;
     case SUB:       opt = new std::shared_ptr<dffunction>(sub_col_as(left, right, cname)); break;
@@ -2116,6 +2141,73 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }
 
+exrpc_ptr_t get_string_immed_when_dffunc(exrpc_ptr_t& leftp,
+                                         std::string& right,
+                                         short& opt_id,
+                                         std::string& cname) {
+  std::shared_ptr<dffunction> *opt = NULL;
+  switch(opt_id) {
+    case IF:
+    case ELIF: {
+      auto& left = *reinterpret_cast<std::shared_ptr<dfoperator>*>(leftp);
+      opt = new std::shared_ptr<dffunction>(when({left >> dic_string_im(right)})->as(cname));
+      // ELIF: must also call append_when_condition() to update if-elif conditions from client side
+      break;
+    }
+    case ELSE: {
+      auto& left = *reinterpret_cast<std::shared_ptr<dffunction_when>*>(leftp);
+      auto cond = left->cond;
+      auto func = left->func;
+      func.push_back(dic_string_im(right)); // added else function
+      opt = new std::shared_ptr<dffunction>(when(cond, func)->as(cname)); break;
+    }
+    default: REPORT_ERROR(USER_ERROR, "when: Unsupported dffunction is requested!\n");
+  }
+  return reinterpret_cast<exrpc_ptr_t> (opt);
+}
+
+exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
+                                        std::string& right,
+                                        short& opt_id,
+                                        std::string& cname,
+                                        bool& is_rev) {
+  if (opt_id == IF || opt_id == ELIF || opt_id == ELSE)
+    return get_string_immed_when_dffunc(leftp, right, opt_id, cname);
+
+  auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
+  std::shared_ptr<dffunction> *opt = NULL;
+  if (!is_rev) {
+    switch(opt_id) {
+      case EQ:    opt = new std::shared_ptr<dffunction>((left == right)->as(cname)); break;
+      case NE:    opt = new std::shared_ptr<dffunction>((left != right)->as(cname)); break;
+      case GT:    opt = new std::shared_ptr<dffunction>((left > right)->as(cname)); break;
+      case GE:    opt = new std::shared_ptr<dffunction>((left >= right)->as(cname)); break;
+      case LT:    opt = new std::shared_ptr<dffunction>((left < right)->as(cname)); break;
+      case LE:    opt = new std::shared_ptr<dffunction>((left <= right)->as(cname)); break;
+      case LIKE:  opt = new std::shared_ptr<dffunction>(is_like(left, right)->as(cname)); break;
+      case NLIKE: opt = new std::shared_ptr<dffunction>(is_not_like(left, right)->as(cname)); break;
+      case CAST:  opt = new std::shared_ptr<dffunction>(cast_col_as(left, right, cname)); break;
+      default: REPORT_ERROR(USER_ERROR,
+               "Unsupported immed dffunction on string type column is encountered!\n");
+    }
+  } else {
+    switch(opt_id) {
+      case EQ:    opt = new std::shared_ptr<dffunction>((right == left)->as(cname)); break;
+      case NE:    opt = new std::shared_ptr<dffunction>((right != left)->as(cname)); break;
+      case GT:    opt = new std::shared_ptr<dffunction>((right > left)->as(cname)); break;
+      case GE:    opt = new std::shared_ptr<dffunction>((right >= left)->as(cname)); break;
+      case LT:    opt = new std::shared_ptr<dffunction>((right < left)->as(cname)); break;
+      case LE:    opt = new std::shared_ptr<dffunction>((right <= left)->as(cname)); break;
+      case LIKE:  REPORT_ERROR(USER_ERROR, "like: reversed operation is not allowed!\n");
+      case NLIKE: REPORT_ERROR(USER_ERROR, "not_like: reversed operation is not allowed!\n");
+      case CAST:  REPORT_ERROR(USER_ERROR, "cast: reversed operation is not allowed!\n");
+      default: REPORT_ERROR(USER_ERROR,
+               "Unsupported immed dffunction on string type column is encountered!\n");
+    }
+  }
+  return reinterpret_cast<exrpc_ptr_t> (opt);
+}
+
 exrpc_ptr_t 
 append_when_condition(exrpc_ptr_t& leftp, exrpc_ptr_t& rightp,
                       std::string& cname) {
@@ -2124,42 +2216,6 @@ append_when_condition(exrpc_ptr_t& leftp, exrpc_ptr_t& rightp,
   auto cond = vector_concat(left->cond, right->cond);
   auto func = vector_concat(left->func, right->func);
   auto opt = new std::shared_ptr<dffunction>(when(cond, func)->as(cname));
-  return reinterpret_cast<exrpc_ptr_t> (opt);
-}
-
-exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
-                                        std::string& right,
-                                        short& opt_id,
-                                        std::string& cname) {
-  auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
-  std::shared_ptr<dffunction> *opt = NULL;
-  switch(opt_id) {
-    case EQ:    opt = new std::shared_ptr<dffunction>(eq_im(left,right)->as(cname)); break;
-    case NE:    opt = new std::shared_ptr<dffunction>(neq_im(left,right)->as(cname)); break;
-    case GT:    opt = new std::shared_ptr<dffunction>(gt_im(left,right)->as(cname)); break;
-    case GE:    opt = new std::shared_ptr<dffunction>(ge_im(left,right)->as(cname)); break;
-    case LT:    opt = new std::shared_ptr<dffunction>(lt_im(left,right)->as(cname)); break;
-    case LE:    opt = new std::shared_ptr<dffunction>(le_im(left,right)->as(cname)); break;
-    case LIKE:  opt = new std::shared_ptr<dffunction>(is_like(left, right)->as(cname)); break;
-    case NLIKE: opt = new std::shared_ptr<dffunction>(is_not_like(left, right)->as(cname)); break;
-    case CAST:  opt = new std::shared_ptr<dffunction>(cast_col_as(left, right, cname)); break;
-    case IF:        
-    case ELIF: {
-      auto& left = *reinterpret_cast<std::shared_ptr<dfoperator>*>(leftp);
-      opt = new std::shared_ptr<dffunction>(when({left >> dic_string_im(right)})->as(cname));
-      // ELIF: must also call append_when_condition() to update if-elif conditions from client side
-      break;
-    }
-    case ELSE: { 
-      auto& left = *reinterpret_cast<std::shared_ptr<dffunction_when>*>(leftp);
-      auto cond = left->cond;
-      auto func = left->func;
-      func.push_back(dic_string_im(right)); // added else function
-      opt = new std::shared_ptr<dffunction>(when(cond, func)->as(cname)); break;
-    }
-    default: REPORT_ERROR(USER_ERROR,
-             "Unsupported immed dffunction on string type column is encountered!\n");
-  }
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }
 
