@@ -1,4 +1,4 @@
-#include "dfcolumn_impl.hpp"
+#include "dfcolumn.hpp"
 #include "../core/utility.hpp"
 #include "../core/find_condition.hpp"
 #include <utility>
@@ -647,6 +647,359 @@ std::string dfcolumn::last(bool ignore_nulls) {
   } else throw std::runtime_error("unsupported type: " + dtype());
 }
 
+
+std::shared_ptr<dfcolumn> dfcolumn::substr(int pos, int num) {
+  // to avoid error in substr
+  auto ws = pos >= 0 ? as_words(6,"%Y-%m-%d",false,std::string(pos+num, 'N'))
+    : as_words(6,"%Y-%m-%d",false,std::string(-pos, 'N'));
+  auto nulls = get_nulls();
+  ws.mapv(+[](words& ws, int pos, int num){ws.substr(pos, num);},
+          broadcast(pos), broadcast(num));
+  if(dtype() == "string") {
+    // TODO: in the case of string, not using words would be faster
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  }
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos, int num) {
+  // to guard when words does not contain num size chars
+  if(pos->is_all_null()) {
+    if(dtype() == "string") {
+      return create_null_column<std::string>(sizes());
+    } else if (dtype() == "raw_string") {
+      return create_null_column<raw_string>(sizes());
+    } else {
+      return create_null_column<dic_string>(sizes());
+    }
+  } else {
+    auto nulls = get_nulls();
+    auto intcol = pos->type_cast("int");
+    auto tintcol = dynamic_pointer_cast<typed_dfcolumn<int>>(intcol);
+    if(!tintcol) throw std::runtime_error("internal cast error");
+    auto ws = as_words(6,"%Y-%m-%d",false,std::string(num,'N'));
+    if(tintcol->if_contain_nulls() || if_contain_nulls()) {
+      auto posval = tintcol->val;
+      posval.mapv
+        (+[](std::vector<int>& val,
+             std::vector<size_t>& nulls1,
+             std::vector<size_t>& nulls2) {
+          auto valp = val.data();
+          auto nulls1p = nulls1.data();
+          auto nulls1_size = nulls1.size();
+          auto nulls2p = nulls2.data();
+          auto nulls2_size = nulls2.size();
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+          for(size_t i = 0; i < nulls1_size; i++) valp[nulls1p[i]] = 0;
+          for(size_t i = 0; i < nulls2_size; i++) valp[nulls2p[i]] = 0;
+        }, tintcol->nulls, nulls);
+      ws.mapv
+        (+[](words& ws, const std::vector<size_t>& nulls1,
+             const std::vector<size_t>& nulls2, int num) {
+          auto lensp = ws.lens.data();
+          auto startsp = ws.starts.data();
+          auto nulls1p = nulls1.data();
+          auto nulls1_size = nulls1.size();
+          auto nulls2p = nulls2.data();
+          auto nulls2_size = nulls2.size();
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+          for(size_t i = 0; i < nulls1_size; i++) {
+            startsp[nulls1p[i]] = 0;
+            lensp[nulls1p[i]] = num;
+          }
+          for(size_t i = 0; i < nulls2_size; i++) {
+            startsp[nulls2p[i]] = 0;
+            lensp[nulls2p[i]] = num;
+          }
+        }, tintcol->nulls, nulls, broadcast(num));
+      ws.mapv(+[](words& ws, std::vector<int>& pos, int num){
+          ws.substr(pos, num);
+        }, posval, broadcast(num));
+    } else {
+      ws.mapv(+[](words& ws, std::vector<int>& pos, int num){
+          ws.substr(pos, num);
+        }, tintcol->val, broadcast(num));
+    }
+    if(tintcol->if_contain_nulls()) {
+      nulls.mapv(+[](std::vector<size_t>& nulls,
+                     std::vector<size_t>& colnulls) {
+                   nulls = set_union(nulls, colnulls);
+                 }, tintcol->nulls);
+    }
+    if(dtype() == "string") {
+      auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+      auto ret = std::make_shared<typed_dfcolumn<std::string>>
+        (std::move(vs), std::move(nulls));
+      return ret;
+    } else if (dtype() == "raw_string") {
+      auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+        (std::move(ws), std::move(nulls));
+      return ret;
+    } else {
+      auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+        (std::move(ws), std::move(nulls));
+      return ret;
+    }
+  }
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::substr(int pos, const std::shared_ptr<dfcolumn>& num) {
+  // to guard when words does not contain pos size chars
+  if(num->is_all_null()) {
+    if(dtype() == "string") {
+      return create_null_column<std::string>(sizes());
+    } else if (dtype() == "raw_string") {
+      return create_null_column<raw_string>(sizes());
+    } else {
+      return create_null_column<dic_string>(sizes());
+    }
+  } else {
+    auto nulls = get_nulls();
+    auto intcol = num->type_cast("int");
+    auto tintcol = dynamic_pointer_cast<typed_dfcolumn<int>>(intcol);
+    if(!tintcol) throw std::runtime_error("internal cast error");
+    auto ws = as_words(6,"%Y-%m-%d",false,std::string(std::abs(pos),'N'));
+    if(tintcol->if_contain_nulls() || if_contain_nulls()) {
+      auto numval = tintcol->val;
+      numval.mapv
+        (+[](std::vector<int>& val,
+             std::vector<size_t>& nulls1,
+             std::vector<size_t>& nulls2) {
+          auto valp = val.data();
+          auto nulls1p = nulls1.data();
+          auto nulls1_size = nulls1.size();
+          auto nulls2p = nulls2.data();
+          auto nulls2_size = nulls2.size();
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+          for(size_t i = 0; i < nulls1_size; i++) valp[nulls1p[i]] = 0;
+          for(size_t i = 0; i < nulls2_size; i++) valp[nulls2p[i]] = 0;
+        }, tintcol->nulls, nulls);
+      ws.mapv
+        (+[](words& ws, const std::vector<size_t>& nulls1,
+             const std::vector<size_t>& nulls2, int abspos) {
+          auto lensp = ws.lens.data();
+          auto startsp = ws.starts.data();
+          auto nulls1p = nulls1.data();
+          auto nulls1_size = nulls1.size();
+          auto nulls2p = nulls2.data();
+          auto nulls2_size = nulls2.size();
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+          for(size_t i = 0; i < nulls1_size; i++) {
+            startsp[nulls1p[i]] = 0;
+            lensp[nulls1p[i]] = abspos;
+          }
+          for(size_t i = 0; i < nulls2_size; i++) {
+            startsp[nulls2p[i]] = 0;
+            lensp[nulls2p[i]] = abspos;
+          }
+        }, tintcol->nulls, nulls, broadcast(std::abs(pos)));
+      ws.mapv(+[](words& ws, int pos, std::vector<int>& num){
+          ws.substr(pos, num);
+        }, broadcast(pos), numval);
+    } else {
+      ws.mapv(+[](words& ws, int pos, std::vector<int>& num){
+          ws.substr(pos, num);
+        }, broadcast(pos), tintcol->val);
+    }
+    if(tintcol->if_contain_nulls()) {
+      nulls.mapv(+[](std::vector<size_t>& nulls,
+                     std::vector<size_t>& colnulls) {
+                   nulls = set_union(nulls, colnulls);
+                 }, tintcol->nulls);
+    }
+    if(dtype() == "string") {
+      auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+      auto ret = std::make_shared<typed_dfcolumn<std::string>>
+        (std::move(vs), std::move(nulls));
+      return ret;
+    } else if (dtype() == "raw_string") {
+      auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+        (std::move(ws), std::move(nulls));
+      return ret;
+    } else {
+      auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+        (std::move(ws), std::move(nulls));
+      return ret;
+    }
+  }
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos,
+                 const std::shared_ptr<dfcolumn>& num) {
+  auto intcol_pos = pos->type_cast("int");
+  auto tintcol_pos = dynamic_pointer_cast<typed_dfcolumn<int>>(intcol_pos);
+  auto intcol_num = num->type_cast("int");
+  auto tintcol_num = dynamic_pointer_cast<typed_dfcolumn<int>>(intcol_num);
+  if(!tintcol_pos || !tintcol_num)
+    throw std::runtime_error("internal cast error");
+  auto ws = as_words();
+  auto nulls = get_nulls();
+  if(tintcol_pos->if_contain_nulls() || tintcol_num->if_contain_nulls() ||
+     if_contain_nulls()) {
+    // need to copy because they will be changed
+    auto posval = tintcol_pos->val;
+    auto numval = tintcol_num->val;
+    posval.mapv
+      (+[](std::vector<int>& val1,
+           std::vector<int>& val2,
+           std::vector<size_t>& nulls1,
+           std::vector<size_t>& nulls2,
+           std::vector<size_t>& nulls3) {
+        auto val1p = val1.data();
+        auto val2p = val2.data();
+        auto nulls1p = nulls1.data();
+        auto nulls1_size = nulls1.size();
+        auto nulls2p = nulls2.data();
+        auto nulls2_size = nulls2.size();
+        auto nulls3p = nulls3.data();
+        auto nulls3_size = nulls3.size();
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+        for(size_t i = 0; i < nulls1_size; i++) {
+          val1p[nulls1p[i]] = 0;
+          val2p[nulls1p[i]] = 0;
+        }
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+        for(size_t i = 0; i < nulls2_size; i++) {
+          val1p[nulls2p[i]] = 0;
+          val2p[nulls2p[i]] = 0;
+        }
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+        for(size_t i = 0; i < nulls3_size; i++) {
+          val1p[nulls3p[i]] = 0;
+          val2p[nulls3p[i]] = 0;
+        }
+      }, numval, tintcol_pos->nulls, tintcol_num->nulls, nulls);
+    ws.mapv(+[](words& ws, std::vector<int>& pos, std::vector<int>& num){
+        ws.substr(pos, num);
+      }, posval, numval);
+    nulls.mapv(+[](std::vector<size_t>& nulls,
+                   std::vector<size_t>& colnulls) {
+                 nulls = set_union(nulls, colnulls);
+               }, tintcol_pos->nulls);
+    nulls.mapv(+[](std::vector<size_t>& nulls,
+                   std::vector<size_t>& colnulls) {
+                 nulls = set_union(nulls, colnulls);
+               }, tintcol_num->nulls);
+  } else {
+    ws.mapv(+[](words& ws, std::vector<int>& pos, std::vector<int>& num){
+        ws.substr(pos, num);
+      }, tintcol_pos->val, tintcol_num->val);
+  }
+  if(dtype() == "string") {
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  }
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos) {
+  auto intcol = pos->type_cast("int");
+  auto tintcol = dynamic_pointer_cast<typed_dfcolumn<int>>(intcol);
+  if(!tintcol) throw std::runtime_error("internal cast error");
+  auto ws = as_words();
+  auto nulls = get_nulls();
+  if(tintcol->if_contain_nulls() || if_contain_nulls()) {
+    auto posval = tintcol->val; // copy
+    posval.mapv
+      (+[](std::vector<int>& val,
+           std::vector<size_t>& nulls1,
+           std::vector<size_t>& nulls2) {
+        auto valp = val.data();
+        auto nulls1p = nulls1.data();
+        auto nulls1_size = nulls1.size();
+        auto nulls2p = nulls2.data();
+        auto nulls2_size = nulls2.size();
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
+        for(size_t i = 0; i < nulls1_size; i++) valp[nulls1p[i]] = 0;
+        for(size_t i = 0; i < nulls2_size; i++) valp[nulls2p[i]] = 0;
+      }, tintcol->nulls, nulls);
+    ws.mapv(+[](words& ws, std::vector<int>& pos){ws.substr(pos);}, posval);
+  } else {
+    ws.mapv(+[](words& ws, std::vector<int>& pos)
+            {ws.substr(pos);}, tintcol->val);
+  }
+  if(tintcol->if_contain_nulls()) {
+    nulls.mapv(+[](std::vector<size_t>& nulls,
+                   std::vector<size_t>& colnulls) {
+                 nulls = set_union(nulls, colnulls);
+               }, tintcol->nulls);
+  }
+  if(dtype() == "string") {
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  }
+}
+
+std::shared_ptr<dfcolumn> dfcolumn::substr(int pos) {
+  auto ws = as_words(6,"%Y-%m-%d",false,std::string(std::abs(pos), 'N'));
+  ws.mapv(+[](words& ws, int pos){ws.substr(pos);}, broadcast(pos));
+  auto nulls = get_nulls();
+  if(dtype() == "string") {
+    // TODO: in the case of string, not using words would be faster
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  }
+}
+
 std::vector<std::string> 
 words_to_string_vector(words& ws, 
                        std::vector<size_t>& nulls,
@@ -1052,6 +1405,20 @@ get_bool_mask_helper(std::vector<size_t>& local_idx, size_t size) {
   for (size_t i = 0; i < local_idx_size; i++) resp[idxp[i]] = 1;
   return res;
 }
+
+// copied from dfcolumn_impl.hpp, to avoid including it
+template <class T>
+void reset_null(std::vector<T>& val, 
+                const std::vector<size_t>& nulls) {
+  auto valp = val.data();
+  auto nullsp = nulls.data();
+  auto size = nulls.size();
+  T tmax = std::numeric_limits<T>::max();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < size; i++) valp[nullsp[i]] = tmax;
+} 
 
 std::shared_ptr<dfcolumn>
 create_boolean_column(node_local<std::vector<size_t>>& filter_idx,

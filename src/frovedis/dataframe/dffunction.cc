@@ -1361,6 +1361,248 @@ null_datetime_column_as(const std::string& as) {
   return std::make_shared<dffunction_null_datetime_column>(as);
 }
 
+// ----- substr -----
+std::shared_ptr<dfcolumn> dffunction_substr::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->substr(right->execute(t));
+}
+
+std::shared_ptr<dfcolumn> dffunction_substr::execute(dftable_base& t1, 
+                                                     dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto right_column = right->execute(t2);
+  auto aligned_right_column = realign_df(t1, t2, right_column);
+  return left_column->substr(aligned_right_column);
+}
+
+std::shared_ptr<dffunction> substr_col(const std::string& left,
+                                       const std::string& right) {
+  return std::make_shared<dffunction_substr>(id_col(left), id_col(right));
+}
+
+std::shared_ptr<dffunction>
+substr_col(const std::shared_ptr<dffunction>& left, const std::string& right){
+  return std::make_shared<dffunction_substr>(left, id_col(right));
+}
+
+std::shared_ptr<dffunction>
+substr_col(const std::string& left, const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dffunction_substr>(id_col(left), right);
+}
+ 
+std::shared_ptr<dffunction>
+substr_col(const std::shared_ptr<dffunction>& left,
+           const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dffunction_substr>(left, right);
+} 
+
+std::shared_ptr<dffunction> substr_col_as(const std::string& left,
+                                          const std::string& right,
+                                          const std::string& as) {
+  return std::make_shared<dffunction_substr>(id_col(left), id_col(right), as);
+}
+
+std::shared_ptr<dffunction>
+substr_col_as(const std::shared_ptr<dffunction>& left, const std::string& right,
+              const std::string& as) {
+  return std::make_shared<dffunction_substr>(left, id_col(right), as);
+}
+
+std::shared_ptr<dffunction>
+substr_col_as(const std::string& left, const std::shared_ptr<dffunction>& right,
+              const std::string& as) {
+  return std::make_shared<dffunction_substr>(id_col(left), right, as);
+}
+
+std::shared_ptr<dffunction>
+substr_col_as(const std::shared_ptr<dffunction>& left,
+              const std::shared_ptr<dffunction>& right,
+              const std::string& as) {
+  return std::make_shared<dffunction_substr>(left, right, as);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_substr_im::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->substr(right);
+}
+
+std::shared_ptr<dffunction>
+substr_im(const std::string& left, int right) {
+  return std::make_shared<dffunction_substr_im>(id_col(left), right);
+}
+
+std::shared_ptr<dffunction>
+substr_im_as(const std::string& left, int right, const std::string& as) {
+  return std::make_shared<dffunction_substr_im>(id_col(left), right, as);
+}
+
+std::shared_ptr<dffunction>
+substr_im(const std::shared_ptr<dffunction>& left, int right) {
+  return std::make_shared<dffunction_substr_im>(left, right);
+}
+
+std::shared_ptr<dffunction>
+substr_im_as(const std::shared_ptr<dffunction>& left, int right,
+             const std::string& as) {
+  return std::make_shared<dffunction_substr_im>(left, right, as);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_substr_num::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  auto right_column = right->execute(t);
+  auto num_column = num->execute(t);
+  return left_column->substr(right_column, num_column);
+}
+
+std::shared_ptr<dffunction>
+substr_poscol_numcol(const std::string& left,
+                     const std::string& right,
+                     const std::string& num) {
+  return std::make_shared<dffunction_substr_num>
+    (id_col(left), id_col(right), id_col(num));
+} 
+std::shared_ptr<dffunction>
+substr_poscol_numcol(const std::shared_ptr<dffunction>& left,
+                     const std::shared_ptr<dffunction>& right,
+                     const std::shared_ptr<dffunction>& num) {
+  return std::make_shared<dffunction_substr_num>(left, right, num);
+} 
+
+std::shared_ptr<dffunction>
+substr_poscol_numcol_as(const std::string& left,
+                        const std::string& right,
+                        const std::string& num,
+                        const std::string& as) {
+  return std::make_shared<dffunction_substr_num>
+    (id_col(left), id_col(right), id_col(num), as);
+}
+
+std::shared_ptr<dffunction>
+substr_poscol_numcol_as(const std::shared_ptr<dffunction>& left,
+                        const std::shared_ptr<dffunction>& right,
+                        const std::shared_ptr<dffunction>& num,
+                        const std::string& as) {
+  return std::make_shared<dffunction_substr_num>(left, right, num, as);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_substr_posim_num::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  auto num_column = num->execute(t);
+  return left_column->substr(right, num_column);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_substr_posim_num::execute(dftable_base& t1,
+                                     dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto num_column = num->execute(t2);
+  return left_column->substr(right, num_column);
+}
+
+std::shared_ptr<dffunction>
+substr_posim_numcol(const std::string& left, int right,
+                    const std::string& num) {
+  return std::make_shared<dffunction_substr_posim_num>
+    (id_col(left), right, id_col(num));
+}
+
+std::shared_ptr<dffunction>
+substr_posim_numcol_as(const std::string& left, int right,
+                       const std::string& num, const std::string& as) {
+  return std::make_shared<dffunction_substr_posim_num>
+    (id_col(left), right, id_col(num), as);
+}
+
+std::shared_ptr<dffunction>
+substr_posim_numcol(const std::shared_ptr<dffunction>& left, int right,
+                    const std::shared_ptr<dffunction>& num) {
+  return std::make_shared<dffunction_substr_posim_num>(left, right, num);
+}
+
+std::shared_ptr<dffunction>
+substr_posim_numcol_as(const std::shared_ptr<dffunction>& left, int right,
+                       const std::shared_ptr<dffunction>& num,
+                       const std::string& as) {
+  return std::make_shared<dffunction_substr_posim_num>(left, right, num, as);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_substr_numim::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  auto right_column = right->execute(t);
+  return left_column->substr(right_column, num);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_substr_numim::execute(dftable_base& t1,
+                                 dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto right_column = right->execute(t2);
+  return left_column->substr(right_column, num);
+}
+
+std::shared_ptr<dffunction>
+substr_poscol_numim(const std::string& left, const std::string& right,
+                    int num) {
+  return std::make_shared<dffunction_substr_numim>
+    (id_col(left), id_col(right), num);
+}
+
+std::shared_ptr<dffunction>
+substr_poscol_numim_as(const std::string& left, const std::string& right,
+                       int num, const std::string& as) {
+  return std::make_shared<dffunction_substr_numim>
+    (id_col(left), id_col(right), num, as);
+}
+
+std::shared_ptr<dffunction>
+substr_poscol_numim(const std::shared_ptr<dffunction>& left, 
+                    const std::shared_ptr<dffunction>& right,
+                    int num) {
+  return std::make_shared<dffunction_substr_numim>(left, right, num);
+}
+
+std::shared_ptr<dffunction>
+substr_poscol_numim_as(const std::shared_ptr<dffunction>& left, 
+                       const std::shared_ptr<dffunction>& right,
+                       int num,
+                       const std::string& as) {
+  return std::make_shared<dffunction_substr_numim>(left, right, num, as);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_substr_posim_numim::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->substr(right, num);
+}
+
+std::shared_ptr<dffunction>
+substr_posim_numim(const std::string& left, int right, int num) {
+  return std::make_shared<dffunction_substr_posim_numim>
+    (id_col(left), right, num);
+}
+
+std::shared_ptr<dffunction>
+substr_posim_numim_as(const std::string& left, int right,
+                      int num, const std::string& as) {
+  return std::make_shared<dffunction_substr_posim_numim>
+    (id_col(left), right, num, as);
+}
+
+std::shared_ptr<dffunction>
+substr_posim_numim(const std::shared_ptr<dffunction>& left,
+                   int right, int num) {
+  return std::make_shared<dffunction_substr_posim_numim>(left, right, num);
+}
+
+std::shared_ptr<dffunction>
+substr_posim_numim_as(const std::shared_ptr<dffunction>& left,
+                      int right, int num, const std::string& as) {
+  return std::make_shared<dffunction_substr_posim_numim>(left, right, num, as);
+}
 
 // ----- utility functions for user's direct use -----
 

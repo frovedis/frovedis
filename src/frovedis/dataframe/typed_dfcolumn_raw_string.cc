@@ -557,7 +557,26 @@ bool typed_dfcolumn<raw_string>::is_all_null() {
 template <>
 std::shared_ptr<dfcolumn>
 create_null_column<raw_string>(const std::vector<size_t>& sizes) {
-  throw std::runtime_error("raw_string does not support create_null_column");
+  auto nlsizes = make_node_local_scatter(sizes);
+  auto nulls = make_node_local_allocate<std::vector<size_t>>();
+  auto ws = nlsizes.map(+[](size_t size, std::vector<size_t>& nulls) {
+      nulls.resize(size);
+      auto nullsp = nulls.data();
+      for(size_t i = 0; i < size; i++) nullsp[i] = i;
+      words ws;
+      ws.chars = char_to_int("NULL");
+      ws.starts.resize(size);
+      ws.lens.resize(size);
+      auto startsp = ws.starts.data();
+      auto lensp = ws.lens.data();
+      for(size_t i = 0; i < size; i++) {
+        startsp[i] = 0;
+        lensp[i] = 4;
+      }
+      return ws;
+    }, nulls);
+  return std::make_shared<typed_dfcolumn<raw_string>>
+    (std::move(ws), std::move(nulls));
 }
 
 // for spill-restore

@@ -473,6 +473,17 @@ public:
     throw std::runtime_error
       ("datetime_next_day_im is not supported for this type");
   }
+  virtual std::shared_ptr<dfcolumn> substr(int pos, int num);
+  virtual std::shared_ptr<dfcolumn>
+  substr(const std::shared_ptr<dfcolumn>& pos, int num);
+  virtual std::shared_ptr<dfcolumn>
+  substr(int pos, const std::shared_ptr<dfcolumn>& num);
+  virtual std::shared_ptr<dfcolumn>
+  substr(const std::shared_ptr<dfcolumn>& pos,
+         const std::shared_ptr<dfcolumn>& num);
+  virtual std::shared_ptr<dfcolumn> substr(int pos);
+  virtual std::shared_ptr<dfcolumn>
+  substr(const std::shared_ptr<dfcolumn>& pos);
   virtual std::shared_ptr<dfcolumn>
   union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols) = 0;
   virtual std::shared_ptr<dfcolumn> head(size_t limit) = 0;

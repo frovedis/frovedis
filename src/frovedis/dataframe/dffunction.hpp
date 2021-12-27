@@ -2311,6 +2311,348 @@ std::shared_ptr<dffunction>
 null_datetime_column_as(const std::string& as);
 
 
+// ----- substr -----
+// right: pos
+struct dffunction_substr : public dffunction {
+  dffunction_substr(const std::shared_ptr<dffunction>& left, 
+                    const std::shared_ptr<dffunction>& right) :
+    left(left), right(right) {
+    as_name = "substr(" + left->get_as() + "," + right->get_as() + ")";
+  }
+  dffunction_substr(const std::shared_ptr<dffunction>& left, 
+                    const std::shared_ptr<dffunction>& right, 
+                    const std::string& as_name) :
+    left(left), right(right), as_name(as_name) {}
+
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_substr>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto leftuse = left->columns_to_use(t);
+    auto rightuse = right->columns_to_use(t);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    auto leftuse = left->columns_to_use(t1);
+    auto rightuse = right->columns_to_use(t2);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+  std::shared_ptr<dffunction> left, right;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+substr_col(const std::string& left, const std::string& right); 
+std::shared_ptr<dffunction>
+substr_col(const std::shared_ptr<dffunction>& left, const std::string& right); 
+std::shared_ptr<dffunction>
+substr_col(const std::string& left, const std::shared_ptr<dffunction>& right); 
+std::shared_ptr<dffunction>
+substr_col(const std::shared_ptr<dffunction>& left,
+           const std::shared_ptr<dffunction>& right); 
+
+std::shared_ptr<dffunction>
+substr_col_as(const std::string& left, const std::string& right,
+              const std::string& as);
+std::shared_ptr<dffunction>
+substr_col_as(const std::shared_ptr<dffunction>& left, const std::string& right,
+              const std::string& as);
+std::shared_ptr<dffunction>
+substr_col_as(const std::string& left, const std::shared_ptr<dffunction>& right,
+              const std::string& as);
+std::shared_ptr<dffunction>
+substr_col_as(const std::shared_ptr<dffunction>& left,
+              const std::shared_ptr<dffunction>& right,
+              const std::string& as);
+
+struct dffunction_substr_im : public dffunction {
+  dffunction_substr_im(const std::shared_ptr<dffunction>& left, int right): 
+    left(left), right(right) {
+    as_name = "substr(" + left->get_as() + "," + STR(right) + ")";
+  }
+  dffunction_substr_im(const std::shared_ptr<dffunction>& left, int right,
+                       const std::string& as_name) :
+    left(left), right(right), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_substr_im>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("t1 + t2: is not available for substr_im operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+
+  std::shared_ptr<dffunction> left;
+  int right;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+substr_im(const std::string& left, int right);
+
+std::shared_ptr<dffunction>
+substr_im_as(const std::string& left, int right, const std::string& as);
+
+std::shared_ptr<dffunction>
+substr_im(const std::shared_ptr<dffunction>& left, int right);
+
+std::shared_ptr<dffunction>
+substr_im_as(const std::shared_ptr<dffunction>& left, int right,
+             const std::string& as);
+
+struct dffunction_substr_num : public dffunction {
+  dffunction_substr_num(const std::shared_ptr<dffunction>& left, 
+                        const std::shared_ptr<dffunction>& right,
+                        const std::shared_ptr<dffunction>& num) :
+    left(left), right(right), num(num) {
+    as_name = "substr_num(" + left->get_as() + "," + right->get_as() +
+      "," + num->get_as() + ")";
+  }
+  dffunction_substr_num(const std::shared_ptr<dffunction>& left, 
+                        const std::shared_ptr<dffunction>& right, 
+                        const std::shared_ptr<dffunction>& num,
+                        const std::string& as_name) :
+    left(left), right(right), num(num), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_substr_num>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("execute of substr_num is not defined for two argument\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto leftuse = left->columns_to_use(t);
+    auto rightuse = right->columns_to_use(t);
+    auto numuse = num->columns_to_use(t);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    leftuse.insert(leftuse.end(), numuse.begin(), numuse.end());
+    return leftuse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("execute of substr_num is not defined for two argument\n");
+  }
+  std::shared_ptr<dffunction> left, right, num;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+substr_poscol_numcol(const std::string& left,
+                     const std::string& right,
+                     const std::string& num); 
+std::shared_ptr<dffunction>
+substr_poscol_numcol(const std::shared_ptr<dffunction>& left,
+                     const std::shared_ptr<dffunction>& right,
+                     const std::shared_ptr<dffunction>& num); 
+
+std::shared_ptr<dffunction>
+substr_poscol_numcol_as(const std::string& left,
+                        const std::string& right,
+                        const std::string& num,
+                        const std::string& as);
+std::shared_ptr<dffunction>
+substr_poscol_numcol_as(const std::shared_ptr<dffunction>& left,
+                        const std::shared_ptr<dffunction>& right,
+                        const std::shared_ptr<dffunction>& num,
+                        const std::string& as);
+
+struct dffunction_substr_posim_num : public dffunction {
+  dffunction_substr_posim_num(const std::shared_ptr<dffunction>& left,
+                              int right, 
+                              const std::shared_ptr<dffunction>& num): 
+    left(left), right(right), num(num) {
+    as_name = "substr_posim_num(" + left->get_as() + "," + STR(right) +
+      "," + num->get_as() + ")";
+  }
+  dffunction_substr_posim_num(const std::shared_ptr<dffunction>& left,
+                              int right,
+                              const std::shared_ptr<dffunction>& num,
+                              const std::string& as_name) :
+    left(left), right(right), num(num), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_substr_posim_num>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto leftuse = left->columns_to_use(t);
+    auto numuse = num->columns_to_use(t);
+    leftuse.insert(leftuse.end(), numuse.begin(), numuse.end());
+    return leftuse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    auto leftuse = left->columns_to_use(t1);
+    auto numuse = num->columns_to_use(t2);
+    leftuse.insert(leftuse.end(), numuse.begin(), numuse.end());
+    return leftuse;
+  }
+
+  std::shared_ptr<dffunction> left;
+  int right;
+  std::shared_ptr<dffunction> num;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+substr_posim_numcol(const std::string& left, int right, const std::string& num);
+
+std::shared_ptr<dffunction>
+substr_posim_numcol_as(const std::string& left, int right,
+                       const std::string& num, const std::string& as);
+
+std::shared_ptr<dffunction>
+substr_posim_numcol(const std::shared_ptr<dffunction>& left, int right,
+                    const std::shared_ptr<dffunction>& num);
+
+std::shared_ptr<dffunction>
+substr_posim_numcol_as(const std::shared_ptr<dffunction>& left, int right,
+                       const std::shared_ptr<dffunction>& num,
+                       const std::string& as);
+
+struct dffunction_substr_numim : public dffunction {
+  dffunction_substr_numim(const std::shared_ptr<dffunction>& left,
+                          const std::shared_ptr<dffunction>& right,
+                          int num) :
+    left(left), right(right), num(num) {
+    as_name = "substr_numim(" + left->get_as() + "," + right->get_as() +
+      "," + STR(num) + ")";
+  }
+  dffunction_substr_numim(const std::shared_ptr<dffunction>& left,
+                          const std::shared_ptr<dffunction>& right,
+                          int num,
+                          const std::string& as_name) :
+    left(left), right(right), num(num), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_substr_numim>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto leftuse = left->columns_to_use(t);
+    auto rightuse = right->columns_to_use(t);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    auto leftuse = left->columns_to_use(t1);
+    auto rightuse = right->columns_to_use(t2);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+
+  std::shared_ptr<dffunction> left, right;
+  int num;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+substr_poscol_numim(const std::string& left, const std::string& right,
+                    int num);
+
+std::shared_ptr<dffunction>
+substr_poscol_numim_as(const std::string& left, const std::string& right,
+                       int num, const std::string& as);
+
+std::shared_ptr<dffunction>
+substr_poscol_numim(const std::shared_ptr<dffunction>& left, 
+                    const std::shared_ptr<dffunction>& right,
+                    int num);
+
+
+std::shared_ptr<dffunction>
+substr_poscol_numim_as(const std::shared_ptr<dffunction>& left, 
+                       const std::shared_ptr<dffunction>& right,
+                       int num,
+                       const std::string& as);
+
+struct dffunction_substr_posim_numim : public dffunction {
+  dffunction_substr_posim_numim(const std::shared_ptr<dffunction>& left,
+                                int right, int num) :
+    left(left), right(right), num(num) {
+    as_name = "substr_posim_numim(" + left->get_as() + "," + STR(right) +
+      "," + STR(num) + ")";
+  }
+  dffunction_substr_posim_numim(const std::shared_ptr<dffunction>& left,
+                                int right, int num, 
+                                const std::string& as_name) :
+    left(left), right(right), num(num), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_substr_posim_numim>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("execute of substr_posim_numim is not defined for two argument\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("execute of substr_posim_numim is not defined for two argument\n");
+  }
+  std::shared_ptr<dffunction> left;
+  int right, num;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+substr_posim_numim(const std::string& left, int right, int num);
+
+std::shared_ptr<dffunction>
+substr_posim_numim_as(const std::string& left, int right,
+                      int num, const std::string& as);
+
+std::shared_ptr<dffunction>
+substr_posim_numim(const std::shared_ptr<dffunction>& left,
+                   int right, int num);
+
+std::shared_ptr<dffunction>
+substr_posim_numim_as(const std::shared_ptr<dffunction>& left,
+                      int right, int num, const std::string& as);
+
 // ----- utility functions for user's direct use -----
 
 // alias of id_col
