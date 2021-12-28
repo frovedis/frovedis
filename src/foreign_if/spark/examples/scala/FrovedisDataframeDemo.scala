@@ -27,17 +27,16 @@ object FrovedisDataframeDemo {
                      .map(_.split(","))
                      .map(attributes => (attributes(0).trim, 
                                          attributes(1).trim.toInt, attributes(2).trim))
-                     .toDF("EName","Age","Country")
+                     .toDF("EName","Age","Country").persist
 
     val countryDF = sc.textFile("./input/country.txt")
                      .map(_.split(","))
                      .map(attributes => (attributes(0).trim.toInt, attributes(1).trim))
-                     .toDF("CCode","CName")
+                     .toDF("CCode","CName").persist
 
     // creating frovedis dataframe from spark dataframe
     val df1 = new FrovedisDataFrame(peopleDF)
     val df2 = new FrovedisDataFrame(countryDF)
-
     // filter demo
     df1.filter($$"Age" > 25).show()
     df1.filter($$"Age" < 25).show()
@@ -57,10 +56,12 @@ object FrovedisDataframeDemo {
 
     // select demo
     df1.select(lit(2).as("const_two"),
+               lit(null),
                lit(null).isNull, 
                lit(false).as("false_col"),
                $$"Age".cast("double"), 
                $$"Country" === "Japan",
+               $$"Country".substr(1, 4),
                lit(2) * $$"Age", // reversed operation
                $$"Age" > 19).to_spark_DF().show()
 
@@ -91,7 +92,7 @@ object FrovedisDataframeDemo {
     val countryDF2 = sc.textFile("./input/country.txt")
                       .map(_.split(","))
                       .map(attributes => (attributes(0).trim, attributes(1).trim))
-                      .toDF("CCode","Country")
+                      .toDF("CCode","Country").persist
     val df3 = new FrovedisDataFrame(countryDF2)
 
     df1.join(df3, Seq("Country")) //SAME AS : df1("Country") === df3("Country"))
@@ -105,7 +106,7 @@ object FrovedisDataframeDemo {
       (4, "France", "F")
     )
     val countryColumns3 = Seq("CCode","CName", "City")
-    val countryDF3 = country3.toDF(countryColumns3:_*)
+    val countryDF3 = country3.toDF(countryColumns3:_*).persist
     val country_frov1 = new FrovedisDataFrame(countryDF3)
 
     val country4 = Seq(
@@ -115,7 +116,7 @@ object FrovedisDataframeDemo {
       (4, "F", 240)
     )
     val countryColumns4 = Seq("CCode", "City", "ElectricalRating")
-    val countryDF4 = country4.toDF(countryColumns4:_*)
+    val countryDF4 = country4.toDF(countryColumns4:_*).persist
     val country_frov2 = new FrovedisDataFrame(countryDF4)
 
     var df_tmp = country_frov1.join(country_frov2,
@@ -170,7 +171,7 @@ object FrovedisDataframeDemo {
       ("Julia",null,null)
     )
     val columns = Seq("name","state","gender")
-    val dfWithNull = dataWithNull.toDF(columns:_*)
+    val dfWithNull = dataWithNull.toDF(columns:_*).persist
     val frov_dfWithNull = new FrovedisDataFrame(dfWithNull)
     frov_dfWithNull.show()
     frov_dfWithNull.filter($$"state".isNotNull).show()
@@ -178,7 +179,7 @@ object FrovedisDataframeDemo {
     frov_dfWithNull.groupBy("state").agg(count("state"), count("*")).show()
     frov_dfWithNull.release()
 
-    val cc_df = Seq("China", "Canada", "Italy", "Tralfamadore").toDF("word")
+    val cc_df = Seq("China", "Canada", "Italy", "Tralfamadore").toDF("word").persist
     val f_cc_df = new FrovedisDataFrame(cc_df)
     f_cc_df.withColumn("continent",
         when($$"word" === lit("China"), lit("Asia"))
@@ -190,7 +191,7 @@ object FrovedisDataframeDemo {
     val sampleDF = sc.textFile("./input/sample.txt")
                      .map(_.split(","))
                      .map(attributes => (attributes(0).trim.toInt, attributes(1).trim.toInt))
-                     .toDF("A","B")
+                     .toDF("A","B").persist
     val df5 = new FrovedisDataFrame(sampleDF)
     df5.show()
 

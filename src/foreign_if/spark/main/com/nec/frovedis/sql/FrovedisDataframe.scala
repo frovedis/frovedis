@@ -19,6 +19,7 @@ import org.apache.spark.mllib.linalg.{Vector,Vectors}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions.{col => sp_col}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow
@@ -26,6 +27,78 @@ import scala.collection.mutable.{Map => mMap}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
 import org.apache.log4j.{Level, Logger}
+
+object DataManager extends java.io.Serializable { 
+  val df_pool = new ListBuffer[FrovedisDataFrame]()
+  val free_pool = new ListBuffer[FrovedisDataFrame]()
+  val table = mMap[(Int, String), FrovedisDataFrame]() // (code, colName) -> fdf
+
+  def insert(code: Int,
+             fdf: FrovedisDataFrame,
+             cols: Iterator[String]): Unit = {
+    while(cols.hasNext) table((code, cols.next)) = fdf
+    df_pool += fdf
+  }
+
+  def get(key: (Int, String)): FrovedisDataFrame = {
+    if (table.contains(key)) {
+      val ret = table(key)
+      hit(ret)
+      return ret
+    }
+    else return null
+  }
+
+  def add_release_entry(fdf: FrovedisDataFrame): Unit = {
+    free_pool += fdf
+  }
+
+  def release(): Unit = {
+    var e: FrovedisDataFrame = null
+    if (!free_pool.isEmpty) {
+      e = free_pool.remove(0)
+      val idx = df_pool.indexOf(e) // should not be -1
+      if (idx != -1) df_pool.remove(idx)
+    }
+    else {
+      if (!df_pool.isEmpty) e = df_pool.remove(0)
+    }
+
+    if (e != null) { // entry found either in free_pool or in df_pool
+      val code = e.get_code()
+      val cols = e.owned_cols
+      for (i <- 0 until cols.size) {
+        val key = (code, cols(i))
+        if (table.contains(key)) table.remove(key)
+        //else println(key + ": not found!")
+      }
+      //println("releasing: " + e.get())
+      e.release_impl()
+    }
+  }
+
+  def hit(e: FrovedisDataFrame): Unit = {
+   val pool_idx = df_pool.indexOf(e)
+   df_pool.remove(pool_idx)
+   df_pool += e // remove and add in front
+
+   // if e is already added to be freed, hit it to bring it front of the pool
+   val free_idx = free_pool.indexOf(e)
+   if (free_idx != -1) {
+     free_pool.remove(free_idx)
+     free_pool += e // and append last to mark it latest
+   }
+  }
+
+  def show(): Unit = {
+    println("table: ")
+    table.map(x => println("[code: " + x._1._1 + "; col: " + x._1._2 + "] => proxy: " + x._2.get()))
+
+    println("to_free: ")
+    for(i <- 0 until free_pool.size) print(free_pool(i).get() + " ")
+    println
+  }
+}
 
 object Dvec {
   def get(rddData: RDD[InternalRow], dtype: Short, i: Int,
@@ -322,24 +395,31 @@ class FrovedisDataFrame extends java.io.Serializable {
   protected var fdata: Long = -1
   protected var cols: Array[String] = null
   protected var types: Array[Short] = null
+  private var code: Int = 0
+  var owned_cols: Array[String] = null
+  private var removable = false
 
   // creating a frovedis dataframe from a spark dataframe -> User API
   def this(df: DataFrame) = {
     this()
-    load(df)
+    //load(df)
+    //this.code = df.hashCode
+    val cols = df.columns
+    const_impl(df, cols)
   }
   def this(df: DataFrame, name: String, others: String*) = {
     this()
-    val sdf = df.select(name, others:_*)
-    optimized_load(sdf) // temporary method
+    val cols = (Array(name) ++ others).toArray
+    const_impl(df, cols)
   }
-  // internally used, not for user
+  // internally used, not exposed to user
   def this(proxy: Long, cc: Array[String], tt: Array[Short]) = {
     this()
     fdata = proxy
     cols = cc.clone()
     types = tt.clone()
   }
+  // internally used, not exposed to user
   def this(dummy: DummyDftable) = {
     this()
     fdata = dummy.dfptr
@@ -365,8 +445,61 @@ class FrovedisDataFrame extends java.io.Serializable {
       if (info != "") throw new java.rmi.ServerException(info)
     }
   }
+  private def const_impl(df: DataFrame, cols: Array[String]): Unit = {
+    val code = df.hashCode // assumed to be unique per spark dataframe object
+    val base_ptr = new ArrayBuffer[Long]()
+    val base_col = new ArrayBuffer[String]()
+    val targets = new ArrayBuffer[String]()
+    for (i <- 0 until cols.size) {
+      val key = (code, cols(i))
+      val fdf = DataManager.get(key)
+      if (fdf == null) targets += cols(i) 
+      else {
+        if (fdf.get() != -1) { // not released forcibly
+          base_ptr += fdf.get()
+          base_col += cols(i)
+        }
+        else {
+          targets += cols(i)
+        }
+      }
+    }
+    if (!targets.isEmpty) {
+      val tarr = targets.toArray
+      this.owned_cols = tarr
+      val sdf = df.select(tarr.map(x => sp_col(x)):_*)
+      optimized_load(sdf)
+      DataManager.insert(code, this, tarr.toIterator)
+    }
+    else {
+      this.removable = true; // since, it is just a copy of shared pointers
+    }
+    if (!base_ptr.isEmpty) { // TODO: correct order
+      //println("*** cols hit ***")
+      //base_col.foreach(println)
+      val fs = FrovedisServer.getServerInstance()
+      val dummy = JNISupport.copyColumn(fs.master_node, fdata, 
+                                        base_ptr.toArray, 
+                                        base_col.toArray,
+                                        base_ptr.size)
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
+      this.fdata = dummy.dfptr
+      this.cols = dummy.names.clone()
+      this.types = dummy.types.clone() // TODO: mark bool/ulong
+    }
+    this.code = df.hashCode
+  }
+  def is_removable() = removable
+
   // to release a frovedis dataframe from frovedis server -> User API
   def release () : Unit = {
+    if (fdata != -1) {
+      if(removable) release_impl()
+      else          DataManager.add_release_entry(this)
+    }
+  }
+  def release_impl () : Unit = {
     if (fdata != -1) {
       val fs = FrovedisServer.getServerInstance()
       JNISupport.releaseFrovedisDataframe(fs.master_node,fdata)
@@ -375,11 +508,14 @@ class FrovedisDataFrame extends java.io.Serializable {
       fdata = -1
       cols = null
       types = null
+      owned_cols = null
+      code = 0
     }
   }
   // to display contents of a frovedis dataframe from frovedis server -> User API
   def show () : Unit = {
     if (fdata != -1) {
+      //println("proxy: " + fdata)
       val fs = FrovedisServer.getServerInstance()
       JNISupport.showFrovedisDataframe(fs.master_node,fdata)
       val info = JNISupport.checkServerException()
@@ -946,6 +1082,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   def apply(t: String) = col(t)
 
   def get() = fdata
+  def get_code() = code
   def columns = cols
   def dtypes = cols.zip(get_types())
 
@@ -1336,5 +1473,11 @@ class FrovedisDataFrame extends java.io.Serializable {
     if (info != "") throw new java.rmi.ServerException(info)
     mark_boolean_columns(this.dtypes_as_map, dummy)
     return new FrovedisDataFrame(dummy)
+  }
+
+  // not full-proof definition (just for proxy check) 
+  override def equals(obj: Any): Boolean = {
+    var df2 = obj.asInstanceOf[FrovedisDataFrame]
+    return this.get() == df2.get()
   }
 }
