@@ -2219,6 +2219,27 @@ append_when_condition(exrpc_ptr_t& leftp, exrpc_ptr_t& rightp,
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }
 
+exrpc_ptr_t 
+get_immed_substr(exrpc_ptr_t& colp, int& pos, int& num,
+                 std::string& cname) {
+  auto& col = *reinterpret_cast<std::shared_ptr<dffunction>*>(colp);
+  auto retp = new std::shared_ptr<dffunction>(
+                substr_posim_numim_as(col, pos, num, cname));
+  return reinterpret_cast<exrpc_ptr_t> (retp);
+}
+
+exrpc_ptr_t 
+get_col_substr(exrpc_ptr_t& colp, 
+               exrpc_ptr_t& posp, exrpc_ptr_t& nump,
+               std::string& cname) {
+  auto& col = *reinterpret_cast<std::shared_ptr<dffunction>*>(colp);
+  auto& pos = *reinterpret_cast<std::shared_ptr<dffunction>*>(posp);
+  auto& num = *reinterpret_cast<std::shared_ptr<dffunction>*>(nump);
+  auto retp = new std::shared_ptr<dffunction>(
+                substr_poscol_numcol_as(col, pos, num, cname));
+  return reinterpret_cast<exrpc_ptr_t> (retp);
+}
+
 exrpc_ptr_t get_dffunc_agg(exrpc_ptr_t& leftp,
                            short& opt_id,
                            std::string& cname,
@@ -2389,4 +2410,16 @@ double frov_series_cov(exrpc_ptr_t& self_proxy, std::string& col1,
   return ret;
 }
 
-
+dummy_dftable 
+copy_spark_column(exrpc_ptr_t& self_proxy,
+                  std::vector<exrpc_ptr_t>& proxies,
+                  std::vector<std::string>& cols) {
+  dftable* selfp;
+  if (self_proxy == -1) selfp = new dftable(); // empty case
+  else                  selfp = reinterpret_cast<dftable*>(self_proxy);
+  for(size_t i = 0; i < proxies.size(); ++i) {
+    auto& other  = *reinterpret_cast<dftable*>(proxies[i]);
+    selfp->append_column(cols[i], other.column(cols[i])); // distribution should be same
+  }
+  return to_dummy_dftable(selfp);
+}

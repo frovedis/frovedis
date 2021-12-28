@@ -151,11 +151,14 @@ void expose_frovedis_dataframe_functions() {
   expose(get_immed_dffunc_opt<float>);
   expose(get_immed_dffunc_opt<double>);
   expose(get_immed_string_dffunc_opt);
+  expose(get_immed_substr);
+  expose(get_col_substr);
   expose(set_dffunc_asCol_name);
   expose(execute_dffunc);
   expose(get_dffunc_agg);
   expose(set_dfagg_asCol_name);
   expose(execute_dfagg);
+  expose(copy_spark_column);
   // -----------------------
   expose(append_when_condition);
   expose(frov_get_bool_mask);

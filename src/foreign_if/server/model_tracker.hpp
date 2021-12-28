@@ -123,7 +123,8 @@ enum OPTYPE {
   aFST  = 53,
   aLST  = 54,
   // --- other ---
-  CAST = 100
+  CAST = 100,
+  SUBSTR = 101
 };
 
 // [MODEL_ID] => [MODEL_KIND, MODEL_PTR]

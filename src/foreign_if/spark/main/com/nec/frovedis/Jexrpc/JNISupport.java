@@ -829,7 +829,9 @@ public class JNISupport {
                                                      long ncol,
                                                      long vptrs[], long ptrsz);
   public static native void releaseFrovedisDataframe(Node master_node, long data);
-
+  public static native DummyDftable copyColumn(Node master_node, long dptr,
+                                               long proxies[],
+                                               String cols[], long size);
   public static native void showFrovedisDataframe(Node master_node, long data);
 
   public static native long getDFOperator(Node master_node, String op1, String op2,
@@ -922,6 +924,15 @@ public class JNISupport {
   public static native long getOptDFfunc(Node master_node, long left_fn, 
                                          long right_fn, short opt, 
                                          String col_name);
+
+  public static native long getImmedSubstrFunc(Node master_node, long proxy, 
+                                               int pos, int num,
+                                               String col_name);
+
+  public static native long getColSubstrFunc(Node master_node, long proxy, 
+                                             long pos, long num,
+                                             String col_name);
+
   public static native long appendWhenCondition(Node master_node, long left_fn,
                                                 long right_fn, String col_name);
   public static native long getOptImmedDFfunc(Node master_node, long left_fn, 

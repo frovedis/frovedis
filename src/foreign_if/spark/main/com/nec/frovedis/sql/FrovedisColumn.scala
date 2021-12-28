@@ -89,6 +89,7 @@ object OPTYPE extends java.io.Serializable {
   val aLST:      Short = 54
   // --- other ---
   val CAST:      Short = 100
+  val SUBSTR:    Short = 101
 }
 
 class FrovedisColumn extends java.io.Serializable {
@@ -284,6 +285,36 @@ class FrovedisColumn extends java.io.Serializable {
     new FrovedisColumn(this, dt, OPTYPE.CAST, dt.equals("boolean"))
   }
   def cast(to: String): FrovedisColumn = cast(CatalystSqlParser.parseDataType(to))
+
+  def substr(startPos: Int, len: Int): FrovedisColumn = {
+    val ret = new FrovedisColumn()
+    ret.col_name = "substring(" + this.col_name + ", " + startPos + ", " + len + ")"
+    ret.opType = OPTYPE.SUBSTR
+    ret.kind = ColKind.DFFUNC
+    val fs = FrovedisServer.getServerInstance()
+    ret.proxy = JNISupport.getImmedSubstrFunc(fs.master_node, this.proxy, 
+                                              startPos, len, ret.col_name)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return ret
+  }
+
+  def substr(startPos: FrovedisColumn, len: FrovedisColumn): FrovedisColumn = {
+    require(!startPos.isAGG, "substr: 'startPos' cannot be an aggregate function!")
+    require(!len.isAGG, "substr: 'len' cannot be an aggregate function!")
+
+    val ret = new FrovedisColumn()
+    ret.col_name = "substring(" + this.col_name + ", " + 
+                   startPos.col_name + ", " + len.col_name + ")"
+    ret.opType = OPTYPE.SUBSTR
+    ret.kind = ColKind.DFFUNC
+    val fs = FrovedisServer.getServerInstance()
+    ret.proxy = JNISupport.getColSubstrFunc(fs.master_node, this.proxy,
+                                            startPos.proxy, len.proxy, ret.col_name)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return ret
+  }
 
   def when (left: FrovedisColumn, arg: Any): FrovedisColumn = { // else-if when case
     if (this.opType != OPTYPE.IF && this.opType != OPTYPE.ELIF) {

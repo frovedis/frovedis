@@ -121,6 +121,11 @@ exrpc_ptr_t create_dataframe_from_local_vectors (
 
 void show_dataframe(exrpc_ptr_t& df_proxy); 
 
+dummy_dftable 
+copy_spark_column(exrpc_ptr_t& self_proxy,
+                  std::vector<exrpc_ptr_t>& proxies,
+                  std::vector<std::string>& cols);
+
 template <class T>
 exrpc_ptr_t get_dffunc_im(std::string& value) {
   std::shared_ptr<dffunction> *retptr = NULL;
@@ -141,6 +146,13 @@ exrpc_ptr_t get_dffunc_id(std::string& cname);
 
 exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp, exrpc_ptr_t& rightp,
                            short& opt_id, std::string& cname);
+
+exrpc_ptr_t get_immed_substr(exrpc_ptr_t& colp, int& pos, int& num,
+                             std::string& cname);
+
+exrpc_ptr_t get_col_substr(exrpc_ptr_t& colp, 
+                           exrpc_ptr_t& posp, exrpc_ptr_t& nump,
+                           std::string& cname);
 
 exrpc_ptr_t append_when_condition(exrpc_ptr_t& leftp, 
                                   exrpc_ptr_t& rightp,

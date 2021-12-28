@@ -6,6 +6,22 @@ using namespace frovedis;
 
 extern "C" {
 
+JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_copyColumn
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy,
+   jlongArray proxies, jobjectArray names, jlong size) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+  auto dfs = to_exrpc_vector(env, proxies, size);
+  auto cols = to_string_vector(env, names, size);
+  dummy_dftable ret;
+  try {
+    ret = exrpc_async(fm_node, copy_spark_column, df_proxy, dfs, cols).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_spark_dummy_df(env, ret);
+}
+
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDataframe
   (JNIEnv *env, jclass thisCls, jobject master_node, jshortArray dtps,
    jobjectArray cols, jlongArray dvec_proxies, jlong size) {
@@ -659,6 +675,40 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getOptDFfunc
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getImmedSubstrFunc
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong proxy, jint pos, jint num, jstring colname) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto colProxy = (exrpc_ptr_t) proxy;
+  auto cname = to_cstring(env, colname);
+  exrpc_ptr_t ret_proxy = 0;
+  try {
+    ret_proxy = exrpc_async(fm_node, get_immed_substr, colProxy, 
+                            pos, num, cname).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) ret_proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getColSubstrFunc
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong proxy, jlong pos, jlong num, jstring colname) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto colProxy = (exrpc_ptr_t) proxy;
+  auto posProxy = (exrpc_ptr_t) pos;
+  auto numProxy = (exrpc_ptr_t) num;
+  auto cname = to_cstring(env, colname);
+  exrpc_ptr_t ret_proxy = 0;
+  try {
+    ret_proxy = exrpc_async(fm_node, get_col_substr, colProxy, 
+                            posProxy, numProxy, cname).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) ret_proxy;
 }
 
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_appendWhenCondition
