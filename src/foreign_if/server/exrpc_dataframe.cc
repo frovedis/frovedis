@@ -2128,6 +2128,8 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
     case NOT:       opt = new std::shared_ptr<dffunction>(not_op(left)->as(cname)); break;
     case ISNULL:    opt = new std::shared_ptr<dffunction>(is_null(left)->as(cname)); break;
     case ISNOTNULL: opt = new std::shared_ptr<dffunction>(is_not_null(left)->as(cname)); break;
+    //case ISNAN:     opt = new std::shared_ptr<dffunction>(is_nan(left)->as(cname)); break;
+    case ISNAN:     REPORT_ERROR(USER_ERROR, "is_nan: currently unsupported in frovedis dataframe!\n");
     // --- mathematical ---
     case ADD:       opt = new std::shared_ptr<dffunction>(add_col_as(left, right, cname)); break;
     case SUB:       opt = new std::shared_ptr<dffunction>(sub_col_as(left, right, cname)); break;

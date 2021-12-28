@@ -90,6 +90,7 @@ object OPTYPE extends java.io.Serializable {
   // --- other ---
   val CAST:      Short = 100
   val SUBSTR:    Short = 101
+  val ISNAN:     Short = 102
 }
 
 class FrovedisColumn extends java.io.Serializable {
@@ -140,7 +141,7 @@ class FrovedisColumn extends java.io.Serializable {
       rev_op = false
     }
     else if (left.isSCALAR && !right2.isSCALAR) { // right can be dummy 
-      val unary = Array(OPTYPE.NOT, OPTYPE.ISNULL, OPTYPE.ISNOTNULL)
+      val unary = Array(OPTYPE.NOT, OPTYPE.ISNULL, OPTYPE.ISNOTNULL, OPTYPE.ISNAN)
       if (unary contains opt) { // right2 is dummy
         im_op = false
         rev_op = false
@@ -234,6 +235,7 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.NLIKE => "(NOT (" + left + " LIKE " + right + "))"
       case OPTYPE.ISNULL => "(" + left + " IS NULL)"
       case OPTYPE.ISNOTNULL => "(" + left + " IS NOT NULL)"
+      case OPTYPE.ISNAN => "isnan(" + left + ")"
       case OPTYPE.CAST => "CAST(" + left + " AS " + TMAPPER.castedName(right) + ")"
       case OPTYPE.IF   => "CASE WHEN " + left + " THEN " + right + " END"
       case OPTYPE.ELIF => {
@@ -355,6 +357,7 @@ class FrovedisColumn extends java.io.Serializable {
   def unary_!   = new FrovedisColumn(this, dummy, OPTYPE.NOT, true)
   def isNull    = new FrovedisColumn(this, dummy, OPTYPE.ISNULL, true)
   def isNotNull = new FrovedisColumn(this, dummy, OPTYPE.ISNOTNULL, true)
+  def isNaN     = new FrovedisColumn(this, dummy, OPTYPE.ISNAN, true)
 
   // TODO: support other mathematical operators like abs() etc.
   def + (right: Any)  = new FrovedisColumn(this, right, OPTYPE.ADD)
@@ -491,6 +494,12 @@ object functions extends java.io.Serializable {
 
   def sumDistinct   (col: FrovedisColumn) = col.get_agg(OPTYPE.aDSUM)
   def countDistinct (col: FrovedisColumn) = col.get_agg(OPTYPE.aDCNT)
+
+  def substring(str: FrovedisColumn,
+                pos: Int, len: Int) = str.substr(pos, len) 
+
+  def isnull(e: FrovedisColumn) = e.isNull
+  def isnan(e: FrovedisColumn)  = e.isNaN
 
   // --- alias aggregate functions ---
   def mean(col: String)                = avg(col)

@@ -124,7 +124,8 @@ enum OPTYPE {
   aLST  = 54,
   // --- other ---
   CAST = 100,
-  SUBSTR = 101
+  SUBSTR = 101,
+  ISNAN = 102
 };
 
 // [MODEL_ID] => [MODEL_KIND, MODEL_PTR]
