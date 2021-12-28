@@ -641,13 +641,24 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
   if(num < 0) throw std::runtime_error("substr: num is negative");
   if(pos >= 0) {
     auto fail = find_condition(lens, num_words, words_substr_helper(pos+num));
+    auto failp = fail.data();
+    /*
     if(fail.size() != 0)
       throw std::runtime_error("substr: pos + num is larger than length at: " +
                                std::to_string(fail[0])
                                + " (local index)");
+    */
     for(size_t i = 0; i < num_words; i++) {
       starts[i] += pos;
       lens[i] = num;
+    }
+    if (!fail.empty()) {
+      for(size_t i = 0; i < fail.size(); i++) {
+        auto idx = failp[i];
+        starts[idx] -= pos; // reset
+        starts[idx] += (lens[idx] - 1); // at end
+        lens[idx] = 0;
+      }
     }
   } else {
     if(pos+num > 0)
