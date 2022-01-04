@@ -7,6 +7,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import com.nec.frovedis.Jexrpc.Node;
 
+// this is just a temporary prototype; complete the implementation before using it
 public class jDFTransfer implements java.io.Serializable {
 /*
   public static long execute(JavaRDD<UnsafeRow> rddData,
@@ -17,7 +18,7 @@ public class jDFTransfer implements java.io.Serializable {
                              int ncol, int nproc) {
 */
   public static long execute(JavaRDD<UnsafeRow> rddData,
-                             String[] types, int ncol) { // for prototyping
+                             String[] types, int ncol) {
     long ret = rddData.mapPartitionsWithIndex((index, x) -> {
       int k = 0;
       ArrayList<Object> b_obj = new ArrayList<Object>();
