@@ -351,6 +351,7 @@ class FrovedisColumn extends java.io.Serializable {
   def not_like   (arg: String) = new FrovedisColumn(this, arg, OPTYPE.NLIKE, true) // added specially
   def startsWith (arg: String) = new FrovedisColumn(this, arg + "%", OPTYPE.LIKE, true)
   def endsWith   (arg: String) = new FrovedisColumn(this, "%" + arg, OPTYPE.LIKE, true)
+  def contains   (arg: String) = new FrovedisColumn(this, "%" + arg + "%", OPTYPE.LIKE, true)
 
   // use "dummy" as right in order to mark the operation as not-immed
   def dummy     = new FrovedisColumn("0") // for dummy right
