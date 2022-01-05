@@ -287,6 +287,109 @@ class FrovedisColumn(object):
         # returns a double
         return np.nan if (ret == np.finfo(np.float64).max) else ret
 
+    def sum(self, skipna=None, numeric_only=None, min_count=0):
+        """
+        Sum for series
+        e.g. df.col.sum()
+        """
+        return self.df[self.__colName].sum(skipna=skipna, \
+                                           numeric_only=numeric_only, \
+                                           min_count=min_count) \
+                                      .to_numpy()[0][0]
+
+    def min(self, skipna=None, numeric_only=None):
+        """
+        Min for series
+        e.g. df.col.min()
+        """
+        return self.df[self.__colName].min(skipna=skipna, \
+                                           numeric_only=numeric_only) \
+                                      .to_numpy()[0][0]
+
+
+    def max(self, skipna=None, numeric_only=None):
+        """
+        Max for series
+        e.g. df.col.max()
+        """
+        return self.df[self.__colName].max(skipna=skipna, \
+                                           numeric_only=numeric_only) \
+                                      .to_numpy()[0][0]
+
+
+    def mean(self, skipna=None, numeric_only=None):
+        """
+        Mean for series
+        e.g. df.col.mean()
+        """
+        return self.df[self.__colName].mean(skipna=skipna, \
+                                            numeric_only=numeric_only) \
+                                      .to_numpy()[0][0]
+
+
+    def mode(self, numeric_only=None, dropna=True):
+        """
+        Mode for series
+        e.g. df.col.mode()
+        """
+        ret_df = self.df[self.__colName].mode(numeric_only=numeric_only, \
+                                              dropna=dropna)
+        ret_df.is_series = True
+        return ret_df
+
+    def median(self, skipna=None, numeric_only=None):
+        """
+        Median for series
+        e.g. df.col.median()
+        """
+        return self.df[self.__colName].median(skipna=skipna, \
+                                              numeric_only=numeric_only) \
+                                      .to_numpy()[0][0]
+
+
+    def var(self, skipna=None, ddof=1, numeric_only=None):
+        """
+        Var for series
+        e.g. df.col.var()
+        """
+        return self.df[self.__colName].var(skipna=skipna, \
+                                           ddof=ddof, \
+                                           numeric_only=numeric_only) \
+                                      .to_numpy()[0][0]
+
+
+    def sem(self, skipna=None, ddof=1, numeric_only=None):
+        """
+        Sem for series
+        e.g. df.col.sem()
+        """
+        return self.df[self.__colName].sem(skipna=skipna, \
+                                           ddof=ddof, \
+                                           numeric_only=numeric_only) \
+                                      .to_numpy()[0][0]
+
+
+    def std(self, skipna=None, ddof=1, numeric_only=None):
+        """
+        Std for series
+        e.g. df.col.std()
+        """
+        return self.df[self.__colName].std(skipna=skipna, \
+                                           ddof=ddof, \
+                                           numeric_only=numeric_only) \
+                                      .to_numpy()[0][0]
+
+
+    def mad(self, skipna=None, numeric_only=None):
+        """
+        Mad for series
+        e.g. df.col.mad()
+        """
+        return self.df[self.__colName].mad(skipna=skipna, \
+                                           numeric_only=numeric_only) \
+                                      .to_numpy()[0][0]
+
+
 class FrovedisStringMethods(object):
     """
     FrovedisStringMethods
