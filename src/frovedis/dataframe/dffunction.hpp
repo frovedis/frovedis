@@ -49,6 +49,10 @@ struct dffunction_cast : public dffunction {
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) { return left->columns_to_use(t); }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   std::string to_type, as_name;
@@ -101,6 +105,13 @@ struct dffunction_add : public dffunction {
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
+
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
 };
@@ -157,6 +168,10 @@ struct dffunction_add_im : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -256,6 +271,13 @@ struct dffunction_sub : public dffunction {
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
+
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
 };
@@ -314,6 +336,10 @@ struct dffunction_sub_im : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -415,6 +441,13 @@ struct dffunction_mul : public dffunction {
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
+
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
 };
@@ -470,6 +503,10 @@ struct dffunction_mul_im : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -569,6 +606,13 @@ struct dffunction_fdiv : public dffunction {
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
+
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
 };
@@ -627,6 +671,10 @@ struct dffunction_fdiv_im : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -729,6 +777,13 @@ struct dffunction_idiv : public dffunction {
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
+
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
 };
@@ -787,6 +842,10 @@ struct dffunction_idiv_im : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -889,6 +948,13 @@ struct dffunction_mod : public dffunction {
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
+
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
 };
@@ -947,6 +1013,10 @@ struct dffunction_mod_im : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -1049,6 +1119,13 @@ struct dffunction_pow : public dffunction {
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
+
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
 };
@@ -1107,6 +1184,10 @@ struct dffunction_pow_im : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -1203,6 +1284,10 @@ struct dffunction_abs : public dffunction {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   std::string as_name;
@@ -1252,6 +1337,10 @@ struct dffunction_datetime_extract : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -1310,6 +1399,12 @@ struct dffunction_datetime_diff : public dffunction {
     auto rightuse = right->columns_to_use(t2);
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left, right;
@@ -1394,6 +1489,10 @@ struct dffunction_datetime_diff_im : public dffunction {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   datetime_t right;
@@ -1469,6 +1568,12 @@ struct dffunction_datetime_add : public dffunction {
     auto rightuse = right->columns_to_use(t2);
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left, right;
@@ -1546,6 +1651,10 @@ struct dffunction_datetime_add_im : public dffunction {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   int right;
@@ -1604,6 +1713,12 @@ struct dffunction_datetime_sub : public dffunction {
     auto rightuse = right->columns_to_use(t2);
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left, right;
@@ -1681,6 +1796,10 @@ struct dffunction_datetime_sub_im : public dffunction {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   int right;
@@ -1735,6 +1854,10 @@ struct dffunction_datetime_truncate : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -1791,6 +1914,12 @@ struct dffunction_datetime_months_between : public dffunction {
     auto rightuse = right->columns_to_use(t2);
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left, right;
@@ -1864,6 +1993,12 @@ struct dffunction_datetime_next_day : public dffunction {
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -1933,6 +2068,10 @@ struct dffunction_datetime_next_day_im : public dffunction {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   int right;
@@ -1982,7 +2121,7 @@ struct dffunction_when : public dffunction {
       auto crnt_touse = cond[i]->columns_to_use(t);
       touse.insert(touse.end(), crnt_touse.begin(), crnt_touse.end());
     }
-    for(size_t i = 0; i < cond.size(); i++) {
+    for(size_t i = 0; i < func.size(); i++) {
       auto crnt_touse = func[i]->columns_to_use(t);
       touse.insert(touse.end(), crnt_touse.begin(), crnt_touse.end());
     }
@@ -1992,6 +2131,19 @@ struct dffunction_when : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string>
+  used_col_names() const {
+    std::vector<std::string> touse;
+    for(size_t i = 0; i < cond.size(); i++) {
+      auto crnt_touse = cond[i]->used_col_names();
+      touse.insert(touse.end(), crnt_touse.begin(), crnt_touse.end());
+    }
+    for(size_t i = 0; i < func.size(); i++) {
+      auto crnt_touse = func[i]->used_col_names();
+      touse.insert(touse.end(), crnt_touse.begin(), crnt_touse.end());
+    }
+    return touse;
   }
   
   std::vector<std::shared_ptr<dfoperator>> cond;
@@ -2040,6 +2192,9 @@ struct dffunction_im : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    return std::vector<std::string>();
   }
   
   T value;
@@ -2095,6 +2250,9 @@ struct dffunction_datetime_im : public dffunction {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    return std::vector<std::string>();
+  }
   
   datetime_t value;
   std::string as_name;
@@ -2135,6 +2293,9 @@ struct dffunction_dic_string_im : public dffunction {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    return std::vector<std::string>();
+  }
   
   std::string value;
   std::string as_name;
@@ -2174,6 +2335,9 @@ struct dffunction_null_column : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    return std::vector<std::string>();
   }
   
   std::string as_name;
@@ -2225,6 +2389,9 @@ struct dffunction_null_string_column : public dffunction {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    return std::vector<std::string>();
+  }
   
   std::string as_name;
 };
@@ -2261,6 +2428,9 @@ struct dffunction_null_dic_string_column : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    return std::vector<std::string>();
   }
   
   std::string as_name;
@@ -2299,6 +2469,9 @@ struct dffunction_null_datetime_column : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    return std::vector<std::string>();
   }
   
   std::string as_name;
@@ -2346,6 +2519,13 @@ struct dffunction_substr : public dffunction {
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
+
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
 };
@@ -2401,6 +2581,10 @@ struct dffunction_substr_im : public dffunction {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -2459,6 +2643,15 @@ struct dffunction_substr_num : public dffunction {
     throw std::runtime_error
       ("execute of substr_num is not defined for two argument\n");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    auto numnames = num->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    leftnames.insert(leftnames.end(), numnames.begin(), numnames.end());
+    return leftnames;
+  }
+
   std::shared_ptr<dffunction> left, right, num;
   std::string as_name;
 };
@@ -2518,6 +2711,12 @@ struct dffunction_substr_posim_num : public dffunction {
     leftuse.insert(leftuse.end(), numuse.begin(), numuse.end());
     return leftuse;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto numnames = num->used_col_names();
+    leftnames.insert(leftnames.end(), numnames.begin(), numnames.end());
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   int right;
@@ -2576,6 +2775,12 @@ struct dffunction_substr_numim : public dffunction {
     leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
     return leftuse;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left, right;
   int num;
@@ -2633,6 +2838,11 @@ struct dffunction_substr_posim_numim : public dffunction {
     throw std::runtime_error
       ("execute of substr_posim_numim is not defined for two argument\n");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
+
   std::shared_ptr<dffunction> left;
   int right, num;
   std::string as_name;

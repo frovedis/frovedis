@@ -12,6 +12,7 @@ struct dfoperator;
 // need to be here, because dfoperator inherits dffunction
 struct dffunction {
   virtual bool is_id() const {return false;}
+  virtual std::vector<std::string> used_col_names() const = 0;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const {
     throw std::runtime_error
       ("execute on this operator is not implemented");
@@ -84,6 +85,7 @@ struct dffunction_id : public dffunction {
     throw std::runtime_error
       ("two args of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {return {left};}
   std::string left;
   std::string as_name;
 };
@@ -281,6 +283,12 @@ struct dfoperator_eq : public dfoperator {
     }
     return ret;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -350,6 +358,12 @@ struct dfoperator_neq : public dfoperator {
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     return dfoperator_eq(left, right).filter(t);
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -417,6 +431,10 @@ struct dfoperator_eq_immed : public dfoperator {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -479,6 +497,10 @@ struct dfoperator_neq_immed : public dfoperator {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -579,6 +601,12 @@ struct dfoperator_lt : public dfoperator {
     }
     return ret;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -672,6 +700,12 @@ struct dfoperator_ge : public dfoperator {
       else throw e;
     }
     return ret;
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left, right;
@@ -771,6 +805,12 @@ struct dfoperator_le : public dfoperator {
     }
     return ret;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -865,6 +905,12 @@ struct dfoperator_gt : public dfoperator {
     }
     return ret;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -948,6 +994,10 @@ struct dfoperator_lt_immed : public dfoperator {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -1011,6 +1061,10 @@ struct dfoperator_ge_immed : public dfoperator {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -1079,6 +1133,10 @@ struct dfoperator_le_immed : public dfoperator {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -1143,6 +1201,10 @@ struct dfoperator_gt_immed : public dfoperator {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -1204,6 +1266,10 @@ struct dfoperator_is_null : public dfoperator {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   std::string as_name;
@@ -1253,6 +1319,10 @@ struct dfoperator_is_not_null : public dfoperator {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -1318,6 +1388,10 @@ struct dfoperator_regex : public dfoperator {
     auto t_nulls  = tcol->get_nulls();
     return create_boolean_column(filter_idx, t_nulls, tcol->sizes());
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   std::string pattern;
@@ -1378,6 +1452,10 @@ struct dfoperator_not_regex : public dfoperator {
     auto filter_idx = filter_impl(tcol);
     auto t_nulls  = tcol->get_nulls();
     return create_boolean_column(filter_idx, t_nulls, tcol->sizes());
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -1456,6 +1534,10 @@ struct dfoperator_like : public dfoperator {
     auto t_nulls  = tcol->get_nulls();
     return create_boolean_column(filter_idx, t_nulls, tcol->sizes());
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left;
   std::string pattern;
@@ -1527,6 +1609,10 @@ struct dfoperator_not_like : public dfoperator {
     auto filter_idx = filter_impl(tcol);
     auto t_nulls  = tcol->get_nulls();
     return create_boolean_column(filter_idx, t_nulls, tcol->sizes());
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -1696,6 +1782,12 @@ struct dfoperator_and : public dfoperator {
     }
     return ret;
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -1770,6 +1862,12 @@ struct dfoperator_or : public dfoperator {
     auto right_filtered_idx = right2->not_filter(t);
     return left_filtered_idx.map(set_intersection<size_t>, right_filtered_idx);
   }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -1829,6 +1927,10 @@ struct dfoperator_not : public dfoperator {
   columns_to_use(dftable_base& t1, dftable_base& t2) {
     throw std::runtime_error
       ("2 arg version of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
   }
 
   std::shared_ptr<dffunction> left;
@@ -1894,6 +1996,19 @@ struct dfoperator_multi_eq : public dfoperator {
     return std::make_shared<dfoperator_multi_eq>
       (dfoperator_multi_eq(rightv, leftv));
   }
+  virtual std::vector<std::string> used_col_names() const {
+    std::vector<std::string> ret;
+    for(size_t i = 0; i < leftv.size(); i++) {
+      auto use = leftv[i]->used_col_names();
+      ret.insert(ret.end(), use.begin(), use.end());
+    }
+    for(size_t i = 0; i < rightv.size(); i++) {
+      auto use = rightv[i]->used_col_names();
+      ret.insert(ret.end(), use.begin(), use.end());
+    }
+    return ret;
+  }
+
   std::vector<std::shared_ptr<dffunction>> leftv, rightv;
   std::string as_name;
 };
@@ -1936,6 +2051,9 @@ struct dfoperator_cross : public dfoperator {
   }
   virtual std::shared_ptr<dfoperator> exchange_lr() {
     return std::make_shared<dfoperator_cross>(*this);
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    return std::vector<std::string>();
   }
 };
 

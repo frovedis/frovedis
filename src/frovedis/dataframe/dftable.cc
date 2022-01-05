@@ -2791,13 +2791,19 @@ dftable sorted_dftable::select(const std::vector<std::string>& cols) {
 
 dftable sorted_dftable::fselect
 (const std::vector<std::shared_ptr<dffunction>>& cols) {
+  std::vector<std::string> used_col_names;
+  for(size_t i = 0; i < cols.size(); i++) {
+    auto used = cols[i]->used_col_names();
+    used_col_names.insert(used_col_names.end(), used.begin(), used.end());
+  }
+  dftable tmp = this->select(used_col_names);
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
     auto as = cols[i]->get_as();
     if(ret.col.find(as) != ret.col.end())
       throw std::runtime_error("select: same column name already exists");
-    use_dfcolumn use(cols[i]->columns_to_use(*this));    
-    ret.col[as] = cols[i]->execute(*this);
+    use_dfcolumn use(cols[i]->columns_to_use(tmp));
+    ret.col[as] = cols[i]->execute(tmp);
     ret.col[as]->spill();
     ret.col_order.push_back(as);
   }
@@ -2831,9 +2837,11 @@ sorted_dftable sorted_dftable::sort_desc(const std::string& name) {
 }
 
 sorted_dftable sorted_dftable::fsort(const std::shared_ptr<dffunction>& col) {
-  use_dfcolumn use(col->columns_to_use(*this));
+  std::vector<std::string> used_col_names = col->used_col_names();
+  dftable tmp = this->select(used_col_names);
+  use_dfcolumn use(col->columns_to_use(tmp));
   node_local<std::vector<size_t>> idx;
-  auto to_sort_column = col->execute(*this);
+  auto to_sort_column = col->execute(tmp);
   auto sorted_column = to_sort_column->sort_with_idx(global_idx, idx);
   if(to_sort_column->if_contain_nulls() || !col->is_id())
     return sorted_dftable(*this, std::move(idx));
@@ -2846,9 +2854,11 @@ sorted_dftable sorted_dftable::fsort(const std::shared_ptr<dffunction>& col) {
 
 sorted_dftable
 sorted_dftable::fsort_desc(const std::shared_ptr<dffunction>& col) {
-  use_dfcolumn use(col->columns_to_use(*this));
+  std::vector<std::string> used_col_names = col->used_col_names();
+  dftable tmp = this->select(used_col_names);
+  use_dfcolumn use(col->columns_to_use(tmp));
   node_local<std::vector<size_t>> idx;
-  auto to_sort_column = col->execute(*this);
+  auto to_sort_column = col->execute(tmp);
   auto sorted_column = to_sort_column->sort_with_idx_desc(global_idx, idx);
   if(to_sort_column->if_contain_nulls() || !col->is_id())
     return sorted_dftable(*this, std::move(idx));
@@ -3018,13 +3028,19 @@ dftable hash_joined_dftable::select(const std::vector<std::string>& cols) {
 
 dftable hash_joined_dftable::fselect
 (const std::vector<std::shared_ptr<dffunction>>& cols) {
+  std::vector<std::string> used_col_names;
+  for(size_t i = 0; i < cols.size(); i++) {
+    auto used = cols[i]->used_col_names();
+    used_col_names.insert(used_col_names.end(), used.begin(), used.end());
+  }
+  dftable tmp = this->select(used_col_names);
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
     auto as = cols[i]->get_as();
     if(ret.col.find(as) != ret.col.end())
       throw std::runtime_error("select: same column name already exists");
-    use_dfcolumn use(cols[i]->columns_to_use(*this));    
-    ret.col[as] = cols[i]->execute(*this);
+    use_dfcolumn use(cols[i]->columns_to_use(tmp));
+    ret.col[as] = cols[i]->execute(tmp);
     ret.col[as]->spill();
     ret.col_order.push_back(as);
   }
@@ -3248,13 +3264,19 @@ dftable bcast_joined_dftable::select(const std::vector<std::string>& cols) {
 
 dftable bcast_joined_dftable::fselect
 (const std::vector<std::shared_ptr<dffunction>>& cols) {
+  std::vector<std::string> used_col_names;
+  for(size_t i = 0; i < cols.size(); i++) {
+    auto used = cols[i]->used_col_names();
+    used_col_names.insert(used_col_names.end(), used.begin(), used.end());
+  }
+  dftable tmp = this->select(used_col_names);
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
     auto as = cols[i]->get_as();
     if(ret.col.find(as) != ret.col.end())
       throw std::runtime_error("select: same column name already exists");
-    use_dfcolumn use(cols[i]->columns_to_use(*this));    
-    ret.col[as] = cols[i]->execute(*this);
+    use_dfcolumn use(cols[i]->columns_to_use(tmp));    
+    ret.col[as] = cols[i]->execute(tmp);
     ret.col[as]->spill();
     ret.col_order.push_back(as);
   }
@@ -3466,13 +3488,19 @@ dftable star_joined_dftable::select(const std::vector<std::string>& cols) {
 
 dftable star_joined_dftable::fselect
 (const std::vector<std::shared_ptr<dffunction>>& cols) {
+  std::vector<std::string> used_col_names;
+  for(size_t i = 0; i < cols.size(); i++) {
+    auto used = cols[i]->used_col_names();
+    used_col_names.insert(used_col_names.end(), used.begin(), used.end());
+  }
+  dftable tmp = this->select(used_col_names);
   dftable ret;
   for(size_t i = 0; i < cols.size(); i++) {
     auto as = cols[i]->get_as();
     if(ret.col.find(as) != ret.col.end())
       throw std::runtime_error("select: same column name already exists");
-    use_dfcolumn use(cols[i]->columns_to_use(*this));    
-    ret.col[as] = cols[i]->execute(*this);
+    use_dfcolumn use(cols[i]->columns_to_use(tmp));
+    ret.col[as] = cols[i]->execute(tmp);
     ret.col[as]->spill();
     ret.col_order.push_back(as);
   }
