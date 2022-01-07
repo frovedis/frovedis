@@ -65,6 +65,19 @@ object DFMemoryManager extends java.io.Serializable {
     }
   }
 
+  def show_release_target(): Unit = {
+    if (!free_pool.isEmpty) {
+      val cols = free_pool(0).owned_cols
+      for (i <- 0 until cols.size) print(cols(i) + " ")
+      println
+    }
+    else if (!df_pool.isEmpty) {
+      val cols = df_pool(0).owned_cols
+      for (i <- 0 until cols.size) print(cols(i) + " ")
+      println
+    }
+  }
+
   def hit(e: FrovedisDataFrame): Unit = {
    val pool_idx = df_pool.indexOf(e)
    df_pool.remove(pool_idx)
