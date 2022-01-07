@@ -45,7 +45,7 @@ class Q21 extends TpchQuery {
       .join(flineitem, $"s_suppkey" === flineitem("l_suppkey"))
       .join(forder, $"l_orderkey" === forder("o_orderkey"))
       .join(line1, $"l_orderkey" === line1("key"))
-      .filter($"suppkey_count" > 1 || ($"suppkey_count" === 1 && $"l_suppkey" == $"suppkey_max"))
+      .filter($"suppkey_count" > 1 || ($"suppkey_count" === 1 && $"l_suppkey" === $"suppkey_max"))
       .select($"s_name", $"l_orderkey", $"l_suppkey")
       .join(line2, $"l_orderkey" === line2("key"), "left_outer")
       .select($"s_name", $"l_orderkey", $"l_suppkey", $"suppkey_count", $"suppkey_max")
