@@ -23,9 +23,12 @@ class Q04 extends TpchQuery {
       .select($"l_orderkey")
       .distinct
 
-    flineitems.join(forders, $"l_orderkey" === forders("o_orderkey"))
+    val ret = flineitems.join(forders, $"l_orderkey" === forders("o_orderkey"))
       .groupBy($"o_orderpriority")
       .agg(count($"o_orderpriority"))
       .sort($"o_orderpriority")
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

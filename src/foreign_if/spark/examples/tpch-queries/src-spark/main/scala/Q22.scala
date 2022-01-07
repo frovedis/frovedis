@@ -31,7 +31,7 @@ class Q22 extends TpchQuery {
     val avg_customer = fcustomer.filter($"c_acctbal" > 0.0)
       .agg(avg($"c_acctbal").as("avg_acctbal"))
 
-    order.groupBy($"o_custkey")
+    val ret = order.groupBy($"o_custkey")
       .agg($"o_custkey").select($"o_custkey")
       .join(fcustomer, $"o_custkey" === fcustomer("c_custkey"), "right_outer")
       .filter($"o_custkey".isNull)
@@ -40,5 +40,8 @@ class Q22 extends TpchQuery {
       .groupBy($"cntrycode")
       .agg(count($"c_acctbal"), sum($"c_acctbal"))
       .sort($"cntrycode")
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

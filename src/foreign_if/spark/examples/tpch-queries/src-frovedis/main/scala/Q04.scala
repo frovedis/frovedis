@@ -56,6 +56,7 @@ class Q04 extends TpchQuery {
 
     val ret = fret.to_spark_DF()
     t.show("to_spark_DF: ")
+    if (SHOW_OUT) ret.show()
 
     forder.release()
     flineitem.release()

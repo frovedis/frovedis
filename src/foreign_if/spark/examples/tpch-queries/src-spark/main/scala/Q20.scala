@@ -30,7 +30,7 @@ class Q20 extends TpchQuery {
     val nat_supp = supplier.select($"s_suppkey", $"s_name", $"s_nationkey", $"s_address")
       .join(fnation, $"s_nationkey" === fnation("n_nationkey"))
 
-    part.filter(forest($"p_name"))
+    val ret = part.filter(forest($"p_name"))
       .select($"p_partkey").distinct
       .join(partsupp, $"p_partkey" === partsupp("ps_partkey"))
       .join(flineitem, $"ps_suppkey" === flineitem("l_suppkey") && $"ps_partkey" === flineitem("l_partkey"))
@@ -39,5 +39,8 @@ class Q20 extends TpchQuery {
       .join(nat_supp, $"ps_suppkey" === nat_supp("s_suppkey"))
       .select($"s_name", $"s_address")
       .sort($"s_name")
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

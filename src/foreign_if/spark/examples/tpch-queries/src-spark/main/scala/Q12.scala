@@ -23,7 +23,7 @@ class Q12 extends TpchQuery {
     val highPriority = udf { (x: String) => if (x == "1-URGENT" || x == "2-HIGH") 1 else 0 }
     val lowPriority = udf { (x: String) => if (x != "1-URGENT" && x != "2-HIGH") 1 else 0 }
 
-    lineitem.filter((
+    val ret = lineitem.filter((
       $"l_shipmode" === "MAIL" || $"l_shipmode" === "SHIP") &&
       $"l_commitdate" < $"l_receiptdate" &&
       $"l_shipdate" < $"l_commitdate" &&
@@ -34,5 +34,8 @@ class Q12 extends TpchQuery {
       .agg(sum(highPriority($"o_orderpriority")).as("sum_highorderpriority"),
         sum(lowPriority($"o_orderpriority")).as("sum_loworderpriority"))
       .sort($"l_shipmode")
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

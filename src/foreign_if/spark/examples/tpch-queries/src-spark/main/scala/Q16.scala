@@ -28,7 +28,7 @@ class Q16 extends TpchQuery {
       numbers($"p_size"))
       .select($"p_partkey", $"p_brand", $"p_type", $"p_size")
 
-    supplier.filter(!complains($"s_comment"))
+    val ret = supplier.filter(!complains($"s_comment"))
       // .select($"s_suppkey")
       .join(partsupp, $"s_suppkey" === partsupp("ps_suppkey"))
       .select($"ps_partkey", $"ps_suppkey")
@@ -36,5 +36,8 @@ class Q16 extends TpchQuery {
       .groupBy($"p_brand", $"p_type", $"p_size")
       .agg(countDistinct($"ps_suppkey").as("supplier_count"))
       .sort($"supplier_count".desc, $"p_brand", $"p_type", $"p_size")
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

@@ -20,7 +20,7 @@ class Q18 extends TpchQuery {
     import sqlContext.implicits._
     import schemaProvider._
 
-    lineitem.groupBy($"l_orderkey")
+    val ret = lineitem.groupBy($"l_orderkey")
       .agg(sum($"l_quantity").as("sum_quantity"))
       .filter($"sum_quantity" > 300)
       .select($"l_orderkey".as("key"), $"sum_quantity")
@@ -32,5 +32,8 @@ class Q18 extends TpchQuery {
       .agg(sum("l_quantity"))
       .sort($"o_totalprice".desc, $"o_orderdate")
       .limit(100)
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

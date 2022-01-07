@@ -38,7 +38,7 @@ class Q01 extends TpchQuery {
     val decrease = udf { (x: Double, y: Double) => x * (1 - y) }
     val increase = udf { (x: Double, y: Double) => x * (1 + y) }
 
-    schemaProvider.lineitem.filter($"l_shipdate" <= "1998-09-02")
+    lineitem.filter($"l_shipdate" <= "1998-09-02")
       .groupBy($"l_returnflag", $"l_linestatus")
       .agg(sum($"l_quantity"), sum($"l_extendedprice"),
         sum(decrease($"l_extendedprice", $"l_discount")),
@@ -48,7 +48,7 @@ class Q01 extends TpchQuery {
 */
 
     val t = new TimeSpent(Level.INFO)
-    val flineitem = new FrovedisDataFrame(schemaProvider.lineitem, "l_shipdate", "l_returnflag", 
+    val flineitem = new FrovedisDataFrame(lineitem, "l_shipdate", "l_returnflag", 
                                           "l_linestatus", "l_discount", "l_quantity", "l_extendedprice", "l_tax")
     t.show("data transfer: ")
 
@@ -65,6 +65,7 @@ class Q01 extends TpchQuery {
 
     val ret = fret.to_spark_DF()
     t.show("to_spark_DF: ")
+    if (SHOW_OUT) ret.show()
 
     flineitem.release()
     return ret

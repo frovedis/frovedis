@@ -29,10 +29,13 @@ class Q15 extends TpchQuery {
       .agg(sum($"value").as("total"))
     // .cache
 
-    revenue.agg(max($"total").as("max_total"))
+    val ret = revenue.agg(max($"total").as("max_total"))
       .join(revenue, $"max_total" === revenue("total"))
       .join(supplier, $"l_suppkey" === supplier("s_suppkey"))
       .select($"s_suppkey", $"s_name", $"s_address", $"s_phone", $"total")
       .sort($"s_suppkey")
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

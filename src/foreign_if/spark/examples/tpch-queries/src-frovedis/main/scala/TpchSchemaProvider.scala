@@ -86,6 +86,8 @@ class TpchSchemaProvider(sc: SparkContext, inputDir: String) {
   val sqlContext = new org.apache.spark.sql.SQLContext(sc)
   import sqlContext.implicits._
 
+  val SHOW_OUT = false
+
   val dfMap = Map(
     "customer" -> sc.textFile(inputDir + "/customer.tbl*").map(_.split('|')).map(p =>
       Customer(p(0).trim.toLong, p(1).trim, p(2).trim, p(3).trim.toLong, p(4).trim, p(5).trim.toDouble, p(6).trim, p(7).trim)).toDF(),

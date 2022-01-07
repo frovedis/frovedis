@@ -34,7 +34,7 @@ class Q08 extends TpchQuery {
       join(fpart, $"l_partkey" === fpart("p_partkey"))
       .join(nat, $"l_suppkey" === nat("s_suppkey"))
 
-    nation.join(fregion, $"n_regionkey" === fregion("r_regionkey"))
+    val ret = nation.join(fregion, $"n_regionkey" === fregion("r_regionkey"))
       .select($"n_nationkey")
       .join(customer, $"n_nationkey" === customer("c_nationkey"))
       .select($"c_custkey")
@@ -46,5 +46,8 @@ class Q08 extends TpchQuery {
       .groupBy($"o_year")
       .agg(sum($"case_volume") / sum("volume"))
       .sort($"o_year")
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

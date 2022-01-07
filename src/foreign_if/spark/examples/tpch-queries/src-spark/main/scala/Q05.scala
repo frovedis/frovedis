@@ -23,7 +23,7 @@ class Q05 extends TpchQuery {
 
     val forders = order.filter($"o_orderdate" < "1995-01-01" && $"o_orderdate" >= "1994-01-01")
 
-    region.filter($"r_name" === "ASIA")
+    val ret = region.filter($"r_name" === "ASIA")
       .join(nation, $"r_regionkey" === nation("n_regionkey"))
       .join(supplier, $"n_nationkey" === supplier("s_nationkey"))
       .join(lineitem, $"s_suppkey" === lineitem("l_suppkey"))
@@ -34,5 +34,8 @@ class Q05 extends TpchQuery {
       .groupBy($"n_name")
       .agg(sum($"value").as("revenue"))
       .sort($"revenue".desc)
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

@@ -27,7 +27,7 @@ class Q19 extends TpchQuery {
     val decrease = udf { (x: Double, y: Double) => x * (1 - y) }
 
     // project part and lineitem first?
-    part.join(lineitem, $"l_partkey" === $"p_partkey")
+    val ret = part.join(lineitem, $"l_partkey" === $"p_partkey")
       .filter(($"l_shipmode" === "AIR" || $"l_shipmode" === "AIR REG") &&
         $"l_shipinstruct" === "DELIVER IN PERSON")
       .filter(
@@ -45,5 +45,8 @@ class Q19 extends TpchQuery {
               $"p_size" >= 1 && $"p_size" <= 15))
       .select(decrease($"l_extendedprice", $"l_discount").as("volume"))
       .agg(sum("volume"))
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

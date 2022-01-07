@@ -29,7 +29,7 @@ class Q07 extends TpchQuery {
       .join(fline, $"s_suppkey" === fline("l_suppkey"))
       .select($"n_name".as("supp_nation"), $"l_orderkey", $"l_extendedprice", $"l_discount", $"l_shipdate")
 
-    fnation.join(customer, $"n_nationkey" === customer("c_nationkey"))
+    val ret = fnation.join(customer, $"n_nationkey" === customer("c_nationkey"))
       .join(order, $"c_custkey" === order("o_custkey"))
       .select($"n_name".as("cust_nation"), $"o_orderkey")
       .join(supNation, $"o_orderkey" === supNation("l_orderkey"))
@@ -41,5 +41,8 @@ class Q07 extends TpchQuery {
       .groupBy($"supp_nation", $"cust_nation", $"l_year")
       .agg(sum($"volume").as("revenue"))
       .sort($"supp_nation", $"cust_nation", $"l_year")
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

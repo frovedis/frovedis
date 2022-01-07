@@ -25,7 +25,7 @@ class Q03 extends TpchQuery {
     val forders = order.filter($"o_orderdate" < "1995-03-15")
     val flineitems = lineitem.filter($"l_shipdate" > "1995-03-15")
 
-    fcust.join(forders, $"c_custkey" === forders("o_custkey"))
+    val ret = fcust.join(forders, $"c_custkey" === forders("o_custkey"))
       .select($"o_orderkey", $"o_orderdate", $"o_shippriority")
       .join(flineitems, $"o_orderkey" === flineitems("l_orderkey"))
       .select($"l_orderkey",
@@ -35,5 +35,8 @@ class Q03 extends TpchQuery {
       .agg(sum($"volume").as("revenue"))
       .sort($"revenue".desc, $"o_orderdate")
       .limit(10)
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

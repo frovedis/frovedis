@@ -29,11 +29,14 @@ class Q17 extends TpchQuery {
       .join(lineitem, $"p_partkey" === lineitem("l_partkey"), "left_outer")
     // select
 
-    fpart.groupBy("p_partkey")
+    val ret = fpart.groupBy("p_partkey")
       .agg(mul02(avg($"l_quantity")).as("avg_quantity"))
       .select($"p_partkey".as("key"), $"avg_quantity")
       .join(fpart, $"key" === fpart("p_partkey"))
       .filter($"l_quantity" < $"avg_quantity")
       .agg(sum($"l_extendedprice") / 7.0)
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

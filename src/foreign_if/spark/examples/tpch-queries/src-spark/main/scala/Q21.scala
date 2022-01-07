@@ -40,7 +40,7 @@ class Q21 extends TpchQuery {
     val forder = order.select($"o_orderkey", $"o_orderstatus")
       .filter($"o_orderstatus" === "F")
 
-    nation.filter($"n_name" === "SAUDI ARABIA")
+    val ret = nation.filter($"n_name" === "SAUDI ARABIA")
       .join(fsupplier, $"n_nationkey" === fsupplier("s_nationkey"))
       .join(flineitem, $"s_suppkey" === flineitem("l_suppkey"))
       .join(forder, $"l_orderkey" === forder("o_orderkey"))
@@ -54,5 +54,8 @@ class Q21 extends TpchQuery {
       .agg(count($"l_suppkey").as("numwait"))
       .sort($"numwait".desc, $"s_name")
       .limit(100)
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }

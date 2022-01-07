@@ -19,7 +19,10 @@ class Q06 extends TpchQuery {
     import sqlContext.implicits._
     import schemaProvider._
 
-    lineitem.filter($"l_shipdate" >= "1994-01-01" && $"l_shipdate" < "1995-01-01" && $"l_discount" >= 0.05 && $"l_discount" <= 0.07 && $"l_quantity" < 24)
+    val ret = lineitem.filter($"l_shipdate" >= "1994-01-01" && $"l_shipdate" < "1995-01-01" && $"l_discount" >= 0.05 && $"l_discount" <= 0.07 && $"l_quantity" < 24)
       .agg(sum($"l_extendedprice" * $"l_discount"))
+
+    if (SHOW_OUT) ret.show()
+    return ret
   }
 }
