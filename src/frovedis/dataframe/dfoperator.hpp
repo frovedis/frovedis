@@ -1343,7 +1343,6 @@ is_not_null(const std::shared_ptr<dffunction>& left);
 
 
 // ----- dfoperator_regex -----
-// TODO: implemente execute
 struct dfoperator_regex : public dfoperator {
   dfoperator_regex(const std::shared_ptr<dffunction>& left,
                    const std::string& pattern) :
@@ -1406,7 +1405,6 @@ is_regex(const std::shared_ptr<dffunction>& left, const std::string& pattern);
 
 
 // ----- dfoperator_not_regex -----
-// TODO: implemente execute
 struct dfoperator_not_regex : public dfoperator {
   dfoperator_not_regex(const std::shared_ptr<dffunction>& left,
                        const std::string& pattern) :
@@ -1478,7 +1476,6 @@ is_not_regex(const std::shared_ptr<dffunction>& left,
 
 
 // ----- dfoperator_like -----
-// TODO: implemente execute
 struct dfoperator_like : public dfoperator {
   dfoperator_like(const std::shared_ptr<dffunction>& left,
                   const std::string& pattern) :
