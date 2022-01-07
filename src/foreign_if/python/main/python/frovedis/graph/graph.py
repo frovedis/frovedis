@@ -98,7 +98,8 @@ class Graph(object):
         #import time
         #t1 = time.time()
         #TODO: use reimplemented version after result correctness
-        order = sorted(list(nx_graph.nodes()))
+        nid = np.asarray(nx_graph.nodes(), dtype=np.int64)
+        order = [str(i) for i in sorted(nid)]
         nx_smat = nx.to_scipy_sparse_matrix(nx_graph, format='csr', nodelist=order)
         #print("Graph.py -> nx.to_scipy_sparse_matrix: ", time.time() - t1)
         # by default, edge data is loaded as float64
