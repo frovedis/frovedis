@@ -133,6 +133,10 @@ class FrovedisColumn extends java.io.Serializable {
       else right2 = new FrovedisColumn(right.toString) // spark column -> frovedis column
     }
     this.col_name = get_name(left.col_name, right2.col_name, opt)
+    if (left.isAGG) throw new java.lang.UnsupportedOperationException(
+                    this.col_name +  ": is not supported with aggregator!")
+    if (right2.isAGG) throw new java.lang.UnsupportedOperationException(
+                      this.col_name +  ": is not supported with aggregator!")
 
     var rev_op = false
     var im_op = false
