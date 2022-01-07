@@ -91,7 +91,6 @@ class Q08 extends TpchQuery {
       .join(forders, $$"c_custkey" === forders("o_custkey"))
       .select($$"o_orderkey", $$"o_orderdate")
       .join(line, $$"o_orderkey" === line("l_orderkey"))
-      .select("o_orderdate", "volume", "n_name") // for forced materialization
       .select(CgetYear.as("o_year"), $$"volume", CisBrazil.as("case_volume"))
       .groupBy($$"o_year")
       //.agg(sum($$"case_volume") / sum("volume")) // operation on aggregator is not supported

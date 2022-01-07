@@ -54,7 +54,7 @@ object TpchQuery {
     val results = new ListBuffer[(String, Float)]
 
     var fromNum = 1;
-    var toNum = 9;
+    var toNum = 13;
     if (queryNum != 0) {
       fromNum = queryNum;
       toNum = queryNum;
@@ -65,14 +65,16 @@ object TpchQuery {
 
       val query = Class.forName(f"main.scala.Q${queryNo}%02d").newInstance.asInstanceOf[TpchQuery]
 
-      val tlog = new TimeSpent(Level.INFO)
-      val ret_df = query.execute(sc, schemaProvider)
-      tlog.show(query.getName() + ": exec time: ")
-
-      outputDF(ret_df, OUTPUT_DIR, query.getName())
+      try {
+        val tlog = new TimeSpent(Level.INFO)
+        val ret_df = query.execute(sc, schemaProvider)
+        tlog.show(query.getName() + ": exec time: ")
+        outputDF(ret_df, OUTPUT_DIR, query.getName())
+      } catch {
+        case e: java.rmi.ServerException => println("[Exception in processsing: " + query.getName() + " => " + e.getMessage())
+      }
 
       val t1 = System.nanoTime()
-
       val elapsed = (t1 - t0) / 1000000000.0f // second
       results += new Tuple2(query.getName(), elapsed)
     }
