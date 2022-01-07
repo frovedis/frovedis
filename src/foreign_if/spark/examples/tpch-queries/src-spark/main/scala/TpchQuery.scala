@@ -7,9 +7,6 @@ import java.io.File
 import java.io.FileWriter
 import org.apache.spark.sql._
 import scala.collection.mutable.ListBuffer
-import com.nec.frovedis.Jexrpc.FrovedisServer
-import com.nec.frovedis.matrix.TimeSpent
-import org.apache.log4j.Level
 
 /**
  * Parent class for TPC-H queries.
@@ -66,12 +63,10 @@ object TpchQuery {
       val query = Class.forName(f"main.scala.Q${queryNo}%02d").newInstance.asInstanceOf[TpchQuery]
 
       try {
-        val tlog = new TimeSpent(Level.INFO)
         val ret_df = query.execute(sc, schemaProvider)
-        tlog.show(query.getName() + ": exec time: ")
         outputDF(ret_df, OUTPUT_DIR, query.getName())
       } catch {
-        case e: java.rmi.ServerException => println("[Exception in processsing: " + query.getName() + " => " + e.getMessage())
+        case e: Exception => println("[Exception in processsing: " + query.getName() + " => " + e.getMessage())
       }
 
       val t1 = System.nanoTime()
@@ -84,19 +79,12 @@ object TpchQuery {
 
   def main(args: Array[String]): Unit = {
 
-    var command: String = null
-    if (args.length == 0)
-      throw new IllegalArgumentException("server instantiation command is not provided!")
-    else
-      command = args(0)
-
     var queryNum = 0;
     if (args.length > 1)
       queryNum = args(1).toInt
 
     val conf = new SparkConf().setAppName("Simple Application")
     val sc = new SparkContext(conf)
-    FrovedisServer.initialize(command)
     
     // read files from local FS
     val INPUT_DIR = "file://" + new File(".").getAbsolutePath() + "/input/1GB"
@@ -114,6 +102,5 @@ object TpchQuery {
     }
 
     bw.close()
-    FrovedisServer.shut_down()
   }
 }

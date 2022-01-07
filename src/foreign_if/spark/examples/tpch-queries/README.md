@@ -1,7 +1,7 @@
 # tpch-spark
 
 TPC-H queries implemented in Spark using the Frovedis DataFrame APIs.
-Tested under Spark 3.1.2
+Tested under Spark 3.1.2 and SBT 1.4.7
 
 ### Generating tables
 
@@ -27,5 +27,6 @@ Default QID=0, which means all the queries would be executed in order.
 If you need a specific query to be executed, modify the value of QID before executing the above script.
 
 Make sure you set the INPUT_DIR and OUTPUT_DIR in `TpchQuery` class before compiling to point to the
-location the of the input data and where the output should be saved.
+location of the input data (specially when scale factor is other than default) 
+and where the output should be saved.
 
