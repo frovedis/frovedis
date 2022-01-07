@@ -78,7 +78,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       if (info != "") throw new java.rmi.ServerException(info)
     }
   }
-  private def const_impl(df: DataFrame, cols: Array[String]): Unit = {
+  private def const_impl(df: DataFrame, cols: Array[String]): this.type = {
     val code = df.hashCode // assumed to be unique per spark dataframe object
     val base_ptr = new ArrayBuffer[Long]()
     val base_col = new ArrayBuffer[String]()
@@ -119,6 +119,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       this.types = dummy.types.clone() // TODO: mark bool/ulong
     }
     this.code = code
+    this
   }
 
   def is_removable = (owned_cols == null)
@@ -380,7 +381,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     // mapping of join type, spark-> "frovedis"
     val joinTypeMap = Map("inner" -> "inner",  
                           "left" -> "outer", 
-                          "leftouter" -> "outer")
+                          "left_outer" -> "outer")
     if(!joinTypeMap.contains(join_type)) 
       throw new IllegalArgumentException("Unsupported join type: " + join_type)
     return joinTypeMap(join_type)
