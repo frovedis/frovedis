@@ -1,0 +1,496 @@
+.TH "Graph" "" "" "" ""
+.SH NAME
+.PP
+Graph \- This class implements a directed or undirected frovedis graph.
+.SH SYNOPSIS
+.IP
+.nf
+\f[C]
+frovedis.graph.graph.Graph(nx_graph=None)\ \ 
+\f[]
+.fi
+.SS Public Member Functions
+.PP
+load(nx_graph)
+.PD 0
+.P
+.PD
+load_csr(smat)
+.PD 0
+.P
+.PD
+debug_print()
+.PD 0
+.P
+.PD
+release()
+.PD 0
+.P
+.PD
+clear()
+.PD 0
+.P
+.PD
+number_of_edges()
+.PD 0
+.P
+.PD
+number_of_nodes()
+.PD 0
+.P
+.PD
+save(fname)
+.PD 0
+.P
+.PD
+load_text(fname)
+.PD 0
+.P
+.PD
+to_networkx_graph()
+.SH DESCRIPTION
+.SS Detailed Description
+.SS 1. Graph()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]nx_graph\f[]\f[]: Data to initialize graph.
+Here data provided is a scipy sparse csr_matrix or a networkx.Graph
+instance.
+It loads such data to create a frovedis graph.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None, an empty frovedis graph is created.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes a Frovedis Graph object having nodes and edges.
+It can create both directed or undirected graph.
+.PP
+For example,
+.PP
+\f[B]a) When loading an undirected networkx.Graph as input,\f[]
+.IP
+.nf
+\f[C]
+import\ frovedis.graph\ as\ fnx
+import\ networkx\ as\ gnx
+net_graph\ =\ gnx.read_edgelist(\[aq]input/cit\-Patents_10.txt\[aq])
+frov_graph\ =\ fnx.Graph(net_graph)
+\f[]
+.fi
+.PP
+\f[B]b) When loading a directed networkx.Graph as input,\f[]
+.IP
+.nf
+\f[C]
+import\ frovedis.graph\ as\ fnx
+import\ networkx\ as\ gnx
+net_graph\ =\ gnx.read_edgelist(\[aq]input/cit\-Patents_10.txt\[aq],\ create_using\ =\ gnx.DiGraph())
+frov_graph\ =\ fnx.Graph(net_graph)
+\f[]
+.fi
+.PP
+\f[B]c) When loading a scipy sparse csr_matrix as input to create
+undirected frovedis graph,\f[]
+.IP
+.nf
+\f[C]
+#Here\ it\ creates\ an\ undirected\ graph
+import\ frovedis.graph\ as\ fnx
+from\ scipy.sparse\ import\ csr_matrix
+data\ =\ [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+row\ =\ [0,0,0,0,0,1,2,3,4,5,6,6,6,6,7,8,9,10,11,12]
+col\ =\ [1,2,3,4,5,0,0,0,0,0,7,8,9,10,6,6,6,6,12,11]
+csr_mat\ =\ csr_matrix((data,\ (row,\ col)),\ shape\ =\ (13,\ 13))
+frov_graph\ =\ fnx.Graph(csr_mat)
+\f[]
+.fi
+.PP
+\f[B]d) Again, when loading a scipy sparse csr_matrix as input to create
+directed frovedis graph,\f[]
+.IP
+.nf
+\f[C]
+#Here\ it\ creates\ a\ directed\ graph
+import\ frovedis.graph\ as\ fnx
+from\ scipy.sparse\ import\ csr_matrix
+data\ =\ [1,1,1,1,1,1,1,1,1,1]
+row\ =\ [0,0,0,0,0,6,6,6,6,11]
+col\ =\ [1,2,3,4,5,7,8,9,10,12]
+csr_mat\ =\ csr_matrix((data,\ (row,\ col)),\ shape\ =\ (13,\ 13))
+frov_graph\ =\ fnx.Graph(csr_mat)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 2. load(nx_graph)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]nx_graph\f[]\f[]: Data to initialize graph.
+Here graph data provided is a networkx.Graph instance.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads a networkx graph to create a frovedis graph.
+Here, the loaded graph can be directed or undirected.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ frovedis.graph\ as\ fnx
+import\ networkx\ as\ gnx
+net_graph\ =\ gnx.read_edgelist(\[aq]input/cit\-Patents_10.txt\[aq])
+frov_graph\ =\ fnx.Graph().load(nx_graph\ =\ net_graph)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 3. load_csr(smat)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]smat\f[]\f[]: Data to initialize graph.
+Here graph data provided is a scipy sparse csr_matrix.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads frovedis graph from a scipy csr_matrix.
+Here, depending on the scipy csr_matrix data, the final graph maybe
+directed or undirected.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#Loading\ a\ scipy\ csr_matrix\ to\ create\ an\ undirected\ frovedis\ graph
+import\ frovedis.graph\ as\ fnx
+from\ scipy.sparse\ import\ csr_matrix
+data\ =\ [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+row\ =\ [0,0,0,0,0,1,2,3,4,5,6,6,6,6,7,8,9,10,11,12]
+col\ =\ [1,2,3,4,5,0,0,0,0,0,7,8,9,10,6,6,6,6,12,11]
+csr_mat\ =\ csr_matrix((data,\ (row,\ col)),\ shape\ =\ (13,\ 13))
+frov_graph\ =\ fnx.Graph().load_csr(smat\ =\ csr_mat)
+
+#Loading\ a\ scipy\ csr_matrix\ to\ create\ a\ directed\ frovedis\ graph
+import\ frovedis.graph\ as\ fnx
+from\ scipy.sparse\ import\ csr_matrix
+data\ =\ [1,1,1,1,1,1,1,1,1,1]
+row\ =\ [0,0,0,0,0,6,6,6,6,11]
+col\ =\ [1,2,3,4,5,7,8,9,10,12]
+csr_mat\ =\ csr_matrix((data,\ (row,\ col)),\ shape\ =\ (13,\ 13))
+frov_graph\ =\ fnx.Graph().load_csr(smat\ =\ csr_mat)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 4. debug_print()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It shows graph information on the client side and server side user
+terminal.
+It is mainly used for debugging purpose.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+frov_graph.debug_print()
+\f[]
+.fi
+.PP
+Output on client side
+.IP
+.nf
+\f[C]
+Num\ of\ edges:\ \ 20
+Num\ of\ vertices:\ \ 13
+\f[]
+.fi
+.PP
+It displays information such as number of edges and vertices.
+.PP
+Output on server side
+.IP
+.nf
+\f[C]
+Num\ of\ edges:\ \ 20
+Num\ of\ vertices:\ \ 13
+is\ directed:\ 0
+is\ weighted:\ 0
+in\-degree:
+5\ 1\ 1\ 1\ 1\ 1\ 4\ 1\ 1\ 1\ 1\ 1\ 1
+out\-degree:
+5\ 1\ 1\ 1\ 1\ 1\ 4\ 1\ 1\ 1\ 1\ 1\ 1
+adjacency\ matrix:
+0\ 1\ 1\ 1\ 1\ 1\ 0\ 0\ 0\ 0\ 0\ 0\ 0
+1\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0
+1\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0
+1\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0
+1\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0
+1\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0
+0\ 0\ 0\ 0\ 0\ 0\ 0\ 1\ 1\ 1\ 1\ 0\ 0
+0\ 0\ 0\ 0\ 0\ 0\ 1\ 0\ 0\ 0\ 0\ 0\ 0
+0\ 0\ 0\ 0\ 0\ 0\ 1\ 0\ 0\ 0\ 0\ 0\ 0
+0\ 0\ 0\ 0\ 0\ 0\ 1\ 0\ 0\ 0\ 0\ 0\ 0
+0\ 0\ 0\ 0\ 0\ 0\ 1\ 0\ 0\ 0\ 0\ 0\ 0
+0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 1
+0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 0\ 1\ 0
+\f[]
+.fi
+.PP
+It displays information such as number of edges and vertices, directed
+(\[aq]0\[aq] for No, \[aq]1\[aq] for Yes) , incoming links, outgoing
+links and an adjacency matrix.
+Currently, it shows information about an undirected frovedis graph.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 5. release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+frov_graph.release()\ \ 
+\f[]
+.fi
+.PP
+This will remove the graph model, model\-id present on server, along
+with releasing server side memory.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 6. clear()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+This method is an alias to release().
+.PP
+For example,
+.IP
+.nf
+\f[C]
+frov_graph.clear()\ \ 
+\f[]
+.fi
+.PP
+This will remove the graph model, model\-id present on server, along
+with releasing server side memory.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 7. number_of_edges()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It is used to fetch the number of edges present in the directed or
+undirected frovedis graph.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+edge_count\ =\ frov_graph.number_of_edges()
+print(\[aq]Number\ of\ edges:\ \[aq],\ edge_count)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Number\ of\ edges:\ 20
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a long (int64) type value specifying the number of edges.
+.SS 8. number_of_nodes()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It is used to fetch the number of nodes/vertices present in the directed
+or undirected frovedis graph.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+nodes_count\ =\ frov_graph.number_of_nodes()
+print(\[aq]Number\ of\ nodes:\ \[aq],\ nodes_count)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Number\ of\ nodes:\ 13
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a long (int64) type value specifying the number of
+node/vertices.
+.SS 9. save(fname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+on which the adjacency matrix is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+On success, it writes the adjacency matrix information in the specified
+file.
+Otherwise, it throws an exception.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ To\ save\ the\ frovedis\ graph\ \ 
+frov_graph.save("./out/FrovGraph")\ \ 
+\f[]
+.fi
+.PP
+This will save the frovedis grpah on the path \[aq]/out/FrovGraph\[aq].
+It would raise exception if the directory already exists with same name.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 10. load_text(fname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]fname\f[]\f[]: A string object containing the name of the file
+having adjacency matrix information to be loaded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads a frovedis graph from the specified file path (having adjacency
+matrix data).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ To\ load\ the\ frovedis\ graph\ \ 
+frov_graph.load_text("./out/FrovGraph")\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 11. to_networkx_graph()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It is used to convert a frovedis graph into a networkx graph.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+nx_graph\ =\ frov_graph.to_networkx_graph()
+print(nx_graph.adj)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{0:\ {1:\ {\[aq]weight\[aq]:\ 1.0},\ 2:\ {\[aq]weight\[aq]:\ 1.0},\ 3:\ {\[aq]weight\[aq]:\ 1.0},\ 4:\ {\[aq]weight\[aq]:\ 1.0},\ 
+5:\ {\[aq]weight\[aq]:\ 1.0}},\ 1:\ {0:\ {\[aq]weight\[aq]:\ 1.0}},\ 2:\ {0:\ {\[aq]weight\[aq]:\ 1.0}},\ 
+3:\ {0:\ {\[aq]weight\[aq]:\ 1.0}},\ 4:\ {0:\ {\[aq]weight\[aq]:\ 1.0}},\ 5:\ {0:\ {\[aq]weight\[aq]:\ 1.0}},\ 
+6:\ {7:\ {\[aq]weight\[aq]:\ 1.0},\ 8:\ {\[aq]weight\[aq]:\ 1.0},\ 9:\ {\[aq]weight\[aq]:\ 1.0},\ 10:\ {\[aq]weight\[aq]:\ 1.0}},\ 
+7:\ {6:\ {\[aq]weight\[aq]:\ 1.0}},\ 8:\ {6:\ {\[aq]weight\[aq]:\ 1.0}},\ 9:\ {6:\ {\[aq]weight\[aq]:\ 1.0}},\ 
+10:\ {6:\ {\[aq]weight\[aq]:\ 1.0}},\ 11:\ {12:\ {\[aq]weight\[aq]:\ 1.0}},\ 12:\ {11:\ {\[aq]weight\[aq]:\ 1.0}}}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a networkx.Graph instance.
+.SS SEE ALSO
+.PP
+pagerank, bfs, connected_componenets, single_source_shortest_path

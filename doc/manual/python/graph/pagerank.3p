@@ -1,0 +1,352 @@
+.TH "pagerank()" "" "" "" ""
+.SH NAME
+.PP
+pagerank() \- It computes a ranking of the nodes in the graph
+\[aq]G\[aq] based on the structure of the incoming links.
+It was originally designed as an algorithm to rank web pages.
+.SH SYNOPSIS
+.IP
+.nf
+\f[C]
+frovedis.graph.pagerank(G,\ alpha=0.85,\ personalization=None,\ max_iter=100,\ tol=1.0e\-6,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ nstart=None,\ weight=\[aq]weight\[aq],\ dangling=None,\ verbose=0)\ \ 
+\f[]
+.fi
+.SH DESCRIPTION
+.PP
+The PageRank algorithm ranks the nodes in a graph by their relative
+importance or influence.
+PageRank determines each node\[aq]s ranking by identifying the number of
+links to the node and the quality of the links.
+The quality of a link is determined by the importance (PageRank) of the
+node that presents the outbound link.
+.PP
+The PageRank algorithm was designed at first to measure the importance
+of a webpage by analyzing the quantity and quality of the links that
+point to it.
+.PP
+Mathematically, PageRank (PR) is defined as:
+.IP
+.nf
+\f[C]
+PR(A)\ =\ (1\ \-\ d)\ +\ d(PR(Ti)/C(Ti)+\ ...\ +\ PR(Tn)/C(Tn))
+\f[]
+.fi
+.PP
+where \f[B]Page A\f[] has pages \f[B]T1 to Tn\f[] which point to it.
+.PD 0
+.P
+.PD
+\f[B]d\f[] is a damping factor.
+It corresponds to the probability that an imaginary web surfer will
+suddenly visit a random page on the web instead of following one of the
+outbound links prescribed by the web page that the surfer is currently
+visiting.
+This is useful for accounting for sinks (web pages that have inbound
+links but no outbound links).
+.PD 0
+.P
+.PD
+Also, the \f[B](1 \- d)\f[] in the preceding formula dampens the
+contribution of the incoming PageRanks from the adjacent vertices.
+It is as if imaginary outbound edges are added from all sink vertices to
+every other vertex in the graph, and to keep things fair, this same
+thing is done to the non\-sink vertices as well.
+.PD 0
+.P
+.PD
+\f[B]C(A)\f[] is defined as the number of links going out of page A.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The frovedis public method interface is almost same as NetworkX pagerank
+public method interface, but it doesn't have any dependency with
+NetworkX.
+It can be used simply even if the system doesn't have NetworkX
+installed.
+Thus, in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for pagerank() on the frovedis server.
+Once the PageRanks are computed for the given input graph data at the
+frovedis server, it returns a dictionary of nodes with PageRank as value
+to the client python program.
+.SS Detailed Description
+.SS 1. pagerank()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]G\f[]\f[]: An instance of networkx graph or frovedis graph on
+which pagerank is to be computed.
+The graph can be directed or undirected.
+.PD 0
+.P
+.PD
+\f[I]\f[B]alpha\f[]\f[]: A positive integer parameter that is referred
+as \f[B]damping factor\f[].
+It must be in range 0 and 1.
+It represents a sort of minimum PageRank value.
+(Default: 0.85)
+.PD 0
+.P
+.PD
+\f[I]\f[B]personalization\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]max_iter\f[]\f[]: A positive integer parameter that specifies
+the maximum number of iterations to run this method.
+Convergence may occur before max_iter value, in that case the iterations
+will stop.
+(Default: 100)
+.PD 0
+.P
+.PD
+\f[I]\f[B]tol\f[]\f[]: A positive double (float64) parameter specifying
+the convergence tolerance.
+The PageRank iterations stop if the sum of the error values for all
+nodes is below this value.
+(Default: 1.0e\-6)
+.PD 0
+.P
+.PD
+\f[I]\f[B]nstart\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]weight\f[]\f[]: An unused parameter.
+(Default: \[aq]weight\[aq])
+.PD 0
+.P
+.PD
+\f[I]\f[B]dangling\f[]\f[]: An unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is 0 by default (INFO level).
+But it can be set to 1 (DEBUG level) or 2 (TRACE level) for getting
+training time logs from frovedis server.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method ranks the nodes present in the graph with the given
+parameters.
+.PP
+The parameters: "personalization", "nstart", "weight" and "dangling" are
+simply kept to make the method uniform to NetworkX pagerank method.
+They are not used anywhere within the frovedis implementation.
+.PP
+For example,
+.PP
+\f[B]When loading an undirected networkx.graph as input from an edgelist
+file,\f[]
+.PP
+FILE: cit\-Patents.txt
+.PP
+1 2
+.PD 0
+.P
+.PD
+1 3
+.PD 0
+.P
+.PD
+1 4
+.PD 0
+.P
+.PD
+1 5
+.PD 0
+.P
+.PD
+1 6
+.PD 0
+.P
+.PD
+7 8
+.PD 0
+.P
+.PD
+7 9
+.PD 0
+.P
+.PD
+7 10
+.PD 0
+.P
+.PD
+7 11
+.PD 0
+.P
+.PD
+12 13
+.PP
+Here, the above file contains a list of edges between the nodes of graph
+G.
+.IP
+.nf
+\f[C]
+#\ An\ undirected\ graph\ loaded\ from\ edgelist\ file
+import\ networkx\ as\ gnx
+networkx_graph\ =\ gnx.read_edgelist(\[aq]input/cit\-Patents.txt\[aq])
+ranks\ =\ gnx.pagerank(networkx_graph)
+print\ ("NX\ PR:\ ",\ ranks)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[rank\ 0]\ pagerank:\ converged\ in\ 8\ iterations!
+NX\ PR:\ \ {1:\ 0.11705684590144233,\ 2:\ 0.06889632312740385,\ 3:\ 0.06889632312740385,\ 
+4:\ 0.06889632312740385,\ 5:\ 0.06889632312740385,\ 6:\ 0.06889632312740385,\ 7:\ 0.10702340365685098,\ 
+8:\ 0.06939799523963341,\ 9:\ 0.06939799523963341,\ 10:\ 0.06939799523963341,\ 
+11:\ 0.06939799523963341,\ 12:\ 0.07692307692307693,\ 13:\ 0.07692307692307693}
+\f[]
+.fi
+.PP
+\f[B]When loading an undirected frovedis graph as input from an edgelist
+file,\f[]
+.PP
+FILE: cit\-Patents.txt (same file)
+.IP
+.nf
+\f[C]
+#\ An\ undirected\ graph\ loaded\ from\ edgelist\ file
+import\ frovedis.graph\ as\ fnx
+frov_graph\ =\ fnx.read_edgelist(\[aq]input/cit\-Patents.txt\[aq])
+ranks\ =\ fnx.pagerank(frov_graph)
+print\ ("FROV\ PR:\ ",\ ranks)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[rank\ 0]\ pagerank:\ converged\ in\ 8\ iterations!
+FROV\ PR:\ \ {1:\ 0.11705684590144233,\ 2:\ 0.06889632312740385,\ 3:\ 0.06889632312740385,\ 
+4:\ 0.06889632312740385,\ 5:\ 0.06889632312740385,\ 6:\ 0.06889632312740385,\ 7:\ 0.10702340365685098,\ 
+8:\ 0.06939799523963341,\ 9:\ 0.06939799523963341,\ 10:\ 0.06939799523963341,\ 
+11:\ 0.06939799523963341,\ 12:\ 0.07692307692307693,\ 13:\ 0.07692307692307693}
+\f[]
+.fi
+.PP
+\f[B]When loading an directed networkx.graph as input from an edgelist
+file,\f[]
+.PP
+FILE: cit\-Patents.txt
+.PP
+1 2
+.PD 0
+.P
+.PD
+1 3
+.PD 0
+.P
+.PD
+1 4
+.PD 0
+.P
+.PD
+1 5
+.PD 0
+.P
+.PD
+1 6
+.PD 0
+.P
+.PD
+7 8
+.PD 0
+.P
+.PD
+7 9
+.PD 0
+.P
+.PD
+7 10
+.PD 0
+.P
+.PD
+7 11
+.PD 0
+.P
+.PD
+12 13
+.PP
+Here, the above file contains a list of edges between the nodes of graph
+G.
+.IP
+.nf
+\f[C]
+#\ A\ directed\ graph\ loaded\ from\ edgelist\ file
+import\ networkx\ as\ gnx
+networkx_graph\ =\ gnx.read_edgelist(\[aq]input/cit\-Patents.txt\[aq],\ create_using\ =\ gnx.DiGraph())
+ranks\ =\ gnx.pagerank(networkx_graph)
+print\ ("NX\ PR:\ ",\ ranks)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[rank\ 0]\ pagerank:\ converged\ in\ 3\ iterations!
+NX\ PR:\ \ {1:\ 0.06538461538461539,\ 2:\ 0.06734615384615385,\ 3:\ 0.06734615384615385,\ 
+4:\ 0.06734615384615385,\ 5:\ 0.06734615384615385,\ 6:\ 0.06734615384615385,\ 7:\ 0.06538461538461539,\ 
+8:\ 0.06783653846153846,\ 9:\ 0.06783653846153846,\ 10:\ 0.06783653846153846,\ 
+11:\ 0.06783653846153846,\ 12:\ 0.06538461538461539,\ 13:\ 0.0751923076923077}
+\f[]
+.fi
+.PP
+\f[B]When loading an directed frovedis graph as input from an edgelist
+file,\f[]
+.PP
+FILE: cit\-Patents.txt (same file)
+.IP
+.nf
+\f[C]
+#\ A\ directed\ graph\ loaded\ from\ edgelist\ file
+import\ frovedis.graph\ as\ fnx
+import\ networkx
+frov_graph\ =\ fnx.read_edgelist(\[aq]input/cit\-Patents.txt\[aq],\ create_using\ =\ networkx.DiGraph())
+ranks\ =\ fnx.pagerank(frov_graph)
+print\ ("FROV\ PR:\ ",\ ranks)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[rank\ 0]\ pagerank:\ converged\ in\ 3\ iterations!
+FROV\ PR:\ \ {1:\ 0.06538461538461539,\ 2:\ 0.06734615384615385,\ 3:\ 0.06734615384615385,\ 
+4:\ 0.06734615384615385,\ 5:\ 0.06734615384615385,\ 6:\ 0.06734615384615385,\ 7:\ 0.06538461538461539,\ 
+8:\ 0.06783653846153846,\ 9:\ 0.06783653846153846,\ 10:\ 0.06783653846153846,\ 
+11:\ 0.06783653846153846,\ 12:\ 0.06538461538461539,\ 13:\ 0.0751923076923077}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a dictionary of nodes with PageRank as value.
+.SS SEE ALSO
+.PP
+graph, bfs, connected_componenets, single_source_shortest_path
