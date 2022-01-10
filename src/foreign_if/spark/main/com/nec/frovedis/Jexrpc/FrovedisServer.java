@@ -56,6 +56,9 @@ public class FrovedisServer implements java.io.Serializable {
   public static void display() throws ServerException {
     System.out.println(getServerInstance().toString());
   }
+  public static boolean isUP() {
+    return instantiated;
+  }
   @Override
   public String toString() { 
     if(instantiated) {

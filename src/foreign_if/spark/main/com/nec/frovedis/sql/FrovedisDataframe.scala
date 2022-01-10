@@ -1110,4 +1110,9 @@ class FrovedisDataFrame extends java.io.Serializable {
     var df2 = obj.asInstanceOf[FrovedisDataFrame]
     return this.get() == df2.get()
   }
+
+  override def finalize(): Unit = {
+    //println("finalize is called for " + get())
+    if (FrovedisServer.isUP()) release()
+  }
 }
