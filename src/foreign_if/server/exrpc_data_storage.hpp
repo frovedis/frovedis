@@ -522,13 +522,20 @@ dummy_matrix load_bcm_matrix(std::string& path, bool& isbinary) {
 // releases the frovedis dvector from the heap
 template <class T>
 void release_dvector(exrpc_ptr_t& vptr) {
-  delete reinterpret_cast<dvector<T>*>(vptr);
+  if(!is_deleted_data(vptr)) {         // if not yet deleted, then
+    deleted_data_tracker.insert(vptr); // mark as 'deleted'
+    delete reinterpret_cast<dvector<T>*>(vptr);
+  }
 }
 
 // releases the frovedis data from the heap
 template <class DATA>
 void release_data(exrpc_ptr_t& dptr) {
-  delete reinterpret_cast<DATA*>(dptr);
+  if(!is_deleted_data(dptr)) {         // if not yet deleted, then
+    deleted_data_tracker.insert(dptr); // mark as 'deleted'
+    delete reinterpret_cast<DATA*>(dptr);
+  }
+  //else std::cout << dptr << ": has already been deleted!\n";
 }
 
 // releases the frovedis glm data from the heap

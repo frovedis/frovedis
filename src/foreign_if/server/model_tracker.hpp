@@ -132,11 +132,13 @@ enum OPTYPE {
 extern std::map<int,std::pair<MODEL_KIND,exrpc_ptr_t>> model_table;
 extern std::set<int> deleted_model_tracker;
 extern std::set<int> under_training_model_tracker;
+extern std::set<exrpc_ptr_t> deleted_data_tracker;
 
 void register_model(int mid, MODEL_KIND m, exrpc_ptr_t mptr);
 void register_for_train(int mid);
 void unregister_from_train(int mid);
 bool is_deleted(int mid);
+bool is_deleted_data(exrpc_ptr_t dptr);
 bool is_registered_model(int mid);
 bool is_under_training(int mid);
 

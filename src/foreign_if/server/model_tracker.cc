@@ -19,6 +19,7 @@ using namespace frovedis;
 std::map<int,std::pair<MODEL_KIND,exrpc_ptr_t>> model_table;
 std::set<int> deleted_model_tracker;
 std::set<int> under_training_model_tracker;
+std::set<exrpc_ptr_t> deleted_data_tracker;
 
 // ------------------------------------------------------
 // Note: C++ std::set is implemented using red-black tree data structure.
@@ -52,6 +53,10 @@ bool is_deleted(int mid) {
   return (deleted_model_tracker.find(mid) != deleted_model_tracker.end());
 }
 
+bool is_deleted_data(exrpc_ptr_t dptr) {
+  return (deleted_data_tracker.find(dptr) != deleted_data_tracker.end());
+}
+
 // checks if  model with given mid is alreday registered (a pre-trained model)
 bool is_registered_model(int mid) {
   return (model_table.find(mid) != model_table.end());
@@ -83,9 +88,11 @@ void finalize_model_table() {
 
 // deletes all trackers
 void finalize_trackers() {
-  std::set<int> tmp;
-  tmp = std::move(deleted_model_tracker);
-  tmp = std::move(under_training_model_tracker);
+  std::set<int> tmp1;
+  std::set<exrpc_ptr_t> tmp2;
+  tmp1 = std::move(deleted_model_tracker);
+  tmp1 = std::move(under_training_model_tracker);
+  tmp2 = std::move(deleted_data_tracker);
 }
 
 void cleanup_frovedis_server() {
