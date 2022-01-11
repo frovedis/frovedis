@@ -1136,14 +1136,15 @@ class SGDClassifier(BaseEstimator):
         """validates hyper parameters"""
         if self.power_t != 0.5:
             warnings.warn(\
-                " Parameter power_t has been set to" + str(self.power_t) + \
-                          " However, power_t will be set to 0.5 internally")
-        if self.learning_rate != 'invscaling':
-            warnings.warn(" Parameter learning_rate has been set to" + \
-                          str(self.learning_rate) + \
-              " However, learning_rate will be set to invscaling internally")
+                "fit: Parameter power_t has been set to" + str(self.power_t) + \
+                "However, power_t will be set to 0.5 internally!")
+
+        supported_learning_rate = ("invscaling")
+        if self.learning_rate not in supported_learning_rate:
+            raise ValueError("fit: Unsupported learning_rate : " + str(self.learning_rate))
+
         if self.alpha < 0:
-            raise ValueError("alpha must be >= 0")
+            raise ValueError("fit: alpha must be >= 0")
 
     def check_input(self, X, y, F):
         """checks input X"""
@@ -1511,12 +1512,12 @@ class SGDRegressor(BaseEstimator):
         if self.max_iter <= 0:
             raise ValueError("fit: max_iter must be a positive value!")
 
-        if self.power_t != 0.25:
+        if self.power_t != 0.5:
             warnings.warn(\
-                " Parameter power_t has been set to" + str(self.power_t) + \
-                          " However, power_t will be set to 0.25 internally")
+                "fit: Parameter power_t has been set to" + str(self.power_t) + \
+                "However, power_t will be set to 0.5 internally!")
 
-        supported_learning_rate = ("invscaling", "optimal")
+        supported_learning_rate = ("invscaling")
         if self.learning_rate not in supported_learning_rate:
             raise ValueError("fit: Unsupported learning_rate : " + str(self.learning_rate))
 
