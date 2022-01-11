@@ -3637,8 +3637,9 @@ void star_joined_dftable::debug_print() {
 
 // ---------- grouped_dftable ----------
 
+// one arg version of fselect can take dfaggregate
 dftable grouped_dftable::fselect
-(const std::vector<std::shared_ptr<dffunction>>& cols) {
+(const std::vector<std::shared_ptr<dffunction>>& aggs) {
   // create temporary dftable that contains grouped cols;
   // this is low cost because the columns are already created
   dftable tmp;
@@ -3648,19 +3649,29 @@ dftable grouped_dftable::fselect
     tmp.col[grouped_col_names[i]] = grouped_cols[i];
     tmp.col_order.push_back(grouped_col_names[i]);
   }
-  dftable ret;
-  ret.row_size = num_row();
-  ret.row_sizes = num_rows();
-  for(size_t i = 0; i < cols.size(); i++) {
-    auto as = cols[i]->get_as();
-    if(ret.col.find(as) != ret.col.end())
-      throw std::runtime_error("select: same column name already exists");
-    use_dfcolumn use(cols[i]->columns_to_use(tmp));
-    ret.col[as] = cols[i]->execute(tmp);
-    ret.col[as]->spill();
-    ret.col_order.push_back(as);
+  dftable ret_table;
+  size_t aggssize = aggs.size();
+  auto nl_row_sizes = make_node_local_scatter(num_rows());
+  for(size_t i = 0; i < aggssize; i++) {
+    use_dfcolumn use(aggs[i]->columns_to_use(org_table));
+    auto newcol = aggs[i]->aggregate(org_table,
+                                     local_grouped_idx,
+                                     local_idx_split,
+                                     hash_divide,
+                                     merge_map,
+                                     nl_row_sizes,
+                                     tmp);
+    newcol->spill();
+    if(ret_table.col.find(aggs[i]->get_as()) != ret_table.col.end())
+      throw std::runtime_error
+        ("grouped_dftable::select: same column name already exists");
+    ret_table.col[aggs[i]->get_as()] = newcol;
+    ret_table.col_order.push_back(aggs[i]->get_as());
   }
-  return ret;
+  ret_table.row_size = num_row();
+  ret_table.row_sizes = num_rows();
+
+  return ret_table;
 }
 
 dftable grouped_dftable::select(const std::vector<std::string>& cols) {
@@ -3716,7 +3727,8 @@ grouped_dftable::fselect
                                      local_idx_split,
                                      hash_divide,
                                      merge_map,
-                                     nl_row_sizes);
+                                     nl_row_sizes,
+                                     tmp);
     newcol->spill();
     if(ret_table.col.find(aggs[i]->get_as()) != ret_table.col.end())
       throw std::runtime_error
@@ -3733,6 +3745,14 @@ dftable
 grouped_dftable::select(const std::vector<std::string>& cols,
                         const std::vector<std::shared_ptr<dfaggregator>>& aggs) {
   dftable ret_table;
+
+  dftable tmp;
+  tmp.row_size = num_row();
+  tmp.row_sizes = num_rows();
+  for(size_t i = 0; i < grouped_col_names.size(); i++) {
+    tmp.col[grouped_col_names[i]] = grouped_cols[i];
+    tmp.col_order.push_back(grouped_col_names[i]);
+  }
   size_t colssize = cols.size();
   if(colssize != 0) {
     for(size_t i = 0; i < colssize; i++) {
@@ -3758,7 +3778,8 @@ grouped_dftable::select(const std::vector<std::string>& cols,
                                      local_idx_split,
                                      hash_divide,
                                      merge_map,
-                                     nl_row_sizes);
+                                     nl_row_sizes,
+                                     tmp);
     newcol->spill();
     if(ret_table.col.find(aggs[i]->get_as()) != ret_table.col.end())
       throw std::runtime_error

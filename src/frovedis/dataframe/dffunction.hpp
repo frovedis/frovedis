@@ -53,6 +53,14 @@ struct dffunction_cast : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   std::string to_type, as_name;
@@ -111,6 +119,14 @@ struct dffunction_add : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -173,6 +189,14 @@ struct dffunction_add_im : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -184,6 +208,23 @@ std::shared_ptr<dfcolumn> dffunction_add_im<T>::execute(dftable_base& t) const {
   std::shared_ptr<dfscalar> right_scalar =
     std::make_shared<typed_dfscalar<T>>(right);
   auto left_column = left->execute(t);
+  return left_column->add_im(right_scalar);
+}
+
+template <class T>
+std::shared_ptr<dfcolumn> dffunction_add_im<T>::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  std::shared_ptr<dfscalar> right_scalar =
+    std::make_shared<typed_dfscalar<T>>(right);
   return left_column->add_im(right_scalar);
 }
 
@@ -277,6 +318,14 @@ struct dffunction_sub : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -341,6 +390,14 @@ struct dffunction_sub_im : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -353,6 +410,25 @@ std::shared_ptr<dfcolumn> dffunction_sub_im<T>::execute(dftable_base& t) const {
   std::shared_ptr<dfscalar> right_scalar =
     std::make_shared<typed_dfscalar<T>>(right);
   auto left_column = left->execute(t);
+  return is_reversed ? left_column->rsub_im(right_scalar) 
+    : left_column->sub_im(right_scalar);
+}
+
+
+template <class T>
+std::shared_ptr<dfcolumn> dffunction_sub_im<T>::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  std::shared_ptr<dfscalar> right_scalar =
+    std::make_shared<typed_dfscalar<T>>(right);
   return is_reversed ? left_column->rsub_im(right_scalar) 
     : left_column->sub_im(right_scalar);
 }
@@ -447,6 +523,14 @@ struct dffunction_mul : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -508,6 +592,14 @@ struct dffunction_mul_im : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -519,6 +611,23 @@ std::shared_ptr<dfcolumn> dffunction_mul_im<T>::execute(dftable_base& t) const {
   std::shared_ptr<dfscalar> right_scalar =
     std::make_shared<typed_dfscalar<T>>(right);
   auto left_column = left->execute(t);
+  return left_column->mul_im(right_scalar);
+}
+
+template <class T>
+std::shared_ptr<dfcolumn> dffunction_mul_im<T>::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  std::shared_ptr<dfscalar> right_scalar =
+    std::make_shared<typed_dfscalar<T>>(right);
   return left_column->mul_im(right_scalar);
 }
 
@@ -612,6 +721,14 @@ struct dffunction_fdiv : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -676,6 +793,14 @@ struct dffunction_fdiv_im : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -689,6 +814,24 @@ dffunction_fdiv_im<T>::execute(dftable_base& t) const {
   std::shared_ptr<dfscalar> right_scalar =
     std::make_shared<typed_dfscalar<T>>(right);
   auto left_column = left->execute(t);
+  return is_reversed ? left_column->rfdiv_im(right_scalar) 
+    : left_column->fdiv_im(right_scalar);
+}
+
+template <class T>
+std::shared_ptr<dfcolumn> dffunction_fdiv_im<T>::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  std::shared_ptr<dfscalar> right_scalar =
+    std::make_shared<typed_dfscalar<T>>(right);
   return is_reversed ? left_column->rfdiv_im(right_scalar) 
     : left_column->fdiv_im(right_scalar);
 }
@@ -783,6 +926,14 @@ struct dffunction_idiv : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -847,6 +998,14 @@ struct dffunction_idiv_im : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -860,6 +1019,24 @@ dffunction_idiv_im<T>::execute(dftable_base& t) const {
   std::shared_ptr<dfscalar> right_scalar =
     std::make_shared<typed_dfscalar<T>>(right);
   auto left_column = left->execute(t);
+  return is_reversed ? left_column->ridiv_im(right_scalar) 
+    : left_column->idiv_im(right_scalar);
+}
+
+template <class T>
+std::shared_ptr<dfcolumn> dffunction_idiv_im<T>::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  std::shared_ptr<dfscalar> right_scalar =
+    std::make_shared<typed_dfscalar<T>>(right);
   return is_reversed ? left_column->ridiv_im(right_scalar) 
     : left_column->idiv_im(right_scalar);
 }
@@ -954,6 +1131,14 @@ struct dffunction_mod : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -1018,6 +1203,14 @@ struct dffunction_mod_im : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -1031,6 +1224,24 @@ dffunction_mod_im<T>::execute(dftable_base& t) const {
   std::shared_ptr<dfscalar> right_scalar =
     std::make_shared<typed_dfscalar<T>>(right);
   auto left_column = left->execute(t);
+  return is_reversed ? left_column->rmod_im(right_scalar) 
+    : left_column->mod_im(right_scalar);
+}
+
+template <class T>
+std::shared_ptr<dfcolumn> dffunction_mod_im<T>::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  std::shared_ptr<dfscalar> right_scalar =
+    std::make_shared<typed_dfscalar<T>>(right);
   return is_reversed ? left_column->rmod_im(right_scalar) 
     : left_column->mod_im(right_scalar);
 }
@@ -1125,6 +1336,14 @@ struct dffunction_pow : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -1189,6 +1408,14 @@ struct dffunction_pow_im : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -1202,6 +1429,24 @@ dffunction_pow_im<T>::execute(dftable_base& t) const {
   std::shared_ptr<dfscalar> right_scalar =
     std::make_shared<typed_dfscalar<T>>(right);
   auto left_column = left->execute(t);
+  return is_reversed ? left_column->rpow_im(right_scalar) 
+    : left_column->pow_im(right_scalar);
+}
+
+template <class T>
+std::shared_ptr<dfcolumn> dffunction_pow_im<T>::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  std::shared_ptr<dfscalar> right_scalar =
+    std::make_shared<typed_dfscalar<T>>(right);
   return is_reversed ? left_column->rpow_im(right_scalar) 
     : left_column->pow_im(right_scalar);
 }
@@ -1288,6 +1533,14 @@ struct dffunction_abs : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   std::string as_name;
@@ -1342,6 +1595,14 @@ struct dffunction_datetime_extract : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   datetime_type type;
@@ -1406,6 +1667,14 @@ struct dffunction_datetime_diff : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   datetime_type type;
@@ -1493,6 +1762,14 @@ struct dffunction_datetime_diff_im : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   datetime_t right;
@@ -1575,6 +1852,14 @@ struct dffunction_datetime_add : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   datetime_type type;
@@ -1655,6 +1940,14 @@ struct dffunction_datetime_add_im : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   int right;
@@ -1720,6 +2013,14 @@ struct dffunction_datetime_sub : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   datetime_type type;
@@ -1800,6 +2101,14 @@ struct dffunction_datetime_sub_im : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   int right;
@@ -1859,6 +2168,14 @@ struct dffunction_datetime_truncate : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   datetime_type type;
@@ -1921,6 +2238,14 @@ struct dffunction_datetime_months_between : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -1999,6 +2324,14 @@ struct dffunction_datetime_next_day : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -2072,6 +2405,14 @@ struct dffunction_datetime_next_day_im : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   int right;
@@ -2145,6 +2486,14 @@ struct dffunction_when : public dffunction {
     }
     return touse;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   
   std::vector<std::shared_ptr<dfoperator>> cond;
   std::vector<std::shared_ptr<dffunction>> func;
@@ -2196,6 +2545,14 @@ struct dffunction_im : public dffunction {
   virtual std::vector<std::string> used_col_names() const {
     return std::vector<std::string>();
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   
   T value;
   std::string as_name;
@@ -2204,6 +2561,23 @@ struct dffunction_im : public dffunction {
 template <class T>
 std::shared_ptr<dfcolumn> dffunction_im<T>::execute(dftable_base& t) const {
   auto num_rows = make_node_local_scatter(t.num_rows());
+  auto nlval = num_rows.map(+[](size_t num_row, T value) {
+      return std::vector<T>(num_row, value);
+    }, broadcast(value));
+  auto dvval = nlval.template moveto_dvector<T>();
+  return std::make_shared<typed_dfcolumn<T>>(std::move(dvval));
+}
+
+template <class T>
+std::shared_ptr<dfcolumn> dffunction_im<T>::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto num_rows = make_node_local_scatter(grouped_table.num_rows());
   auto nlval = num_rows.map(+[](size_t num_row, T value) {
       return std::vector<T>(num_row, value);
     }, broadcast(value));
@@ -2253,6 +2627,14 @@ struct dffunction_datetime_im : public dffunction {
   virtual std::vector<std::string> used_col_names() const {
     return std::vector<std::string>();
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   
   datetime_t value;
   std::string as_name;
@@ -2296,6 +2678,14 @@ struct dffunction_dic_string_im : public dffunction {
   virtual std::vector<std::string> used_col_names() const {
     return std::vector<std::string>();
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   
   std::string value;
   std::string as_name;
@@ -2339,6 +2729,14 @@ struct dffunction_null_column : public dffunction {
   virtual std::vector<std::string> used_col_names() const {
     return std::vector<std::string>();
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   
   std::string as_name;
 };
@@ -2347,6 +2745,18 @@ template <class T>
 std::shared_ptr<dfcolumn>
 dffunction_null_column<T>::execute(dftable_base& t) const {
   return create_null_column<T>(t.num_rows());
+}
+
+template <class T>
+std::shared_ptr<dfcolumn> dffunction_null_column<T>::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  return create_null_column<T>(grouped_table.num_rows());
 }
 
 template <class T>
@@ -2392,6 +2802,14 @@ struct dffunction_null_string_column : public dffunction {
   virtual std::vector<std::string> used_col_names() const {
     return std::vector<std::string>();
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   
   std::string as_name;
 };
@@ -2432,6 +2850,14 @@ struct dffunction_null_dic_string_column : public dffunction {
   virtual std::vector<std::string> used_col_names() const {
     return std::vector<std::string>();
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   
   std::string as_name;
 };
@@ -2473,6 +2899,14 @@ struct dffunction_null_datetime_column : public dffunction {
   virtual std::vector<std::string> used_col_names() const {
     return std::vector<std::string>();
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   
   std::string as_name;
 };
@@ -2525,6 +2959,14 @@ struct dffunction_substr : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -2586,6 +3028,14 @@ struct dffunction_substr_im : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   int right;
@@ -2651,6 +3101,14 @@ struct dffunction_substr_num : public dffunction {
     leftnames.insert(leftnames.end(), numnames.begin(), numnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right, num;
   std::string as_name;
@@ -2717,6 +3175,14 @@ struct dffunction_substr_posim_num : public dffunction {
     leftnames.insert(leftnames.end(), numnames.begin(), numnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   int right;
@@ -2781,6 +3247,14 @@ struct dffunction_substr_numim : public dffunction {
     leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left, right;
   int num;
@@ -2842,6 +3316,14 @@ struct dffunction_substr_posim_numim : public dffunction {
     auto leftnames = left->used_col_names();
     return leftnames;
   }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
 
   std::shared_ptr<dffunction> left;
   int right, num;

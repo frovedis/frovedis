@@ -10,7 +10,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   // slice to get raw_column from execute
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
@@ -25,7 +26,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->count(local_grouped_idx, local_idx_split, hash_divide,
@@ -39,7 +41,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->size(local_grouped_idx, local_idx_split, hash_divide,
@@ -53,7 +56,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->avg(local_grouped_idx, local_idx_split, hash_divide,
@@ -67,7 +71,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->var(local_grouped_idx, local_idx_split, hash_divide,
@@ -81,7 +86,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->sem(local_grouped_idx, local_idx_split, hash_divide,
@@ -95,7 +101,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->std(local_grouped_idx, local_idx_split, hash_divide,
@@ -109,7 +116,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->mad(local_grouped_idx, local_idx_split, hash_divide,
@@ -123,7 +131,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->max(local_grouped_idx, local_idx_split, hash_divide,
@@ -137,7 +146,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->min(local_grouped_idx, local_idx_split, hash_divide,
@@ -151,7 +161,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->count_distinct(local_grouped_idx, local_idx_split, hash_divide,
@@ -165,7 +176,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->sum_distinct(local_grouped_idx, local_idx_split, hash_divide,
@@ -179,7 +191,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->first(local_grouped_idx, local_idx_split, hash_divide,
@@ -193,7 +206,8 @@ aggregate(dftable_base& table,
           node_local<std::vector<size_t>>& local_idx_split,
           node_local<std::vector<std::vector<size_t>>>& hash_divide,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
-          node_local<size_t>& row_sizes) {
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
   return colp->last(local_grouped_idx, local_idx_split, hash_divide,

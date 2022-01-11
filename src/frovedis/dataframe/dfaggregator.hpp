@@ -8,23 +8,24 @@ namespace frovedis {
 
 class dftable_base;
 
-struct dfaggregator {
+struct dfaggregator : public dffunction {
   dfaggregator(const std::shared_ptr<dffunction>& col,
                const std::string& as_name) :
     col(col), as_name(as_name) {}
-  virtual std::shared_ptr<dfcolumn>
-  aggregate(dftable_base& table,
-            node_local<std::vector<size_t>>& local_grouped_idx,
-            node_local<std::vector<size_t>>& local_idx_split,
-            node_local<std::vector<std::vector<size_t>>>& hash_divide,
-            node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes) = 0;
-  std::string get_as() {return as_name;}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) = 0;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const {
+    throw std::runtime_error
+      ("aggregator cannot be called directly or more than once");
+  }
+  virtual std::string get_as() {return as_name;}
   virtual std::shared_ptr<dfcolumn>
   whole_column_aggregate(dftable_base& table) {
     throw std::runtime_error("aggregate_whole of this type is not implemented");
   }
+  virtual std::vector<std::string> used_col_names() const {
+    return col->used_col_names();
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {return col->columns_to_use(t);}
   std::shared_ptr<dffunction> col;
   std::string as_name;
 };
@@ -34,7 +35,7 @@ struct dfaggregator_sum : public dfaggregator {
                    const std::string& as_name) : dfaggregator(col,as_name) {}
   dfaggregator_sum(const std::shared_ptr<dffunction>& col) :
     dfaggregator(col, "sum(" + col->get_as() + ")") {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_sum>(*this);
   }
@@ -44,7 +45,8 @@ struct dfaggregator_sum : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
@@ -53,7 +55,7 @@ struct dfaggregator_count : public dfaggregator {
                      const std::string& as_name) : dfaggregator(col,as_name) {}
   dfaggregator_count(const std::shared_ptr<dffunction>& col) :
     dfaggregator(col, "count(" + col->get_as() + ")") {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_count>(*this);
   }
@@ -63,7 +65,8 @@ struct dfaggregator_count : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
@@ -72,7 +75,7 @@ struct dfaggregator_size : public dfaggregator {
                     const std::string& as_name) : dfaggregator(col,as_name) {}
   dfaggregator_size(const std::shared_ptr<dffunction>& col) :
     dfaggregator(col, "size(" + col->get_as() + ")") {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_size>(*this);
   }
@@ -82,7 +85,8 @@ struct dfaggregator_size : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
@@ -91,7 +95,7 @@ struct dfaggregator_avg : public dfaggregator {
                    const std::string& as_name) : dfaggregator(col,as_name) {}
   dfaggregator_avg(const std::shared_ptr<dffunction>& col) :
     dfaggregator(col, "avg(" + col->get_as() + ")") {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_avg>(*this);
   }
@@ -101,7 +105,8 @@ struct dfaggregator_avg : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
@@ -113,7 +118,7 @@ struct dfaggregator_var : public dfaggregator {
   dfaggregator_var(const std::shared_ptr<dffunction>& col,
                    const double& ddof) :
     dfaggregator(col, "var(" + col->get_as() + ")"), ddof(ddof) {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_var>(*this);
   }
@@ -123,7 +128,8 @@ struct dfaggregator_var : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
   double ddof = 1.0;
 };
@@ -136,7 +142,7 @@ struct dfaggregator_sem : public dfaggregator {
   dfaggregator_sem(const std::shared_ptr<dffunction>& col,
                    const double& ddof) :
     dfaggregator(col, "sem(" + col->get_as() + ")"), ddof(ddof) {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_sem>(*this);
   }
@@ -146,7 +152,8 @@ struct dfaggregator_sem : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
   double ddof = 1.0;
 };
@@ -159,7 +166,7 @@ struct dfaggregator_std : public dfaggregator {
   dfaggregator_std(const std::shared_ptr<dffunction>& col,
                    const double& ddof) :
     dfaggregator(col, "stddev(" + col->get_as() + ")"), ddof(ddof) {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_std>(*this);
   }
@@ -169,7 +176,8 @@ struct dfaggregator_std : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
   double ddof = 1.0;
 };
@@ -179,7 +187,7 @@ struct dfaggregator_mad : public dfaggregator {
                    const std::string& as_name): dfaggregator(col,as_name) {}
   dfaggregator_mad(const std::shared_ptr<dffunction>& col) :
     dfaggregator(col, "mad(" + col->get_as() + ")") {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_mad>(*this);
   }
@@ -189,7 +197,8 @@ struct dfaggregator_mad : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
@@ -198,7 +207,7 @@ struct dfaggregator_max : public dfaggregator {
                    const std::string& as_name) : dfaggregator(col,as_name) {}
   dfaggregator_max(const std::shared_ptr<dffunction>& col) :
     dfaggregator(col, "max(" + col->get_as() + ")") {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_max>(*this);
   }
@@ -208,7 +217,8 @@ struct dfaggregator_max : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
@@ -217,7 +227,7 @@ struct dfaggregator_min : public dfaggregator {
                    const std::string& as_name) : dfaggregator(col,as_name) {}
   dfaggregator_min(const std::shared_ptr<dffunction>& col) :
     dfaggregator(col, "min(" + col->get_as() + ")") {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_min>(*this);
   }
@@ -227,7 +237,8 @@ struct dfaggregator_min : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 };
 
@@ -237,7 +248,7 @@ struct dfaggregator_count_distinct : public dfaggregator {
     dfaggregator(col,as_name) {}
   dfaggregator_count_distinct(const std::shared_ptr<dffunction>& col) :
     dfaggregator(col, "count_distinct(" + col->get_as() + ")") {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_count_distinct>(*this);
   }
@@ -247,7 +258,8 @@ struct dfaggregator_count_distinct : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn>
   whole_column_aggregate(dftable_base& table);
 };
@@ -258,7 +270,7 @@ struct dfaggregator_sum_distinct : public dfaggregator {
     dfaggregator(col,as_name) {}
   dfaggregator_sum_distinct(const std::shared_ptr<dffunction>& col) :
     dfaggregator(col, "sum_distinct(" + col->get_as() + ")") {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_sum_distinct>(*this);
   }
@@ -268,7 +280,8 @@ struct dfaggregator_sum_distinct : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn>
   whole_column_aggregate(dftable_base& table);
 };
@@ -282,7 +295,7 @@ struct dfaggregator_first : public dfaggregator {
                      bool ignore_nulls = false) :
     dfaggregator(col, "first(" + col->get_as() + ")"),
     ignore_nulls(ignore_nulls) {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_first>(*this);
   }
@@ -292,7 +305,8 @@ struct dfaggregator_first : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn>
   whole_column_aggregate(dftable_base& table);
   bool ignore_nulls;
@@ -307,7 +321,7 @@ struct dfaggregator_last : public dfaggregator {
                     bool ignore_nulls = false) :
     dfaggregator(col, "last(" + col->get_as() + ")"),
     ignore_nulls(ignore_nulls) {}
-  virtual std::shared_ptr<dfaggregator> as(const std::string& cname) {
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
     return std::make_shared<dfaggregator_last>(*this);
   }
@@ -317,7 +331,8 @@ struct dfaggregator_last : public dfaggregator {
             node_local<std::vector<size_t>>& local_idx_split,
             node_local<std::vector<std::vector<size_t>>>& hash_divide,
             node_local<std::vector<std::vector<size_t>>>& merge_map,
-            node_local<size_t>& row_sizes);
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
   virtual std::shared_ptr<dfcolumn>
   whole_column_aggregate(dftable_base& table);
   bool ignore_nulls;

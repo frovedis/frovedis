@@ -19,6 +19,23 @@ std::shared_ptr<dfcolumn> dfoperator_eq::execute(dftable_base& t1,
   return left_column->eq(aligned_right_column);
 }
 
+std::shared_ptr<dfcolumn> dfoperator_eq::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  auto right_column = right->aggregate(table, local_grouped_idx,
+                                       local_idx_split, hash_divide,
+                                       merge_map, row_sizes, grouped_table);
+  return left_column->eq(right_column);
+}
+
 std::shared_ptr<dfoperator>
 eq(const std::string& left, const std::string& right) {
   return std::make_shared<dfoperator_eq>(id_col(left), id_col(right));
@@ -52,6 +69,23 @@ std::shared_ptr<dfcolumn> dfoperator_neq::execute(dftable_base& t1,
   auto right_column = right->execute(t2);
   auto aligned_right_column = realign_df(t1, t2, right_column);
   return left_column->neq(aligned_right_column);
+}
+
+std::shared_ptr<dfcolumn> dfoperator_neq::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  auto right_column = right->aggregate(table, local_grouped_idx,
+                                       local_idx_split, hash_divide,
+                                       merge_map, row_sizes, grouped_table);
+  return left_column->neq(right_column);
 }
 
 std::shared_ptr<dfoperator>
@@ -89,6 +123,23 @@ std::shared_ptr<dfcolumn> dfoperator_lt::execute(dftable_base& t1,
   return left_column->lt(aligned_right_column);
 }
 
+std::shared_ptr<dfcolumn> dfoperator_lt::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  auto right_column = right->aggregate(table, local_grouped_idx,
+                                       local_idx_split, hash_divide,
+                                       merge_map, row_sizes, grouped_table);
+  return left_column->lt(right_column);
+}
+
 std::shared_ptr<dfoperator>
 lt(const std::string& left, const std::string& right) {
   return std::make_shared<dfoperator_lt>(id_col(left), id_col(right));
@@ -122,6 +173,23 @@ std::shared_ptr<dfcolumn> dfoperator_ge::execute(dftable_base& t1,
   auto right_column = right->execute(t2);
   auto aligned_right_column = realign_df(t1, t2, right_column);
   return left_column->ge(aligned_right_column);
+}
+
+std::shared_ptr<dfcolumn> dfoperator_ge::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  auto right_column = right->aggregate(table, local_grouped_idx,
+                                       local_idx_split, hash_divide,
+                                       merge_map, row_sizes, grouped_table);
+  return left_column->ge(right_column);
 }
 
 std::shared_ptr<dfoperator>
@@ -159,6 +227,23 @@ std::shared_ptr<dfcolumn> dfoperator_le::execute(dftable_base& t1,
   return left_column->le(aligned_right_column);
 }
 
+std::shared_ptr<dfcolumn> dfoperator_le::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  auto right_column = right->aggregate(table, local_grouped_idx,
+                                       local_idx_split, hash_divide,
+                                       merge_map, row_sizes, grouped_table);
+  return left_column->le(right_column);
+}
+
 std::shared_ptr<dfoperator>
 le(const std::string& left, const std::string& right) {
   return std::make_shared<dfoperator_le>(id_col(left), id_col(right));
@@ -192,6 +277,23 @@ std::shared_ptr<dfcolumn> dfoperator_gt::execute(dftable_base& t1,
   auto right_column = right->execute(t2);
   auto aligned_right_column = realign_df(t1, t2, right_column);
   return left_column->gt(aligned_right_column);
+}
+
+std::shared_ptr<dfcolumn> dfoperator_gt::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  auto right_column = right->aggregate(table, local_grouped_idx,
+                                       local_idx_split, hash_divide,
+                                       merge_map, row_sizes, grouped_table);
+  return left_column->gt(right_column);
 }
 
 std::shared_ptr<dfoperator>
@@ -297,6 +399,23 @@ std::shared_ptr<dfcolumn> dfoperator_and::execute(dftable_base& t1,
   return left_column->and_op(aligned_right_column);
 }
 
+std::shared_ptr<dfcolumn> dfoperator_and::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  auto right_column = right->aggregate(table, local_grouped_idx,
+                                       local_idx_split, hash_divide,
+                                       merge_map, row_sizes, grouped_table);
+  return left_column->and_op(right_column);
+}
+
 std::shared_ptr<dfoperator>
 and_op(const std::string& left, const std::string& right) {
   return std::make_shared<dfoperator_and>(id_col(left), id_col(right));
@@ -332,6 +451,23 @@ std::shared_ptr<dfcolumn> dfoperator_or::execute(dftable_base& t1,
   return left_column->or_op(aligned_right_column);
 }
 
+std::shared_ptr<dfcolumn> dfoperator_or::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  auto right_column = right->aggregate(table, local_grouped_idx,
+                                       local_idx_split, hash_divide,
+                                       merge_map, row_sizes, grouped_table);
+  return left_column->or_op(right_column);
+}
+
 std::shared_ptr<dfoperator>
 or_op(const std::string& left, const std::string& right) {
   return std::make_shared<dfoperator_or>(id_col(left), id_col(right));
@@ -356,6 +492,20 @@ or_op(const std::shared_ptr<dffunction>& left,
 // ----- dfoperatnot_not -----
 std::shared_ptr<dfcolumn> dfoperator_not::execute(dftable_base& t) const {
   auto left_column = left->execute(t);
+  return left_column->not_op();
+}
+
+std::shared_ptr<dfcolumn> dfoperator_not::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
   return left_column->not_op();
 }
 
