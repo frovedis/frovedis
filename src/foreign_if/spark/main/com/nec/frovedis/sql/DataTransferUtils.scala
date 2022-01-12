@@ -61,7 +61,7 @@ object DFMemoryManager extends java.io.Serializable {
         //else println(key + ": not found!")
       }
       //println("releasing: " + e.get())
-      e.release_impl()
+      e.ref.release() // forced release
     }
   }
 

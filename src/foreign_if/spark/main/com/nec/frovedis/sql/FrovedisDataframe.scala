@@ -10,6 +10,7 @@ import com.nec.frovedis.matrix.{
   BoolDvector}
 import com.nec.frovedis.matrix.FrovedisRowmajorMatrix
 import com.nec.frovedis.matrix.FrovedisColmajorMatrix
+import com.nec.frovedis.Jsql.FrovedisDataFrameFinalizer
 import com.nec.frovedis.exrpc.FrovedisSparseData
 import com.nec.frovedis.mllib.ModelID
 import org.apache.spark.rdd.RDD
@@ -31,6 +32,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   protected var types: Array[Short] = null
   private var code: Int = 0
   var owned_cols: Array[String] = null
+  @transient var ref: FrovedisDataFrameFinalizer = null
 
   // creating a frovedis dataframe from a spark dataframe -> User API
   def this(df: DataFrame) = {
@@ -39,11 +41,13 @@ class FrovedisDataFrame extends java.io.Serializable {
     //this.code = df.hashCode
     val cols = df.columns
     const_impl(df, cols)
+    this.ref = FrovedisDataFrameFinalizer.addObject(this)
   }
   def this(df: DataFrame, name: String, others: String*) = {
     this()
     val cols = (Array(name) ++ others).toArray
     const_impl(df, cols)
+    this.ref = FrovedisDataFrameFinalizer.addObject(this)
   }
   // internally used, not exposed to user
   def this(proxy: Long, cc: Array[String], tt: Array[Short]) = {
@@ -51,6 +55,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     fdata = proxy
     cols = cc.clone()
     types = tt.clone()
+    this.ref = FrovedisDataFrameFinalizer.addObject(this)
   }
   // internally used, not exposed to user
   def this(dummy: DummyDftable) = {
@@ -77,6 +82,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       val info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)
     }
+    this.ref = FrovedisDataFrameFinalizer.addObject(this)
   }
   private def const_impl(df: DataFrame, cols: Array[String]): this.type = {
     val code = df.hashCode // assumed to be unique per spark dataframe object
@@ -102,7 +108,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       this.owned_cols = tarr
       val sdf = df.select(tarr.map(x => sp_col(x)):_*)
       optimized_load(sdf)
-      DFMemoryManager.insert(code, this, tarr.toIterator)
+      DFMemoryManager.insert(code, this, tarr.toIterator) // TODO: store size of columns as well...
     }
     if (!base_ptr.isEmpty) { // TODO: correct order
       //println("*** cols hit ***")
@@ -127,21 +133,17 @@ class FrovedisDataFrame extends java.io.Serializable {
   // to release a frovedis dataframe from frovedis server -> User API
   def release () : Unit = {
     if (fdata != -1) {
-      if (is_removable) release_impl()
-      else              DFMemoryManager.add_release_entry(this)
-    }
-  }
-  def release_impl () : Unit = {
-    if (fdata != -1) {
-      val fs = FrovedisServer.getServerInstance()
-      JNISupport.releaseFrovedisDataframe(fs.master_node,fdata)
-      val info = JNISupport.checkServerException()
-      if (info != "") throw new java.rmi.ServerException(info)
-      fdata = -1
-      cols = null
-      types = null
-      owned_cols = null
-      code = 0
+      // non-removable: loaded from spark dataframe, hence kept for future use
+      // would be managed by DFMemoryManager
+      if (!is_removable) DFMemoryManager.add_release_entry(this) 
+      else {
+        ref.release()
+        fdata = -1
+        cols = null
+        types = null
+        owned_cols = null
+        code = 0
+      }
     }
   }
   // to display contents of a frovedis dataframe from frovedis server -> User API
@@ -257,7 +259,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     val proxy = JNISupport.selectFrovedisDataframe(fs.master_node,get(),targets,size)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    return new FrovedisDataFrame(proxy,targets,tt)
+    return new FrovedisDataFrame(proxy, targets, tt)
   }
 
   // Usage: df.select("colA")
@@ -949,7 +951,7 @@ class FrovedisDataFrame extends java.io.Serializable {
                                                    name, new_name, size)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    return new FrovedisDataFrame(proxy,new_cols,types)
+    return new FrovedisDataFrame(proxy, new_cols, types)
   }
   def withColumnRenamed(name: String, new_name: String): FrovedisDataFrame = {
     return withColumnRenamed(Array(name), Array(new_name))
@@ -1109,10 +1111,5 @@ class FrovedisDataFrame extends java.io.Serializable {
   override def equals(obj: Any): Boolean = {
     var df2 = obj.asInstanceOf[FrovedisDataFrame]
     return this.get() == df2.get()
-  }
-
-  override def finalize(): Unit = {
-    //println("finalize is called for " + get())
-    if (FrovedisServer.isUP()) release()
   }
 }

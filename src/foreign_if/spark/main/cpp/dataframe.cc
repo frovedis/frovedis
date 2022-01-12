@@ -145,6 +145,14 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisDa
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisDataframeNoExcept
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+  exrpc_oneway_noexcept(fm_node, release_data<dftable_base>, df_proxy);
+}
+
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisGroupedDF
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy) {
 
@@ -156,6 +164,13 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisGr
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisGroupedDFNoExcept
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+  exrpc_oneway_noexcept(fm_node, release_data<grouped_dftable>, df_proxy);
+}
 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_showFrovedisDataframe
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy) {
