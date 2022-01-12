@@ -2554,8 +2554,8 @@ The result should look like
 
 We support simple functionality of datetime type. It is internally
 represented as 64bit integer, which contains information of year,
-month, day, hour, minute, and second. The type of each value is
-`datetime_t`, while the type of the column is `datetime`. 
+month, day, hour, minute, second, and nanosecond. The type of each
+value is `datetime_t`, while the type of the column is `datetime`. 
 Please look at "src/tut5.7/tut.cc".
 
     auto t = frovedis::make_dftable_loadtext("./t.csv", 
@@ -2607,7 +2607,10 @@ append it as another column. For example,
 This extract month from and append it as column `month`. You can
 specify which part to extract by the first argument; it is enum type 
 and you can specify `year`, `month`, `day`, `hour`, `minute`, or
-`second`. Second argument is the datetime column and the third
+`second`. You can also specify `quarter`, `dayofweek`, `dayofyear`,
+`weekofyear`. In the case of dayofweek, it starts from 1 that is Sunday.
+
+Second argument is the datetime column and the third
 argument is the name of the column to append. The result should look
 like: 
 
@@ -2626,26 +2629,7 @@ You can get `dvector<datetime_t>` by calling `as_dvector<datetime_t>`
 just like other types of column. You can append `dvector<datetime_t>`
 by calling `append_datetime_column`.
 
-The contents of the type `datetime_t` is `|0|Y|Y|m|d|H|M|S|`, here,
-each part represents 1 byte; second is first byte, minute is second
-byte, and so on.
-
-    auto dv = t.as_dvector<datetime_t>("c2");
-    dv.mapv(+[](datetime_t& d){d += ((datetime_t) 1 << (5*8));});
-    t.append_datetime_column("new_date", dv);
-
-This adds 1 to the year part (which is 40bit shifted part) and the
-dvector is added as a new column `new_date`. The result should look like:
-
-    c1      c2      month   new_date
-    1       2018-01-10      1       2019-01-10
-    2       2018-03-13      3       2019-03-13
-    3       2018-08-21      8       2019-08-21
-    4       2018-02-01      2       2019-02-01
-    5       2018-05-15      5       2019-05-15
-    6       2018-07-09      7       2019-07-09
-    7       2018-04-29      4       2019-04-29
-    8       2018-06-17      6       2019-06-17
+The contents of the type `datetime_t` is nanosecond from unix epoch.
 
 ## 5.8 Other operations
 
@@ -2684,25 +2668,314 @@ column `multiply`. Here, you need to give the type of return value and
 the types of columns as the template arguments. The number of columns
 that can be provided is limited to 6 in the current implementation.
 
-There are another way of calling a function.
 
-    t.call_function(frovedis::add_col_as("c1","c2","add"));
+## 5.9 Functions as column
 
-In this case, only predefined functions can be called. Here,
-`add_col_as` adds columns `c1` and `c2` and result is appended as
-column `add`. If you use `add_col("c1","c2")`, column name
-is set as `(c1+c2)`. You can add immediate value like `add_im("c1", 1.2)`.
-There are other functions like sub, mul, fdiv, idiv, mod and abs.
-Here, fdiv returns `double` and idiv returns `long`.
+In the previous section, we explained `calc` as the method of calling
+function, but there are another way of calling a function. 
+Please look at "src/tut5.9-1/tut.cc".
 
-The result should be like:
+    auto c1 = ~string("c1");
+    auto c2 = ~string("c2");
+    t.fselect({c1, c2}).show();
 
-    c1	c2	multiply	add
-    1	30	30	31
-    3	20	60	23
-    3	30	90	33
-    2	20	40	22
-    2	30	60	32
-    2	40	80	42
-    1	40	40	41
-    1	50	50	51
+Here, `operator~()` is defined in frovedis namespace, so 
+`using namespace frovedis` is added at the top of the program.
+The `operator~()` for column name string creates
+`shared_ptr<dffunction>` object. This can be considered as "column" and
+can be passed as the arguments of special version of select: `fselect`.
+
+Operators and functions are defined for this. For example, 
+the `operator+()` is defined and creates `shared_ptr<dffunctin>`. 
+So, users can write like:
+
+    t.fselect({c1+c2}).show();
+
+It produces output like:
+
+    (c1+c2)
+    31
+    23
+    33
+    22
+    32
+    42
+    41
+    51
+
+There are other operators like `*` and they can be used
+recursively. In addition, you can specify the column name using
+`->("column name")`. So 
+
+    t.fselect({(c1*c1+c2)->as("newcol")}).show();
+
+would produce output like:
+
+    newcol
+    31
+    29
+    39
+    24
+    34
+    44
+    41
+    51
+
+There are many other functions, and some are not defined as operators.
+For example, integer division is `idiv_col` when both arguments are
+columns. If you want to use immediate value, you can use `idiv_im`.
+If you want to specify column name, you can use `idiv_col_as` or
+`idiv_im_as`. So,
+
+    t.fselect({idiv_col(c2,c1), idiv_im_as(c2,2.0,"newcol")}).show();
+
+would produce output like:
+
+    (c2 div c1)	newcol
+    30	15
+    6	10
+    10	15
+    10	10
+    15	15
+    20	20
+    40	20
+    50	25
+
+Basic rule of function name is `xxx_col` if both arguments are
+columns. If one of the argument is immediate, it becomes `xxx_im`.
+If you can specify column name, you can use `xxx_col_as` or
+`xxx_im_as` and specify the column name as the last argument.
+
+You can use functions like: add, sub, mul, fdiv (floating point
+division), idiv (integer division), mod, pow and abs. 
+
+You can change the type of the column using cast function. It takes
+type name string (e.g. "double") as the second argument.
+
+In addition, there are special functions for datetime columns.
+Please look at "src/tut5.9-2/tut.cc".
+
+The function `datetime_extract_col` extracts the year, month, day,
+hour, minute second and nanosecond from the datetime column. It is
+similar to the function defined on dftable. So
+
+    t.fselect({datetime_extract_col(c1,frovedis::datetime_type::month)}).show();
+
+would produce output like:
+
+    month(c1)
+    1
+    2
+    3
+    12
+    1
+    11
+    2
+    6
+
+You can also specify `quarter`, `dayofweek`, `dayofyear`, `weekofyear`
+like `datetime_extract` function of dftable.
+
+The function `datetime_diff_col` calculates the difference between
+datetime. The third argument is unit of the result. So 
+
+    t.fselect({datetime_diff_col(c1, c2, frovedis::datetime_type::day)}).show();
+
+would produce output like:
+
+    diff_day(c1,c2)
+    0
+    -31
+    195
+    1036
+    231
+    117
+    297
+    -14
+
+You can specify immediate datetime_t value as an argument by using
+`datetime_diff_im`. 
+
+The function `datetime_add_col` or `datetime_add_im` add value to the
+datetime value. 
+
+    t.fselect({datetime_add_im(c1, 10, frovedis::datetime_type::day)}).show();
+
+This adds 10 days to column c1. The output would be like:
+
+    (c1+10day)
+    2018-01-20
+    2018-02-20
+    2019-03-14
+    2020-12-13
+    2019-01-11
+    2018-11-13
+    2019-03-02
+    2018-06-13
+
+There are also `datetime_sub_col` and `datetime_sub_im` that subtract
+value.
+
+The function `datetime_truncate_col` truncates datetime value to
+specified unit. So
+
+    t.fselect({datetime_truncate_col(c1, frovedis::datetime_type::month)}).show();
+
+would produce output like:
+
+    month(c1)
+    2018-01-01
+    2018-02-01
+    2019-03-01
+    2020-12-01
+    2019-01-01
+    2018-11-01
+    2019-02-01
+    2018-06-01
+
+In this case, the value is truncated to month, so all the days of the
+values is 1.
+
+The function `datetime_months_between_col` calculates the difference
+of the datetime as months. If they are on the same day of month, or
+both are the last day of month, time of day will be
+ignored. Otherwise, the difference is calculated based on 31 days per
+month. So
+
+    t.fselect({datetime_months_between_col(c1, c2)}).show();
+
+would produce output like:
+
+    month_between(c1,c2)
+    0
+    -1.09677
+    6.45161
+    33.9677
+    7.54838
+    3.80645
+    9.67741
+    -0.48387
+
+The function `datetime_next_day_col` or `datetime_next_day_im`
+calculates the next day of the specified day of week.
+It starts from 1 that is Sunday. So
+
+    t.fselect({datetime_next_day_im(c1, 1)}).show();
+
+would produce output like:
+
+    next_day(c1,1)
+    2018-01-14
+    2018-02-11
+    2019-03-10
+    2020-12-06
+    2019-01-06
+    2018-11-04
+    2019-02-24
+    2018-06-10
+
+In addition, there are special functions for string columns.
+Please look at "src/tut5.9-3/tut.cc".
+
+Currently, `substr` function is supported for string columns. There
+are several versions of `substr` functions: `substr_col` specifies the
+starting position of the sub string as a column; `substr_im` uses
+immediate value. You can also specify both starting position and
+number of characters by `substr_poscol_numcol`, `substr_poscol_numim`,
+`substr_posim_numcol` and `substr_posim_numim`. So in this
+case, 
+
+    t.fselect({substr_posim_numim(c1,2,3)}).show();
+
+should produce output like:
+
+    ple
+    ple
+    ang
+    ang
+    ape
+    ape
+
+There is special kind of function called `when`, which can be used to
+specify the if-then-else like condition.
+Please look at "src/tut5.9-4/tut.cc".
+
+The function `when` takes vector of pair of condition and result.
+The conditions can be like `c1 >= 3`, which is same as the argument of
+filter. The result can be dffunction as we used before, like `c2` in the
+example. We provide functions that creates a column that is filled by
+specified immediate value; for example `im(100)' in this case creates
+a column that is filled by `100'. The condition function pair is
+created by connecting them with `operator>>` (please be careful about
+the strength of the operator). So, 
+
+    t.fselect({c1,when({(c1 >= 3) >> c2,(c1 >= 2) >> im(100)})}).show();
+
+means that "if c1 >=3 then c2, else if c1 >=2 then 100, else NULL". 
+This should produce output like:
+
+    c1	when
+    1	NULL
+    3	20
+    3	30
+    2	100
+    2	100
+    2	100
+    1	NULL
+    1	NULL
+
+Last else part can be specified by dffunction by providing it as extra
+argument of when.
+
+    t.fselect({c1,when({(c1 >= 3) >> c2,(c1 >= 2) >> im(100)}, im(-1))}).show();
+
+This should produce output like:
+
+    c1	when
+    1	-1
+    3	20
+    3	30
+    2	100
+    2	100
+    2	100
+    1	-1
+    1	-1
+
+So far, we used dffunction as the argument of `fselect`. You can use
+dffunction as the argument of `fsort` and `fgroup_by`. In addition,
+1 argument version of `fselect` of `grouped_dftable` can take both
+dffunction and aggregator function.
+Please look at "src/tut5.9-5/tut.cc".
+
+    t.fsort(c2 / c1).show();
+
+This sorts the table by the result of `c2 / c1`. So the result should
+be like:
+
+    c1	c2
+    30	30
+    30	30
+    20	20
+    15	30
+    20	40
+    10	30
+    20	60
+    10	40
+
+In addition,
+
+      t.fgroup_by({(c2 / c1)->as("c3")}).
+        fselect({c3,add_col(sum(c1),sum(c2))}).show();
+
+this executes group by according to the value of `c2 / c1`; then the
+result column is named as `c3`. After that, sum of c1 and c2 is
+calculated and the sum of them are selected (here, `add_col`function
+is used instead of `operator+()` because of C++ resolution rule.)
+
+This should produce result like:
+
+    c3	(sum(c1)+sum(c2))
+    1	160
+    2	105
+    3	120
+    4	50
