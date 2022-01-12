@@ -3653,7 +3653,23 @@ dftable grouped_dftable::fselect
   size_t aggssize = aggs.size();
   auto nl_row_sizes = make_node_local_scatter(num_rows());
   for(size_t i = 0; i < aggssize; i++) {
-    use_dfcolumn use(aggs[i]->columns_to_use(org_table));
+    // aggs[i] might contain columns that is created by
+    // dffunction of groupby argument
+    auto used_col_names = aggs[i]->used_col_names();
+    std::vector<std::shared_ptr<dfcolumn>> used_cols;
+    for(size_t j = 0; j < used_col_names.size(); j++) {
+      bool is_grouped = false;
+      for(size_t k = 0; k < grouped_col_names.size(); k++) {
+        if(grouped_col_names[k] == used_col_names[j]) {
+          used_cols.push_back(grouped_cols[k]);
+          is_grouped = true;
+          break;
+        }
+      }
+      if(!is_grouped)
+        used_cols.push_back(org_table.raw_column(used_col_names[j]));
+    }
+    use_dfcolumn use(used_cols);
     auto newcol = aggs[i]->aggregate(org_table,
                                      local_grouped_idx,
                                      local_idx_split,
