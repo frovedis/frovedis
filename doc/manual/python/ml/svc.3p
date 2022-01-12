@@ -1,0 +1,837 @@
+.TH "SVC" "" "" "" ""
+.SH NAME
+.PP
+SVC (Support Vector Classification) \- A classification algorithm used
+to predict the binary output with different kernel functions.
+.SH SYNOPSIS
+.IP
+.nf
+\f[C]
+class\ frovedis.mllib.svm.SVC(C=1.0,\ kernel=\[aq]rbf\[aq],\ degree=3,\ gamma=\[aq]scale\[aq],\ coef0=0.0,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ shrinking=True,\ probability=False,\ tol=0.001,\ cache_size=128,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ class_weight=None,\ verbose=False,\ max_iter=\-1,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ decision_function_shape=\[aq]ovr\[aq],\ break_ties=False,\ \ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ random_state=None)\ \ 
+\f[]
+.fi
+.SS Public Member Functions
+.PP
+fit(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+predict(X)
+.PD 0
+.P
+.PD
+predict_proba(X) load(fname, dtype = None)
+.PD 0
+.P
+.PD
+save(fname)
+.PD 0
+.P
+.PD
+score(X, y, sample_weight = None)
+.PD 0
+.P
+.PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.PD 0
+.P
+.PD
+release()
+.PD 0
+.P
+.PD
+is_fitted()
+.SH DESCRIPTION
+.PP
+Support vector machines (SVMs) are a set of supervised learning methods
+used for classification and regression.
+.PP
+During training, the input X is the training data and y are their
+corresponding label values (Frovedis supports any values as for labels,
+but internally it encodes the input binary labels to \-1 and 1, before
+training at Frovedis server) which we want to predict.
+\f[B]Frovedis supports only binary SVC classification algorithm\f[].
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The frovedis interface is almost same as Scikit\-learn SVC (Support
+Vector Classification) interface, but it doesn\[aq]t have any dependency
+with Scikit\-learn.
+It can be used simply even if the system doesn\[aq]t have Scikit\-learn
+installed.
+Thus in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for SVC on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
+.PP
+When prediction\-like request would be made on the trained model, python
+program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
+.SS Detailed Description
+.SS 1. SVC()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]C\f[]\f[]: A positive double (float64) parameter, also called
+as inverse of regularization strength.
+(Default: 1.0)
+.PD 0
+.P
+.PD
+\f[I]\f[B]kernel\f[]\f[]: A string object parameter that specifies the
+kernel type to be used.
+Unlike sklearn, frovedis supports \[aq]linear\[aq], \[aq]poly\[aq],
+\[aq]rbf\[aq] and \[aq]sigmoid\[aq] kernel function.
+(Default: \[aq]rbf\[aq])
+.PD 0
+.P
+.PD
+\f[I]\f[B]degree\f[]\f[]: A positive integer parameter specifying the
+degree of the polynomial kernel.
+(Default: 3)
+.PD 0
+.P
+.PD
+\f[I]\f[B]gamma\f[]\f[]: A string object parameter that specifies the
+kernel coefficient.
+(Default: \[aq]scale\[aq])
+.PD 0
+.P
+.PD
+For all python like input gamma =\[aq]scale\[aq] will be used, otherwise
+\[aq]auto\[aq] will be used.
+.PD 0
+.P
+.PD
+Depending on the \f[B]kernel coefficient\f[], \f[B]gamma\f[] will be
+calculated as:
+.PD 0
+.P
+.PD
+\- If \f[B]gamma = \[aq]scale\[aq]\f[] (default) is used then \f[B]gamma
+= 1.0 / (n_features * variance),\f[]
+.PD 0
+.P
+.PD
+\- If \f[B]gamma = \[aq]auto\[aq]\f[] is used then \f[B]gamma = 1.0 /
+n_features\f[]
+.PP
+\f[I]\f[B]coef0\f[]\f[]: A double (float64) parameter which is
+independent term in kernel function.
+(Default: 0.0)
+.PD 0
+.P
+.PD
+\f[I]\f[B]shrinking\f[]\f[]: An unused parameter.
+(Default: \[aq]True\[aq])
+.PD 0
+.P
+.PD
+\f[I]\f[B]probability\f[]\f[]: An unused parameter.
+(Default: \[aq]False\[aq])
+.PD 0
+.P
+.PD
+\f[I]\f[B]tol\f[]\f[]: A zero or positive double (float64) parameter
+specifying the convergence tolerance value.
+(Default: 0.001)
+.PD 0
+.P
+.PD
+\f[I]\f[B]cache_size\f[]\f[]: An interger parameter that specifies the
+size of the kernel cache(in megabytes).
+It must be greater than 2.
+(Default: 128)
+.PD 0
+.P
+.PD
+\f[I]\f[B]class_weight\f[]\f[]: An unused parameter.
+(Default: \[aq]None\[aq])
+.PD 0
+.P
+.PD
+\f[I]\f[B]verbose\f[]\f[]: A boolean parameter that specifies the log
+level to use.
+(Default: \[aq]False\[aq])
+.PD 0
+.P
+.PD
+Its value is False by default (for INFO mode).
+But it can be set to True (for DEBUG mode or TRACE mode) for getting
+training time logs from frovedis server.
+.PD 0
+.P
+.PD
+\f[I]\f[B]max_iter\f[]\f[]: A positive integer parameter specifying the
+hard limit on iterations within solver, or \-1 for no limit.
+(Default: \-1)
+.PD 0
+.P
+.PD
+\f[I]\f[B]decision_function_shape\f[]\f[]: An unused parameter.
+(Default: \[aq]ovr\[aq])
+.PD 0
+.P
+.PD
+\f[I]\f[B]break_ties\f[]\f[]: An unused parameter.
+(Default: \[aq]False\[aq])
+.PD 0
+.P
+.PD
+\f[I]\f[B]random_state\f[]\f[]: An unused parameter.
+(Default: \[aq]None\[aq])
+.PP
+\f[B]Attributes\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]coef_\f[]\f[]: It is a python ndarray(containing float or
+double (float64) typed values depending on data\-type of input matrix
+(X)).
+It is the weights assigned to the features.
+It has shape \f[B](1, n_features)\f[].
+.PD 0
+.P
+.PD
+This attribute is supported only for \[aq]linear\[aq] kernel, otherwise
+it will be None.
+.PD 0
+.P
+.PD
+\f[I]\f[B]intercept_\f[]\f[]: It is a python ndarray(float or double
+(float64) values depending on input matrix data type) and has shape
+\f[B](1,)\f[].
+It specifies the constants in decision function.
+.PD 0
+.P
+.PD
+This attribute is supported only for \[aq]linear\[aq] kernel, otherwise
+it will be None.
+.PD 0
+.P
+.PD
+\f[I]\f[B]classes_\f[]\f[]: It is an int64 type python ndarray of unique
+labels given to the classifier during training.
+It has shape \f[B](n_classes,)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]support_\f[]\f[]: It is an int32 type python ndarray that
+specifies the support vectors indices.
+It has shape \f[B](n_support_vectors_,)\f[], where
+\f[B]n_support_vectors_ = len(support vectors) / n_features\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]support_vectors_\f[]\f[]: It is double (float64) type python
+ndarray specifies the support vectors.
+It has shape \f[B](n_support_vectors_, n_features)\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes a SVC object with the given parameters.
+.PP
+The parameters: "shrinking", "probability", "class_weight",
+"decision_function_shape", "break_ties "and "random_state" are simply
+kept to make the interface uniform to Scikit\-learn SVC module.
+They are not used anywhere within frovedis implementation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 2. fit(X, y, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+ndarray.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+For Frovedis input data:
+.PD 0
+.P
+.PD
+\- if kernel = \[aq]linear\[aq], then it can be an instance of
+FrovedisColmajorMatrix for dense data and FrovedisCRSMatrix for sparse
+data.
+.PD 0
+.P
+.PD
+\- if kernel != \[aq]linear\[aq], then it can be an instance of
+FrovedisRowmajorMatrix.
+.PP
+\f[I]\f[B]y\f[]\f[]: Any python array\-like object or an instance of
+FrovedisDvector containing the target labels.
+It has shape \f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]sample_weight\f[]\f[]: A python ndarray containing the
+intended weights for each input samples and it should be the shape of
+\f[B](n_samples,)\f[].
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the training feature matrix (X) and corresponding output
+labels (y) as inputs from the user and trains a SVC model at frovedis
+server.
+.PP
+Depending upon the input data, usage of of \[aq]gamma\[aq] will vary:
+.PD 0
+.P
+.PD
+\- For all \f[B]python\f[] data, \f[B]gamma = \[aq]scale\[aq]\f[] and
+\f[B]gamma = \[aq]auto\[aq]\f[] will be used.
+.PD 0
+.P
+.PD
+\- For all \f[B]frovedis\f[] like input, \f[B]gamma = \[aq]auto\[aq]\f[]
+only will be used.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ matrix\ and\ labels\ data
+mat\ =\ np.array([[\-1.0,\ \-1.0],\ [\-2.0,\ \-1.0],\ [1.0,\ 1.0],\ [2.0,\ 1.0]])
+lbl\ =\ np.array([1.0,\ 1.0,\ 2.0,\ 2.0])
+
+#\ fitting\ input\ matrix\ and\ label\ on\ SVC\ object
+from\ frovedis.mllib.svc\ import\ SVC
+svc\ =\ SVC(gamma\ =\[aq]auto\[aq]).fit(mat,\ lbl)
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ matrix\ and\ labels\ data
+mat\ =\ np.array([[\-1.0,\ \-1.0],\ [\-2.0,\ \-1.0],\ [1.0,\ 1.0],\ [2.0,\ 1.0]])
+lbl\ =\ np.array([1.0,\ 1.0,\ 2.0,\ 2.0])
+
+#\ Since\ "mat"\ is\ numpy\ dense\ data\ and\ kernel\ =\ \[aq]rbf\[aq]\ by\ default,\ 
+we\ have\ created\ FrovedisRowmajorMatrix.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+from\ frovedis.matrix.dvector\ import\ FrovedisDvector
+rmat\ =\ FrovedisRowmajorMatrix(mat)
+dlbl\ =\ FrovedisDvector(lbl)
+
+#\ SVC\ with\ pre\-constructed\ frovedis\-like\ inputs
+from\ frovedis.mllib.svm\ import\ SVC
+svc\ =\ SVC(gamma\ =\[aq]auto\[aq]).fit(rmat,\ dlbl)
+\f[]
+.fi
+.PP
+User can also provide FrovedisColmajorMatrix or FrovedisCRSMatrix as a
+training data but only with \f[B]kernel = \[aq]linear\[aq]\f[] and
+\f[B]gamma =\[aq]auto\[aq]\f[].
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ matrix\ and\ labels\ data
+mat\ =\ np.array([[\-1.0,\ \-1.0],\ [\-2.0,\ \-1.0],\ [1.0,\ 1.0],\ [2.0,\ 1.0]])
+lbl\ =\ np.array([1.0,\ 1.0,\ 2.0,\ 2.0])
+
+#\ Since\ "mat"\ is\ numpy\ dense\ data\ and\ kernel\ =\ \[aq]linear\[aq],\ we\ have\ created\ FrovedisColmajorMatrix
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.
+from\ frovedis.matrix.dense\ import\ FrovedisColmajorMatrix
+from\ frovedis.matrix.dvector\ import\ FrovedisDvector
+cmat\ =\ FrovedisColmajorMatrix(mat)
+dlbl\ =\ FrovedisDvector(lbl)
+
+#\ SVC\ with\ pre\-constructed\ frovedis\-like\ inputs
+from\ frovedis.mllib.svm\ import\ SVC
+svc\ =\ SVC(kernel\ =\ \[aq]linear\[aq],\ gamma\ =\ \[aq]auto\[aq]).fit(cmat,\ dlbl)
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 3. predict(X)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+ndarray or an instance of FrovedisCRSMatrix for sparse data and
+FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It accepts the test feature matrix (X) in order to make prediction on
+the trained model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+svc.predict(mat)\ \ 
+\f[]
+.fi
+.PP
+Output:
+.IP
+.nf
+\f[C]
+[1.\ 1.\ 2.\ 2.]\ \ 
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(mat)
+
+#\ predicting\ on\ SVC\ using\ frovedis\-like\ input\ 
+svc.predict(rmat)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[1.\ 1.\ 2.\ 2.]\ \ \ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy array of int64, float or double (float64) type
+containing the predicted outputs.
+It has shape \f[B](n_samples,)\f[].
+.SS 4. predict_proba(X)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+ndarray or an instance of FrovedisCRSMatrix for sparse data and
+FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Perform classification on an array and return probability estimates for
+the test vector X.
+.PP
+It accepts the test feature matrix (X) in order to make prediction on
+the trained model at frovedis server.
+Unlike sklearn, it performs the classification on an array and returns
+the probability estimates for the test feature matrix (X).
+.PP
+\f[B]This method is not available for kernel = \[aq]linear\[aq].\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ finds\ the\ probablity\ sample\ for\ each\ class\ in\ the\ SVC\ model
+svc.predict_proba(mat)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[[6.17597327e\-04\ 9.99382403e\-01]
+\ [1.98150882e\-24\ 1.00000000e+00]
+\ [7.31058579e\-01\ 2.68941421e\-01]
+\ [9.38039081e\-01\ 6.19609192e\-02]]
+\f[]
+.fi
+.PP
+Like in fit(), frovedis\-like input can be used to speed\-up the
+prediction making on the trained model at server side.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix
+rmat\ =\ FrovedisRowmajorMatrix(mat)
+
+#\ finds\ the\ probablity\ sample\ for\ each\ class\ in\ the\ SVC\ model
+svc.predict_proba(rmat)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[[6.17597327e\-04\ 9.99382403e\-01]
+\ [1.98150882e\-24\ 1.00000000e+00]
+\ [7.31058579e\-01\ 2.68941421e\-01]
+\ [9.38039081e\-01\ 6.19609192e\-02]]
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy ndarray of float or double (float64) type and of
+shape \f[B](n_samples, n_classes)\f[] containing the predicted
+probability values.
+.SS 5. load(fname, dtype = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]fname\f[]: A string object containing the name of the file having
+model information to be loaded.
+.PD 0
+.P
+.PD
+\f[B]dtype\f[]: A data\-type is inferred from the input data.
+Currently, expected input data\-type is either float or double
+(float64).
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It loads the model from the specified file(having little\-endian binary
+data).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ the\ SVC\ model
+svc.load("./out/SVCModel")
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 6. save(fname)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]fname\f[]: A string object containing the name of the file on which
+the target model is to be saved.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+On success, it writes the model information (label_map, metadata and
+model) in the specified file as little\-endian binary data.
+Otherwise, it throws an exception.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ saving\ the\ model
+svc.save("./out/SVCModel")
+\f[]
+.fi
+.PP
+The \f[B]SVCModel\f[] contains below directory structure:
+.PP
+\f[B]SVCModel\f[]
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-label_map
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-metadata
+.PD 0
+.P
+.PD
+|\-\-\-\-\-\-model
+.PP
+\[aq]label_map\[aq] contains information about labels mapped with their
+encoded value.
+.PD 0
+.P
+.PD
+\[aq]metadata\[aq] represents the detail about numbre of classes,
+model_kind and datatype of training vector.
+.PD 0
+.P
+.PD
+Here, the model file contains information about model in binary format.
+.PP
+This will save the SVC model on the path \[aq]/out/SVCModel\[aq].
+It would raise exception if the directory already exists with same name.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 7. score(X, y, sample_weight = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]X\f[]: A numpy dense or scipy sparse matrix or any python ndarray
+or an instance of FrovedisCRSMatrix for sparse data and
+FrovedisRowmajorMatrix for dense data.
+It has shape \f[B](n_samples, n_features)\f[].
+.PD 0
+.P
+.PD
+\f[I]\f[B]y\f[]\f[]: Any python ndarray containing the target labels.
+It has shape \f[B](n_samples,)\f[].
+.PD 0
+.P
+.PD
+\f[B]sample_weight\f[]: A python ndarray containing the intended weights
+for each input samples and it should be the shape of
+\f[B](n_samples,)\f[].
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), an uniform weight vector is
+assigned on each input sample.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+Calculate mean accuracy on the given test data and labels i.e.
+mean accuracy of self.predict(X) wrt.
+y.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ calculate\ mean\ accuracy\ score\ on\ given\ test\ data\ and\ labels
+svc.score(mat,\ lbl)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+1.0\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns an accuracy score of double (float64) type.
+.SS 8. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by SVC.
+It is used to get parameters and their values of SVC class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print(svc.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]C\[aq]:\ 1.0,\ \[aq]break_ties\[aq]:\ False,\ \[aq]cache_size\[aq]:\ 128,\ \[aq]class_weight\[aq]:\ None,\ \[aq]coef0\[aq]:\ 0.0,\ 
+\[aq]decision_function_shape\[aq]:\ \[aq]ovr\[aq],\ \[aq]degree\[aq]:\ 3,\ \[aq]gamma\[aq]:\ 0.5,\ \[aq]kernel\[aq]:\ \[aq]rbf\[aq],\ 
+\[aq]max_iter\[aq]:\ \-1,\ \[aq]probability\[aq]:\ False,\ \[aq]random_state\[aq]:\ None,\ \[aq]shrinking\[aq]:\ True,\ 
+\[aq]tol\[aq]:\ 0.001,\ \[aq]verbose\[aq]:\ False}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 9. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by SVC, used to
+set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("get\ parameters\ before\ setting:")\ 
+print(svc.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+svc.set_params(\ kernel\ =\ "linear",\ shrinking\ =\ False)
+print("get\ parameters\ after\ setting:")\ 
+print(svc.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+get\ parameters\ before\ setting:\ \ 
+{\[aq]C\[aq]:\ 1.0,\ \[aq]break_ties\[aq]:\ False,\ \[aq]cache_size\[aq]:\ 128,\ \[aq]class_weight\[aq]:\ None,\ \[aq]coef0\[aq]:\ 0.0,\ 
+\[aq]decision_function_shape\[aq]:\ \[aq]ovr\[aq],\ \[aq]degree\[aq]:\ 3,\ \[aq]gamma\[aq]:\ 0.5,\ \[aq]kernel\[aq]:\ \[aq]rbf\[aq],\ 
+\[aq]max_iter\[aq]:\ \-1,\ \[aq]probability\[aq]:\ False,\ \[aq]random_state\[aq]:\ None,\ \[aq]shrinking\[aq]:\ True,\ 
+\[aq]tol\[aq]:\ 0.001,\ \[aq]verbose\[aq]:\ False}\ \ 
+get\ parameters\ after\ setting:\ \ 
+{\[aq]C\[aq]:\ 1.0,\ \[aq]break_ties\[aq]:\ False,\ \[aq]cache_size\[aq]:\ 128,\ \[aq]class_weight\[aq]:\ None,\ \[aq]coef0\[aq]:\ 0.0,\ 
+\[aq]decision_function_shape\[aq]:\ \[aq]ovr\[aq],\ \[aq]degree\[aq]:\ 3,\ \[aq]gamma\[aq]:\ 0.5,\ \[aq]kernel\[aq]:\ \[aq]linear\[aq],\ 
+\[aq]max_iter\[aq]:\ \-1,\ \[aq]probability\[aq]:\ False,\ \[aq]random_state\[aq]:\ None,\ \[aq]shrinking\[aq]:\ False,\ 
+\[aq]tol\[aq]:\ 0.001,\ \[aq]verbose\[aq]:\ False}\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 10. release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to release the in\-memory model at frovedis server.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+svc.release()\ \ 
+\f[]
+.fi
+.PP
+This will reset the after\-fit populated attributes (like coef_,
+intercept_, classes_, etc) to None, along with releasing server side
+memory.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS 11. is_fitted()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It can be used to confirm if the model is already fitted or not.
+In case, predict() is used before training the model, then it can prompt
+the user to train the model first.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns \[aq]True\[aq], if the model is already fitted otherwise, it
+returns \[aq]False\[aq].
+.SH SEE ALSO
+.PP
+dvector, crs_matrix, rowmajor_matrix, colmajor_matrix, linear_svc,
+linear_svr
