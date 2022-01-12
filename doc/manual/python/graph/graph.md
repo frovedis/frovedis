@@ -21,7 +21,22 @@ load_text(fname)
 to_networkx_graph()  
 
 # DESCRIPTION  
+Base class for undirected and directed frovedis graphs. A Frovedis Graph stores nodes 
+and edges with optional data. Here, the graph data, edge to edge information is internally 
+stored as and adjacency matrix data.  
 
+This module provides a client-server implementation, where the client application 
+is a normal python program. The frovedis public method interface is almost same as 
+NetworkX Graph interface, but it doesn’t have any dependency with NetworkX. It can be 
+used simply even if the system doesn’t have NetworkX installed. Thus, in this implementation, 
+a python client can interact with a frovedis server sending the required python data 
+for training at frovedis side. Python data is converted into frovedis compatible data 
+internally and the python ML call is linked with the respective frovedis ML call to get 
+the job done at frovedis server.  
+
+Python side calls for Graph() on the frovedis server. Once the graph is loaded for 
+the given input networkx or scipy csr_matrix graph data at the frovedis server, it returns a 
+frovedis graph instance to the client python program.  
 
 ## Detailed Description  
 
