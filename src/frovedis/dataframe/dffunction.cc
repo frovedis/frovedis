@@ -1538,12 +1538,6 @@ dffunction_when::execute(dftable_base& t) const {
   }
 }
 
-/*
- TODO:
- - condition can only be applied to the grouped column
-   to fix this, would need to create method like aggregate_filter...
- - might evaluate where "when" condition is false
-*/
 std::shared_ptr<dfcolumn>
 dffunction_when::aggregate
 (dftable_base& table,
@@ -1563,12 +1557,17 @@ dffunction_when::aggregate
   auto table_idx = grouped_table.get_local_index();
   auto crnt_idx = table_idx;
   for(size_t i = 0; i < cond.size(); i++) {
-    auto tmp_column = func[i]->aggregate(table, local_grouped_idx,
-                                         local_idx_split, hash_divide,
-                                         merge_map, row_sizes, grouped_table);
-    filtered_dftable crnt_table(grouped_table, crnt_idx);
-    auto filtered = crnt_table.filter(cond[i]);
-    new_idx[i] = filtered.get_local_index();
+    auto tmp_column = func[i]->aggregate
+      (table, local_grouped_idx, local_idx_split, hash_divide,
+       merge_map, row_sizes, grouped_table);
+    auto cond_idx = cond[i]->aggregate_filter
+      (table, local_grouped_idx, local_idx_split, hash_divide,
+       merge_map, row_sizes, grouped_table);
+    new_idx[i] = cond_idx.map
+      (+[](std::vector<size_t>& cond_idx,
+           std::vector<size_t>& crnt_idx) {
+        return set_intersection(cond_idx, crnt_idx);
+      }, crnt_idx);
     dftable tmp_table;
     tmp_table.append_column("tmp",tmp_column);
     filtered_dftable filtered_tmp_table(tmp_table, new_idx[i]);
