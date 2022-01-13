@@ -571,7 +571,7 @@ dftable& dftable::calc(const std::string& name, F f,
   use_dfcolumn use({c1,c2}, *this);
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
-  if(!tc1 || !tc2)
+  if(!static_cast<bool>(tc1) || !static_cast<bool>(tc2))
     throw std::runtime_error
       ("calc: column types are different from specified types");
   auto&& val1 = tc1->get_val();
@@ -612,7 +612,8 @@ dftable& dftable::calc(const std::string& name, F f,
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
   auto tc3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(column(c3));
-  if(!tc1 || !tc2 || !tc3)
+  if(!static_cast<bool>(tc1) || !static_cast<bool>(tc2) ||
+     !static_cast<bool>(tc3))
     throw std::runtime_error
       ("calc: column types are different from specified types");
   auto&& val1 = tc1->get_val();
@@ -656,7 +657,8 @@ dftable&  dftable::calc(const std::string& name, F f,
   auto tc2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(column(c2));
   auto tc3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(column(c3));
   auto tc4 = std::dynamic_pointer_cast<typed_dfcolumn<T4>>(column(c4));
-  if(!tc1 || !tc2 || !tc3 || !tc4)
+  if(!static_cast<bool>(tc1) || !static_cast<bool>(tc2) ||
+     !static_cast<bool>(tc3) || !static_cast<bool>(tc4))
     throw std::runtime_error
       ("calc: column types are different from specified types");
   auto&& val1 = tc1->get_val();
@@ -705,7 +707,9 @@ dftable& dftable::calc(const std::string& name, F f,
   auto tc3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(column(c3));
   auto tc4 = std::dynamic_pointer_cast<typed_dfcolumn<T4>>(column(c4));
   auto tc5 = std::dynamic_pointer_cast<typed_dfcolumn<T5>>(column(c5));
-  if(!tc1 || !tc2 || !tc3 || !tc4 || !tc5)
+  if(!static_cast<bool>(tc1) || !static_cast<bool>(tc2) ||
+     !static_cast<bool>(tc3) || !static_cast<bool>(tc4) ||
+     !static_cast<bool>(tc5))
     throw std::runtime_error
       ("calc: column types are different from specified types");
   auto&& val1 = tc1->get_val();
@@ -759,7 +763,9 @@ dftable& dftable::calc(const std::string& name, F f,
   auto tc4 = std::dynamic_pointer_cast<typed_dfcolumn<T4>>(column(c4));
   auto tc5 = std::dynamic_pointer_cast<typed_dfcolumn<T5>>(column(c5));
   auto tc6 = std::dynamic_pointer_cast<typed_dfcolumn<T6>>(column(c6));
-  if(!tc1 || !tc2 || !tc3 || !tc4 || !tc5 || !tc6)
+  if(!static_cast<bool>(tc1) || !static_cast<bool>(tc2) ||
+     !static_cast<bool>(tc3) || !static_cast<bool>(tc4) ||
+     !static_cast<bool>(tc5) || !static_cast<bool>(tc6))
     throw std::runtime_error
       ("calc: column types are different from specified types");
   auto&& val1 = tc1->get_val();

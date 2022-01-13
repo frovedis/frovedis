@@ -42,7 +42,7 @@ dvector<std::tuple<T0,T1>> dftable_to_dvector(dftable_base& table) {
   auto col1 = table.column(cols[1]);
   auto typed_col0 = std::dynamic_pointer_cast<typed_dfcolumn<T0>>(col0);
   auto typed_col1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(col1);
-  if(!typed_col0 || !typed_col1)
+  if(!static_cast<bool>(typed_col0) || !static_cast<bool>(typed_col1))
     throw std::runtime_error
       ("dftable_to_dvector: column types are different from specified types");
   auto&& val0 = typed_col0->get_val();
@@ -76,7 +76,8 @@ dvector<std::tuple<T0,T1,T2>> dftable_to_dvector(dftable_base& table) {
   auto typed_col0 = std::dynamic_pointer_cast<typed_dfcolumn<T0>>(col0);
   auto typed_col1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(col1);
   auto typed_col2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(col2);
-  if(!typed_col0 || !typed_col1 || !typed_col2)
+  if(!static_cast<bool>(typed_col0) || !static_cast<bool>(typed_col1) ||
+     !static_cast<bool>(typed_col2))
     throw std::runtime_error
       ("dftable_to_dvector: column types are different from specified types");
   auto&& val0 = typed_col0->get_val();
@@ -115,7 +116,8 @@ dvector<std::tuple<T0,T1,T2,T3>> dftable_to_dvector(dftable_base& table) {
   auto typed_col1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(col1);
   auto typed_col2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(col2);
   auto typed_col3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(col3);
-  if(!typed_col0 || !typed_col1 || !typed_col2 || !typed_col3)
+  if(!static_cast<bool>(typed_col0) || !static_cast<bool>(typed_col1) ||
+     !static_cast<bool>(typed_col2) || !static_cast<bool>(typed_col3))
     throw std::runtime_error
       ("dftable_to_dvector: column types are different from specified types");
   auto&& val0 = typed_col0->get_val();
@@ -160,7 +162,9 @@ dvector<std::tuple<T0,T1,T2,T3,T4>> dftable_to_dvector(dftable_base& table) {
   auto typed_col2 = std::dynamic_pointer_cast<typed_dfcolumn<T2>>(col2);
   auto typed_col3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(col3);
   auto typed_col4 = std::dynamic_pointer_cast<typed_dfcolumn<T4>>(col4);
-  if(!typed_col0 || !typed_col1 || !typed_col2 || !typed_col3 || !typed_col4)
+  if(!static_cast<bool>(typed_col0) || !static_cast<bool>(typed_col1) ||
+     !static_cast<bool>(typed_col2) || !static_cast<bool>(typed_col3) ||
+     !static_cast<bool>(typed_col4))
     throw std::runtime_error
       ("dftable_to_dvector: column types are different from specified types");
   auto&& val0 = typed_col0->get_val();
@@ -219,8 +223,9 @@ dvector<std::tuple<T0,T1,T2,T3,T4,T5>>
   auto typed_col3 = std::dynamic_pointer_cast<typed_dfcolumn<T3>>(col3);
   auto typed_col4 = std::dynamic_pointer_cast<typed_dfcolumn<T4>>(col4);
   auto typed_col5 = std::dynamic_pointer_cast<typed_dfcolumn<T5>>(col5);
-  if(!typed_col0 || !typed_col1 || !typed_col2 || !typed_col3 || !typed_col4
-     || !typed_col5)
+  if(!static_cast<bool>(typed_col0) || !static_cast<bool>(typed_col1) ||
+     !static_cast<bool>(typed_col2) || !static_cast<bool>(typed_col3) ||
+     !static_cast<bool>(typed_col4) || !static_cast<bool>(typed_col5))
     throw std::runtime_error
       ("dftable_to_dvector: column types are different from specified types");
   auto&& val0 = typed_col0->get_val();
@@ -286,8 +291,10 @@ dvector<std::tuple<T0,T1,T2,T3,T4,T5,T6>>
   auto typed_col4 = std::dynamic_pointer_cast<typed_dfcolumn<T4>>(col4);
   auto typed_col5 = std::dynamic_pointer_cast<typed_dfcolumn<T5>>(col5);
   auto typed_col6 = std::dynamic_pointer_cast<typed_dfcolumn<T6>>(col6);
-  if(!typed_col0 || !typed_col1 || !typed_col2 || !typed_col3 || !typed_col4
-     || !typed_col5 || !typed_col6)
+  if(!static_cast<bool>(typed_col0) || !static_cast<bool>(typed_col1) ||
+     !static_cast<bool>(typed_col2) || !static_cast<bool>(typed_col3) ||
+     !static_cast<bool>(typed_col4) || !static_cast<bool>(typed_col5) ||
+     !static_cast<bool>(typed_col6))
     throw std::runtime_error
       ("dftable_to_dvector: column types are different from specified types");
   auto&& val0 = typed_col0->get_val();

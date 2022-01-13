@@ -851,7 +851,7 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos,
   auto tintcol_pos = dynamic_pointer_cast<typed_dfcolumn<int>>(intcol_pos);
   auto intcol_num = num->type_cast("int");
   auto tintcol_num = dynamic_pointer_cast<typed_dfcolumn<int>>(intcol_num);
-  if(!tintcol_pos || !tintcol_num)
+  if(!static_cast<bool>(tintcol_pos) || !static_cast<bool>(tintcol_num))
     throw std::runtime_error("internal cast error");
   auto ws = as_words();
   auto nulls = get_nulls();
