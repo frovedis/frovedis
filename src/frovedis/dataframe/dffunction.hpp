@@ -47,8 +47,18 @@ struct dffunction_cast : public dffunction {
     return std::make_shared<dffunction_cast>(*this);
   }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) { return left->columns_to_use(t); }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
+  }
   virtual std::vector<std::string> used_col_names() const {
     auto leftnames = left->used_col_names();
     return leftnames;

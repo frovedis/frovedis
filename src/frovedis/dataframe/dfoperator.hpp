@@ -2003,7 +2003,6 @@ struct dfoperator_regex : public dfoperator {
     as_name = cname;
     return std::make_shared<dfoperator_regex>(*this);
   }
-  // skip execute
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
     return left->columns_to_use(t);
@@ -2031,6 +2030,11 @@ struct dfoperator_regex : public dfoperator {
     auto filter_idx = filter_impl(tcol);
     auto t_nulls  = tcol->get_nulls();
     return create_boolean_column(filter_idx, t_nulls, tcol->sizes());
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
   }
   virtual std::vector<std::string> used_col_names() const {
     auto leftnames = left->used_col_names();
@@ -2130,6 +2134,11 @@ struct dfoperator_not_regex : public dfoperator {
     auto filter_idx = filter_impl(tcol);
     auto t_nulls  = tcol->get_nulls();
     return create_boolean_column(filter_idx, t_nulls, tcol->sizes());
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
   }
   virtual std::vector<std::string> used_col_names() const {
     auto leftnames = left->used_col_names();
@@ -2246,6 +2255,11 @@ struct dfoperator_like : public dfoperator {
     auto t_nulls  = tcol->get_nulls();
     return create_boolean_column(filter_idx, t_nulls, tcol->sizes());
   }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
   virtual std::vector<std::string> used_col_names() const {
     auto leftnames = left->used_col_names();
     return leftnames;
@@ -2355,6 +2369,11 @@ struct dfoperator_not_like : public dfoperator {
     auto filter_idx = filter_impl(tcol);
     auto t_nulls  = tcol->get_nulls();
     return create_boolean_column(filter_idx, t_nulls, tcol->sizes());
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
   }
   virtual std::vector<std::string> used_col_names() const {
     auto leftnames = left->used_col_names();

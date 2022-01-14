@@ -16,12 +16,22 @@ struct dfaggregator : public dffunction {
     throw std::runtime_error
       ("aggregator cannot be called directly or more than once");
   }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute of aggregator is not implemented");
+  }
   virtual std::string get_as() {return as_name;}
   virtual std::vector<std::string> used_col_names() const {
     return col->used_col_names();
   }
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {return col->columns_to_use(t);}
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use of aggregator is not implemented");
+  }
   std::shared_ptr<dffunction> col;
   std::string as_name;
 };
