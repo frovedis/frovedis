@@ -213,6 +213,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     t_log.show("server memory allocation: ")
 
     // (2) prepare server side ranks for processing N parallel requests
+    JNISupport.lockParallel()
     val fw_nodes = JNISupport.getWorkerInfoMulti(fs.master_node,
                                         block_sizes.map(_ * ncol), nproc)
     info = JNISupport.checkServerException()
@@ -222,6 +223,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     // (3) data transfer
     sDFTransfer.execute(rddData, fw_nodes, vptrs, offset, types, block_sizes, ncol, nproc)
     t_log.show("[numpartition: " + npart + "] server side data transfer: ")
+    JNISupport.unlockParallel()
 
     fdata = JNISupport.createFrovedisDataframe2(fs.master_node, cols, types,
                                                 ncol, vptrs, vptrs.size)
@@ -660,7 +662,6 @@ class FrovedisDataFrame extends java.io.Serializable {
                                                     "datatype encountered: %s !\n"
                                                     .format(tid))
       }
-      val len = col_rdd.count
       JNISupport.releaseDFColumnPointer(fs.master_node, cptr, tid)
       info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)

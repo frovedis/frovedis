@@ -4,7 +4,7 @@ LIBS := ../../../exrpc/libfrovedis_exrpc.a ../../../../frovedis/core/libfrovedis
 INCLUDES := -I../../../../../third_party/cereal-1.2.2/include/ -I../../../../../third_party/yas-7.0.5/include/ -I../../../.. -I../../../exrpc -I../../../server -I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux
 
 HEADERS := spark_client_headers.hpp jre_config.hpp JNISupport.hpp
-OBJS := utility.o exception_handling.o server_info.o dvector.o data_storage.o wrapper.o dataframe.o model.o ml.o graph.o
+OBJS := utility.o lock.o exception_handling.o server_info.o dvector.o data_storage.o wrapper.o dataframe.o model.o ml.o graph.o
 
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 
@@ -15,6 +15,7 @@ libfrovedis_client_spark.so: ${OBJS} ../../../server/libfrovedis_server.a
 	cp libfrovedis_client_spark.so ../../lib
 
 utility.o: utility.cc ${HEADERS}
+lock.o: lock.cc ${HEADERS}
 exception_handling.o: exception_handling.cc ${HEADERS}
 server_info.o: server_info.cc ${HEADERS}
 dvector.o: dvector.cc ${HEADERS}

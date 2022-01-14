@@ -12,6 +12,9 @@ using namespace frovedis;
 extern bool status;
 extern std::string info;
 
+// --- mutex lock for managing parallel exrpc along with non-parallel exrpc with muti-threading environment---
+extern pthread_mutex_t parallel_management_lock;
+
 extern "C" { 
   void set_status(bool , const std::string& );
   void reset_status();

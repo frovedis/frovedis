@@ -37,6 +37,8 @@ object DTYPE extends java.io.Serializable {
   def cast[T: ClassTag] (data: String): T = data.asInstanceOf[T]
 }
 
+// TODO: create common object for toRDD of all types
+
 object TransferData extends java.io.Serializable {
   //private def copy_local_data[T: ClassTag](
     //index: Int, destId: Int,
@@ -150,6 +152,7 @@ object TransferData extends java.io.Serializable {
     t_log.show("server memory allocation: ")
 
     // (2) prepare server side ranks for processing N parallel requests
+    JNISupport.lockParallel()
     val fw_nodes = JNISupport.getWorkerInfoMulti(fs.master_node,
                                                  block_sizes, nproc)
     info = JNISupport.checkServerException()
@@ -179,8 +182,9 @@ object TransferData extends java.io.Serializable {
                      Array(true).toIterator // SUCCESS (since need to return an iterator)
                      //Array((destId, size.toLong)).toIterator
                  })
-    ret.count // for action
+    ret.count // to force the transformation to take place
     t_log.show("server side data transfer: ")
+    JNISupport.unlockParallel()
 
 /*
     // sizes calculation when part_sizes is collected
@@ -239,11 +243,14 @@ object IntDvector extends java.io.Serializable {
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
     val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    JNISupport.lockParallel()
     val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
+    ret.count // to force the transformation to take place
+    JNISupport.unlockParallel()
     return ret
   }
 }
@@ -269,11 +276,14 @@ object LongDvector extends java.io.Serializable {
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
     val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    JNISupport.lockParallel()
     val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
+    ret.count // to force the transformation to take place
+    JNISupport.unlockParallel()
     return ret
   }
 }
@@ -299,11 +309,14 @@ object FloatDvector extends java.io.Serializable {
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
     val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    JNISupport.lockParallel()
     val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
+    ret.count // to force the transformation to take place
+    JNISupport.unlockParallel()
     return ret
   }
 }
@@ -329,11 +342,14 @@ object DoubleDvector extends java.io.Serializable {
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
     val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    JNISupport.lockParallel()
     val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
+    ret.count // to force the transformation to take place
+    JNISupport.unlockParallel()
     return ret
   }
 }
@@ -359,11 +375,14 @@ object StringDvector extends java.io.Serializable {
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
     val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    JNISupport.lockParallel()
     val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
+    ret.count // to force the transformation to take place
+    JNISupport.unlockParallel()
     return ret
   }
 }
@@ -424,6 +443,7 @@ object WordsNodeLocal extends java.io.Serializable {
     t_log.show("server memory allocation: ")
 
     // (2) prepare server side ranks for processing N parallel requests
+    JNISupport.lockParallel()
     val fw_nodes = JNISupport.getWorkerInfoMulti(fs.master_node,
                                                  block_sizes, nproc)
     info = JNISupport.checkServerException()
@@ -451,8 +471,9 @@ object WordsNodeLocal extends java.io.Serializable {
                                      localId, x, size)
                      Array(true).toIterator // SUCCESS (since need to return an iterator)
                  })
-    ret.count // for action
+    ret.count // to force the transformation to take place
     t_log.show("server side pair (chars, size) data transfer: ")
+    JNISupport.unlockParallel()
 
     val proxy = JNISupport.createNodeLocalOfWords(fs.master_node, dptrs, sptrs, nproc)
     info = JNISupport.checkServerException()
@@ -476,11 +497,14 @@ object WordsNodeLocal extends java.io.Serializable {
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
     val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    JNISupport.lockParallel()
     val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
+    ret.count // to force the transformation to take place
+    JNISupport.unlockParallel()
     return ret
   }
 }
@@ -521,11 +545,14 @@ object BoolDvector extends java.io.Serializable {
     val dummy = new Array[Boolean](eps.size)
     val ctxt = SparkContext.getOrCreate()
     val dist_dummy = ctxt.parallelize(dummy, eps.size)
+    JNISupport.lockParallel()
     val nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ret = dist_dummy.mapPartitionsWithIndex((i,x) =>
                     setEachPartition(i,nodes(i),eps(i))).cache()
+    ret.count // to force the transformation to take place
+    JNISupport.unlockParallel()
     return ret
   }
 }

@@ -39,6 +39,8 @@ public class JNISupport {
   }
 
   public static native String checkServerException();
+  public static native void lockParallel();
+  public static native void unlockParallel();
  
   // ---
   public static native MemPair loadFrovedisWorkerGLMData(Node t_node, 
@@ -829,7 +831,6 @@ public class JNISupport {
                                                      long ncol,
                                                      long vptrs[], long ptrsz);
   public static native void releaseFrovedisDataframe(Node master_node, long data);
-  public static native void releaseFrovedisDataframeNoExcept(Node master_node, long data);
   public static native DummyDftable copyColumn(Node master_node, long dptr,
                                                long proxies[],
                                                String cols[], long size);
@@ -907,7 +908,6 @@ public class JNISupport {
                                                   long dproxy,
                                                   long[] funcp, int sz);
   public static native void releaseFrovedisGroupedDF(Node master_node, long data);
-  public static native void releaseFrovedisGroupedDFNoExcept(Node master_node, long data);
   public static native DummyMatrix DFToRowmajorMatrix(Node master_node, long dproxy, 
                                                       String[] cname, int size); 
   public static native DummyMatrix DFToColmajorMatrix(Node master_node, long dproxy, 

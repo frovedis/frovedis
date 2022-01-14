@@ -21,8 +21,8 @@ class MatrixFactorizationModel(modelId: Int,
     val uids = uparr.map { case (u,p) => (u-1) }
     val pids = uparr.map { case (u,p) => (p-1) }
     val pred = JNISupport.doParallelALSPredict(t_node,mptr,mkind,uids,pids)
-    val info = JNISupport.checkServerException();
-    if (info != "") throw new java.rmi.ServerException(info);
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     return uparr.zip(pred).map { case((u,p),r) => Rating(u,p,r) }.toIterator
   }
   def getRank() : Int = rank
@@ -36,15 +36,19 @@ class MatrixFactorizationModel(modelId: Int,
   def predict(usersProducts: RDD[(Int, Int)]): RDD[Rating] = {
     val fs = FrovedisServer.getServerInstance()
     val each_model = JNISupport.broadcast2AllWorkers(fs.master_node,mid,mkind)
-    val info = JNISupport.checkServerException();
+    val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info);
     //println("[scala] Getting worker info for prediction on model[" + mid + "].")
+    JNISupport.lockParallel()
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node)
-    val info1 = JNISupport.checkServerException();
-    if (info1 != "") throw new java.rmi.ServerException(info1);
+    val info1 = JNISupport.checkServerException()
+    if (info1 != "") throw new java.rmi.ServerException(info1)
     val wdata = usersProducts.repartition2(fs.worker_size)
-    return wdata.mapPartitionsWithIndex((i,x) => 
-                 parallel_predict(x,each_model(i),fw_nodes(i)))
+    val ret = wdata.mapPartitionsWithIndex((i,x) => 
+                 parallel_predict(x,each_model(i),fw_nodes(i))).cache
+    ret.count // to force the transformation to take place
+    JNISupport.unlockParallel()
+    return ret
   }
   def recommendProducts(user: Int, num: Int): Array[Rating] = {
     val fs = FrovedisServer.getServerInstance()

@@ -23,15 +23,18 @@ public class FrovedisDataFrameFinalizer
   }
 
   public void release() throws ServerException {
+    JNISupport.lockParallel();
     if (FrovedisServer.isUP() && proxy != -1) {
       FrovedisServer fs = FrovedisServer.getServerInstance();
       JNISupport.releaseFrovedisDataframe(fs.master_node, proxy);
       String info = JNISupport.checkServerException();
       if (!info.isEmpty()) throw new ServerException(info);
       //System.out.println("released " + proxy);
+      proxy = -1;
+      thread.removeObject(this);
     }
-    thread.removeObject(this);
     //System.out.println("reference pool size: " + thread.list.size());
+    JNISupport.unlockParallel();
   }
 
   public static FrovedisDataFrameFinalizer 
@@ -67,14 +70,7 @@ public class FrovedisDataFrameFinalizer
           // queue.remove(): blocking if queue is empty
           FrovedisDataFrameFinalizer ref = (FrovedisDataFrameFinalizer) queue.remove();
           //System.out.println(ref.proxy + " is not properly released, doing it now...");
-          //ref.release();
-          if (FrovedisServer.isUP() && ref.proxy != -1) {
-            FrovedisServer fs = FrovedisServer.getServerInstance();
-            JNISupport.releaseFrovedisDataframeNoExcept(fs.master_node, ref.proxy); // non-blocking
-            //System.out.println("released " + ref.proxy);
-          }
-          removeObject(ref);
-          //System.out.println("reference pool size: " + list.size());
+          ref.release();
         }
       } catch (Exception e) {
          System.out.println(this.getName() + ": thread interrupted => " + e.getMessage());

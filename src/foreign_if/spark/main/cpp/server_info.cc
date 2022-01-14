@@ -19,7 +19,12 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getMasterInfo
 JNIEXPORT jint JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getWorkerSize
   (JNIEnv *env, jclass thisCls, jobject master_node) {
   auto fm_node = java_node_to_frovedis_node(env,master_node);
-  return exrpc_async0(fm_node, get_nodesize).get();
+  int ret = 0;
+  try {
+    ret = exrpc_async0(fm_node, get_nodesize).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return ret;
 }
 
 // connects with Frovedis worker nodes for processing single parallel request 

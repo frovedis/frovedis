@@ -77,6 +77,7 @@ class FrovedisSparseData extends java.io.Serializable {
                                                       MAT_KIND.SCRS)
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
+    JNISupport.lockParallel()
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node)
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info) 
@@ -85,6 +86,8 @@ class FrovedisSparseData extends java.io.Serializable {
     val rows = dist_dummy.mapPartitionsWithIndex((i,x) =>
                           setEachPartitionsData(i,fw_nodes(i),eps(i),
                                                 l_rows(i),l_nnz(i))).cache()
+    rows.count // to force the transformation to take place
+    JNISupport.unlockParallel()
     return rows
   }
   private def convert_and_send_local_data(data: Iterator[Vector],
@@ -116,11 +119,13 @@ class FrovedisSparseData extends java.io.Serializable {
 
     /** converting spark worker data to frovedis worker data */
     val work_data = data.repartition2(fs_size)
+    JNISupport.lockParallel()
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
     val ep_all = work_data.mapPartitionsWithIndex(
                  (i,x) => convert_and_send_local_data(x,fw_nodes(i),num_col)).collect
+    JNISupport.unlockParallel()
 
     /** getting frovedis distributed data from frovedis local data */ 
     fdata = JNISupport.createFrovedisSparseData(fs.master_node, 
@@ -138,7 +143,7 @@ class FrovedisSparseData extends java.io.Serializable {
     //mapPartitionsWithIndex needs to return an Iterator object
     return Array(ret).toIterator
   }
-  def loadcoo(data: RDD[Rating]) : Unit  = {
+  def loadcoo(data: RDD[Rating]) : Unit  = { // TODO: optimize
     /** releasing the old data (if any) */
     release()
 
@@ -148,11 +153,13 @@ class FrovedisSparseData extends java.io.Serializable {
 
     /** converting spark worker data to frovedis worker data */
     val work_data = data.repartition2(fs_size)
+    JNISupport.lockParallel()
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
     val ep_all = work_data.mapPartitionsWithIndex(
                  (i,x) => convert_and_send_local_data_as_string_vector(x,fw_nodes(i))).collect
+    JNISupport.unlockParallel()
 
     /** getting frovedis distributed sparse data from frovedis local coo vector strings */ 
     val dm = JNISupport.createFrovedisSparseMatrix(fs.master_node, ep_all, MAT_KIND.SCRS);

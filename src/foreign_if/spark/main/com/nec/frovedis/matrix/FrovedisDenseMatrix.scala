@@ -77,11 +77,13 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
 
     /** converting spark worker data to frovedis worker data */
     val work_data = data.repartition2(fs_size)
+    JNISupport.lockParallel()
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node) // native call
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val ep_all = work_data.mapPartitionsWithIndex(
                  (i,x) => copy_local_matrix(i,x,fw_nodes(i),num_col)).collect
+    JNISupport.unlockParallel()
 
     /** getting frovedis distributed data from frovedis local data */ 
     fdata = JNISupport.createFrovedisDenseData(fs.master_node, ep_all,
@@ -149,13 +151,19 @@ class FrovedisDenseMatrix(mt: Short) extends java.io.Serializable {
                                              rmat.fdata,rmat.mtype)
     val info = JNISupport.checkServerException();
     if (info != "") throw new java.rmi.ServerException(info);
+    JNISupport.lockParallel()
     val fw_nodes = JNISupport.getWorkerInfo(fs.master_node)
     val info1 = JNISupport.checkServerException();
     if (info1 != "") throw new java.rmi.ServerException(info1);
     val dummy = new Array[Boolean](eps.size)
     val dist_dummy =  ctxt.parallelize(dummy,eps.size)
     val rows = dist_dummy.mapPartitionsWithIndex((i,x) => 
-                          setEachPartitionsData(i,fw_nodes(i),eps(i))).collect
+                          setEachPartitionsData(i,fw_nodes(i),eps(i))).collect 
+    // why collect? the below should work... TODO: test and confirm
+    //val rows = dist_dummy.mapPartitionsWithIndex((i,x) => 
+    //                      setEachPartitionsData(i,fw_nodes(i),eps(i))).cache
+    //rows.count // to force the transformation to take place
+    JNISupport.unlockParallel()
     // releasing intermediate rowmajor matrix from server, if new'ed
     if(mtype != MAT_KIND.RMJR) rmat.release()
     return new RowMatrix(ctxt.parallelize(rows,eps.size))
