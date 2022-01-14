@@ -3353,85 +3353,8 @@ std::shared_ptr<dffunction> col(const std::string& col);
 // create id_col using operator~
 std::shared_ptr<dffunction> operator~(const std::string& col);
 
-std::shared_ptr<dffunction> operator+(const std::shared_ptr<dffunction>& a,
-                                      const std::shared_ptr<dffunction>& b);
-
-template <class T>
-std::shared_ptr<dffunction> operator+(const std::shared_ptr<dffunction>& a,
-                                      T b) {
-  return add_im(a,b);
-}
-
-template <class T>
-std::shared_ptr<dffunction> operator+(T b,
-                                      const std::shared_ptr<dffunction>& a) {
-                                      
-  return add_im(a,b);
-}
-
-std::shared_ptr<dffunction> operator-(const std::shared_ptr<dffunction>& a,
-                                      const std::shared_ptr<dffunction>& b);
-
-template <class T>
-std::shared_ptr<dffunction> operator-(const std::shared_ptr<dffunction>& a,
-                                      T b) {
-  return sub_im(a,b);
-}
-
-template <class T>
-std::shared_ptr<dffunction> operator-(T b,
-                                      const std::shared_ptr<dffunction>& a) {
-                                      
-  return sub_im(b,a);
-}
-
-std::shared_ptr<dffunction> operator*(const std::shared_ptr<dffunction>& a,
-                                      const std::shared_ptr<dffunction>& b);
-
-template <class T>
-std::shared_ptr<dffunction> operator*(const std::shared_ptr<dffunction>& a,
-                                      T b) {
-  return mul_im(a,b);
-}
-
-template <class T>
-std::shared_ptr<dffunction> operator*(T b,
-                                      const std::shared_ptr<dffunction>& a) {
-                                      
-  return mul_im(a,b);
-}
-
-std::shared_ptr<dffunction> operator/(const std::shared_ptr<dffunction>& a,
-                                      const std::shared_ptr<dffunction>& b);
-
-template <class T>
-std::shared_ptr<dffunction> operator/(const std::shared_ptr<dffunction>& a,
-                                      T b) {
-  return fdiv_im(a,b);
-}
-
-template <class T>
-std::shared_ptr<dffunction> operator/(T b,
-                                      const std::shared_ptr<dffunction>& a) {
-                                      
-  return fdiv_im(b,a);
-}
-
-std::shared_ptr<dffunction> operator%(const std::shared_ptr<dffunction>& a,
-                                      const std::shared_ptr<dffunction>& b);
-
-template <class T>
-std::shared_ptr<dffunction> operator%(const std::shared_ptr<dffunction>& a,
-                                      T b) {
-  return mod_im(a,b);
-}
-
-template <class T>
-std::shared_ptr<dffunction> operator%(T b,
-                                      const std::shared_ptr<dffunction>& a) {
-                                      
-  return mod_im(b,a);
-}
+// operators like + are in dfaggregator.[hpp,cc]
+// (all types are defined to avoid ambiguous overload)
 
 std::pair<std::shared_ptr<dfoperator>, std::shared_ptr<dffunction>>
 operator>>(const std::shared_ptr<dfoperator>& cond,

@@ -925,4 +925,230 @@ last_as(const std::shared_ptr<dffunction>& col,
   return std::make_shared<dfaggregator_last>(col,as,ignore_nulls);
 }
 
+// ----- operators -----
+std::shared_ptr<dffunction> operator+(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return add_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator+(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return add_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator+(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return add_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator+(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return add_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator+(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return add_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator+(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return add_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator+(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return add_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator+(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return add_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator+(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return add_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator*(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return mul_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator*(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return mul_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator*(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return mul_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator*(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return mul_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator*(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return mul_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator*(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return mul_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator*(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return mul_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator*(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return mul_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator*(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return mul_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator-(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return sub_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator-(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return sub_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator-(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return sub_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator-(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return sub_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator-(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return sub_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator-(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return sub_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator-(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return sub_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator-(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return sub_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator-(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return sub_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator/(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return fdiv_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator/(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return fdiv_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator/(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return fdiv_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator/(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return fdiv_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator/(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return fdiv_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator/(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return fdiv_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator/(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return fdiv_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator/(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return fdiv_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator/(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return fdiv_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator%(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return mod_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator%(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return mod_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator%(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return mod_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator%(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return mod_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator%(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return mod_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator%(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return mod_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator%(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dffunction>& b) {
+  return mod_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator%(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dfaggregator>& b) {
+  return mod_col(a,b);
+}
+
+std::shared_ptr<dffunction> operator%(const std::shared_ptr<dfoperator>& a,
+                                      const std::shared_ptr<dfoperator>& b) {
+  return mod_col(a,b);
+}
+
 }
