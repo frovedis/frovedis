@@ -855,5 +855,229 @@ std::shared_ptr<dffunction> operator%(T b,
   return mod_im(b,a);
 }
 
+std::shared_ptr<dfoperator> operator==(const std::shared_ptr<dffunction>& a,
+                                       const std::shared_ptr<dffunction>& b);
+
+std::shared_ptr<dfoperator> operator==(const std::shared_ptr<dffunction>& a,
+                                       const std::shared_ptr<dfaggregator>& b);
+
+std::shared_ptr<dfoperator> operator==(const std::shared_ptr<dfaggregator>& a,
+                                       const std::shared_ptr<dffunction>& b);
+
+std::shared_ptr<dfoperator> operator==(const std::shared_ptr<dfaggregator>& a,
+                                       const std::shared_ptr<dfaggregator>& b);
+
+std::shared_ptr<dfoperator> operator!=(const std::shared_ptr<dffunction>& a,
+                                       const std::shared_ptr<dffunction>& b);
+
+std::shared_ptr<dfoperator> operator!=(const std::shared_ptr<dffunction>& a,
+                                       const std::shared_ptr<dfaggregator>& b);
+
+std::shared_ptr<dfoperator> operator!=(const std::shared_ptr<dfaggregator>& a,
+                                       const std::shared_ptr<dffunction>& b);
+
+std::shared_ptr<dfoperator> operator!=(const std::shared_ptr<dfaggregator>& a,
+                                       const std::shared_ptr<dfaggregator>& b);
+
+std::shared_ptr<dfoperator> operator<(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b);
+
+std::shared_ptr<dfoperator> operator<(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dfaggregator>& b);
+
+std::shared_ptr<dfoperator> operator<(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dffunction>& b);
+
+std::shared_ptr<dfoperator> operator<(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dfaggregator>& b);
+
+std::shared_ptr<dfoperator> operator>=(const std::shared_ptr<dffunction>& a,
+                                       const std::shared_ptr<dffunction>& b);
+
+std::shared_ptr<dfoperator> operator>=(const std::shared_ptr<dffunction>& a,
+                                       const std::shared_ptr<dfaggregator>& b);
+
+std::shared_ptr<dfoperator> operator>=(const std::shared_ptr<dfaggregator>& a,
+                                       const std::shared_ptr<dffunction>& b);
+
+std::shared_ptr<dfoperator> operator>=(const std::shared_ptr<dfaggregator>& a,
+                                       const std::shared_ptr<dfaggregator>& b);
+
+std::shared_ptr<dfoperator> operator<=(const std::shared_ptr<dffunction>& a,
+                                       const std::shared_ptr<dffunction>& b);
+
+std::shared_ptr<dfoperator> operator<=(const std::shared_ptr<dffunction>& a,
+                                       const std::shared_ptr<dfaggregator>& b);
+
+std::shared_ptr<dfoperator> operator<=(const std::shared_ptr<dfaggregator>& a,
+                                       const std::shared_ptr<dffunction>& b);
+
+std::shared_ptr<dfoperator> operator<=(const std::shared_ptr<dfaggregator>& a,
+                                       const std::shared_ptr<dfaggregator>& b);
+
+std::shared_ptr<dfoperator> operator>(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dffunction>& b);
+
+std::shared_ptr<dfoperator> operator>(const std::shared_ptr<dffunction>& a,
+                                      const std::shared_ptr<dfaggregator>& b);
+
+std::shared_ptr<dfoperator> operator>(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dffunction>& b);
+
+std::shared_ptr<dfoperator> operator>(const std::shared_ptr<dfaggregator>& a,
+                                      const std::shared_ptr<dfaggregator>& b);
+
+std::shared_ptr<dfoperator> operator&&(const std::shared_ptr<dfoperator>& a,
+                                       const std::shared_ptr<dfoperator>& b);
+
+std::shared_ptr<dfoperator> operator||(const std::shared_ptr<dfoperator>& a,
+                                       const std::shared_ptr<dfoperator>& b);
+
+std::shared_ptr<dfoperator> operator!(const std::shared_ptr<dfoperator>& a);
+
+template <class T>
+std::shared_ptr<dfoperator> operator==(const std::shared_ptr<dffunction>& a,
+                                       const T& b) {
+  return eq_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator==(const std::shared_ptr<dfaggregator>& a,
+                                       const T& b) {
+  return eq_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator==(const T& b,
+                                       const std::shared_ptr<dffunction>& a) {
+  return eq_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator==(const T& b,
+                                       const std::shared_ptr<dfaggregator>& a) {
+  return eq_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator!=(const std::shared_ptr<dffunction>& a,
+                                       const T& b) {
+  return neq_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator!=(const std::shared_ptr<dfaggregator>& a,
+                                       const T& b) {
+  return neq_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator!=(const T& b,
+                                       const std::shared_ptr<dffunction>& a) {
+  return neq_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator!=(const T& b,
+                                       const std::shared_ptr<dfaggregator>& a) {
+  return neq_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator<(const std::shared_ptr<dffunction>& a,
+                                      const T& b) {
+  return lt_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator<(const std::shared_ptr<dfaggregator>& a,
+                                      const T& b) {
+  return lt_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator<(const T& b,
+                                      const std::shared_ptr<dffunction>& a) {
+  return gt_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator<(const T& b,
+                                      const std::shared_ptr<dfaggregator>& a) {
+  return gt_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator>=(const std::shared_ptr<dffunction>& a,
+                                       const T& b) {
+  return ge_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator>=(const std::shared_ptr<dfaggregator>& a,
+                                       const T& b) {
+  return ge_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator>=(const T& b,
+                                       const std::shared_ptr<dffunction>& a) {
+  return le_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator>=(const T& b,
+                                       const std::shared_ptr<dfaggregator>& a) {
+  return le_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator<=(const std::shared_ptr<dffunction>& a,
+                                       const T& b) {
+  return le_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator<=(const std::shared_ptr<dfaggregator>& a,
+                                       const T& b) {
+  return le_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator<=(const T& b,
+                                       const std::shared_ptr<dffunction>& a) {
+  return ge_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator<=(const T& b,
+                                       const std::shared_ptr<dfaggregator>& a) {
+  return ge_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator>(const std::shared_ptr<dffunction>& a,
+                                      const T& b) {
+  return gt_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator>(const std::shared_ptr<dfaggregator>& a,
+                                      const T& b) {
+  return gt_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator>(const T& b,
+                                      const std::shared_ptr<dffunction>& a) {
+  return lt_im(a,b);
+}
+
+template <class T>
+std::shared_ptr<dfoperator> operator>(const T& b,
+                                      const std::shared_ptr<dfaggregator>& a) {
+  return lt_im(a,b);
+}
+
 }
 #endif

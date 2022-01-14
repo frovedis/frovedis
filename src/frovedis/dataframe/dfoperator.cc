@@ -1708,53 +1708,6 @@ std::pair<node_local<std::vector<size_t>>,
   return idx_pair;
 }
 
-// ----- operators -----
-std::shared_ptr<dfoperator> operator==(const std::shared_ptr<dffunction>& a,
-                                       const std::shared_ptr<dffunction>& b) {
-  return eq(a,b);
-}
-
-std::shared_ptr<dfoperator> operator!=(const std::shared_ptr<dffunction>& a,
-                                       const std::shared_ptr<dffunction>& b) {
-  return neq(a,b);
-}
-
-std::shared_ptr<dfoperator> operator<(const std::shared_ptr<dffunction>& a,
-                                      const std::shared_ptr<dffunction>& b) {
-  return lt(a,b);
-}
-
-std::shared_ptr<dfoperator> operator>=(const std::shared_ptr<dffunction>& a,
-                                       const std::shared_ptr<dffunction>& b) {
-  return ge(a,b);
-}
-
-std::shared_ptr<dfoperator> operator<=(const std::shared_ptr<dffunction>& a,
-                                       const std::shared_ptr<dffunction>& b) {
-  return le(a,b);
-}
-
-std::shared_ptr<dfoperator> operator>(const std::shared_ptr<dffunction>& a,
-                                      const std::shared_ptr<dffunction>& b) {
-  return gt(a,b);
-}
-
-// use dfoperator for argument to avoid ambiguous operator error
-// cannot use dffunction
-std::shared_ptr<dfoperator> operator&&(const std::shared_ptr<dfoperator>& a,
-                                       const std::shared_ptr<dfoperator>& b) {
-  return and_op(a,b);
-}
-
-std::shared_ptr<dfoperator> operator||(const std::shared_ptr<dfoperator>& a,
-                                       const std::shared_ptr<dfoperator>& b) {
-  return or_op(a,b);
-}
-
-std::shared_ptr<dfoperator> operator!(const std::shared_ptr<dfoperator>& a) {
-  return not_op(a);
-}
-
 // ----- misc ----
 filtered_dftable& filtered_dftable::drop(const std::string& name) {
   col.erase(name);
