@@ -534,7 +534,7 @@ dftable& dftable::calc(const std::string& name, F f,
                        bool check_null_like) {
   use_dfcolumn use({c1}, *this);
   auto tc1 = std::dynamic_pointer_cast<typed_dfcolumn<T1>>(column(c1));
-  if(!tc1)
+  if(!static_cast<bool>(tc1))
     throw std::runtime_error
       ("calc: column type is different from specified type");
   auto&& val1 = tc1->get_val();

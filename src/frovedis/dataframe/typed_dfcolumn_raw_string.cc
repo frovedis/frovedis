@@ -145,7 +145,7 @@ filter_not_like(const std::string& pattern, int wild_card) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<raw_string>::filter_eq_immed(std::shared_ptr<dfscalar>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("filter raw_string with non string");
   return filter_like(right2->val,0);
 }
@@ -153,7 +153,7 @@ typed_dfcolumn<raw_string>::filter_eq_immed(std::shared_ptr<dfscalar>& right) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<raw_string>::filter_neq_immed(std::shared_ptr<dfscalar>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("filter raw_string with non string");
   return filter_not_like(right2->val,0);
 }
@@ -518,7 +518,8 @@ typed_dfcolumn<raw_string>::union_columns
   std::vector<std::shared_ptr<typed_dfcolumn<raw_string>>> rights(cols_size);
   for(size_t i = 0; i < cols_size; i++) {
     rights[i] = std::dynamic_pointer_cast<typed_dfcolumn<raw_string>>(cols[i]);
-    if(!rights[i]) throw std::runtime_error("union_columns: different type");
+    if(!static_cast<bool>(rights[i]))
+      throw std::runtime_error("union_columns: different type");
   }
   auto comp_words_colsp =
     make_node_local_allocate<std::vector<compressed_words*>>();

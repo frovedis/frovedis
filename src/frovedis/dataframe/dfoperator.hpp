@@ -1813,6 +1813,12 @@ dfoperator_le_immed<T>::aggregate_not_filter
      row_sizes, grouped_table);
 }
 
+template <class T>
+node_local<std::vector<size_t>> 
+dfoperator_le_immed<T>::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_gt_immed<T>(left, right).whole_column_aggregate_filter(t);
+}
+
 // ----- dfoperator_is_null -----
 struct dfoperator_is_null : public dfoperator {
   dfoperator_is_null(const std::shared_ptr<dffunction>& left) :
@@ -2011,7 +2017,7 @@ struct dfoperator_regex : public dfoperator {
   filter_impl(std::shared_ptr<dfcolumn>& tcol) const {
     auto left_column =
       std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(tcol);
-    if(!left_column)
+    if(!static_cast<bool>(left_column))
       throw std::runtime_error("dfoperator_regex: column type is not string");
     return left_column->filter_regex(pattern);
   }
@@ -2107,7 +2113,7 @@ struct dfoperator_not_regex : public dfoperator {
   filter_impl(std::shared_ptr<dfcolumn>& tcol) const {
     auto left_column =
       std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(tcol);
-    if(!left_column)
+    if(!static_cast<bool>(left_column))
       throw std::runtime_error
         ("dfoperator_not_regex: column type is not string");
     return left_column->filter_not_regex(pattern);
@@ -2746,12 +2752,14 @@ struct dfoperator_not : public dfoperator {
   }
   virtual node_local<std::vector<size_t>> filter(dftable_base& t) const {
     auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
-    if(!left2) throw std::runtime_error("filter by non operator");
+    if(!static_cast<bool>(left2))
+      throw std::runtime_error("filter by non operator");
     return left2->not_filter(t);
   }
   virtual node_local<std::vector<size_t>> not_filter(dftable_base& t) const {
     auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
-    if(!left2) throw std::runtime_error("filter by non operator");
+    if(!static_cast<bool>(left2))
+      throw std::runtime_error("filter by non operator");
     return left2->filter(t);
   }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,

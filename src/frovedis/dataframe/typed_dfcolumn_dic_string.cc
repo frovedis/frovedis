@@ -93,7 +93,7 @@ typed_dfcolumn<dic_string>::hash_join_eq
  node_local<std::vector<size_t>>& left_full_local_idx, 
  node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
-  if(!right2) 
+  if(!static_cast<bool>(right2)) 
     throw std::runtime_error("hash_join_eq: column types are different");
 
   auto left_split_val =
@@ -157,7 +157,7 @@ typed_dfcolumn<dic_string>::outer_hash_join_eq
  node_local<std::vector<size_t>>& left_full_local_idx, 
  node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("outer_hash_join_eq: column types are different");
   auto left_non_null_idx = make_node_local_allocate<std::vector<size_t>>();
   auto left_split_val =
@@ -222,7 +222,7 @@ typed_dfcolumn<dic_string>::bcast_join_eq
  node_local<std::vector<size_t>>& left_full_local_idx, 
  node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("bcast_join_eq: column types are different");
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<size_t>> left_non_null_val;
@@ -269,7 +269,7 @@ typed_dfcolumn<dic_string>::outer_bcast_join_eq
  node_local<std::vector<size_t>>& left_full_local_idx, 
  node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("bcast_join_eq: column types are different");
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<size_t>> left_non_null_val;
@@ -318,7 +318,7 @@ typed_dfcolumn<dic_string>::star_join_eq
  node_local<std::vector<size_t>>& left_full_local_idx, 
  node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("star_join_eq: column types are different");
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<size_t>> left_non_null_val;
@@ -590,7 +590,7 @@ equal_prepare(shared_ptr<typed_dfcolumn<dic_string>>& right) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_eq(std::shared_ptr<dfcolumn>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
-  if(!right2) throw std::runtime_error("filter_eq: column types are different");
+  if(!static_cast<bool>(right2)) throw std::runtime_error("filter_eq: column types are different");
   auto rightval = equal_prepare(right2);
   auto filtered_idx = val.map(filter_eq_helper<size_t, size_t>, rightval);
   if(contain_nulls)
@@ -601,7 +601,7 @@ typed_dfcolumn<dic_string>::filter_eq(std::shared_ptr<dfcolumn>& right) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_neq(std::shared_ptr<dfcolumn>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
-  if(!right2) throw std::runtime_error("filter_eq: column types are different");
+  if(!static_cast<bool>(right2)) throw std::runtime_error("filter_eq: column types are different");
   auto rightval = equal_prepare(right2);
   auto filtered_idx = val.map(filter_neq_helper<size_t, size_t>, rightval);
   if(right2->contain_nulls)
@@ -614,7 +614,8 @@ typed_dfcolumn<dic_string>::filter_neq(std::shared_ptr<dfcolumn>& right) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_eq_immed(std::shared_ptr<dfscalar>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
-  if(!right2) throw std::runtime_error("filter string column with non string");
+  if(!static_cast<bool>(right2))
+    throw std::runtime_error("filter string column with non string");
   auto rightval = right2->val;
   words right_word;
   right_word.chars = char_to_int(rightval);
@@ -639,7 +640,8 @@ typed_dfcolumn<dic_string>::filter_eq_immed(std::shared_ptr<dfscalar>& right) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_neq_immed(std::shared_ptr<dfscalar>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
-  if(!right2) throw std::runtime_error("filter string column with non string");
+  if(!static_cast<bool>(right2))
+    throw std::runtime_error("filter string column with non string");
   auto rightval = right2->val;
   words right_word;
   right_word.chars = char_to_int(rightval);
@@ -768,7 +770,8 @@ compare_prepare(shared_ptr<typed_dfcolumn<dic_string>>& right,
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_lt(std::shared_ptr<dfcolumn>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
-  if(!right2) throw std::runtime_error("filter_lt: column types are different");
+  if(!static_cast<bool>(right2))
+    throw std::runtime_error("filter_lt: column types are different");
   node_local<std::vector<size_t>> leftval, rightval;
   compare_prepare(right2, leftval, rightval);
   auto filtered_idx = leftval.map(filter_lt_helper<size_t, size_t>, rightval);
@@ -782,7 +785,8 @@ typed_dfcolumn<dic_string>::filter_lt(std::shared_ptr<dfcolumn>& right) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_le(std::shared_ptr<dfcolumn>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
-  if(!right2) throw std::runtime_error("filter_le: column types are different");
+  if(!static_cast<bool>(right2))
+    throw std::runtime_error("filter_le: column types are different");
   node_local<std::vector<size_t>> leftval, rightval;
   compare_prepare(right2, leftval, rightval);
   auto filtered_idx = leftval.map(filter_le_helper<size_t, size_t>, rightval);
@@ -796,7 +800,8 @@ typed_dfcolumn<dic_string>::filter_le(std::shared_ptr<dfcolumn>& right) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_gt(std::shared_ptr<dfcolumn>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
-  if(!right2) throw std::runtime_error("filter_gt: column types are different");
+  if(!static_cast<bool>(right2))
+    throw std::runtime_error("filter_gt: column types are different");
   node_local<std::vector<size_t>> leftval, rightval;
   compare_prepare(right2, leftval, rightval);
   auto filtered_idx = leftval.map(filter_gt_helper<size_t, size_t>, rightval);
@@ -810,7 +815,8 @@ typed_dfcolumn<dic_string>::filter_gt(std::shared_ptr<dfcolumn>& right) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_ge(std::shared_ptr<dfcolumn>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(right);
-  if(!right2) throw std::runtime_error("filter_ge: column types are different");
+  if(!static_cast<bool>(right2))
+    throw std::runtime_error("filter_ge: column types are different");
   node_local<std::vector<size_t>> leftval, rightval;
   compare_prepare(right2, leftval, rightval);
   auto filtered_idx = leftval.map(filter_ge_helper<size_t, size_t>, rightval);
@@ -879,7 +885,7 @@ compare_prepare_immed(const std::string& right,
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_lt_immed(std::shared_ptr<dfscalar>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("filter_lt_immed: column types are different");
   node_local<std::vector<size_t>> leftval;
   size_t rightval;
@@ -894,7 +900,7 @@ typed_dfcolumn<dic_string>::filter_lt_immed(std::shared_ptr<dfscalar>& right) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_le_immed(std::shared_ptr<dfscalar>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("filter_le_immed: column types are different");
   node_local<std::vector<size_t>> leftval;
   size_t rightval;
@@ -909,7 +915,7 @@ typed_dfcolumn<dic_string>::filter_le_immed(std::shared_ptr<dfscalar>& right) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_gt_immed(std::shared_ptr<dfscalar>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("filter_gt_immed: column types are different");
   node_local<std::vector<size_t>> leftval;
   size_t rightval;
@@ -924,7 +930,7 @@ typed_dfcolumn<dic_string>::filter_gt_immed(std::shared_ptr<dfscalar>& right) {
 node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::filter_ge_immed(std::shared_ptr<dfscalar>& right) {
   auto right2 = std::dynamic_pointer_cast<typed_dfscalar<std::string>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("filter_ge_immed: column types are different");
   node_local<std::vector<size_t>> leftval;
   size_t rightval;
@@ -1540,7 +1546,8 @@ typed_dfcolumn<dic_string>::union_columns
   std::vector<std::shared_ptr<typed_dfcolumn<dic_string>>> rights(cols_size);
   for(size_t i = 0; i < cols_size; i++) {
     rights[i] = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(cols[i]);
-    if(!rights[i]) throw std::runtime_error("union_columns: different type");
+    if(!static_cast<bool>(rights[i]))
+      throw std::runtime_error("union_columns: different type");
   }
   auto val_colsp =
     make_node_local_allocate<std::vector<std::vector<size_t>*>>();
@@ -1627,7 +1634,7 @@ node_local<std::vector<size_t>>
 typed_dfcolumn<dic_string>::calc_hash_base_multi_join
 (std::shared_ptr<dfcolumn>& left) {
   auto left2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(left);
-  if(!left2)
+  if(!static_cast<bool>(left2))
     throw std::runtime_error("multi_join: column types are different");
   auto thisval = left2->equal_prepare_multi_join(*this);
   return thisval.map(calc_hash_base_helper<size_t>);
@@ -1637,7 +1644,7 @@ void typed_dfcolumn<dic_string>::calc_hash_base_multi_join
 (node_local<std::vector<size_t>>& hash_base, int shift,
  std::shared_ptr<dfcolumn>& left) {
   auto left2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(left);
-  if(!left2)
+  if(!static_cast<bool>(left2))
     throw std::runtime_error("multi_join: column types are different");
   auto thisval = left2->equal_prepare_multi_join(*this);
   thisval.mapv(calc_hash_base_helper2<size_t>(shift), hash_base);

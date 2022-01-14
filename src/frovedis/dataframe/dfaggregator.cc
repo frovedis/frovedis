@@ -220,28 +220,32 @@ whole_column_aggregate(dftable_base& table) {
   auto colp = col->execute(table);
   if(colp->dtype() == "double") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<double>();
     double r = colp2->sum();
     std::vector<double> v = {r};
     return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "float") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<float>();
     float r = colp2->sum();
     std::vector<float> v = {r};
     return std::make_shared<typed_dfcolumn<float>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "long") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<long>();
     long r = colp2->sum();
     std::vector<long> v = {r};
     return std::make_shared<typed_dfcolumn<long>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "unsigned long") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<unsigned long>();
     unsigned long r = colp2->sum();
     std::vector<unsigned long> v = {r};
@@ -249,14 +253,16 @@ whole_column_aggregate(dftable_base& table) {
       std::make_shared<typed_dfcolumn<unsigned long>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "int") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<int>();
     int r = colp2->sum();
     std::vector<int> v = {r};
     return std::make_shared<typed_dfcolumn<int>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "unsigned int") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<unsigned int>();
     unsigned int r = colp2->sum();
     std::vector<unsigned int> v = {r};
@@ -339,28 +345,32 @@ whole_column_aggregate(dftable_base& table) {
   auto colp = col->execute(table);
   if(colp->dtype() == "double") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<double>();
     double r = colp2->max();
     std::vector<double> v = {r};
     return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "float") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<float>();
     float r = colp2->max();
     std::vector<float> v = {r};
     return std::make_shared<typed_dfcolumn<float>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "long") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<long>();
     long r = colp2->max();
     std::vector<long> v = {r};
     return std::make_shared<typed_dfcolumn<long>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "unsigned long") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<unsigned long>();
     unsigned long r = colp2->max();
     std::vector<unsigned long> v = {r};
@@ -368,14 +378,16 @@ whole_column_aggregate(dftable_base& table) {
       std::make_shared<typed_dfcolumn<unsigned long>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "int") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<int>();
     int r = colp2->max();
     std::vector<int> v = {r};
     return std::make_shared<typed_dfcolumn<int>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "unsigned int") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<unsigned int>();
     unsigned int r = colp2->max();
     std::vector<unsigned int> v = {r};
@@ -390,28 +402,32 @@ whole_column_aggregate(dftable_base& table) {
   auto colp = col->execute(table);
   if(colp->dtype() == "double") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<double>();
     double r = colp2->min();
     std::vector<double> v = {r};
     return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "float") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<float>();
     float r = colp2->min();
     std::vector<float> v = {r};
     return std::make_shared<typed_dfcolumn<float>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "long") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<long>();
     long r = colp2->min();
     std::vector<long> v = {r};
     return std::make_shared<typed_dfcolumn<long>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "unsigned long") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<unsigned long>();
     unsigned long r = colp2->min();
     std::vector<unsigned long> v = {r};
@@ -419,14 +435,16 @@ whole_column_aggregate(dftable_base& table) {
       std::make_shared<typed_dfcolumn<unsigned long>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "int") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<int>();
     int r = colp2->min();
     std::vector<int> v = {r};
     return std::make_shared<typed_dfcolumn<int>>(make_dvector_scatter(v));
   } else if(colp->dtype() == "unsigned int") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     if(colp2->is_all_null()) return one_null_column<unsigned int>();
     unsigned int r = colp2->min();
     std::vector<unsigned int> v = {r};
@@ -463,7 +481,8 @@ whole_column_aggregate(dftable_base& table) {
   auto colp = col->execute(table);
   if(colp->dtype() == "double") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     double r = colp2->first(ignore_nulls);
     if(r == std::numeric_limits<double>::max()) {
       return one_null_column<double>();
@@ -473,7 +492,8 @@ whole_column_aggregate(dftable_base& table) {
     }
   } else if(colp->dtype() == "float") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     float r = colp2->first(ignore_nulls);
     if(r == std::numeric_limits<float>::max()) {
       return one_null_column<float>();
@@ -483,7 +503,8 @@ whole_column_aggregate(dftable_base& table) {
     }
   } else if(colp->dtype() == "long") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     long r = colp2->first(ignore_nulls);
     if(r == std::numeric_limits<long>::max()) {
       return one_null_column<long>();
@@ -493,7 +514,8 @@ whole_column_aggregate(dftable_base& table) {
     }
   } else if(colp->dtype() == "unsigned long") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     unsigned long r = colp2->first(ignore_nulls);
     if(r == std::numeric_limits<unsigned long>::max()) {
       return one_null_column<unsigned long>();
@@ -504,7 +526,8 @@ whole_column_aggregate(dftable_base& table) {
     }
   } else if(colp->dtype() == "int") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     int r = colp2->first(ignore_nulls);
     if(r == std::numeric_limits<int>::max()) {
       return one_null_column<int>();
@@ -514,7 +537,8 @@ whole_column_aggregate(dftable_base& table) {
     }
   } else if(colp->dtype() == "unsigned int") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     unsigned int r = colp2->first(ignore_nulls);
     if(r == std::numeric_limits<unsigned int>::max()) {
       return one_null_column<unsigned int>();
@@ -525,7 +549,8 @@ whole_column_aggregate(dftable_base& table) {
     }
   } else if(colp->dtype() == "string") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     std::string r = colp2->first(ignore_nulls);
     std::vector<std::string> rv = {r};
     dftable tmp;
@@ -533,7 +558,8 @@ whole_column_aggregate(dftable_base& table) {
     return tmp.column("tmp");
   } else if(colp->dtype() == "dic_string") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     std::string r = colp2->first(ignore_nulls);
     std::vector<std::string> rv = {r};
     dftable tmp;
@@ -541,7 +567,8 @@ whole_column_aggregate(dftable_base& table) {
     return tmp.column("tmp");
   } else if(colp->dtype() == "datetime") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     datetime_t r = colp2->first(ignore_nulls);
     std::vector<datetime_t> rv = {r};
     dftable tmp;
@@ -556,7 +583,8 @@ whole_column_aggregate(dftable_base& table) {
   auto colp = col->execute(table);
   if(colp->dtype() == "double") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     double r = colp2->last(ignore_nulls);
     if(r == std::numeric_limits<double>::max()) {
       return one_null_column<double>();
@@ -566,7 +594,8 @@ whole_column_aggregate(dftable_base& table) {
     }
   } else if(colp->dtype() == "float") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     float r = colp2->last(ignore_nulls);
     if(r == std::numeric_limits<float>::max()) {
       return one_null_column<float>();
@@ -576,7 +605,8 @@ whole_column_aggregate(dftable_base& table) {
     }
   } else if(colp->dtype() == "long") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     long r = colp2->last(ignore_nulls);
     if(r == std::numeric_limits<long>::max()) {
       return one_null_column<long>();
@@ -586,7 +616,8 @@ whole_column_aggregate(dftable_base& table) {
     }
   } else if(colp->dtype() == "unsigned long") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     unsigned long r = colp2->last(ignore_nulls);
     if(r == std::numeric_limits<unsigned long>::max()) {
       return one_null_column<unsigned long>();
@@ -597,7 +628,8 @@ whole_column_aggregate(dftable_base& table) {
     }
   } else if(colp->dtype() == "int") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     int r = colp2->last(ignore_nulls);
     if(r == std::numeric_limits<int>::max()) {
       return one_null_column<int>();
@@ -607,7 +639,8 @@ whole_column_aggregate(dftable_base& table) {
     }
   } else if(colp->dtype() == "unsigned int") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     unsigned int r = colp2->last(ignore_nulls);
     if(r == std::numeric_limits<unsigned int>::max()) {
       return one_null_column<unsigned int>();
@@ -618,7 +651,8 @@ whole_column_aggregate(dftable_base& table) {
     }
   } else if(colp->dtype() == "string") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<std::string>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     std::string r = colp2->last(ignore_nulls);
     std::vector<std::string> rv = {r};
     dftable tmp;
@@ -626,7 +660,8 @@ whole_column_aggregate(dftable_base& table) {
     return tmp.column("tmp");
   } else if(colp->dtype() == "dic_string") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<dic_string>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     std::string r = colp2->last(ignore_nulls);
     std::vector<std::string> rv = {r};
     dftable tmp;
@@ -634,7 +669,8 @@ whole_column_aggregate(dftable_base& table) {
     return tmp.column("tmp");
   } else if(colp->dtype() == "datetime") {
     auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(colp);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     datetime_t r = colp2->last(ignore_nulls);
     std::vector<datetime_t> rv = {r};
     dftable tmp;

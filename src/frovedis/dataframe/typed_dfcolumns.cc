@@ -141,7 +141,8 @@ merge_column_helper(std::vector<std::shared_ptr<dfcolumn>>& columns,
       auto ccol = columns[i]->type_cast(get_dftype_name<T>());
       tcol = std::dynamic_pointer_cast<typed_dfcolumn<T>>(ccol);
     }
-    if(!tcol) throw std::runtime_error("merge_column: internal type error");
+    if(!static_cast<bool>(tcol))
+      throw std::runtime_error("merge_column: internal type error");
     retval.mapv
       (+[](std::vector<T>& retval,
            const std::vector<T>& colval,
@@ -254,7 +255,7 @@ merge_column_dic_string_helper
       columns2[i] =
         dynamic_pointer_cast<typed_dfcolumn<dic_string>>(columns[i]);
     }
-    if(!columns2[i])
+    if(!static_cast<bool>(columns2[i]))
       throw std::runtime_error
         ("merge_column_dic_string_helper: internal dynamic_pointer_cast error");
     dic_colsp[i] = &(*columns2[i]->dic);

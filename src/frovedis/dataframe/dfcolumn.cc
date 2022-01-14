@@ -625,11 +625,13 @@ template <>
 std::string dfcolumn::first(bool ignore_nulls) {
   if(dtype() == "string") {
     auto colp2 = dynamic_cast<typed_dfcolumn<std::string>*>(this);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     return colp2->first(ignore_nulls);
   } else if(dtype() == "dic_string") {
     auto colp2 = dynamic_cast<typed_dfcolumn<dic_string>*>(this);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     return colp2->first(ignore_nulls);
   } else throw std::runtime_error("unsupported type: " + dtype());
 }
@@ -638,11 +640,13 @@ template <>
 std::string dfcolumn::last(bool ignore_nulls) {
   if(dtype() == "string") {
     auto colp2 = dynamic_cast<typed_dfcolumn<std::string>*>(this);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     return colp2->last(ignore_nulls);
   } else if(dtype() == "dic_string") {
     auto colp2 = dynamic_cast<typed_dfcolumn<dic_string>*>(this);
-    if(!colp2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
     return colp2->last(ignore_nulls);
   } else throw std::runtime_error("unsupported type: " + dtype());
 }
@@ -687,7 +691,8 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos, int num) {
     auto nulls = get_nulls();
     auto intcol = pos->type_cast("int");
     auto tintcol = dynamic_pointer_cast<typed_dfcolumn<int>>(intcol);
-    if(!tintcol) throw std::runtime_error("internal cast error");
+    if(!static_cast<bool>(tintcol))
+      throw std::runtime_error("internal cast error");
     auto ws = as_words(6,"%Y-%m-%d",false,std::string(num,'N'));
     if(tintcol->if_contain_nulls() || if_contain_nulls()) {
       auto posval = tintcol->val;
@@ -773,7 +778,8 @@ dfcolumn::substr(int pos, const std::shared_ptr<dfcolumn>& num) {
     auto nulls = get_nulls();
     auto intcol = num->type_cast("int");
     auto tintcol = dynamic_pointer_cast<typed_dfcolumn<int>>(intcol);
-    if(!tintcol) throw std::runtime_error("internal cast error");
+    if(!static_cast<bool>(tintcol))
+      throw std::runtime_error("internal cast error");
     auto ws = as_words(6,"%Y-%m-%d",false,std::string(std::abs(pos),'N'));
     if(tintcol->if_contain_nulls() || if_contain_nulls()) {
       auto numval = tintcol->val;
@@ -932,7 +938,8 @@ std::shared_ptr<dfcolumn>
 dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos) {
   auto intcol = pos->type_cast("int");
   auto tintcol = dynamic_pointer_cast<typed_dfcolumn<int>>(intcol);
-  if(!tintcol) throw std::runtime_error("internal cast error");
+  if(!static_cast<bool>(tintcol))
+    throw std::runtime_error("internal cast error");
   auto ws = as_words();
   auto nulls = get_nulls();
   if(tintcol->if_contain_nulls() || if_contain_nulls()) {

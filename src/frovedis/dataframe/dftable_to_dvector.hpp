@@ -13,7 +13,7 @@ dvector<T0> dftable_to_dvector(dftable_base& table) {
   if(cols.size() != 1) throw std::runtime_error("size of column is not 1");
   auto col0 = table.column(cols[0]);
   auto typed_col0 = std::dynamic_pointer_cast<typed_dfcolumn<T0>>(col0);
-  if(!typed_col0)
+  if(!static_cast<bool>(typed_col0))
     throw std::runtime_error
       ("dftable_to_dvector: column type is different from specified type");
   auto&& val0 = typed_col0->get_val();

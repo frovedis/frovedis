@@ -1221,29 +1221,35 @@ typed_dfcolumn<T>::filter_eq(std::shared_ptr<dfcolumn>& right) {
   node_local<std::vector<size_t>> filtered_idx;
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_eq_helper<T,double>, right2->val);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_eq_helper<T,float>, right2->val);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_eq_helper<T,long>, right2->val);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_eq_helper<T,unsigned long>, right2->val);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_eq_helper<T,int>, right2->val);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_eq_helper<T,unsigned int>, right2->val);
   } else throw std::runtime_error("unsupported type: " + right_type);
   if(contain_nulls)
@@ -1258,34 +1264,40 @@ typed_dfcolumn<T>::filter_eq_immed(std::shared_ptr<dfscalar>& right) {
   node_local<std::vector<size_t>> filtered_idx;
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_eq_immed_helper<T,double>,
                            broadcast(right2->val));
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_eq_immed_helper<T,float>,
                            broadcast(right2->val));
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_eq_immed_helper<T,long>,
                            broadcast(right2->val));
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_eq_immed_helper<T,unsigned long>,
                            broadcast(right2->val));
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_eq_immed_helper<T,int>,
                            broadcast(right2->val));
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_eq_immed_helper<T,unsigned int>,
                            broadcast(right2->val));
   } else throw std::runtime_error("unsupported type: " + right_type);
@@ -1301,39 +1313,45 @@ typed_dfcolumn<T>::filter_neq(std::shared_ptr<dfcolumn>& right) {
   node_local<std::vector<size_t>> filtered_idx;
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_helper<T,double>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_helper<T,float>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_helper<T,long>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_helper<T,unsigned long>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_helper<T,int>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_helper<T,unsigned int>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
@@ -1350,34 +1368,40 @@ typed_dfcolumn<T>::filter_neq_immed(std::shared_ptr<dfscalar>& right) {
   node_local<std::vector<size_t>> filtered_idx;
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_immed_helper<T,double>,
                            broadcast(right2->val));
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_immed_helper<T,float>,
                            broadcast(right2->val));
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_immed_helper<T,long>,
                            broadcast(right2->val));
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_immed_helper<T,unsigned long>,
                            broadcast(right2->val));
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_immed_helper<T,int>,
                            broadcast(right2->val));
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_neq_immed_helper<T,unsigned int>,
                            broadcast(right2->val));
   } else throw std::runtime_error("unsupported type: " + right_type);
@@ -1393,39 +1417,45 @@ typed_dfcolumn<T>::filter_lt(std::shared_ptr<dfcolumn>& right) {
   node_local<std::vector<size_t>> filtered_idx;
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_helper<T,double>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_helper<T,float>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_helper<T,long>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_helper<T,unsigned long>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_helper<T,int>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_helper<T,unsigned int>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
@@ -1442,34 +1472,40 @@ typed_dfcolumn<T>::filter_lt_immed(std::shared_ptr<dfscalar>& right) {
   node_local<std::vector<size_t>> filtered_idx;
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_immed_helper<T,double>,
                            broadcast(right2->val));
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_immed_helper<T,float>,
                            broadcast(right2->val));
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_immed_helper<T,long>,
                            broadcast(right2->val));
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_immed_helper<T,unsigned long>,
                            broadcast(right2->val));
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_immed_helper<T,int>,
                            broadcast(right2->val));
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_lt_immed_helper<T,unsigned int>,
                            broadcast(right2->val));
   } else throw std::runtime_error("unsupported type: " + right_type);
@@ -1485,39 +1521,45 @@ typed_dfcolumn<T>::filter_le(std::shared_ptr<dfcolumn>& right) {
   node_local<std::vector<size_t>> filtered_idx;
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_helper<T,double>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_helper<T,float>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_helper<T,long>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_helper<T,unsigned long>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_helper<T,int>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_helper<T,unsigned int>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
@@ -1534,34 +1576,40 @@ typed_dfcolumn<T>::filter_le_immed(std::shared_ptr<dfscalar>& right) {
   node_local<std::vector<size_t>> filtered_idx;
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_immed_helper<T,double>,
                            broadcast(right2->val));
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_immed_helper<T,float>,
                            broadcast(right2->val));
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_immed_helper<T,long>,
                            broadcast(right2->val));
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_immed_helper<T,unsigned long>,
                            broadcast(right2->val));
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_immed_helper<T,int>,
                            broadcast(right2->val));
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_le_immed_helper<T,unsigned int>,
                            broadcast(right2->val));
   } else throw std::runtime_error("unsupported type: " + right_type);
@@ -1577,39 +1625,45 @@ typed_dfcolumn<T>::filter_gt(std::shared_ptr<dfcolumn>& right) {
   node_local<std::vector<size_t>> filtered_idx;
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_helper<T,double>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_helper<T,float>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_helper<T,long>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_helper<T,unsigned long>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_helper<T,int>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_helper<T,unsigned int>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
@@ -1626,34 +1680,40 @@ typed_dfcolumn<T>::filter_gt_immed(std::shared_ptr<dfscalar>& right) {
   node_local<std::vector<size_t>> filtered_idx;
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_immed_helper<T,double>,
                            broadcast(right2->val));
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_immed_helper<T,float>,
                            broadcast(right2->val));
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_immed_helper<T,long>,
                            broadcast(right2->val));
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_immed_helper<T,unsigned long>,
                            broadcast(right2->val));
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_immed_helper<T,int>,
                            broadcast(right2->val));
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_gt_immed_helper<T,unsigned int>,
                            broadcast(right2->val));
   } else throw std::runtime_error("unsupported type: " + right_type);
@@ -1669,39 +1729,45 @@ typed_dfcolumn<T>::filter_ge(std::shared_ptr<dfcolumn>& right) {
   node_local<std::vector<size_t>> filtered_idx;
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_helper<T,double>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_helper<T,float>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_helper<T,long>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_helper<T,unsigned long>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_helper<T,int>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_helper<T,unsigned int>, right2->val);
     if(right2->contain_nulls)
       filtered_idx = filtered_idx.map(set_difference<size_t>, right2->nulls);
@@ -1718,34 +1784,40 @@ typed_dfcolumn<T>::filter_ge_immed(std::shared_ptr<dfscalar>& right) {
   node_local<std::vector<size_t>> filtered_idx;
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_immed_helper<T,double>,
                            broadcast(right2->val));
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_immed_helper<T,float>,
                            broadcast(right2->val));
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_immed_helper<T,long>,
                            broadcast(right2->val));
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_immed_helper<T,unsigned long>,
                            broadcast(right2->val));
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_immed_helper<T,int>,
                            broadcast(right2->val));
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     filtered_idx = val.map(filter_ge_immed_helper<T,unsigned int>,
                            broadcast(right2->val));
   } else throw std::runtime_error("unsupported type: " + right_type);
@@ -1853,7 +1925,7 @@ typed_dfcolumn<T>::hash_join_eq
    node_local<std::vector<size_t>>& right_full_local_idx) {
   time_spent t(DEBUG);
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
-  if(!right2) 
+  if(!static_cast<bool>(right2)) 
     throw std::runtime_error("hash_join_eq: column types are different");
   auto left_split_val =
     make_node_local_allocate<std::vector<std::vector<T>>>();
@@ -1926,7 +1998,7 @@ typed_dfcolumn<T>::outer_hash_join_eq
    node_local<std::vector<size_t>>& left_full_local_idx, 
    node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("outer_hash_join_eq: column types are different");
   auto left_non_null_idx = make_node_local_allocate<std::vector<size_t>>();
   auto left_split_val =
@@ -1993,7 +2065,7 @@ typed_dfcolumn<T>::bcast_join_eq
  node_local<std::vector<size_t>>& left_full_local_idx, 
  node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("bcast_join_eq: column types are different");
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<T>> left_non_null_val;
@@ -2043,7 +2115,7 @@ typed_dfcolumn<T>::bcast_join_lt
  node_local<std::vector<size_t>>& left_full_local_idx, 
  node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("bcast_join_lt: column types are different");
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<T>> left_non_null_val;
@@ -2093,7 +2165,7 @@ typed_dfcolumn<T>::bcast_join_le
  node_local<std::vector<size_t>>& left_full_local_idx, 
  node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("bcast_join_le: column types are different");
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<T>> left_non_null_val;
@@ -2143,7 +2215,7 @@ typed_dfcolumn<T>::bcast_join_gt
  node_local<std::vector<size_t>>& left_full_local_idx, 
  node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("bcast_join_lt: column types are different");
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<T>> left_non_null_val;
@@ -2193,7 +2265,7 @@ typed_dfcolumn<T>::bcast_join_ge
  node_local<std::vector<size_t>>& left_full_local_idx, 
  node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("bcast_join_lt: column types are different");
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<T>> left_non_null_val;
@@ -2244,7 +2316,7 @@ typed_dfcolumn<T>::outer_bcast_join_eq
    node_local<std::vector<size_t>>& left_full_local_idx, 
    node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("bcast_join_eq: column types are different");
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<T>> left_non_null_val;
@@ -2295,7 +2367,7 @@ typed_dfcolumn<T>::star_join_eq
    node_local<std::vector<size_t>>& left_full_local_idx, 
    node_local<std::vector<size_t>>& right_full_local_idx) {
   auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<T>>(right);
-  if(!right2)
+  if(!static_cast<bool>(right2))
     throw std::runtime_error("star_join_eq: column types are different");
   node_local<std::vector<size_t>> left_non_null_idx;
   node_local<std::vector<T>> left_non_null_val;
@@ -4660,29 +4732,35 @@ typed_dfcolumn<T>::add(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_add(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_add(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_add(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_add(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_add(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_add(right2);
   } else throw std::runtime_error("add: unsupported type: " + right_type);
 }
@@ -4716,29 +4794,35 @@ typed_dfcolumn<T>::add_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_add_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_add_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_add_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_add_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_add_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_add_im(right2);
   } else throw std::runtime_error("add_im: unsupported type: " + right_type);
 }
@@ -4771,29 +4855,35 @@ typed_dfcolumn<T>::sub(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_sub(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_sub(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_sub(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_sub(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_sub(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_sub(right2);
   } else throw std::runtime_error("sub: unsupported type: " + right_type);
 }
@@ -4827,29 +4917,35 @@ typed_dfcolumn<T>::sub_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_sub_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_sub_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_sub_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_sub_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_sub_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_sub_im(right2);
   } else throw std::runtime_error("sub_im: unsupported type: " + right_type);
 }
@@ -4882,29 +4978,35 @@ typed_dfcolumn<T>::rsub_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rsub_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rsub_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rsub_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rsub_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rsub_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rsub_im(right2);
   } else throw std::runtime_error("rsub_im: unsupported type: " + right_type);
 }
@@ -4937,29 +5039,35 @@ typed_dfcolumn<T>::mul(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mul(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mul(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mul(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mul(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mul(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mul(right2);
   } else throw std::runtime_error("mul: unsupported type: " + right_type);
 }
@@ -4993,29 +5101,35 @@ typed_dfcolumn<T>::mul_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mul_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mul_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mul_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mul_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mul_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mul_im(right2);
   } else throw std::runtime_error("mul_im: unsupported type: " + right_type);
 }
@@ -5048,29 +5162,35 @@ typed_dfcolumn<T>::fdiv(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_fdiv(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_fdiv(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_fdiv(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_fdiv(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_fdiv(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_fdiv(right2);
   } else throw std::runtime_error("fdiv: unsupported type: " + right_type);
 }
@@ -5102,29 +5222,35 @@ typed_dfcolumn<T>::fdiv_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_fdiv_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_fdiv_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_fdiv_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_fdiv_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_fdiv_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_fdiv_im(right2);
   } else throw std::runtime_error("fdiv_im: unsupported type: " + right_type);
 }
@@ -5155,29 +5281,35 @@ typed_dfcolumn<T>::rfdiv_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rfdiv_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rfdiv_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rfdiv_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rfdiv_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rfdiv_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rfdiv_im(right2);
   } else throw std::runtime_error("rfdiv_im: unsupported type: " + right_type);
 }
@@ -5208,29 +5340,35 @@ typed_dfcolumn<T>::idiv(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_idiv(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_idiv(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_idiv(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_idiv(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_idiv(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_idiv(right2);
   } else throw std::runtime_error("idiv: unsupported type: " + right_type);
 }
@@ -5262,29 +5400,35 @@ typed_dfcolumn<T>::idiv_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_idiv_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_idiv_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_idiv_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_idiv_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_idiv_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_idiv_im(right2);
   } else throw std::runtime_error("idiv_im: unsupported type: " + right_type);
 }
@@ -5315,29 +5459,35 @@ typed_dfcolumn<T>::ridiv_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ridiv_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ridiv_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ridiv_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ridiv_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ridiv_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ridiv_im(right2);
   } else throw std::runtime_error("ridiv_im: unsupported type: " + right_type);
 }
@@ -5368,29 +5518,35 @@ typed_dfcolumn<T>::mod(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mod(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mod(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mod(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mod(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mod(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mod(right2);
   } else throw std::runtime_error("mod: unsupported type: " + right_type);
 }
@@ -5425,29 +5581,35 @@ typed_dfcolumn<T>::mod_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mod_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mod_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mod_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mod_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mod_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_mod_im(right2);
   } else throw std::runtime_error("mod_im: unsupported type: " + right_type);
 }
@@ -5481,29 +5643,35 @@ typed_dfcolumn<T>::rmod_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rmod_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rmod_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rmod_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rmod_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rmod_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rmod_im(right2);
   } else throw std::runtime_error("rmod_im: unsupported type: " + right_type);
 }
@@ -5537,29 +5705,35 @@ typed_dfcolumn<T>::pow(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_pow(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_pow(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_pow(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_pow(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_pow(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_pow(right2);
   } else throw std::runtime_error("pow: unsupported type: " + right_type);
 }
@@ -5597,29 +5771,35 @@ typed_dfcolumn<T>::pow_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_pow_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_pow_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_pow_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_pow_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_pow_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_pow_im(right2);
   } else throw std::runtime_error("pow_im: unsupported type: " + right_type);
 }
@@ -5653,29 +5833,35 @@ typed_dfcolumn<T>::rpow_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rpow_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rpow_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rpow_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rpow_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rpow_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_rpow_im(right2);
   } else throw std::runtime_error("rpow_im: unsupported type: " + right_type);
 }
@@ -5798,29 +5984,35 @@ typed_dfcolumn<T>::eq(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_eq(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_eq(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_eq(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_eq(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_eq(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_eq(right2);
   } else throw std::runtime_error("eq: unsupported type: " + right_type);  
 }
@@ -5856,29 +6048,35 @@ typed_dfcolumn<T>::eq_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_eq_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_eq_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_eq_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_eq_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_eq_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_eq_im(right2);
   } else throw std::runtime_error("eq_im: unsupported type: " + right_type);
 }
@@ -5916,29 +6114,35 @@ typed_dfcolumn<T>::neq(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_neq(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_neq(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_neq(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_neq(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_neq(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_neq(right2);
   } else throw std::runtime_error("neq: unsupported type: " + right_type);  
 }
@@ -5974,29 +6178,35 @@ typed_dfcolumn<T>::neq_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_neq_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_neq_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_neq_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_neq_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_neq_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_neq_im(right2);
   } else throw std::runtime_error("neq_im: unsupported type: " + right_type);
 }
@@ -6034,29 +6244,35 @@ typed_dfcolumn<T>::lt(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_lt(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_lt(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_lt(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_lt(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_lt(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_lt(right2);
   } else throw std::runtime_error("lt: unsupported type: " + right_type);  
 }
@@ -6092,29 +6308,35 @@ typed_dfcolumn<T>::lt_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_lt_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_lt_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_lt_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_lt_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_lt_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_lt_im(right2);
   } else throw std::runtime_error("lt_im: unsupported type: " + right_type);
 }
@@ -6152,29 +6374,35 @@ typed_dfcolumn<T>::le(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_le(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_le(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_le(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_le(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_le(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_le(right2);
   } else throw std::runtime_error("le: unsupported type: " + right_type);  
 }
@@ -6210,29 +6438,35 @@ typed_dfcolumn<T>::le_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_le_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_le_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_le_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_le_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_le_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_le_im(right2);
   } else throw std::runtime_error("le_im: unsupported type: " + right_type);
 }
@@ -6270,29 +6504,35 @@ typed_dfcolumn<T>::gt(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_gt(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_gt(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_gt(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_gt(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_gt(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_gt(right2);
   } else throw std::runtime_error("gt: unsupported type: " + right_type);  
 }
@@ -6328,29 +6568,35 @@ typed_dfcolumn<T>::gt_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_gt_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_gt_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_gt_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_gt_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_gt_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_gt_im(right2);
   } else throw std::runtime_error("gt_im: unsupported type: " + right_type);
 }
@@ -6388,29 +6634,35 @@ typed_dfcolumn<T>::ge(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ge(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ge(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ge(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ge(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ge(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ge(right2);
   } else throw std::runtime_error("ge: unsupported type: " + right_type);  
 }
@@ -6446,29 +6698,35 @@ typed_dfcolumn<T>::ge_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ge_im(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ge_im(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ge_im(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ge_im(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ge_im(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfscalar<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_ge_im(right2);
   } else throw std::runtime_error("ge_im: unsupported type: " + right_type);
 }
@@ -6548,29 +6806,35 @@ typed_dfcolumn<T>::and_op(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_and_op(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_and_op(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_and_op(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_and_op(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_and_op(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_and_op(right2);
   } else throw std::runtime_error("and_op: unsupported type: " + right_type);
 }
@@ -6610,29 +6874,35 @@ typed_dfcolumn<T>::or_op(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   if(right_type == "double") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<double>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_or_op(right2);
   } else if (right_type == "float") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<float>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_or_op(right2);
   } else if(right_type == "long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<long>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_or_op(right2);
   } else if(right_type == "unsigned long") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned long>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_or_op(right2);
   } else if(right_type == "int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<int>>(right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_or_op(right2);
   } else if(right_type == "unsigned int") {
     auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<unsigned int>>
       (right);
-    if(!right2) throw std::runtime_error("internal type error");
+    if(!static_cast<bool>(right2))
+      throw std::runtime_error("internal type error");
     return typed_or_op(right2);
   } else throw std::runtime_error("or_op: unsupported type: " + right_type);
 }
@@ -6720,7 +6990,8 @@ typed_dfcolumn<T>::union_columns
   std::vector<std::shared_ptr<typed_dfcolumn<T>>> rights(cols_size);
   for(size_t i = 0; i < cols_size; i++) {
     rights[i] = std::dynamic_pointer_cast<typed_dfcolumn<T>>(cols[i]);
-    if(!rights[i]) throw std::runtime_error("union_columns: different type");
+    if(!static_cast<bool>(rights[i]))
+      throw std::runtime_error("union_columns: different type");
   }
   auto val_colsp = make_node_local_allocate<std::vector<std::vector<T>*>>();
   auto nulls_colsp =
