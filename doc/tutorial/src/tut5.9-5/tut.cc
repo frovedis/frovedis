@@ -15,5 +15,5 @@ int main(int argc, char* argv[]){
   auto c3 = ~std::string("c3");
   t.fsort(c2 / c1).show();
   t.fgroup_by({(c2 / c1)->as("c3")}).
-    fselect({c3,add_col(sum(c1),sum(c2))}).show();
+    fselect({c3, sum(c1) + sum(c2)}).show();
 }

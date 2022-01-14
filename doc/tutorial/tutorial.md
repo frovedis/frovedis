@@ -2964,13 +2964,12 @@ be like:
 
 In addition,
 
-      t.fgroup_by({(c2 / c1)->as("c3")}).
-        fselect({c3,add_col(sum(c1),sum(c2))}).show();
+    t.fgroup_by({(c2 / c1)->as("c3")}).
+      fselect({c3, sum(c1) + sum(c2)}).show();
 
 this executes group by according to the value of `c2 / c1`; then the
 result column is named as `c3`. After that, sum of c1 and c2 is
-calculated and the sum of them are selected (here, `add_col`function
-is used instead of `operator+()` because of C++ resolution rule.)
+calculated and the sum of them are selected.
 
 This should produce result like:
 
