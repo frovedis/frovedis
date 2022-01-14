@@ -313,4 +313,4 @@ __Return Value__
 It returns a networkx.Graph instance.  
 
 ## SEE ALSO  
-pagerank, bfs, connected_componenets, single_source_shortest_path
+pagerank, bfs, connected_components, single_source_shortest_path

@@ -7,8 +7,8 @@ of the incoming links. It was originally designed as an algorithm to rank web pa
 
 # SYNOPSIS  
 
-    frovedis.graph.pagerank(G, alpha=0.85, personalization=None, max_iter=100, tol=1.0e-6, 
-                            nstart=None, weight='weight', dangling=None, verbose=0)  
+    frovedis.graph.Pagerank.pagerank(G, alpha=0.85, personalization=None, max_iter=100, tol=1.0e-6, 
+                                     nstart=None, weight='weight', dangling=None, verbose=0)  
 
 # DESCRIPTION  
 The PageRank algorithm ranks the nodes in a graph by their relative importance or 
@@ -182,4 +182,4 @@ __Return Value__
 It returns a dictionary of nodes with PageRank as value.  
 
 ## SEE ALSO  
-graph, bfs, connected_componenets, single_source_shortest_path  
+graph, bfs, connected_components, single_source_shortest_path  

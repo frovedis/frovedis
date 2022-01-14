@@ -8,8 +8,8 @@ It was originally designed as an algorithm to rank web pages.
 .IP
 .nf
 \f[C]
-frovedis.graph.pagerank(G,\ alpha=0.85,\ personalization=None,\ max_iter=100,\ tol=1.0e\-6,\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ nstart=None,\ weight=\[aq]weight\[aq],\ dangling=None,\ verbose=0)\ \ 
+frovedis.graph.Pagerank.pagerank(G,\ alpha=0.85,\ personalization=None,\ max_iter=100,\ tol=1.0e\-6,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ nstart=None,\ weight=\[aq]weight\[aq],\ dangling=None,\ verbose=0)\ \ 
 \f[]
 .fi
 .SH DESCRIPTION
@@ -349,4 +349,4 @@ FROV\ PR:\ \ {1:\ 0.06538461538461539,\ 2:\ 0.06734615384615385,\ 3:\ 0.06734615
 It returns a dictionary of nodes with PageRank as value.
 .SS SEE ALSO
 .PP
-graph, bfs, connected_componenets, single_source_shortest_path
+graph, bfs, connected_components, single_source_shortest_path
