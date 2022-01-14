@@ -2321,7 +2321,9 @@ dummy_dftable execute_dfagg(exrpc_ptr_t& dfproxy,
                             std::vector<exrpc_ptr_t>& aggp) {
   auto& df = *reinterpret_cast<dftable_base*>(dfproxy);
   auto agg = to_dfaggregator(aggp);
-  auto retp = new dftable(df.aggregate(agg));
+  std::vector<std::shared_ptr<dffunction>> aggfun(agg.size());
+  for(size_t i = 0; i < agg.size(); i++) {aggfun[i] = agg[i];}
+  auto retp = new dftable(df.aggregate(aggfun));
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return to_dummy_dftable(retp);
 }
