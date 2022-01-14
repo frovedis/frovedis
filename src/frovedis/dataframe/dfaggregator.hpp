@@ -17,10 +17,6 @@ struct dfaggregator : public dffunction {
       ("aggregator cannot be called directly or more than once");
   }
   virtual std::string get_as() {return as_name;}
-  virtual std::shared_ptr<dfcolumn>
-  whole_column_aggregate(dftable_base& table) {
-    throw std::runtime_error("aggregate_whole of this type is not implemented");
-  }
   virtual std::vector<std::string> used_col_names() const {
     return col->used_col_names();
   }

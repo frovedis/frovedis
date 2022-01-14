@@ -66,6 +66,18 @@ node_local<std::vector<size_t>> dfoperator_eq::aggregate_not_filter
        row_sizes, grouped_table);
 }
 
+node_local<std::vector<size_t>>
+dfoperator_eq::whole_column_aggregate_filter(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  auto right_column = right->whole_column_aggregate(t);
+  return left_column->filter_eq(right_column);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_eq::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_neq(left, right).whole_column_aggregate_filter(t);
+}
+
 std::shared_ptr<dfoperator>
 eq(const std::string& left, const std::string& right) {
   return std::make_shared<dfoperator_eq>(id_col(left), id_col(right));
@@ -146,6 +158,18 @@ node_local<std::vector<size_t>> dfoperator_neq::aggregate_not_filter
   return dfoperator_eq(left, right).aggregate_filter
       (table, local_grouped_idx,local_idx_split, hash_divide, merge_map,
        row_sizes, grouped_table);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_neq::whole_column_aggregate_filter(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  auto right_column = right->whole_column_aggregate(t);
+  return left_column->filter_neq(right_column);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_neq::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_eq(left, right).whole_column_aggregate_filter(t);
 }
 
 std::shared_ptr<dfoperator>
@@ -230,6 +254,18 @@ node_local<std::vector<size_t>> dfoperator_lt::aggregate_not_filter
        row_sizes, grouped_table);
 }
 
+node_local<std::vector<size_t>>
+dfoperator_lt::whole_column_aggregate_filter(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  auto right_column = right->whole_column_aggregate(t);
+  return left_column->filter_lt(right_column);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_lt::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_ge(left, right).whole_column_aggregate_filter(t);
+}
+
 std::shared_ptr<dfoperator>
 lt(const std::string& left, const std::string& right) {
   return std::make_shared<dfoperator_lt>(id_col(left), id_col(right));
@@ -310,6 +346,18 @@ node_local<std::vector<size_t>> dfoperator_ge::aggregate_not_filter
   return dfoperator_lt(left, right).aggregate_filter
       (table, local_grouped_idx,local_idx_split, hash_divide, merge_map,
        row_sizes, grouped_table);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_ge::whole_column_aggregate_filter(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  auto right_column = right->whole_column_aggregate(t);
+  return left_column->filter_ge(right_column);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_ge::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_lt(left, right).whole_column_aggregate_filter(t);
 }
 
 std::shared_ptr<dfoperator>
@@ -394,6 +442,18 @@ node_local<std::vector<size_t>> dfoperator_le::aggregate_not_filter
        row_sizes, grouped_table);
 }
 
+node_local<std::vector<size_t>>
+dfoperator_le::whole_column_aggregate_filter(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  auto right_column = right->whole_column_aggregate(t);
+  return left_column->filter_le(right_column);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_le::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_gt(left, right).whole_column_aggregate_filter(t);
+}
+
 std::shared_ptr<dfoperator>
 le(const std::string& left, const std::string& right) {
   return std::make_shared<dfoperator_le>(id_col(left), id_col(right));
@@ -476,6 +536,18 @@ node_local<std::vector<size_t>> dfoperator_gt::aggregate_not_filter
        row_sizes, grouped_table);
 }
 
+node_local<std::vector<size_t>>
+dfoperator_gt::whole_column_aggregate_filter(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  auto right_column = right->whole_column_aggregate(t);
+  return left_column->filter_gt(right_column);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_gt::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_le(left, right).whole_column_aggregate_filter(t);
+}
+
 std::shared_ptr<dfoperator>
 gt(const std::string& left, const std::string& right) {
   return std::make_shared<dfoperator_gt>(id_col(left), id_col(right));
@@ -540,6 +612,17 @@ node_local<std::vector<size_t>> dfoperator_is_null::aggregate_not_filter
      row_sizes, grouped_table);
 }
 
+node_local<std::vector<size_t>>
+dfoperator_is_null::whole_column_aggregate_filter(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->filter_is_null();
+}
+
+node_local<std::vector<size_t>>
+dfoperator_is_null::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_is_not_null(left).whole_column_aggregate_filter(t);
+}
+
 std::shared_ptr<dfoperator>
 is_null(const std::string& left) {
   return std::make_shared<dfoperator_is_null>(id_col(left));
@@ -592,6 +675,17 @@ node_local<std::vector<size_t>> dfoperator_is_not_null::aggregate_not_filter
      row_sizes, grouped_table);
 }
 
+node_local<std::vector<size_t>>
+dfoperator_is_not_null::whole_column_aggregate_filter(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->filter_is_not_null();
+}
+
+node_local<std::vector<size_t>>
+dfoperator_is_not_null::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_is_null(left).whole_column_aggregate_filter(t);
+}
+
 std::shared_ptr<dfoperator>
 is_not_null(const std::string& left) {
   return std::make_shared<dfoperator_is_not_null>(id_col(left));
@@ -630,6 +724,17 @@ node_local<std::vector<size_t>> dfoperator_regex::aggregate_not_filter
      row_sizes, grouped_table);
 }
 
+node_local<std::vector<size_t>>
+dfoperator_regex::whole_column_aggregate_filter(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return filter_impl(left_column);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_regex::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_not_regex(left, pattern).whole_column_aggregate_filter(t);
+}
+
 std::shared_ptr<dfoperator>
 is_regex(const std::string& left, const std::string& pattern) {
   return std::make_shared<dfoperator_regex>(id_col(left), pattern);
@@ -666,6 +771,17 @@ node_local<std::vector<size_t>> dfoperator_not_regex::aggregate_not_filter
   return dfoperator_regex(left, pattern).aggregate_filter
     (table, local_grouped_idx,local_idx_split, hash_divide, merge_map,
      row_sizes, grouped_table);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_not_regex::whole_column_aggregate_filter(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return filter_impl(left_column);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_not_regex::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_regex(left, pattern).whole_column_aggregate_filter(t);
 }
 
 std::shared_ptr<dfoperator>
@@ -707,6 +823,17 @@ node_local<std::vector<size_t>> dfoperator_like::aggregate_not_filter
      row_sizes, grouped_table);
 }
 
+node_local<std::vector<size_t>>
+dfoperator_like::whole_column_aggregate_filter(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return filter_impl(left_column);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_like::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_not_like(left, pattern).whole_column_aggregate_filter(t);
+}
+
 std::shared_ptr<dfoperator>
 is_like(const std::string& left, const std::string& pattern) {
   return std::make_shared<dfoperator_like>(id_col(left), pattern);
@@ -743,6 +870,17 @@ node_local<std::vector<size_t>> dfoperator_not_like::aggregate_not_filter
   return dfoperator_like(left, pattern).aggregate_filter
     (table, local_grouped_idx,local_idx_split, hash_divide, merge_map,
      row_sizes, grouped_table);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_not_like::whole_column_aggregate_filter(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return filter_impl(left_column);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_not_like::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_like(left, pattern).whole_column_aggregate_filter(t);
 }
 
 std::shared_ptr<dfoperator>
@@ -826,6 +964,28 @@ node_local<std::vector<size_t>> dfoperator_and::aggregate_not_filter
   auto right_filtered_idx = right2->aggregate_not_filter
     (table, local_grouped_idx,local_idx_split, hash_divide, merge_map,
      row_sizes, grouped_table);
+  return left_filtered_idx.map(set_union<size_t>, right_filtered_idx);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_and::whole_column_aggregate_filter(dftable_base& t) {
+  auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
+  auto right2 = std::dynamic_pointer_cast<dfoperator>(right);
+  if(!static_cast<bool>(left2) || !static_cast<bool>(right2))
+    throw std::runtime_error("filter by non operator");
+  auto left_filtered_idx = left2->whole_column_aggregate_filter(t);
+  auto right_filtered_idx = right2->whole_column_aggregate_filter(t);
+  return left_filtered_idx.map(set_intersection<size_t>, right_filtered_idx);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_and::whole_column_aggregate_not_filter(dftable_base& t) {
+  auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
+  auto right2 = std::dynamic_pointer_cast<dfoperator>(right);
+  if(!static_cast<bool>(left2) || !static_cast<bool>(right2))
+    throw std::runtime_error("filter by non operator");
+  auto left_filtered_idx = left2->whole_column_aggregate_not_filter(t);
+  auto right_filtered_idx = right2->whole_column_aggregate_not_filter(t);
   return left_filtered_idx.map(set_union<size_t>, right_filtered_idx);
 }
 
@@ -923,6 +1083,28 @@ node_local<std::vector<size_t>> dfoperator_or::aggregate_not_filter
   return left_filtered_idx.map(set_intersection<size_t>, right_filtered_idx);
 }
 
+node_local<std::vector<size_t>>
+dfoperator_or::whole_column_aggregate_filter(dftable_base& t) {
+  auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
+  auto right2 = std::dynamic_pointer_cast<dfoperator>(right);
+  if(!static_cast<bool>(left2) || !static_cast<bool>(right2))
+    throw std::runtime_error("filter by non operator");
+  auto left_filtered_idx = left2->whole_column_aggregate_filter(t);
+  auto right_filtered_idx = right2->whole_column_aggregate_filter(t);
+  return left_filtered_idx.map(set_union<size_t>, right_filtered_idx);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_or::whole_column_aggregate_not_filter(dftable_base& t) {
+  auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
+  auto right2 = std::dynamic_pointer_cast<dfoperator>(right);
+  if(!static_cast<bool>(left2) || !static_cast<bool>(right2))
+    throw std::runtime_error("filter by non operator");
+  auto left_filtered_idx = left2->whole_column_aggregate_not_filter(t);
+  auto right_filtered_idx = right2->whole_column_aggregate_not_filter(t);
+  return left_filtered_idx.map(set_intersection<size_t>, right_filtered_idx);
+}
+
 std::shared_ptr<dfoperator>
 or_op(const std::string& left, const std::string& right) {
   return std::make_shared<dfoperator_or>(id_col(left), id_col(right));
@@ -973,7 +1155,8 @@ node_local<std::vector<size_t>> dfoperator_not::aggregate_filter
  node_local<size_t>& row_sizes,
  dftable& grouped_table) {
   auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
-  if(!left2) throw std::runtime_error("filter by non operator");
+  if(!static_cast<bool>(left2))
+    throw std::runtime_error("filter by non operator");
   return left2->aggregate_not_filter
     (table, local_grouped_idx,local_idx_split, hash_divide, merge_map,
      row_sizes, grouped_table);
@@ -988,10 +1171,27 @@ node_local<std::vector<size_t>> dfoperator_not::aggregate_not_filter
  node_local<size_t>& row_sizes,
  dftable& grouped_table) {
   auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
-  if(!left2) throw std::runtime_error("filter by non operator");
+  if(!static_cast<bool>(left2))
+    throw std::runtime_error("filter by non operator");
   return left2->aggregate_filter
     (table, local_grouped_idx,local_idx_split, hash_divide, merge_map,
      row_sizes, grouped_table);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_not::whole_column_aggregate_filter(dftable_base& t) {
+  auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
+  if(!static_cast<bool>(left2))
+    throw std::runtime_error("filter by non operator");
+  return left2->whole_column_aggregate_not_filter(t);
+}
+
+node_local<std::vector<size_t>>
+dfoperator_not::whole_column_aggregate_not_filter(dftable_base& t) {
+  auto left2 = std::dynamic_pointer_cast<dfoperator>(left);
+  if(!static_cast<bool>(left2))
+    throw std::runtime_error("filter by non operator");
+  return left2->whole_column_aggregate_filter(t);
 }
 
 std::shared_ptr<dfoperator>

@@ -4156,7 +4156,7 @@ mode_helper(dftable_base& df, const std::string& name, bool dropna) {
 
 dftable
 dftable_base::aggregate
-(const std::vector<std::shared_ptr<dfaggregator>>& aggs) {
+(const std::vector<std::shared_ptr<dffunction>>& aggs) {
   dftable ret;
   ret.row_size = 1;
   auto nodesize = get_nodesize();
@@ -4166,7 +4166,7 @@ dftable_base::aggregate
     auto as = aggs[i]->get_as();
     if(ret.col.find(as) != ret.col.end())
       throw std::runtime_error("aggregate: same column name already exists");
-    use_dfcolumn use(aggs[i]->col->columns_to_use(*this));    
+    use_dfcolumn use(aggs[i]->columns_to_use(*this));    
     ret.col[as] = aggs[i]->whole_column_aggregate(*this);
     ret.col[as]->spill(); // just one row, though...
     ret.col_order.push_back(as);

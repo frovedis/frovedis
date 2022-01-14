@@ -118,6 +118,12 @@ std::shared_ptr<dfcolumn> dffunction_cast::aggregate(dftable_base& table,
   return left_column->type_cast(to_type);
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_cast::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->type_cast(to_type);
+}
+
 std::shared_ptr<dffunction> cast_col(const std::string& left,
                                      const std::string& to) {
   return std::make_shared<dffunction_cast>(id_col(left), to);
@@ -139,6 +145,7 @@ cast_col_as(const std::shared_ptr<dffunction>& left, const std::string& to,
             const std::string& as) {
   return std::make_shared<dffunction_cast>(left, to, as);
 }
+
 
 // ----- add -----
 std::shared_ptr<dfcolumn> dffunction_add::execute(dftable_base& t) const {
@@ -169,6 +176,12 @@ std::shared_ptr<dfcolumn> dffunction_add::aggregate
                                        local_idx_split, hash_divide,
                                        merge_map, row_sizes, grouped_table);
   return left_column->add(right_column);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_add::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->add(right->whole_column_aggregate(t));
 }
 
 std::shared_ptr<dffunction> add_col(const std::string& left,
@@ -249,6 +262,12 @@ std::shared_ptr<dfcolumn> dffunction_sub::aggregate
   return left_column->sub(right_column);
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_sub::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->sub(right->whole_column_aggregate(t));
+}
+
 std::shared_ptr<dffunction> sub_col(const std::string& left,
                                     const std::string& right) {
   return std::make_shared<dffunction_sub>(id_col(left), id_col(right));
@@ -325,6 +344,12 @@ std::shared_ptr<dfcolumn> dffunction_mul::aggregate
                                        local_idx_split, hash_divide,
                                        merge_map, row_sizes, grouped_table);
   return left_column->mul(right_column);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_mul::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->mul(right->whole_column_aggregate(t));
 }
 
 std::shared_ptr<dffunction> mul_col(const std::string& left,
@@ -405,6 +430,12 @@ std::shared_ptr<dfcolumn> dffunction_fdiv::aggregate
   return left_column->fdiv(right_column);
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_fdiv::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->fdiv(right->whole_column_aggregate(t));
+}
+
 std::shared_ptr<dffunction> fdiv_col(const std::string& left,
                                      const std::string& right) {
   return std::make_shared<dffunction_fdiv>(id_col(left), id_col(right));
@@ -481,6 +512,12 @@ std::shared_ptr<dfcolumn> dffunction_idiv::aggregate
                                        local_idx_split, hash_divide,
                                        merge_map, row_sizes, grouped_table);
   return left_column->idiv(right_column);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_idiv::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->idiv(right->whole_column_aggregate(t));
 }
 
 std::shared_ptr<dffunction> idiv_col(const std::string& left,
@@ -561,6 +598,12 @@ std::shared_ptr<dfcolumn> dffunction_mod::aggregate
   return left_column->mod(right_column);
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_mod::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->mod(right->whole_column_aggregate(t));
+}
+
 std::shared_ptr<dffunction> mod_col(const std::string& left,
                                     const std::string& right) {
   return std::make_shared<dffunction_mod>(id_col(left), id_col(right));
@@ -639,6 +682,12 @@ std::shared_ptr<dfcolumn> dffunction_pow::aggregate
   return left_column->pow(right_column);
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_pow::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->pow(right->whole_column_aggregate(t));
+}
+
 std::shared_ptr<dffunction> pow_col(const std::string& left,
                                     const std::string& right) {
   return std::make_shared<dffunction_pow>(id_col(left), id_col(right));
@@ -706,6 +755,12 @@ std::shared_ptr<dfcolumn> dffunction_abs::aggregate
   return left_column->abs();
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_abs::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->abs();
+}
+
 std::shared_ptr<dffunction>
 abs_col(const std::string& left) {
   return std::make_shared<dffunction_abs>(id_col(left));
@@ -745,6 +800,12 @@ std::shared_ptr<dfcolumn> dffunction_datetime_extract::aggregate
   auto left_column = left->aggregate(table, local_grouped_idx,
                                      local_idx_split, hash_divide,
                                      merge_map, row_sizes, grouped_table);
+  return left_column->datetime_extract(type);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_datetime_extract::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
   return left_column->datetime_extract(type);
 }
 
@@ -803,6 +864,12 @@ std::shared_ptr<dfcolumn> dffunction_datetime_diff::aggregate
                                        local_idx_split, hash_divide,
                                        merge_map, row_sizes, grouped_table);
   return left_column->datetime_diff(right_column, type);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_datetime_diff::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->datetime_diff(right->whole_column_aggregate(t), type);
 }
 
 std::shared_ptr<dffunction> datetime_diff_col(const std::string& left,
@@ -887,6 +954,13 @@ std::shared_ptr<dfcolumn> dffunction_datetime_diff_im::aggregate
   auto left_column = left->aggregate(table, local_grouped_idx,
                                      local_idx_split, hash_divide,
                                      merge_map, row_sizes, grouped_table);
+  return is_reversed ? left_column->rdatetime_diff_im(right, type) 
+    : left_column->datetime_diff_im(right, type);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_datetime_diff_im::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
   return is_reversed ? left_column->rdatetime_diff_im(right, type) 
     : left_column->datetime_diff_im(right, type);
 }
@@ -978,6 +1052,12 @@ std::shared_ptr<dfcolumn> dffunction_datetime_add::aggregate
   return left_column->datetime_add(right_column, type);
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_datetime_add::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->datetime_add(right->whole_column_aggregate(t), type);
+}
+
 std::shared_ptr<dffunction> datetime_add_col(const std::string& left,
                                              const std::string& right,
                                              datetime_type type) {
@@ -1062,6 +1142,12 @@ std::shared_ptr<dfcolumn> dffunction_datetime_add_im::aggregate
   return left_column->datetime_add_im(right, type);
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_datetime_add_im::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->datetime_add_im(right, type);
+}
+
 std::shared_ptr<dffunction>
 datetime_add_im(const std::string& left, int right, datetime_type type) {
   return std::make_shared<dffunction_datetime_add_im>(id_col(left), right, type);
@@ -1117,6 +1203,12 @@ std::shared_ptr<dfcolumn> dffunction_datetime_sub::aggregate
                                        local_idx_split, hash_divide,
                                        merge_map, row_sizes, grouped_table);
   return left_column->datetime_sub(right_column, type);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_datetime_sub::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->datetime_sub(right->whole_column_aggregate(t), type);
 }
 
 std::shared_ptr<dffunction> datetime_sub_col(const std::string& left,
@@ -1203,6 +1295,12 @@ std::shared_ptr<dfcolumn> dffunction_datetime_sub_im::aggregate
   return left_column->datetime_sub_im(right, type);
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_datetime_sub_im::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->datetime_sub_im(right, type);
+}
+
 std::shared_ptr<dffunction>
 datetime_sub_im(const std::string& left, int right, datetime_type type) {
   return std::make_shared<dffunction_datetime_sub_im>(id_col(left), right, type);
@@ -1246,6 +1344,12 @@ std::shared_ptr<dfcolumn> dffunction_datetime_truncate::aggregate
   auto left_column = left->aggregate(table, local_grouped_idx,
                                      local_idx_split, hash_divide,
                                      merge_map, row_sizes, grouped_table);
+  return left_column->datetime_truncate(type);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_datetime_truncate::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
   return left_column->datetime_truncate(type);
 }
 
@@ -1304,6 +1408,12 @@ std::shared_ptr<dfcolumn> dffunction_datetime_months_between::aggregate
                                        local_idx_split, hash_divide,
                                        merge_map, row_sizes, grouped_table);
   return left_column->datetime_months_between(right_column);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_datetime_months_between::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->datetime_months_between(right->whole_column_aggregate(t));
 }
 
 std::shared_ptr<dffunction> datetime_months_between_col
@@ -1397,6 +1507,12 @@ std::shared_ptr<dfcolumn> dffunction_datetime_next_day::aggregate
   return left_column->datetime_next_day(right_column);
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_datetime_next_day::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->datetime_next_day(right->whole_column_aggregate(t));
+}
+
 std::shared_ptr<dffunction> datetime_next_day_col(const std::string& left,
                                                   const std::string& right) {
   return std::make_shared<dffunction_datetime_next_day>
@@ -1470,6 +1586,12 @@ std::shared_ptr<dfcolumn> dffunction_datetime_next_day_im::aggregate
   auto left_column = left->aggregate(table, local_grouped_idx,
                                      local_idx_split, hash_divide,
                                      merge_map, row_sizes, grouped_table);
+  return left_column->datetime_next_day_im(right);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_datetime_next_day_im::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
   return left_column->datetime_next_day_im(right);
 }
 
@@ -1595,6 +1717,52 @@ dffunction_when::aggregate
   }
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_when::whole_column_aggregate(dftable_base& t) {
+  if(!(cond.size() == func.size()) && !(cond.size() + 1 == func.size())) {
+    throw std::runtime_error
+      ("condition size should be equal to func size or func size - 1");
+  }
+  if(func.size() == 0) throw std::runtime_error("func size is 0");
+  std::vector<node_local<std::vector<size_t>>> new_idx(func.size());
+  std::vector<std::shared_ptr<dfcolumn>> new_columns(func.size());
+  std::vector<std::vector<size_t>> sizes(get_nodesize());
+  sizes[0].push_back(0);
+  auto table_idx = make_node_local_scatter(sizes);
+  auto crnt_idx = table_idx;
+  for(size_t i = 0; i < cond.size(); i++) {
+    auto tmp_column = func[i]->whole_column_aggregate(t);
+    auto cond_idx = cond[i]->whole_column_aggregate_filter(t);
+    new_idx[i] = cond_idx.map
+      (+[](std::vector<size_t>& cond_idx,
+           std::vector<size_t>& crnt_idx) {
+        return set_intersection(cond_idx, crnt_idx);
+      }, crnt_idx);
+    dftable tmp_table;
+    tmp_table.append_column("tmp",tmp_column);
+    filtered_dftable filtered_tmp_table(tmp_table, new_idx[i]);
+    new_columns[i] = filtered_tmp_table.column("tmp");
+    crnt_idx = crnt_idx.map
+      (+[](const std::vector<size_t>& crnt_idx,
+           const std::vector<size_t>& new_idx) {
+        return set_difference(crnt_idx, new_idx);
+      }, new_idx[i]);
+  }
+  if(cond.size() + 1 == func.size()) {
+    auto tmp_column =
+      func[func.size() - 1]->whole_column_aggregate(t);
+    new_idx[func.size() - 1] = crnt_idx;
+    dftable tmp_table;
+    tmp_table.append_column("tmp",tmp_column);
+    filtered_dftable filtered_tmp_table(tmp_table, new_idx[func.size() - 1]);
+    new_columns[func.size() - 1] = filtered_tmp_table.column("tmp");
+    node_local<std::vector<size_t>> dummy;
+    return merge_column(new_columns, new_idx, table_idx, dummy, false);
+  } else {
+    return merge_column(new_columns, new_idx, table_idx, crnt_idx, true);
+  }
+}
+
 std::shared_ptr<dffunction> 
 when(const std::vector<std::shared_ptr<dfoperator>>& cond,
      const std::vector<std::shared_ptr<dffunction>>& func) {
@@ -1663,6 +1831,12 @@ std::shared_ptr<dfcolumn> dffunction_datetime_im::aggregate
   return std::make_shared<typed_dfcolumn<datetime>>(std::move(dvval));
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_datetime_im::whole_column_aggregate(dftable_base& t) {
+  std::vector<datetime_t> v = {value};
+  return std::make_shared<typed_dfcolumn<datetime>>(make_dvector_scatter(v));
+}
+
 std::shared_ptr<dffunction>
 datetime_im(datetime_t value) {
   return std::make_shared<dffunction_datetime_im>(value);
@@ -1712,6 +1886,20 @@ std::shared_ptr<dfcolumn> dffunction_dic_string_im::aggregate
     (std::move(dic), std::move(nlval), std::move(nulls));
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_dic_string_im::whole_column_aggregate(dftable_base& t) {
+  std::vector<size_t> v = {0};
+  auto nlval = make_dvector_scatter(v).moveto_node_local();
+  words ws;
+  ws.chars = char_to_int(value);
+  ws.starts = {0};
+  ws.lens = {value.size()};
+  auto dic = std::make_shared<dict>(make_dict(ws));
+  auto nulls = make_node_local_allocate<std::vector<size_t>>();
+  return std::make_shared<typed_dfcolumn<dic_string>>
+    (std::move(dic), std::move(nlval), std::move(nulls));
+}
+
 std::shared_ptr<dffunction>
 dic_string_im(const std::string& value) {
   return std::make_shared<dffunction_dic_string_im>(value);
@@ -1738,6 +1926,13 @@ std::shared_ptr<dfcolumn> dffunction_null_string_column::aggregate
  node_local<size_t>& row_sizes,
  dftable& grouped_table) {
   return create_null_column<std::string>(grouped_table.num_rows());
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_null_string_column::whole_column_aggregate(dftable_base& t) {
+  std::vector<size_t> sizes(get_nodesize());
+  sizes[0] = 1;
+  return create_null_column<std::string>(sizes);
 }
 
 std::shared_ptr<dffunction>
@@ -1768,6 +1963,13 @@ std::shared_ptr<dfcolumn> dffunction_null_dic_string_column::aggregate
   return create_null_column<dic_string>(grouped_table.num_rows());
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_null_dic_string_column::whole_column_aggregate(dftable_base& t) {
+  std::vector<size_t> sizes(get_nodesize());
+  sizes[0] = 1;
+  return create_null_column<dic_string>(sizes);
+}
+
 std::shared_ptr<dffunction>
 null_dic_string_column() {
   return std::make_shared<dffunction_null_dic_string_column>();
@@ -1794,6 +1996,13 @@ std::shared_ptr<dfcolumn> dffunction_null_datetime_column::aggregate
  node_local<size_t>& row_sizes,
  dftable& grouped_table) {
   return create_null_column<datetime>(grouped_table.num_rows());
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_null_datetime_column::whole_column_aggregate(dftable_base& t) {
+  std::vector<size_t> sizes(get_nodesize());
+  sizes[0] = 1;
+  return create_null_column<datetime>(sizes);
 }
 
 std::shared_ptr<dffunction>
@@ -1835,6 +2044,12 @@ std::shared_ptr<dfcolumn> dffunction_substr::aggregate
                                        local_idx_split, hash_divide,
                                        merge_map, row_sizes, grouped_table);
   return left_column->substr(right_column);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_substr::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->substr(right->whole_column_aggregate(t));
 }
 
 std::shared_ptr<dffunction> substr_col(const std::string& left,
@@ -1903,6 +2118,12 @@ std::shared_ptr<dfcolumn> dffunction_substr_im::aggregate
   return left_column->substr(right);
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_substr_im::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->substr(right);
+}
+
 std::shared_ptr<dffunction>
 substr_im(const std::string& left, int right) {
   return std::make_shared<dffunction_substr_im>(id_col(left), right);
@@ -1949,6 +2170,14 @@ std::shared_ptr<dfcolumn> dffunction_substr_num::aggregate
   auto num_column = num->aggregate(table, local_grouped_idx,
                                    local_idx_split, hash_divide,
                                    merge_map, row_sizes, grouped_table);
+  return left_column->substr(right_column, num_column);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_substr_num::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  auto right_column = right->whole_column_aggregate(t);
+  auto num_column = num->whole_column_aggregate(t);
   return left_column->substr(right_column, num_column);
 }
 
@@ -2015,6 +2244,13 @@ std::shared_ptr<dfcolumn> dffunction_substr_posim_num::aggregate
   return left_column->substr(right, num_column);
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_substr_posim_num::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  auto num_column = num->whole_column_aggregate(t);
+  return left_column->substr(right, num_column);
+}
+
 std::shared_ptr<dffunction>
 substr_posim_numcol(const std::string& left, int right,
                     const std::string& num) {
@@ -2074,6 +2310,13 @@ std::shared_ptr<dfcolumn> dffunction_substr_numim::aggregate
   return left_column->substr(right_column, num);
 }
 
+std::shared_ptr<dfcolumn>
+dffunction_substr_numim::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  auto right_column = right->whole_column_aggregate(t);
+  return left_column->substr(right_column, num);
+}
+
 std::shared_ptr<dffunction>
 substr_poscol_numim(const std::string& left, const std::string& right,
                     int num) {
@@ -2120,6 +2363,12 @@ std::shared_ptr<dfcolumn> dffunction_substr_posim_numim::aggregate
   auto left_column = left->aggregate(table, local_grouped_idx,
                                      local_idx_split, hash_divide,
                                      merge_map, row_sizes, grouped_table);
+  return left_column->substr(right, num);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_substr_posim_numim::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
   return left_column->substr(right, num);
 }
 

@@ -53,6 +53,11 @@ struct dffunction {
             dftable& grouped_table) {
     throw std::runtime_error("aggregate on this operator is not implemented");
   }
+  virtual std::shared_ptr<dfcolumn>
+  whole_column_aggregate(dftable_base& table) {
+    throw std::runtime_error
+      ("whole_column_aggregate on this operator is not implemented");
+  }
 };
 
 // ----- dffunction_id -----
@@ -107,6 +112,11 @@ struct dffunction_id : public dffunction {
             dftable& grouped_table) {
     return this->execute(grouped_table);
   }
+  virtual std::shared_ptr<dfcolumn>
+  whole_column_aggregate(dftable_base& table) {
+    throw std::runtime_error("aggregator need to be called");
+  }
+
   std::string left;
   std::string as_name;
 };
@@ -199,6 +209,17 @@ struct dfoperator : public dffunction {
    dftable& grouped_table) {
     throw std::runtime_error
       ("aggregate_not_filter on this operator is not implemented");
+  }
+  // for when argument of dftable::aggregate
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t) {
+    throw std::runtime_error
+      ("whole_columnaggregate_filter on this operator is not implemented");
+  }
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t) {
+    throw std::runtime_error
+      ("whole_columnaggregate_not_filter on this operator is not implemented");
   }
 };
 
@@ -357,6 +378,10 @@ struct dfoperator_eq : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -456,6 +481,10 @@ struct dfoperator_neq : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -565,6 +594,14 @@ struct dfoperator_eq_immed : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t) {
+    std::shared_ptr<dfscalar> right_scalar =
+      std::make_shared<typed_dfscalar<T>>(right);
+    return left->whole_column_aggregate(t)->filter_eq_immed(right_scalar);
+  }
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -674,6 +711,16 @@ struct dfoperator_neq_immed : public dfoperator {
       (table, local_grouped_idx,local_idx_split, hash_divide, merge_map,
        row_sizes, grouped_table);
   }
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t) {
+    std::shared_ptr<dfscalar> right_scalar =
+      std::make_shared<typed_dfscalar<T>>(right);
+    return left->whole_column_aggregate(t)->filter_neq_immed(right_scalar);
+  }
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t) {
+    return dfoperator_eq_immed<T>(left, right).whole_column_aggregate_filter(t);
+  }
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -699,6 +746,12 @@ dfoperator_eq_immed<T>::aggregate_not_filter
   return dfoperator_neq_immed<T>(left, right).aggregate_filter
     (table, local_grouped_idx,local_idx_split, hash_divide, merge_map,
      row_sizes, grouped_table);
+}
+
+template <class T>
+node_local<std::vector<size_t>>
+dfoperator_eq_immed<T>::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_neq_immed<T>(left, right).whole_column_aggregate_filter(t);
 }
 
 template <class T>
@@ -818,6 +871,10 @@ struct dfoperator_lt : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -942,6 +999,10 @@ struct dfoperator_ge : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -1070,6 +1131,10 @@ struct dfoperator_le : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -1194,6 +1259,10 @@ struct dfoperator_gt : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -1319,6 +1388,14 @@ struct dfoperator_lt_immed : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t) {
+    std::shared_ptr<dfscalar> right_scalar =
+      std::make_shared<typed_dfscalar<T>>(right);
+    return left->whole_column_aggregate(t)->filter_lt_immed(right_scalar);
+  }
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -1429,6 +1506,16 @@ struct dfoperator_ge_immed : public dfoperator {
       (table, local_grouped_idx,local_idx_split, hash_divide, merge_map,
        row_sizes, grouped_table);
   }
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t) {
+    std::shared_ptr<dfscalar> right_scalar =
+      std::make_shared<typed_dfscalar<T>>(right);
+    return left->whole_column_aggregate(t)->filter_ge_immed(right_scalar);
+  }
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t) {
+    return dfoperator_lt_immed<T>(left, right).whole_column_aggregate_filter(t);
+  }
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -1468,6 +1555,11 @@ dfoperator_lt_immed<T>::aggregate_not_filter
      row_sizes, grouped_table);
 }
 
+template <class T>
+node_local<std::vector<size_t>> 
+dfoperator_lt_immed<T>::whole_column_aggregate_not_filter(dftable_base& t) {
+  return dfoperator_ge_immed<T>(left, right).whole_column_aggregate_filter(t);
+}
 
 // ----- dfoperator_le_immed -----
 template <class T>
@@ -1554,6 +1646,14 @@ struct dfoperator_le_immed : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t) {
+    std::shared_ptr<dfscalar> right_scalar =
+      std::make_shared<typed_dfscalar<T>>(right);
+    return left->whole_column_aggregate(t)->filter_le_immed(right_scalar);
+  }
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -1664,6 +1764,16 @@ struct dfoperator_gt_immed : public dfoperator {
       (table, local_grouped_idx,local_idx_split, hash_divide, merge_map,
        row_sizes, grouped_table);
   }
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t) {
+    std::shared_ptr<dfscalar> right_scalar =
+      std::make_shared<typed_dfscalar<T>>(right);
+    return left->whole_column_aggregate(t)->filter_gt_immed(right_scalar);
+  }
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t) {
+    return dfoperator_le_immed<T>(left, right).whole_column_aggregate_filter(t);
+  }
 
   std::shared_ptr<dffunction> left;
   T right;
@@ -1767,6 +1877,10 @@ struct dfoperator_is_null : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left;
   std::string as_name;
@@ -1845,6 +1959,10 @@ struct dfoperator_is_not_null : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left;
   std::string as_name;
@@ -1943,6 +2061,10 @@ struct dfoperator_regex : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left;
   std::string pattern;
@@ -2038,6 +2160,10 @@ struct dfoperator_not_regex : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left;
   std::string pattern;
@@ -2149,6 +2275,10 @@ struct dfoperator_like : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left;
   std::string pattern;
@@ -2255,6 +2385,10 @@ struct dfoperator_not_like : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left;
   std::string pattern;
@@ -2456,6 +2590,10 @@ struct dfoperator_and : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -2562,6 +2700,10 @@ struct dfoperator_or : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left, right;
   std::string as_name;
@@ -2650,6 +2792,10 @@ struct dfoperator_not : public dfoperator {
    node_local<std::vector<std::vector<size_t>>>& merge_map,
    node_local<size_t>& row_sizes,
    dftable& grouped_table);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_filter(dftable_base& t);
+  virtual node_local<std::vector<size_t>>
+  whole_column_aggregate_not_filter(dftable_base& t);
 
   std::shared_ptr<dffunction> left;
   std::string as_name;
