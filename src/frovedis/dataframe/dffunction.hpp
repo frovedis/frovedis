@@ -3124,6 +3124,20 @@ substr_col_as(const std::shared_ptr<dffunction>& left,
               const std::shared_ptr<dffunction>& right,
               const std::string& as);
 
+std::shared_ptr<dffunction>
+right_col(const std::string& left, const std::string& right); 
+std::shared_ptr<dffunction>
+right_col(const std::shared_ptr<dffunction>& left,
+          const std::shared_ptr<dffunction>& right); 
+
+std::shared_ptr<dffunction>
+right_col_as(const std::string& left, const std::string& right,
+             const std::string& as);
+std::shared_ptr<dffunction>
+right_col_as(const std::shared_ptr<dffunction>& left,
+             const std::shared_ptr<dffunction>& right,
+             const std::string& as);
+
 struct dffunction_substr_im : public dffunction {
   dffunction_substr_im(const std::shared_ptr<dffunction>& left, int right): 
     left(left), right(right) {
@@ -3183,6 +3197,19 @@ substr_im(const std::shared_ptr<dffunction>& left, int right);
 std::shared_ptr<dffunction>
 substr_im_as(const std::shared_ptr<dffunction>& left, int right,
              const std::string& as);
+
+std::shared_ptr<dffunction>
+right_im(const std::string& left, int right);
+
+std::shared_ptr<dffunction>
+right_im_as(const std::string& left, int right, const std::string& as);
+
+std::shared_ptr<dffunction>
+right_im(const std::shared_ptr<dffunction>& left, int right);
+
+std::shared_ptr<dffunction>
+right_im_as(const std::shared_ptr<dffunction>& left, int right,
+            const std::string& as);
 
 struct dffunction_substr_num : public dffunction {
   dffunction_substr_num(const std::shared_ptr<dffunction>& left, 
@@ -3337,6 +3364,23 @@ substr_posim_numcol_as(const std::shared_ptr<dffunction>& left, int right,
                        const std::shared_ptr<dffunction>& num,
                        const std::string& as);
 
+// left: left most len chars
+std::shared_ptr<dffunction>
+left_col(const std::string& left, const std::string& num);
+
+std::shared_ptr<dffunction>
+left_col_as(const std::string& left,
+            const std::string& num, const std::string& as);
+
+std::shared_ptr<dffunction>
+left_col(const std::shared_ptr<dffunction>& left,
+         const std::shared_ptr<dffunction>& num);
+
+std::shared_ptr<dffunction>
+left_col_as(const std::shared_ptr<dffunction>& left,
+            const std::shared_ptr<dffunction>& num,
+            const std::string& as);
+
 struct dffunction_substr_numim : public dffunction {
   dffunction_substr_numim(const std::shared_ptr<dffunction>& left,
                           const std::shared_ptr<dffunction>& right,
@@ -3477,6 +3521,19 @@ substr_posim_numim(const std::shared_ptr<dffunction>& left,
 std::shared_ptr<dffunction>
 substr_posim_numim_as(const std::shared_ptr<dffunction>& left,
                       int right, int num, const std::string& as);
+
+std::shared_ptr<dffunction>
+left_im(const std::string& left, int num);
+
+std::shared_ptr<dffunction>
+left_im_as(const std::string& left, int num, const std::string& as);
+
+std::shared_ptr<dffunction>
+left_im(const std::shared_ptr<dffunction>& left, int num);
+
+std::shared_ptr<dffunction>
+left_im_as(const std::shared_ptr<dffunction>& left, int num,
+           const std::string& as);
 
 // ----- utility functions for user's direct use -----
 
