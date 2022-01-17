@@ -23,6 +23,18 @@ vector<exptr<vector<int>>> get_each_pointer(exptr<dvector<int>>& dv) {
   ).gather();
 }
 
+vector<exrpc_ptr_t> get_each_rawpointer(exptr<dvector<int>>& dv) {
+  // [](...){...} is lambda expression; "+" is used to make it function ptr
+  return dv.to_ptr()->map_partitions(+[](vector<int>& d) {
+      auto dp = reinterpret_cast<exrpc_ptr_t>(d.data());
+      // mapPartitions need to return vector
+      vector<exrpc_ptr_t> r(1);
+      r[0] = dp;
+      return r;
+    }
+  ).gather();
+}
+
 void add_each(exptr<vector<int>>& p, vector<int>& v) {
   vector<int>& pv = *p.to_ptr();
   for(size_t i = 0; i < pv.size(); i++) {

@@ -88,6 +88,8 @@ enum exrpc_type {
   exrpc_async_type,
   exrpc_oneway_type,
   exrpc_oneway_noexcept_type,
+  exrpc_rawsend_type,
+  exrpc_rawrecv_type,
   exrpc_finalize_type
 };
 
@@ -150,6 +152,11 @@ void wait_parallel_exrpc_multi(exrpc_node&,exptr<node_local<exrpc_info>>&,
                                std::vector<size_t>&);
 void wait_parallel_exrpc_multi_server(exptr<node_local<exrpc_info>>&,
                                       std::vector<size_t>&);
+// assumes same (little) endian
+void exrpc_rawsend(exrpc_node& n, char* src,
+                   exrpc_ptr_t dst, exrpc_count_t size);
+void exrpc_rawrecv(exrpc_node& n, char* dst,
+                   exrpc_ptr_t src, exrpc_count_t size);
 
 /*
   Copied from dvector.cc

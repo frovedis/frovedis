@@ -40,6 +40,26 @@ int main(int argc, char* argv[]) {
   auto vv = exrpc_async(n, gather_sample, r).get();
   for(auto i: vv) cout << i << endl;
 
+  // demo of rawsend/rawrecv
+  auto rawep = exrpc_async(n, get_each_rawpointer, r).get();
+  info = prepare_parallel_exrpc(n);
+  nodes = get_parallel_exrpc_nodes(n, info);
+  num_rpc = {2, 2};
+  wait_parallel_exrpc_multi(n, info, num_rpc);
+  vector<vector<int>> buf(2);
+  for(size_t i = 0; i < nodes.size(); i++) {
+    buf[i].resize(2);
+    exrpc_rawrecv(nodes[i], reinterpret_cast<char*>(buf[i].data()),
+                  rawep[i], sizeof(int) * 2);
+    for(auto j: buf[i]) cout << j << " ";
+    cout << endl;
+    buf[i] = {100, 200};
+    exrpc_rawsend(nodes[i], reinterpret_cast<char*>(buf[i].data()),
+                  rawep[i], sizeof(int) * 2);
+  }
+  vv = exrpc_async(n, gather_sample, r).get();
+  for(auto i: vv) cout << i << endl;
+
   // demo of exception handling
   try {
     auto ep = exrpc_async(n, ex_sample, r).get();

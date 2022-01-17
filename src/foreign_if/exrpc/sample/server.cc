@@ -12,6 +12,7 @@ int main(int argc, char* argv[]) {
   expose(gather_sample);
   expose(delete_exptr<dvector<int>>);
   expose(get_each_pointer);
+  expose(get_each_rawpointer);
   expose(add_each);
   expose(ex_sample);
   frovedis::init_frovedis_server(argc, argv);

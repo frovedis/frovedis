@@ -110,4 +110,61 @@ Then, the client can call RPCs for each rank like this:
       }
     }
 
+# 4. Raw RPC interface
+
+Basically, the argument of RPC is serialized with a library like YAS.
+However, users might want to skip the serialization for performance.
+For this usecase, there is a special RPC:
+
+    void exrpc_rawsend(exrpc_node& n, char* src,
+                       exrpc_ptr_t dst, exrpc_count_t size);
+    void exrpc_rawrecv(exrpc_node& n, char* dst,
+                       exrpc_ptr_t src, exrpc_count_t size);
+
+They can just send or receive data. Here, exrpc_ptr_t is the pointer
+of the server. The `size` is number of bytes. To use this function,
+both client and server have the same (little) endian.
+
+This RPC just send or receive the data and the pointer should be
+obtained by other RPCs. In the sample code,
+
+    auto rawep = exrpc_async(n, get_each_rawpointer, r).get();
+
+returns the pointer of the data inside of the std::vector.
+In this example, parallel RPC is used:
+
+    info = prepare_parallel_exrpc(n);
+    nodes = get_parallel_exrpc_nodes(n, info);
+    num_rpc = {2, 2};
+    wait_parallel_exrpc_multi(n, info, num_rpc);
+
+Then, for each node, exrpc_raw_recv is called:
+
+    vector<vector<int>> buf(2);
+    for(size_t i = 0; i < nodes.size(); i++) {
+      buf[i].resize(2);
+      exrpc_rawrecv(nodes[i], reinterpret_cast<char*>(buf[i].data()),
+                    rawep[i], sizeof(int) * 2);
+      for(auto j: buf[i]) cout << j << " ";
+
+This should show the current data. Then, exrpc_rawsend is called
+
+      cout << endl;
+      buf[i] = {100, 200};
+      exrpc_rawsend(nodes[i], reinterpret_cast<char*>(buf[i].data()),
+                    rawep[i], sizeof(int) * 2);
+    }
+
+This should update the contents of the data. So
+
+    vv = exrpc_async(n, gather_sample, r).get();
+    for(auto i: vv) cout << i << endl;
+
+shouls produce output like
+
+    100
+    200
+    100
+    200
+
 The `sample` directory contains sample of exrpc program.

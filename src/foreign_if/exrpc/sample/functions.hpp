@@ -6,7 +6,10 @@ std::vector<int> gather_sample(frovedis::exptr<frovedis::dvector<int>>& dv);
 
 std::vector<frovedis::exptr<std::vector<int>>>
 get_each_pointer(frovedis::exptr<frovedis::dvector<int>>& dv);
+std::vector<frovedis::exrpc_ptr_t>
+get_each_rawpointer(frovedis::exptr<frovedis::dvector<int>>& dv);
 
 void add_each(frovedis::exptr<std::vector<int>>& p, std::vector<int>& v);
 
 std::vector<int> ex_sample(frovedis::exptr<frovedis::dvector<int>>& dv);
+

@@ -396,10 +396,10 @@ bool handle_exrpc_process(int new_sockfd) {
   my_portable_iarchive hdrar(hdrss);
   hdrar & hdr;
   std::string funcname = hdr.funcname;
-  std::string serialized_arg;
-  serialized_arg.resize(hdr.arg_count);
-  myread(new_sockfd, &serialized_arg[0], hdr.arg_count);
   if(hdr.type == exrpc_type::exrpc_async_type) {
+    std::string serialized_arg;
+    serialized_arg.resize(hdr.arg_count);
+    myread(new_sockfd, &serialized_arg[0], hdr.arg_count);
     typedef void(*wptype)(intptr_t, my_portable_iarchive&,
                           my_portable_oarchive&);
     if(expose_table.find(funcname) == expose_table.end()) {
@@ -447,6 +447,9 @@ bool handle_exrpc_process(int new_sockfd) {
       return true;
     }
   } else if(hdr.type == exrpc_type::exrpc_oneway_type) {
+    std::string serialized_arg;
+    serialized_arg.resize(hdr.arg_count);
+    myread(new_sockfd, &serialized_arg[0], hdr.arg_count);
     typedef void(*wptype)(intptr_t, my_portable_iarchive&);
     if(expose_table.find(funcname) == expose_table.end()) {
       inform_no_exposed_function(new_sockfd, funcname);
@@ -477,6 +480,9 @@ bool handle_exrpc_process(int new_sockfd) {
       return true;
     }
   } else if(hdr.type == exrpc_type::exrpc_oneway_noexcept_type) {
+    std::string serialized_arg;
+    serialized_arg.resize(hdr.arg_count);
+    myread(new_sockfd, &serialized_arg[0], hdr.arg_count);
     typedef void(*wptype)(intptr_t, my_portable_iarchive&);
     if(expose_table.find(funcname) == expose_table.end()) {
       inform_no_exposed_function(new_sockfd, funcname);
@@ -490,6 +496,17 @@ bool handle_exrpc_process(int new_sockfd) {
       wpt(expose_table[funcname].second, inar);
       return true;
     }
+  } else if(hdr.type == exrpc_type::exrpc_rawsend_type) {
+    exrpc_ptr_t writeptr;
+    myread(new_sockfd, reinterpret_cast<char*>(&writeptr), sizeof(exrpc_ptr_t));
+    myread(new_sockfd, reinterpret_cast<char*>(writeptr), hdr.arg_count);
+    return true;
+  } else if(hdr.type == exrpc_type::exrpc_rawrecv_type) {
+    // hdr.arg_count is reused as server->client size (not client->server size)
+    exrpc_ptr_t readptr;
+    myread(new_sockfd, reinterpret_cast<char*>(&readptr), sizeof(exrpc_ptr_t));
+    mywrite(new_sockfd, reinterpret_cast<char*>(readptr), hdr.arg_count);
+    return true;
   } else {
     // TODO: close pooled socket of workers?
     return false;
@@ -766,6 +783,58 @@ void wait_parallel_exrpc_multi(exrpc_node& n,
                                std::vector<size_t>& num_rpc) {
   // Use noexcept because this should not block!
   exrpc_oneway_noexcept(n, wait_parallel_exrpc_multi_server, info, num_rpc);
+}
+
+void exrpc_rawsend(exrpc_node& n, char* src,
+                   exrpc_ptr_t dst, exrpc_count_t size) {
+  int sockfd = handle_exrpc_connect_pooled(n.hostname, n.rpcport);
+  exrpc_header hdr;
+  hdr.type = exrpc_type::exrpc_rawsend_type;
+  hdr.funcname = std::string();
+  hdr.arg_count = size;
+  
+  my_portable_ostream result;
+  my_portable_oarchive outar(result);
+  outar & hdr;
+  PORTABLE_OSTREAM_TO_STRING(result, serialized_hdr);
+  uint32_t hdr_size = serialized_hdr.size();
+  uint32_t hdr_size_nw = htonl(hdr_size);
+  mywrite(sockfd, reinterpret_cast<char*>(&hdr_size_nw), sizeof(hdr_size_nw));
+  mywrite(sockfd, serialized_hdr.c_str(), hdr_size);
+  mywrite(sockfd, reinterpret_cast<char*>(&dst), sizeof(dst));
+  mywrite(sockfd, src, size);
+  auto it = send_connection_lock.find(sockfd);
+  if(it == send_connection_lock.end()) {
+    throw std::runtime_error("internal error in exrpc_rawsend");
+  } else {
+    pthread_mutex_unlock(it->second);
+  }
+}
+
+void exrpc_rawrecv(exrpc_node& n, char* dst,
+                   exrpc_ptr_t src, exrpc_count_t size) {
+  int sockfd = handle_exrpc_connect_pooled(n.hostname, n.rpcport);
+  exrpc_header hdr;
+  hdr.type = exrpc_type::exrpc_rawrecv_type;
+  hdr.funcname = std::string();
+  hdr.arg_count = size;
+  
+  my_portable_ostream result;
+  my_portable_oarchive outar(result);
+  outar & hdr;
+  PORTABLE_OSTREAM_TO_STRING(result, serialized_hdr);
+  uint32_t hdr_size = serialized_hdr.size();
+  uint32_t hdr_size_nw = htonl(hdr_size);
+  mywrite(sockfd, reinterpret_cast<char*>(&hdr_size_nw), sizeof(hdr_size_nw));
+  mywrite(sockfd, serialized_hdr.c_str(), hdr_size);
+  mywrite(sockfd, reinterpret_cast<char*>(&src), sizeof(src));
+  myread(sockfd, dst, size);
+  auto it = send_connection_lock.find(sockfd);
+  if(it == send_connection_lock.end()) {
+    throw std::runtime_error("internal error in exrpc_rawrecv");
+  } else {
+    pthread_mutex_unlock(it->second);
+  }
 }
 
 }
