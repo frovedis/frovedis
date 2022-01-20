@@ -63,11 +63,13 @@ class NearestNeighbors(BaseEstimator):
                                 "\n Given metric: ", self.metric,\
                                 "not supported \n")
         if self.batch_fraction is None:
-            self.batch_fraction = np.finfo(np.float64).max
+            self.batch_fraction_ = np.finfo(np.float64).max
         elif self.batch_fraction == np.finfo(np.float64).max:
-            pass # might be set to DBLMAX in recurrent calls to fit() etc.
+            self.batch_fraction_ = self.batch_fraction
         elif self.batch_fraction <= 0.0 or self.batch_fraction > 1.0:
             raise ValueError("batch fraction should be between 0.0 and 1.0")
+        else:
+            self.batch_fraction_ = self.batch_fraction
             
         self.release()
         train_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
@@ -86,7 +88,7 @@ class NearestNeighbors(BaseEstimator):
                        self.algorithm.encode("ascii"), 
                        self.metric.encode("ascii"), 
                        self.chunk_size,
-                       self.batch_fraction,
+                       self.batch_fraction_,
                        self.verbose, self.__mid,
                        dtype, self.__itype, self.__dense)
         excpt = rpclib.check_server_exception()
@@ -358,11 +360,13 @@ class KNeighborsClassifier(BaseEstimator):
                                 "\n Given metric: ", self.metric,\
                                 "not supported \n")
         if self.batch_fraction is None:
-            self.batch_fraction = np.finfo(np.float64).max
+            self.batch_fraction_ = np.finfo(np.float64).max
         elif self.batch_fraction == np.finfo(np.float64).max:
-            pass # might be set to DBLMAX in recurrent calls to fit() etc.
+            self.batch_fraction_ = self.batch_fraction
         elif self.batch_fraction <= 0.0 or self.batch_fraction > 1.0:
             raise ValueError("batch fraction should be between 0.0 and 1.0")
+        else:
+            self.batch_fraction_ = self.batch_fraction
             
         self.release()
         train_data = FrovedisLabeledPoint(X, y, \
@@ -384,7 +388,7 @@ class KNeighborsClassifier(BaseEstimator):
         rpclib.knc_fit(host, port, X.get(), y.get(), self.n_neighbors,
                        self.algorithm.encode("ascii"), 
                        self.metric.encode("ascii"), 
-                       self.chunk_size, self.batch_fraction, 
+                       self.chunk_size, self.batch_fraction_, 
                        self.verbose, self.__mid,
                        dtype, self.__itype, self.__dense)
         excpt = rpclib.check_server_exception()
@@ -679,11 +683,13 @@ class KNeighborsRegressor(BaseEstimator):
                                 "\n Given metric: ", self.metric,\
                                 "not supported \n")
         if self.batch_fraction is None:
-            self.batch_fraction = np.finfo(np.float64).max
+            self.batch_fraction_ = np.finfo(np.float64).max
         elif self.batch_fraction == np.finfo(np.float64).max:
-            pass # might be set to DBLMAX in recurrent calls to fit() etc.
+            self.batch_fraction_ = self.batch_fraction
         elif self.batch_fraction <= 0.0 or self.batch_fraction > 1.0:
             raise ValueError("batch fraction should be between 0.0 and 1.0")
+        else:
+            self.batch_fraction_ = self.batch_fraction
                         
         self.release()
         train_data = FrovedisLabeledPoint(X, y, \
@@ -702,7 +708,7 @@ class KNeighborsRegressor(BaseEstimator):
         rpclib.knr_fit(host, port, X.get(), y.get(), self.n_neighbors,
                        self.algorithm.encode("ascii"), 
                        self.metric.encode("ascii"), 
-                       self.chunk_size, self.batch_fraction,
+                       self.chunk_size, self.batch_fraction_,
                        self.verbose, self.__mid,
                        dtype, self.__itype, self.__dense)
         excpt = rpclib.check_server_exception()

@@ -918,11 +918,13 @@ class DBSCAN(BaseEstimator):
                 "Currently Frovedis DBSCAN does not support %s algorithm!" \
                 % self.algorithm)
         if self.batch_fraction is None:
-            self.batch_fraction = np.finfo(np.float64).max
+            self.batch_fraction_ = np.finfo(np.float64).max
         elif self.batch_fraction == np.finfo(np.float64).max:
-            pass # might be set to DBLMAX in recurrent calls to fit() etc.
+            self.batch_fraction_ = self.batch_fraction
         elif self.batch_fraction <= 0.0 or self.batch_fraction > 1.0:
-            raise ValueError("batch fraction should be in between 0.0 and 1.0")            
+            raise ValueError("batch fraction should be in between 0.0 and 1.0")
+        else: 
+            self.batch_fraction_ = self.batch_fraction
 
     def check_input(self, X, F):
         """checks input X"""
@@ -972,7 +974,7 @@ class DBSCAN(BaseEstimator):
         (host, port) = FrovedisServer.getServerInstance()
         ret = np.zeros(n_samples, dtype=np.int64)
         rpclib.dbscan_train(host, port, X.get(), sample_weight, \
-                            len(sample_weight), self.eps, self.batch_fraction, \
+                            len(sample_weight), self.eps, self.batch_fraction_, \
                             self.min_samples, ret, n_samples, self.verbose, \
                             self.__mid, dtype, itype, dense)
         excpt = rpclib.check_server_exception()
