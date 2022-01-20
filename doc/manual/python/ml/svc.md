@@ -116,7 +116,7 @@ It simply returns "self" reference.
 
 ### 2. fit(X, y, sample_weight = None)
 __Parameters__   
-_**X**_: A numpy dense or scipy sparse matrix or any python ndarray. It has shape **(n_samples, n_features)**.  
+_**X**_: A numpy dense or a scipy sparse matrix or any python ndarray. It has shape **(n_samples, n_features)**.  
 For Frovedis input data:  
 - if kernel = 'linear', then it can be an instance of FrovedisColmajorMatrix for dense data and 
 FrovedisCRSMatrix for sparse data.  
@@ -134,7 +134,8 @@ It accepts the training feature matrix (X) and corresponding output labels (y)
 as inputs from the user and trains a SVC model at frovedis server.  
 
 Depending upon the input data, usage of of 'gamma' will vary:  
-- For all **python** data, **gamma = 'scale'** and **gamma = 'auto'** will be used.  
+- For **python** dense data, **gamma = 'scale'** and **gamma = 'auto'** will be used.  
+- For **python** sparse input, **gamma = 'auto'** will be used.  
 - For all **frovedis** like input, **gamma = 'auto'** only will be used.  
 
 For example,   

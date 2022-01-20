@@ -267,8 +267,8 @@ It simply returns "self" reference.
 .PD 0
 .P
 .PD
-\f[I]\f[B]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
-ndarray.
+\f[I]\f[B]X\f[]\f[]: A numpy dense or a scipy sparse matrix or any
+python ndarray.
 It has shape \f[B](n_samples, n_features)\f[].
 .PD 0
 .P
@@ -314,8 +314,13 @@ Depending upon the input data, usage of of \[aq]gamma\[aq] will vary:
 .PD 0
 .P
 .PD
-\- For all \f[B]python\f[] data, \f[B]gamma = \[aq]scale\[aq]\f[] and
+\- For \f[B]python\f[] dense data, \f[B]gamma = \[aq]scale\[aq]\f[] and
 \f[B]gamma = \[aq]auto\[aq]\f[] will be used.
+.PD 0
+.P
+.PD
+\- For \f[B]python\f[] sparse input, \f[B]gamma = \[aq]auto\[aq]\f[]
+will be used.
 .PD 0
 .P
 .PD
