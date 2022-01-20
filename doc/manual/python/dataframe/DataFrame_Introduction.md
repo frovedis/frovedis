@@ -4,11 +4,11 @@
   
 DataFrame - here refers to a Frovedis dataframe. It is a two-dimensional, size-mutable, potentially heterogeneous tabular data structure.  
   
-## SYNOPSIS  
+# SYNOPSIS  
 
     frovedis.dataframe.df.DataFrame(df=None, is_series=False)  
   
-## DESCRIPTION  
+# DESCRIPTION  
   
 Dataframe is a two-dimensional data structure, i.e., data is aligned in a tabular fashion in rows and columns. This data structure also contains labeled axes (rows and columns). Arithmetic operations align on both row and column labels. It can be thought of as a dict-like container for Series objects or it can be thought of as an SQL table or a spreadsheet data representation.  
   
@@ -19,7 +19,7 @@ Features of DataFrame:
 - Supports arithmetic operations on rows and columns.  
   
   
-### Detailed description
+## Detailed description
   
 ### 1. DataFrame(df = None, is_series = False)
 
@@ -189,16 +189,17 @@ Conversion and sorting functions are essential part of DataFrame which are basic
 7. **isnull()** - Is an alias of isna().  
 8. **nlargest()** - Return the first n rows ordered by columns in descending order.  
 9. **nsmallest()** - Return the first n rows ordered by columns in ascending order.  
-10. **sort_index()** - Sort dataframes according to index.  
-11. **sort_values()** - Sort by the values along either axis.  
-12. **to_dict()** - Convert the dataframe to a dictionary.  
-13. **to_frovedis_colmajor_matrix()** - Converts a frovedis dataframe to FrovedisColmajorMatrix.  
-14. **to_frovedis_crs_matrix()** - Converts a frovedis dataframe to FrovedisCRSMatrix.  
-15. **to_frovedis_crs_matrix_using_info()** - Converts a frovedis dataframe to FrovedisCRSMatrix provided an info object of 
+10. **sort()** - Sort by the values on a column.  
+11. **sort_index()** - Sort dataframes according to index.  
+12. **sort_values()** - Sort by the values along either axis.  
+13. **to_dict()** - Convert the dataframe to a dictionary.  
+14. **to_frovedis_colmajor_matrix()** - Converts a frovedis dataframe to FrovedisColmajorMatrix.  
+15. **to_frovedis_crs_matrix()** - Converts a frovedis dataframe to FrovedisCRSMatrix.  
+16. **to_frovedis_crs_matrix_using_info()** - Converts a frovedis dataframe to FrovedisCRSMatrix provided an info object of 
 df_to_sparse_info class.  
-16. **to_frovedis_rowmajor_matrix()** - Converts a frovedis dataframe to FrovedisRowmajorMatrix.  
-17. **to_numpy()** - Converts a frovedis dataframe to numpy array.  
-18. **to_pandas_dataframe()** - Returns a pandas dataframe object from frovedis dataframe.  
+17. **to_frovedis_rowmajor_matrix()** - Converts a frovedis dataframe to FrovedisRowmajorMatrix.  
+18. **to_numpy()** - Converts a frovedis dataframe to numpy array.  
+19. **to_pandas_dataframe()** - Returns a pandas dataframe object from frovedis dataframe.  
   
 **For more details about each of the Conversion and Sorting functions, refer  
 DataFrame_ConversionAndSorting.md**  
@@ -224,9 +225,8 @@ DataFrame provides various facilities to easily select and combine together spec
 16. **select_frovedis_dataframe()** - Selects the given columns from the input dataframe.  
 17. **set_index()** - Set the DataFrame index using existing columns.  
 18. **show()** - Displays the selected dataframe values on console.  
-19. **sort()** - Sort by the values on a column.  
-20. **tail()** - Return the last n rows.  
-21. **update_index()** - Updates/sets index values.  
+19. **tail()** - Return the last n rows.  
+20. **update_index()** - Updates/sets index values.  
   
 **For more details about each of the selection and combination functions, refer  
 DataFrame_SelectionAndCombinations.md**  

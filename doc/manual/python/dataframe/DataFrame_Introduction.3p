@@ -4,14 +4,14 @@
 DataFrame \- here refers to a Frovedis dataframe.
 It is a two\-dimensional, size\-mutable, potentially heterogeneous
 tabular data structure.
-.SS SYNOPSIS
+.SH SYNOPSIS
 .IP
 .nf
 \f[C]
 frovedis.dataframe.df.DataFrame(df=None,\ is_series=False)\ \ 
 \f[]
 .fi
-.SS DESCRIPTION
+.SH DESCRIPTION
 .PP
 Dataframe is a two\-dimensional data structure, i.e., data is aligned in
 a tabular fashion in rows and columns.
@@ -340,51 +340,56 @@ ascending order.
 .P
 .PD
 .IP "10." 4
-\f[B]sort_index()\f[] \- Sort dataframes according to index.
+\f[B]sort()\f[] \- Sort by the values on a column.
 .PD 0
 .P
 .PD
 .IP "11." 4
-\f[B]sort_values()\f[] \- Sort by the values along either axis.
+\f[B]sort_index()\f[] \- Sort dataframes according to index.
 .PD 0
 .P
 .PD
 .IP "12." 4
-\f[B]to_dict()\f[] \- Convert the dataframe to a dictionary.
+\f[B]sort_values()\f[] \- Sort by the values along either axis.
 .PD 0
 .P
 .PD
 .IP "13." 4
+\f[B]to_dict()\f[] \- Convert the dataframe to a dictionary.
+.PD 0
+.P
+.PD
+.IP "14." 4
 \f[B]to_frovedis_colmajor_matrix()\f[] \- Converts a frovedis dataframe
 to FrovedisColmajorMatrix.
 .PD 0
 .P
 .PD
-.IP "14." 4
+.IP "15." 4
 \f[B]to_frovedis_crs_matrix()\f[] \- Converts a frovedis dataframe to
 FrovedisCRSMatrix.
 .PD 0
 .P
 .PD
-.IP "15." 4
+.IP "16." 4
 \f[B]to_frovedis_crs_matrix_using_info()\f[] \- Converts a frovedis
 dataframe to FrovedisCRSMatrix provided an info object of
 df_to_sparse_info class.
 .PD 0
 .P
 .PD
-.IP "16." 4
+.IP "17." 4
 \f[B]to_frovedis_rowmajor_matrix()\f[] \- Converts a frovedis dataframe
 to FrovedisRowmajorMatrix.
 .PD 0
 .P
 .PD
-.IP "17." 4
+.IP "18." 4
 \f[B]to_numpy()\f[] \- Converts a frovedis dataframe to numpy array.
 .PD 0
 .P
 .PD
-.IP "18." 4
+.IP "19." 4
 \f[B]to_pandas_dataframe()\f[] \- Returns a pandas dataframe object from
 frovedis dataframe.
 .PP
@@ -493,16 +498,11 @@ the input dataframe.
 .P
 .PD
 .IP "19." 4
-\f[B]sort()\f[] \- Sort by the values on a column.
-.PD 0
-.P
-.PD
-.IP "20." 4
 \f[B]tail()\f[] \- Return the last n rows.
 .PD 0
 .P
 .PD
-.IP "21." 4
+.IP "20." 4
 \f[B]update_index()\f[] \- Updates/sets index values.
 .PP
 \f[B]For more details about each of the selection and combination
