@@ -13,9 +13,9 @@ using namespace std;
   s: k(<-m) x k(<-n)
   vt: k(<-n) x n / v: n x k
  */
-void do_sparse_eigen_sym(const string& input_matrix, const string& d_file,
-                         const string& v_file, string mode, int k,
-                         bool binary) {
+void do_sparse_eigen(const string& input_matrix, const string& d_file,
+                     const string& v_file, string mode, int k,
+                     bool sym, bool binary) {
   time_spent t(DEBUG);
   crs_matrix<double> matrix;
   if(binary) {
@@ -25,22 +25,47 @@ void do_sparse_eigen_sym(const string& input_matrix, const string& d_file,
   }
   t.show("load time: ");
   colmajor_matrix<double> v;
+  colmajor_matrix<double> vi;
   diag_matrix_local<double> d;
+  diag_matrix_local<double> di;
   time_spent t2(DEBUG), t3(DEBUG);
-#if defined(_SX) || defined(__ve__) 
-  shrink::sparse_eigen_sym<jds_crs_hybrid<double>, jds_crs_hybrid_local<double>>
-    (matrix, d, v, mode, k);
+#if defined(_SX) || defined(__ve__)
+  if(sym)
+    shrink::sparse_eigen_sym<jds_crs_hybrid<double>,
+                             jds_crs_hybrid_local<double>>
+      (matrix, d, v, mode, k);
+  else
+    shrink::sparse_eigen<jds_crs_hybrid<double>,
+                         jds_crs_hybrid_local<double>>
+      (matrix, d, di, v, vi, mode, k);
 #else
-  shrink::sparse_eigen_sym<double>(matrix, d, v, mode, k); 
+  if(sym)
+    shrink::sparse_eigen_sym<double>(matrix, d, v, mode, k);
+  else
+    shrink::sparse_eigen<double>(matrix, d, di, v, vi, mode, k);
 #endif
-  t2.show("sparse_eigen_sym: ");
+  t2.show("sparse_eigen[_sym]: ");
   t3.show("total time w/o I/O: ");
   if(binary) {
-    d.savebinary(d_file);
-    v.to_rowmajor().savebinary(v_file);
+    if(sym) {
+      d.savebinary(d_file);
+      v.to_rowmajor().savebinary(v_file);
+    } else {
+      d.savebinary(d_file + "_real");
+      di.savebinary(d_file + "_imag");
+      v.to_rowmajor().savebinary(v_file + "_real");
+      vi.to_rowmajor().savebinary(v_file + "_imag");
+    }
   } else {
-    d.save(d_file);
-    v.to_rowmajor().save(v_file);
+    if(sym) {
+      d.save(d_file);
+      v.to_rowmajor().save(v_file);
+    } else {
+      d.save(d_file + "_real");
+      di.save(d_file + "_imag");
+      v.to_rowmajor().save(v_file + "_real");
+      vi.to_rowmajor().save(v_file + "_imag");
+    }
   }
   t2.show("save time: ");
 }
@@ -58,6 +83,8 @@ int main(int argc, char* argv[]) {
     ("v,v", value<string>(), "eigen vectors to save")
     ("k,k", value<int>(), "number of eigen values to compute")
     ("mode", value<string>(), "SM: from small, LM: from large, etc. [default: SM]")
+    ("sym,s", "input is symmetric")
+    ("nonsym,n", "input is not symmetric")
     ("verbose", "set loglevel DEBUG")
     ("verbose2", "set loglevel TRACE")
     ("binary,b", "use binary input/output");
@@ -70,6 +97,7 @@ int main(int argc, char* argv[]) {
   string input, d, v;
   int k;
   bool binary = false;
+  bool sym = true;
 
   string mode = "SM";
   
@@ -114,6 +142,14 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
+  if(argmap.count("sym")){
+    sym = true;
+  }
+
+  if(argmap.count("nonsym")){
+    sym = false;
+  }
+
   if(argmap.count("binary")){
     binary = true;
   }
@@ -126,5 +162,5 @@ int main(int argc, char* argv[]) {
     set_loglevel(TRACE);
   }
 
-  do_sparse_eigen_sym(input, d, v, mode, k, binary);
+  do_sparse_eigen(input, d, v, mode, k, sym, binary);
 }
