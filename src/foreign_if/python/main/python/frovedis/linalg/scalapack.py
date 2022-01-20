@@ -399,7 +399,7 @@ def sgels(a, b, trans='N', lwork=0, overwrite_a=0, overwrite_b=0):
     """
     return gels(a, b, trans, lwork, overwrite_a, overwrite_b, dtype=np.float32)
 
-def gesvd(a, compute_uv=1, full_matrices=1, lwork=0,
+def gesvd(a, compute_uv=1, full_matrices=0, lwork=0,
           overwrite_a=0, dtype=np.float64):
     """gesvd"""
     (input_a, to_convert, isMatrix) = \
@@ -408,6 +408,10 @@ def gesvd(a, compute_uv=1, full_matrices=1, lwork=0,
         wantU = False
         wantV = False
     elif compute_uv == 1:
+        if full_matrices != 0:
+            raise ValueError("expected full_matrices = 0; ScaLapack p?gesvd "+\
+            "supports only first min(M, N) no. of rows/columns of " +\
+            "U/V to be computed")
         wantU = True
         wantV = True
     else:
@@ -441,7 +445,7 @@ def gesvd(a, compute_uv=1, full_matrices=1, lwork=0,
                        #  release of result components
         return (u, s, vt, stat)
 
-def dgesvd(a, compute_uv=1, full_matrices=1, lwork=0, overwrite_a=0):
+def dgesvd(a, compute_uv=1, full_matrices=0, lwork=0, overwrite_a=0):
     """ wrapper of native scalapack pdgesvd (double precision)
         input:
           a: LHS numpy matrix (any type) or FrovedisBlockcyclicMatrix
@@ -451,7 +455,7 @@ def dgesvd(a, compute_uv=1, full_matrices=1, lwork=0, overwrite_a=0):
                       be computed. If set as ZERO, a numpy matrix of shape
                       (1,1) and datatype same as A will be assigned to the
                       left and right singular matrix.
-	  full_matrix: optional integer value with default value ONE.
+	  full_matrices: optional integer value (only 0 is supported).
           lwork: optional integer value without any effect (internally skipped)
           overwrite_a: optional integer value, if ZERO 'a' would remain
                         unchanged.
@@ -471,8 +475,7 @@ def dgesvd(a, compute_uv=1, full_matrices=1, lwork=0, overwrite_a=0):
     return gesvd(a, compute_uv, full_matrices, lwork,
                  overwrite_a, dtype=np.float64)
 
-
-def sgesvd(a, compute_uv=1, full_matrices=1, lwork=0, overwrite_a=0):
+def sgesvd(a, compute_uv=1, full_matrices=0, lwork=0, overwrite_a=0):
     """ wrapper of native scalapack psgesvd (single precision)
         input:
           a: LHS numpy matrix (any type) or FrovedisBlockcyclicMatrix
@@ -482,7 +485,7 @@ def sgesvd(a, compute_uv=1, full_matrices=1, lwork=0, overwrite_a=0):
                         be computed. If set as ZERO, a numpy matrix of shape
                         (1,1) and datatype same as A will be assigned to the
                         left and right singular matrix.
-	  full_matrix: optional integer value with default value ONE.
+	  full_matrices: optional integer value (only 0 is supported).
           lwork: optional integer value without any effect (internally skipped)
           overwrite_a: optional integer value, if ZERO 'a' would remain
                          unchanged.

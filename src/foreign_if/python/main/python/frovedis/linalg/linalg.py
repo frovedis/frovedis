@@ -123,14 +123,15 @@ def handle_dot_output(x1, x2, y, cv1, cv2, out, isMatrix, toFlatten=False):
             else:
                 return y.to_numpy_array()
 
-def svd(a, full_matrices=True, compute_uv=True):
+def svd(a, full_matrices=False, compute_uv=True):
     #-> gesvd
     """
     This function computes the singular value decomposition.
     input parameters:
           a: float32/float64 array with dim == 2.
              If dimension is not equal 2, ValueError is raised.
-          full_matrices: optional boolean argument.
+          full_matrices: False, since ScaLapack p?gesvd supports only 
+                         partial, first min(M,N) no. of U/V to be computed.
           compute_uv: optional boolean argument to specify whether
           or not to compute u and vh in addition to s.
     output parameters:
@@ -371,7 +372,7 @@ def eigsh(A, M = None, k = 6, sigma = None, which = 'LM', v0=None,
         maxiter = 10 * nrows
     wantEv = return_eigenvectors
     (host, port) = FrovedisServer.getServerInstance()
-    res = rpclib.eigsh(host, port, X.get(),
+    res = rpclib.compute_eigsh(host, port, X.get(),
                        k, which.encode('ascii'),
                        sigma, maxiter, wantEv,
                        tol, x_dtype,
