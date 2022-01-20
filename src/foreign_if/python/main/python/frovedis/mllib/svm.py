@@ -16,6 +16,7 @@ from ..matrix.dtype import TypeUtil
 from ..matrix.dense import FrovedisDenseMatrix, FrovedisRowmajorMatrix
 from ..matrix.dvector import FrovedisDvector
 from ..matrix.crs import FrovedisCRSMatrix
+from scipy.sparse import issparse
 from .model_util import *
 from .metrics import *
 
@@ -416,9 +417,11 @@ class SVC(BaseEstimator):
         if self.cache_size <= 2:
             raise ValueError("validate: cache_size must be greater than 2!")
         if self.max_iter == -1:
-            self.max_iter = np.iinfo(np.int32).max
+            self.max_iter_ = np.iinfo(np.int32).max
         elif self.max_iter <= 0:
             raise ValueError("validate: max_iter can either be -1 or positive!")
+        else:
+            self.max_iter_ = self.max_iter
 
     @set_association
     def fit(self, X, y, sample_weight=None):
@@ -428,7 +431,8 @@ class SVC(BaseEstimator):
         self.release()
         self.validate()
 
-        if not isinstance(X, (FrovedisDenseMatrix, FrovedisCRSMatrix)):
+        if not isinstance(X, (FrovedisDenseMatrix, FrovedisCRSMatrix)) \
+           and not issparse(X):
             self.xvar = np.var(X)
         else:
             self.xvar = None
@@ -448,7 +452,7 @@ class SVC(BaseEstimator):
         if type(self.gamma).__name__ == 'float': pass
         elif self.gamma == "scale":
             if self.xvar is None :
-                raise ValueError("fit: gamma = scale is supported only for python data!")
+                raise ValueError("fit: gamma = scale is supported only for numpy array-like data!")
             self.gamma = 1.0 / (self.n_features * self.xvar)
         elif self.gamma == "auto":
             self.gamma = 1.0 / self.n_features
@@ -466,14 +470,14 @@ class SVC(BaseEstimator):
             warm_start = False
             self._n_iter = rpclib.svm(host, port, X.get(), y.get(), \
                            sample_weight, len(sample_weight), \
-                           self.max_iter, lrate, regType, rparam, icpt, \
+                           self.max_iter_, lrate, regType, rparam, icpt, \
                            self.tol, self.verbose, self.__mid, dtype, \
                            itype, dense, solver.encode('ascii'), warm_start)
             self._coef = None
             self._intercept = None
         else:
             rpclib.frovedis_svc(host, port, X.get(), y.get(), \
-                       self.tol, self.C, self.cache_size, self.max_iter, \
+                       self.tol, self.C, self.cache_size, self.max_iter_, \
                        self.kernel.encode("ascii"), self.gamma, self.coef0, \
                        self.degree, self.verbose, self.__mid, \
                        dtype, itype, dense)
