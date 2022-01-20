@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 from frovedis.exrpc.server import FrovedisServer
-from frovedis.linalg.linalg import eigsh
+from frovedis.linalg import eigsh
 
 # initializing the Frovedis server
 argvs = sys.argv

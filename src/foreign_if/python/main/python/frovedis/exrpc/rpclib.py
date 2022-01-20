@@ -1914,15 +1914,15 @@ compute_lda_component.argtypes = [c_char_p, c_int,\
 compute_lda_component.restype = py_object
 
 # 4. EIGSH
-eigsh = LIB.eigsh
-eigsh.argtypes = [c_char_p, c_int,    #host, port
+compute_eigsh = LIB.eigsh
+compute_eigsh.argtypes = [c_char_p, c_int,    #host, port
                   c_long, c_int,      #Xptr, k
                   c_char_p, c_float,  #which, sigma
                   c_int, c_bool,      #maxiter, wantEv
                   c_float, c_short,   #tol, dtype
                   c_short, c_bool     #indextype, isdense
                   ]
-eigsh.restype = py_object
+compute_eigsh.restype = py_object
 
 # --- manifold APIs ---
 
