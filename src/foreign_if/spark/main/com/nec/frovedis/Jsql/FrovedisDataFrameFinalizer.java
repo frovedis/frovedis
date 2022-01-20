@@ -8,8 +8,7 @@ import com.nec.frovedis.Jexrpc.JNISupport;
 import com.nec.frovedis.Jexrpc.FrovedisServer;
 import java.rmi.ServerException;
 
-public class FrovedisDataFrameFinalizer 
-  extends PhantomReference<FrovedisDataFrame> implements java.io.Serializable {
+public class FrovedisDataFrameFinalizer extends PhantomReference<FrovedisDataFrame> {
 
   static AutoCloseThread thread = new AutoCloseThread();
   static { thread.start(); }

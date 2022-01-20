@@ -145,6 +145,19 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisDa
   catch(std::exception& e) { set_status(true,e.what()); }
 }
 
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_calcMemorySize
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+  long ret = 0;
+  try {
+    ret = exrpc_async(fm_node, calc_memory_size, df_proxy).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) ret;
+}
+
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseFrovedisGroupedDF
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy) {
 

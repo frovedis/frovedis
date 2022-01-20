@@ -830,6 +830,7 @@ public class JNISupport {
                                                      short dtypes[],
                                                      long ncol,
                                                      long vptrs[], long ptrsz);
+  public static native long calcMemorySize(Node master_node, long data);
   public static native void releaseFrovedisDataframe(Node master_node, long data);
   public static native DummyDftable copyColumn(Node master_node, long dptr,
                                                long proxies[],

@@ -33,7 +33,8 @@ class FrovedisDataFrame extends java.io.Serializable {
   private var code: Int = 0
   var owned_cols: Array[String] = null
   @transient var ref: FrovedisDataFrameFinalizer = null
-
+  var mem_size: Long = 0
+  
   // creating a frovedis dataframe from a spark dataframe -> User API
   def this(df: DataFrame) = {
     this()
@@ -143,6 +144,7 @@ class FrovedisDataFrame extends java.io.Serializable {
         types = null
         owned_cols = null
         code = 0
+        mem_size = 0
       }
     }
   }
@@ -178,8 +180,13 @@ class FrovedisDataFrame extends java.io.Serializable {
     }
     val fs = FrovedisServer.getServerInstance()
     fdata = JNISupport.createFrovedisDataframe(fs.master_node,types,cols,dvecs,size)
-    val info = JNISupport.checkServerException()
+    var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
+
+    mem_size = JNISupport.calcMemorySize(fs.master_node, fdata)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+
     this.code = df.hashCode
     this
   }
@@ -230,6 +237,12 @@ class FrovedisDataFrame extends java.io.Serializable {
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     t_log.show("dataframe creation: ")
+
+    mem_size = JNISupport.calcMemorySize(fs.master_node, fdata)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    t_log.show("calc memory size: ")
+
     this.code = df.hashCode
     this
   }

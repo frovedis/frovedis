@@ -17,6 +17,8 @@ bool is_present(const std::vector<std::string>& vec,
 
 dftable* get_dftable_pointer(exrpc_ptr_t& df_proxy);
 
+long calc_memory_size(exrpc_ptr_t& df_proxy);
+
 template <class T>
 exrpc_ptr_t get_df_column_pointer(exrpc_ptr_t& df_proxy, 
                                   std::string& cname) {

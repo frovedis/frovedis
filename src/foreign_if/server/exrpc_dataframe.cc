@@ -2427,3 +2427,14 @@ copy_spark_column(exrpc_ptr_t& self_proxy,
   }
   return to_dummy_dftable(selfp);
 }
+
+long calc_memory_size(exrpc_ptr_t& df_proxy) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto cols = df.columns();
+  long size = 0;
+  long denom = 1024;
+  for (size_t i = 0; i < cols.size(); ++i) size += df.column(cols[i])->calc_spill_size();
+  size = ceil_div(ceil_div(size, denom), denom); // size in MB
+  return size;
+}
+
