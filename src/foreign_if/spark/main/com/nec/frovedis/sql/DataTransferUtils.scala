@@ -12,6 +12,12 @@ import org.apache.log4j.Level
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow
+import org.apache.spark.sql.execution.exchange.EnsureRequirements
+import org.apache.spark.sql.execution.{QueryExecution, PlanSubqueries, 
+                                       CollapseCodegenStages, SparkPlan}
+import org.apache.spark.sql.catalyst.rules.Rule
+import org.apache.spark.sql.vectorized.ColumnarBatch
+import org.apache.spark.sql.DataFrame
 import scala.collection.mutable.{Map => mMap}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
@@ -26,6 +32,7 @@ object DFMemoryManager extends java.io.Serializable {
              cols: Iterator[String]): Unit = {
     while(cols.hasNext) table((code, cols.next)) = fdf
     df_pool += fdf
+    //println("inserted table size: " + fdf.mem_size + " MB")
   }
 
   def get(key: (Int, String)): FrovedisDataFrame = {
@@ -156,6 +163,225 @@ object Dvec extends java.io.Serializable {
 
 // for loading entire dataframe at a time in optimized way
 object sDFTransfer extends java.io.Serializable {
+
+  def get_columnar(df: DataFrame): RDD[ColumnarBatch] = {
+    val qe = new QueryExecution(df.sparkSession, df.queryExecution.logical) {
+      override protected def preparations: Seq[Rule[SparkPlan]] = {
+        Seq(
+          PlanSubqueries(sparkSession),
+          EnsureRequirements,               // dependency with spark >= 3.1.1
+          CollapseCodegenStages()           // dependency with spark >= 3.1.1
+        )
+      }
+    }
+    var ret: RDD[ColumnarBatch] = null
+    try {
+      ret = qe.executedPlan.executeColumnar()
+      ret.count // for action
+    } catch { // IllegalStateException etc...
+      case e1: IllegalStateException => {ret = null} 
+      case other: Throwable => {ret = null}
+    }
+    return ret
+  }
+
+  def load_columnar(columnar: RDD[ColumnarBatch],
+                    cols: Array[String],
+                    types: Array[Short],
+                    word_count: Int,
+                    offset: Array[Int]): Long = {
+    val ncol = cols.size
+    val t_log = new TimeSpent(Level.DEBUG)
+
+    // (1) allocate
+    val fs = FrovedisServer.getServerInstance()
+    val nproc = fs.worker_size
+    val npart = columnar.count // no. of batches
+    val block_sizes = GenericUtils.get_block_sizes(npart, nproc)
+    val vptrs = JNISupport.allocateLocalVectors2(fs.master_node, block_sizes,
+                                                 nproc, types, ncol) // vptrs: (ncol + no-of-words) x nproc
+    var info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    t_log.show("server memory allocation: ")
+
+    // (2) prepare server side ranks for processing N parallel requests
+    JNISupport.lockParallel()
+    val fw_nodes = JNISupport.getWorkerInfoMulti(fs.master_node,
+                                        block_sizes.map(_ * ncol), nproc)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    t_log.show("server process preparation: ")
+                                                      
+    // (3) data transfer
+    transfer_columnar_batch(columnar, fw_nodes, vptrs, offset, types, 
+                            block_sizes, ncol, nproc)
+    t_log.show("[batch: " + npart + "] server side data transfer: ")
+    JNISupport.unlockParallel()
+
+    val fdata = JNISupport.createFrovedisDataframe2(fs.master_node, cols, types,
+                                                    ncol, vptrs, vptrs.size)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    t_log.show("dataframe creation: ")
+    return fdata
+  }
+
+  def load_rows(rddData: RDD[InternalRow],
+                cols: Array[String],
+                types: Array[Short],
+                word_count: Int,
+                offset: Array[Int]): Long = {
+    val ncol = cols.size
+    val t_log = new TimeSpent(Level.DEBUG)
+
+    // (1) allocate
+    val fs = FrovedisServer.getServerInstance()
+    val nproc = fs.worker_size
+    val npart = rddData.getNumPartitions
+    val block_sizes = GenericUtils.get_block_sizes(npart, nproc)
+    val vptrs = JNISupport.allocateLocalVectors2(fs.master_node, block_sizes,
+                                                 nproc, types, ncol) // vptrs: (ncol + no-of-words) x nproc
+    var info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    t_log.show("server memory allocation: ")
+
+    // (2) prepare server side ranks for processing N parallel requests
+    JNISupport.lockParallel()
+    val fw_nodes = JNISupport.getWorkerInfoMulti(fs.master_node,
+                                        block_sizes.map(_ * ncol), nproc)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    t_log.show("server process preparation: ")
+                                                      
+    // (3) data transfer
+    execute(rddData, fw_nodes, vptrs, offset, types, block_sizes, ncol, nproc)
+    t_log.show("[numpartition: " + npart + "] server side data transfer: ")
+    JNISupport.unlockParallel()
+
+    val fdata = JNISupport.createFrovedisDataframe2(fs.master_node, cols, types,
+                                                    ncol, vptrs, vptrs.size)
+    info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    t_log.show("dataframe creation: ")
+    return fdata
+  }
+
+  def execute(rddData: RDD[InternalRow],
+              fw_nodes: Array[Node],
+              vptrs: Array[Long],
+              offset: Array[Int],
+              types: Array[Short],
+              block_sizes: Array[Long],
+              ncol: Int, nproc: Int): Unit = {
+    if (rddData.first.isInstanceOf[UnsafeRow]) {
+      //val jRddData = rddData.map(x => x.asInstanceOf[UnsafeRow]).toJavaRDD
+      //jDFTransfer.execute(jRddData, fw_nodes, vptrs, types, block_sizes, ncol, nproc)
+      transfer_unsafe_row(rddData, fw_nodes, vptrs, offset, 
+                          types, block_sizes, ncol, nproc)
+    } 
+    else {
+      transfer_internal_row(rddData, fw_nodes, vptrs, offset, 
+                            types, block_sizes, ncol, nproc)
+    }
+  }
+
+  private def transfer_columnar_batch(
+              columnar: RDD[ColumnarBatch],
+              fw_nodes: Array[Node],
+              vptrs: Array[Long],
+              offset: Array[Int],
+              types: Array[Short],
+              block_sizes: Array[Long],
+              ncol: Int, nproc: Int): Unit = {
+    val ret = columnar.zipWithIndex().map({ case(batch, index) =>
+        val t0 = new TimeSpent(Level.TRACE)
+
+        val (destId, myst) = GenericUtils.index2Dest(index, block_sizes)
+        val localId = index - myst
+        val w_node = fw_nodes(destId)
+
+/*
+        val k = batch.numRows()
+        for (i <- 0 until ncol) {
+          val tcol = batch.column(i)
+          val row_offset = offset(i)
+          val vptr = vptrs(row_offset * nproc + destId)
+          types(i) match { // TODO: check room for improving StringType case
+            case DTYPE.INT => {
+              //val iArr = tcol.getInts(0, k)
+              val iArr = new Array[Int](k)
+              for(j <- 0 until k) iArr(j) = if (tcol.isNullAt(j)) Integer.MAX_VALUE else tcol.getInt(j)
+              t0.show("ColumnVector -> IntArray: ")
+              JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr, k)
+            }
+            case DTYPE.BOOL => {
+              //val iArr = tcol.getBooleans(0, k).map(x => if (x) 1 else  0)
+              val iArr = new Array[Int](k)
+              for(j <- 0 until k) {
+                if (tcol.isNullAt(j)) iArr(j) = Integer.MAX_VALUE
+                else                  iArr(j) = if (tcol.getBoolean(j)) 1 else 0
+              }
+              t0.show("ColumnVector -> (Boolean) IntArray: ")
+              JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr, k)
+            }
+            case DTYPE.LONG => {
+              //val lArr = tcol.getLongs(0, k)
+              val lArr = new Array[Long](k)
+              for(j <- 0 until k) lArr(j) = if (tcol.isNullAt(j)) Long.MAX_VALUE else tcol.getLong(j)
+              t0.show("ColumnVector -> LongArray: ")
+              JNISupport.loadFrovedisWorkerLongVector(w_node, vptr, localId, lArr, k)
+            }
+            case DTYPE.FLOAT => {
+              //val fArr = tcol.getFloats(0, k)
+              val fArr = new Array[Float](k)
+              for(j <- 0 until k) fArr(j) = if (tcol.isNullAt(j)) Float.MAX_VALUE else tcol.getFloat(j)
+              t0.show("ColumnVector -> FloatArray: ")
+              JNISupport.loadFrovedisWorkerFloatVector(w_node, vptr, localId, fArr, k)
+            }
+            case DTYPE.DOUBLE => {
+              //val dArr = tcol.getDoubles(0, k)
+              val dArr = new Array[Double](k)
+              for(j <- 0 until k) dArr(j) = if (tcol.isNullAt(j)) Double.MAX_VALUE else tcol.getDouble(j)
+              t0.show("ColumnVector -> DoubleArray: ")
+              JNISupport.loadFrovedisWorkerDoubleVector(w_node, vptr, localId, dArr, k)
+            }
+            case DTYPE.STRING => {
+              val sArr = new Array[String](k)
+              for (j <- 0 until k) sArr(j) = if (tcol.isNullAt(j)) "NULL" else tcol.getUTF8String(j).toString()
+              t0.show("ColumnVector -> StringArray: ")
+              JNISupport.loadFrovedisWorkerStringVector(w_node, vptr, localId, sArr, k)
+            }
+            case DTYPE.WORDS => {
+              val next_row_offset = row_offset + 1
+              val sptr = vptrs(next_row_offset * nproc + destId)
+              val sArr = new Array[Array[Char]](k)
+              for (j <- 0 until k) {
+                val tmp = if (tcol.isNullAt(j)) "NULL" else tcol.getUTF8String(j).toString()
+                sArr(j) = tmp.toCharArray()
+              }
+              t0.show("ColumnVector -> array-of-CharArray: ")
+
+              val (flat_sArr, sizes_arr) = GenericUtils.flatten(sArr)
+              t0.show("array-of-CharArray flatten: ")
+              JNISupport.loadFrovedisWorkerCharSizePair(w_node, vptr, sptr, localId,
+                                                        flat_sArr, sizes_arr,
+                                                        flat_sArr.size, k)
+            }
+            case _ => throw new IllegalArgumentException(
+                      "[optimized_load] Unsupported type: " + TMAPPER.id2string(types(i)))
+          }
+          val err = JNISupport.checkServerException()
+          if (err != "") throw new java.rmi.ServerException(err)
+          t0.show("spark-worker to frovedis-rank local data copy: ")
+        }
+*/
+        jDFTransfer.transfer_batch_data(batch, w_node, vptrs, offset, types, 
+                                        ncol, nproc, destId, localId, t0)
+        Array(true).toIterator
+    })
+    ret.count // for action
+  }
+
   private def copy_local_word_data(
     index: Int, destId: Int,
     w_node: Node, vptr: Long, sptr: Long, localId: Long,
@@ -392,23 +618,6 @@ object sDFTransfer extends java.io.Serializable {
     ret.count // for action
   }
 
-  def execute(rddData: RDD[InternalRow],
-              fw_nodes: Array[Node],
-              vptrs: Array[Long],
-              offset: Array[Int],
-              types: Array[Short],
-              block_sizes: Array[Long],
-              ncol: Int, nproc: Int): Long = {
-    if (rddData.first.isInstanceOf[UnsafeRow]) {
-      //val jRddData = rddData.map(x => x.asInstanceOf[UnsafeRow]).toJavaRDD
-      //jDFTransfer.execute(jRddData, fw_nodes, vptrs, types, block_sizes, ncol, nproc)
-      return transfer_unsafe_row(rddData, fw_nodes, vptrs, offset, 
-                                 types, block_sizes, ncol, nproc)
-    } 
-    else {
-      return transfer_internal_row(rddData, fw_nodes, vptrs, offset, 
-                                   types, block_sizes, ncol, nproc)
-    }
-  }
 }
+
 

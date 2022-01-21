@@ -28,7 +28,7 @@ public class FrovedisDataFrameFinalizer extends PhantomReference<FrovedisDataFra
       JNISupport.releaseFrovedisDataframe(fs.master_node, proxy);
       String info = JNISupport.checkServerException();
       if (!info.isEmpty()) throw new ServerException(info);
-      //System.out.println("released " + proxy);
+      //System.out.println("released dftable: " + proxy);
       proxy = -1;
       thread.removeObject(this);
     }
@@ -68,7 +68,7 @@ public class FrovedisDataFrameFinalizer extends PhantomReference<FrovedisDataFra
         while (true) {
           // queue.remove(): blocking if queue is empty
           FrovedisDataFrameFinalizer ref = (FrovedisDataFrameFinalizer) queue.remove();
-          //System.out.println(ref.proxy + " is not properly released, doing it now...");
+          //System.out.println("dftable: " + ref.proxy + " is not properly released, doing it now...");
           ref.release();
         }
       } catch (Exception e) {

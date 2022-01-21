@@ -3,6 +3,7 @@ package com.nec.frovedis.sql;
 import com.nec.frovedis.Jexrpc._
 import com.nec.frovedis.Jmllib.DummyDftable
 import com.nec.frovedis.matrix.DTYPE
+import com.nec.frovedis.Jsql.FrovedisGroupedDFFinalizer
 import scala.collection.mutable.ArrayBuffer
 
 class FrovedisGroupedDF extends java.io.Serializable {
@@ -12,6 +13,7 @@ class FrovedisGroupedDF extends java.io.Serializable {
   protected var groupedCols: Array[String] = null
   protected var groupedTypes: Array[Short] = null
   protected var numericCols: Array[String] = null
+  @transient var ref: FrovedisGroupedDFFinalizer = null
 
   def this(proxy: Long, 
            cc: Array[String], tt: Array[Short], 
@@ -22,6 +24,7 @@ class FrovedisGroupedDF extends java.io.Serializable {
     types = tt.clone()
     groupedCols = g_cc.clone()
     groupedTypes = g_tt.clone()
+    this.ref = FrovedisGroupedDFFinalizer.addObject(this)
   }
   def this(proxy: Long, 
            cc: Array[String], tt: Array[Short],
@@ -31,20 +34,17 @@ class FrovedisGroupedDF extends java.io.Serializable {
     cols = cc.clone()
     types = tt.clone()
     groupedCols = g_cc.clone()
+    this.ref = FrovedisGroupedDFFinalizer.addObject(this)
   }
   def release () : Unit = {
-    if (fdata != -1) {
-      val fs = FrovedisServer.getServerInstance()
-      JNISupport.releaseFrovedisGroupedDF(fs.master_node,fdata)
-      val info = JNISupport.checkServerException()
-      if (info != "") throw new java.rmi.ServerException(info)
-      fdata = -1
-      cols = null
-      types = null
-      groupedCols = null
-      groupedTypes = null
-      numericCols = null
-    }
+    ref.release()
+    ref = null
+    fdata = -1
+    cols = null
+    types = null
+    groupedCols = null
+    groupedTypes = null
+    numericCols = null
   }
   def getNumericCols(): Array[String] = {
     if(this.numericCols == null) {

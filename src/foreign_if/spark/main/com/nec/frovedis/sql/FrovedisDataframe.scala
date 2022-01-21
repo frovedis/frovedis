@@ -139,6 +139,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       if (!is_removable) DFMemoryManager.add_release_entry(this) 
       else {
         ref.release()
+        ref = null
         fdata = -1
         cols = null
         types = null
@@ -164,26 +165,20 @@ class FrovedisDataFrame extends java.io.Serializable {
   def load (df: DataFrame) : this.type = {
     release()
     val name_type_pair = df.dtypes
-    cols = name_type_pair.map(_._1)
-    val tt = name_type_pair.map(_._2)
-    val size = cols.size
-    val dvecs = new Array[Long](size)
-    types = new Array[Short](size)
+    this.cols = name_type_pair.map(_._1)
+    this.types = name_type_pair.map(_._2).map(x => TMAPPER.string2id(x))
+    val ncol = cols.size
+    val dvecs = new Array[Long](ncol)
     val rddData = df.queryExecution.toRdd
     val part_sizes = rddData.mapPartitions(x => Array(x.size).toIterator).persist
-    for (i <- 0 to (size-1)) {
-      //print("col_name: " + cols(i) + " col_type: " + tt(i) + "\n")
-      val tname = tt(i)
-      val dtype = TMAPPER.string2id(tname)
-      types(i) = dtype
-      dvecs(i) = Dvec.get(rddData, dtype, i, part_sizes)
-    }
+    for (i <- 0 until ncol) dvecs(i) = Dvec.get(rddData, types(i), i, part_sizes)
     val fs = FrovedisServer.getServerInstance()
-    fdata = JNISupport.createFrovedisDataframe(fs.master_node,types,cols,dvecs,size)
+    this.fdata = JNISupport.createFrovedisDataframe(fs.master_node, types, 
+                                                    cols, dvecs, ncol)
     var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
 
-    mem_size = JNISupport.calcMemorySize(fs.master_node, fdata)
+    this.mem_size = JNISupport.calcMemorySize(fs.master_node, this.fdata)
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
 
@@ -196,52 +191,31 @@ class FrovedisDataFrame extends java.io.Serializable {
   def optimized_load (df: DataFrame) : this.type = {
     release()
     val name_type_pair = df.dtypes
-    cols = name_type_pair.map(_._1)
-    types = name_type_pair.map(_._2).map(x => TMAPPER.string2id(x))
+    this.cols = name_type_pair.map(_._1)
+    this.types = name_type_pair.map(_._2).map(x => TMAPPER.string2id(x))
     val ncol = cols.size
-    val rddData = df.queryExecution.toRdd
     val offset = new Array[Int](ncol)
     var word_count = 0
     for (i <- 0 until ncol) {
       offset(i) = i + word_count
       word_count += (if (types(i) == DTYPE.WORDS) 1 else 0)
     }
-    val t_log = new TimeSpent(Level.DEBUG)
+    val columnar = sDFTransfer.get_columnar(df)
+    if (columnar == null) {
+      //println("non-columnar data is detected!")
+      this.fdata = sDFTransfer.load_rows(df.queryExecution.toRdd, cols, types, 
+                                         word_count, offset)
+    }
+    else {
+      //println("columnar data is detected!")
+      this.fdata = sDFTransfer.load_columnar(columnar, cols, types, 
+                                             word_count, offset)
+    }
 
-    // (1) allocate
     val fs = FrovedisServer.getServerInstance()
-    val nproc = fs.worker_size
-    val npart = rddData.getNumPartitions
-    val block_sizes = GenericUtils.get_block_sizes(npart, nproc)
-    val vptrs = JNISupport.allocateLocalVectors2(fs.master_node, block_sizes,
-                                                 nproc, types, ncol) // vptrs: (ncol + no-of-words) x nproc
-    var info = JNISupport.checkServerException()
+    this.mem_size = JNISupport.calcMemorySize(fs.master_node, this.fdata)
+    val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    t_log.show("server memory allocation: ")
-
-    // (2) prepare server side ranks for processing N parallel requests
-    JNISupport.lockParallel()
-    val fw_nodes = JNISupport.getWorkerInfoMulti(fs.master_node,
-                                        block_sizes.map(_ * ncol), nproc)
-    info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    t_log.show("server process preparation: ")
-                                                      
-    // (3) data transfer
-    sDFTransfer.execute(rddData, fw_nodes, vptrs, offset, types, block_sizes, ncol, nproc)
-    t_log.show("[numpartition: " + npart + "] server side data transfer: ")
-    JNISupport.unlockParallel()
-
-    fdata = JNISupport.createFrovedisDataframe2(fs.master_node, cols, types,
-                                                ncol, vptrs, vptrs.size)
-    info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    t_log.show("dataframe creation: ")
-
-    mem_size = JNISupport.calcMemorySize(fs.master_node, fdata)
-    info = JNISupport.checkServerException()
-    if (info != "") throw new java.rmi.ServerException(info)
-    t_log.show("calc memory size: ")
 
     this.code = df.hashCode
     this
