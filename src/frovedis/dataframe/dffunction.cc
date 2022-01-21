@@ -1848,6 +1848,38 @@ datetime_im_as(datetime_t value, const std::string& as) {
   return std::make_shared<dffunction_datetime_im>(value, as);
 }
 
+std::shared_ptr<dffunction>
+make_date_im(int year, int month, int day) {
+  auto value = makedatetime(year, month, day);
+  std::string as = "make_date(" + STR(year) + "-" + STR(month) + "-"
+    + STR(day) + ")";
+  return datetime_im_as(value, as);
+}
+
+std::shared_ptr<dffunction>
+make_date_im_as(int year, int month, int day, const std::string& as) {
+  auto value = makedatetime(year, month, day);
+  return datetime_im_as(value, as);
+}
+
+std::shared_ptr<dffunction>
+make_datetime_im(int year, int month, int day,
+                 int hour, int minute, int second) {
+  auto value = makedatetime(year, month, day, hour, minute, second);
+  std::string as = "make_datetime(" + STR(year) + "-" + STR(month) + "-"
+    + STR(day) + " " + STR(hour) + ":" + STR(minute) + ":" + STR(second) + ")";
+  return datetime_im_as(value, as);
+}
+
+std::shared_ptr<dffunction>
+make_datetime_im_as(int year, int month, int day,
+                    int hour, int minute, int second,
+                    const std::string& as) {
+  auto value = makedatetime(year, month, day, hour, minute, second);
+  return datetime_im_as(value, as);
+}
+
+
 // ----- dic_string_im -----
 std::shared_ptr<dfcolumn>
 dffunction_dic_string_im::execute(dftable_base& t) const {
@@ -2527,6 +2559,309 @@ std::shared_ptr<dffunction>
 left_im_as(const std::shared_ptr<dffunction>& left, int num,
            const std::string& as) {
   return std::make_shared<dffunction_substr_posim_numim>(left, 0, num, as);
+}
+
+
+// ----- make_date -----
+std::shared_ptr<dfcolumn>
+dffunction_make_date_helper(std::shared_ptr<typed_dfcolumn<int>>& year,
+                            std::shared_ptr<typed_dfcolumn<int>>& month,
+                            std::shared_ptr<typed_dfcolumn<int>>& day) {
+  auto val = year->val.map
+    (+[](std::vector<int>& year,
+         std::vector<int>& month,
+         std::vector<int>& day) {
+      auto size = year.size();
+      std::vector<datetime_t> ret(size);
+      auto yearp = year.data();
+      auto monthp = month.data();
+      auto dayp = day.data();
+      auto retp = ret.data();
+      for(size_t i = 0; i < size; i++) {
+        retp[i] = makedatetime(yearp[i], monthp[i], dayp[i]);
+      }
+      return ret;
+    }, month->val, day->val);
+  auto nulls = year->nulls.map
+    (+[](std::vector<size_t>& year_nulls,
+         std::vector<size_t>& month_nulls,
+         std::vector<size_t>& day_nulls) {
+      return set_union(set_union(year_nulls, month_nulls), day_nulls);
+    }, month->nulls, day->nulls);
+  val.mapv(+[](std::vector<datetime_t>& val, std::vector<size_t>& nulls) {
+      auto valp = val.data();
+      auto nullsp = nulls.data();
+      auto nulls_size = nulls.size();
+      auto max = std::numeric_limits<datetime_t>::max();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+      for(size_t i = 0; i < nulls_size; i++) {
+        valp[nullsp[i]] = max;
+      }
+    }, nulls);
+  return std::make_shared<typed_dfcolumn<datetime>>(val, nulls);
+}
+
+std::shared_ptr<dfcolumn> dffunction_make_date::execute(dftable_base& t) const {
+  auto year_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (year->execute(t)->type_cast("int"));
+  auto month_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (month->execute(t)->type_cast("int"));
+  auto day_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (day->execute(t)->type_cast("int"));
+  return dffunction_make_date_helper(year_column, month_column, day_column);
+}
+
+std::shared_ptr<dfcolumn> dffunction_make_date::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto year_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (year->aggregate(table, local_grouped_idx,
+                     local_idx_split, hash_divide,
+                     merge_map, row_sizes, grouped_table)
+     ->type_cast("int"));
+  auto month_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (month->aggregate(table, local_grouped_idx,
+                      local_idx_split, hash_divide,
+                      merge_map, row_sizes, grouped_table)
+     ->type_cast("int"));
+  auto day_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (day->aggregate(table, local_grouped_idx,
+                    local_idx_split, hash_divide,
+                    merge_map, row_sizes, grouped_table)
+     ->type_cast("int"));
+  return dffunction_make_date_helper(year_column, month_column, day_column);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_make_date::whole_column_aggregate(dftable_base& t) {
+  auto year_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (year->whole_column_aggregate(t)->type_cast("int"));
+  auto month_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (month->whole_column_aggregate(t)->type_cast("int"));
+  auto day_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (day->whole_column_aggregate(t)->type_cast("int"));
+  return dffunction_make_date_helper(year_column, month_column, day_column);
+}
+
+std::shared_ptr<dffunction> make_date_col(const std::string& year,
+                                          const std::string& month,
+                                          const std::string& day) {
+  return std::make_shared<dffunction_make_date>
+    (id_col(year), id_col(month), id_col(day));
+}
+
+std::shared_ptr<dffunction>
+make_date_col(const std::shared_ptr<dffunction>& year,
+              const std::shared_ptr<dffunction>& month,
+              const std::shared_ptr<dffunction>& day) {
+  return std::make_shared<dffunction_make_date>(year, month, day);
+} 
+
+std::shared_ptr<dffunction> make_date_col_as(const std::string& year,
+                                             const std::string& month,
+                                             const std::string& day,
+                                             const std::string& as) {
+  return std::make_shared<dffunction_make_date>
+    (id_col(year), id_col(month), id_col(day), as);
+}
+
+std::shared_ptr<dffunction>
+make_date_col_as(const std::shared_ptr<dffunction>& year,
+                 const std::shared_ptr<dffunction>& month,
+                 const std::shared_ptr<dffunction>& day,
+                 const std::string& as) {
+  return std::make_shared<dffunction_make_date>(year, month, day, as);
+} 
+
+
+// ----- make_datetime -----
+std::shared_ptr<dfcolumn>
+dffunction_make_datetime_helper(std::shared_ptr<typed_dfcolumn<int>>& year,
+                                std::shared_ptr<typed_dfcolumn<int>>& month,
+                                std::shared_ptr<typed_dfcolumn<int>>& day,
+                                std::shared_ptr<typed_dfcolumn<int>>& hour,
+                                std::shared_ptr<typed_dfcolumn<int>>& minute,
+                                std::shared_ptr<typed_dfcolumn<int>>& second) {
+  auto val = year->val.map
+    (+[](std::vector<int>& year,
+         std::vector<int>& month,
+         std::vector<int>& day,
+         std::vector<int>& hour,
+         std::vector<int>& minute,
+         std::vector<int>& second) {
+      auto size = year.size();
+      std::vector<datetime_t> ret(size);
+      auto yearp = year.data();
+      auto monthp = month.data();
+      auto dayp = day.data();
+      auto hourp = hour.data();
+      auto minutep = minute.data();
+      auto secondp = second.data();
+      auto retp = ret.data();
+      for(size_t i = 0; i < size; i++) {
+        retp[i] = makedatetime(yearp[i], monthp[i], dayp[i],
+                               hourp[i], minutep[i], secondp[i]);
+      }
+      return ret;
+    }, month->val, day->val, hour->val, minute->val, second->val);
+  auto nulls = year->nulls.map
+    (+[](std::vector<size_t>& year_nulls,
+         std::vector<size_t>& month_nulls,
+         std::vector<size_t>& day_nulls,
+         std::vector<size_t>& hour_nulls,
+         std::vector<size_t>& minute_nulls,
+         std::vector<size_t>& second_nulls) {
+      return set_union(set_union(set_union(year_nulls, month_nulls),
+                                 set_union(day_nulls, hour_nulls)),
+                       set_union(minute_nulls, second_nulls));
+    }, month->nulls, day->nulls, hour->nulls, minute->nulls, second->nulls);
+  val.mapv(+[](std::vector<datetime_t>& val, std::vector<size_t>& nulls) {
+      auto valp = val.data();
+      auto nullsp = nulls.data();
+      auto nulls_size = nulls.size();
+      auto max = std::numeric_limits<datetime_t>::max();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+      for(size_t i = 0; i < nulls_size; i++) {
+        valp[nullsp[i]] = max;
+      }
+    }, nulls);
+  return std::make_shared<typed_dfcolumn<datetime>>(val, nulls);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_make_datetime::execute(dftable_base& t) const {
+  auto year_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (year->execute(t)->type_cast("int"));
+  auto month_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (month->execute(t)->type_cast("int"));
+  auto day_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (day->execute(t)->type_cast("int"));
+  auto hour_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (hour->execute(t)->type_cast("int"));
+  auto minute_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (minute->execute(t)->type_cast("int"));
+  auto second_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (second->execute(t)->type_cast("int"));
+  return dffunction_make_datetime_helper
+    (year_column, month_column, day_column,
+     hour_column, minute_column, second_column);
+}
+
+std::shared_ptr<dfcolumn> dffunction_make_datetime::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto year_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (year->aggregate(table, local_grouped_idx,
+                     local_idx_split, hash_divide,
+                     merge_map, row_sizes, grouped_table)
+     ->type_cast("int"));
+  auto month_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (month->aggregate(table, local_grouped_idx,
+                      local_idx_split, hash_divide,
+                      merge_map, row_sizes, grouped_table)
+     ->type_cast("int"));
+  auto day_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (day->aggregate(table, local_grouped_idx,
+                    local_idx_split, hash_divide,
+                    merge_map, row_sizes, grouped_table)
+     ->type_cast("int"));
+  auto hour_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (hour->aggregate(table, local_grouped_idx,
+                     local_idx_split, hash_divide,
+                     merge_map, row_sizes, grouped_table)
+     ->type_cast("int"));
+  auto minute_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (minute->aggregate(table, local_grouped_idx,
+                       local_idx_split, hash_divide,
+                       merge_map, row_sizes, grouped_table)
+     ->type_cast("int"));
+  auto second_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (second->aggregate(table, local_grouped_idx,
+                       local_idx_split, hash_divide,
+                       merge_map, row_sizes, grouped_table)
+     ->type_cast("int"));
+  return dffunction_make_datetime_helper
+    (year_column, month_column, day_column,
+     hour_column, minute_column, second_column);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_make_datetime::whole_column_aggregate(dftable_base& t) {
+  auto year_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (year->whole_column_aggregate(t)->type_cast("int"));
+  auto month_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (month->whole_column_aggregate(t)->type_cast("int"));
+  auto day_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (day->whole_column_aggregate(t)->type_cast("int"));
+  auto hour_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (hour->whole_column_aggregate(t)->type_cast("int"));
+  auto minute_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (minute->whole_column_aggregate(t)->type_cast("int"));
+  auto second_column = std::dynamic_pointer_cast<typed_dfcolumn<int>>
+    (second->whole_column_aggregate(t)->type_cast("int"));
+  return dffunction_make_datetime_helper
+    (year_column, month_column, day_column,
+     hour_column, minute_column, second_column);
+}
+
+std::shared_ptr<dffunction> make_datetime_col(const std::string& year,
+                                              const std::string& month,
+                                              const std::string& day,
+                                              const std::string& hour,
+                                              const std::string& minute,
+                                              const std::string& second) {
+  return std::make_shared<dffunction_make_datetime>
+    (id_col(year), id_col(month), id_col(day),
+     id_col(hour), id_col(minute), id_col(second));
+}
+
+std::shared_ptr<dffunction>
+make_datetime_col(const std::shared_ptr<dffunction>& year,
+                  const std::shared_ptr<dffunction>& month,
+                  const std::shared_ptr<dffunction>& day,
+                  const std::shared_ptr<dffunction>& hour,
+                  const std::shared_ptr<dffunction>& minute,
+                  const std::shared_ptr<dffunction>& second) {
+  return std::make_shared<dffunction_make_datetime>(year, month, day,
+                                                    hour, minute, second);
+} 
+
+std::shared_ptr<dffunction> make_datetime_col_as(const std::string& year,
+                                                 const std::string& month,
+                                                 const std::string& day,
+                                                 const std::string& hour,
+                                                 const std::string& minute,
+                                                 const std::string& second,
+                                                 const std::string& as) {
+  return std::make_shared<dffunction_make_datetime>
+    (id_col(year), id_col(month), id_col(day),
+     id_col(hour), id_col(minute), id_col(second), as);
+}
+
+std::shared_ptr<dffunction>
+make_datetime_col_as(const std::shared_ptr<dffunction>& year,
+                     const std::shared_ptr<dffunction>& month,
+                     const std::shared_ptr<dffunction>& day,
+                     const std::shared_ptr<dffunction>& hour,
+                     const std::shared_ptr<dffunction>& minute,
+                     const std::shared_ptr<dffunction>& second,
+                     const std::string& as) {
+  return std::make_shared<dffunction_make_datetime>(year, month, day, 
+                                                    hour, minute, second, as);
 }
 
 // ----- utility functions for user's direct use -----

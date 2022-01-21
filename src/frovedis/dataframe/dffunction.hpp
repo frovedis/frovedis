@@ -2760,6 +2760,21 @@ datetime_im(datetime_t value);
 std::shared_ptr<dffunction>
 datetime_im_as(datetime_t value, const std::string& as);
 
+std::shared_ptr<dffunction>
+make_date_im(int year, int month, int day);
+
+std::shared_ptr<dffunction>
+make_date_im_as(int year, int month, int day, const std::string& as);
+
+std::shared_ptr<dffunction>
+make_datetime_im(int year, int month, int day,
+                 int hour, int minute, int second);
+
+std::shared_ptr<dffunction>
+make_datetime_im_as(int year, int month, int day,
+                    int hour, int minute, int second,
+                    const std::string& as);
+
 
 // ----- dic_string_im -----
 struct dffunction_dic_string_im : public dffunction {
@@ -3534,6 +3549,214 @@ left_im(const std::shared_ptr<dffunction>& left, int num);
 std::shared_ptr<dffunction>
 left_im_as(const std::shared_ptr<dffunction>& left, int num,
            const std::string& as);
+
+
+// ----- make_date -----
+struct dffunction_make_date : public dffunction {
+  dffunction_make_date(const std::shared_ptr<dffunction>& year, 
+                       const std::shared_ptr<dffunction>& month,
+                       const std::shared_ptr<dffunction>& day) :
+    year(year), month(month), day(day) {
+    as_name = "make_date(" +
+      year->get_as() + "-" +
+      month->get_as() + "-" +
+      day->get_as() + ")";
+  }
+  dffunction_make_date(const std::shared_ptr<dffunction>& year, 
+                       const std::shared_ptr<dffunction>& month,
+                       const std::shared_ptr<dffunction>& day,
+                       const std::string& as_name) :
+    year(year), month(month), day(day), as_name(as_name) {}
+
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_make_date>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto yearuse = year->columns_to_use(t);
+    auto monthuse = month->columns_to_use(t);
+    auto dayuse = day->columns_to_use(t);
+    yearuse.insert(yearuse.end(), monthuse.begin(), monthuse.end());
+    yearuse.insert(yearuse.end(), dayuse.begin(), dayuse.end());
+    return yearuse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto yearnames = year->used_col_names();
+    auto monthnames = month->used_col_names();
+    auto daynames = day->used_col_names();
+    yearnames.insert(yearnames.end(), monthnames.begin(), monthnames.end());
+    yearnames.insert(yearnames.end(), daynames.begin(), daynames.end());
+    return yearnames;
+  }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& t);
+
+  std::shared_ptr<dffunction> year, month, day;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+make_date_col(const std::string& year,
+              const std::string& month,
+              const std::string& day); 
+
+std::shared_ptr<dffunction>
+make_date_col(const std::shared_ptr<dffunction>& year,
+              const std::shared_ptr<dffunction>& month,
+              const std::shared_ptr<dffunction>& day); 
+
+std::shared_ptr<dffunction>
+make_date_col_as(const std::string& year,
+                 const std::string& month,
+                 const std::string& day,
+                 const std::string& as);
+
+std::shared_ptr<dffunction>
+make_date_col_as(const std::shared_ptr<dffunction>& year,
+                 const std::shared_ptr<dffunction>& month,
+                 const std::shared_ptr<dffunction>& day,
+                 const std::string& as);
+
+
+// ----- make_datetime -----
+struct dffunction_make_datetime : public dffunction {
+  dffunction_make_datetime(const std::shared_ptr<dffunction>& year, 
+                           const std::shared_ptr<dffunction>& month,
+                           const std::shared_ptr<dffunction>& day,
+                           const std::shared_ptr<dffunction>& hour,
+                           const std::shared_ptr<dffunction>& minute,
+                           const std::shared_ptr<dffunction>& second) :
+    year(year), month(month), day(day),
+    hour(hour), minute(minute), second(second) {
+    as_name = "make_datetime(" +
+      year->get_as() + "-" +
+      month->get_as() + "-" +
+      day->get_as() + " " +
+      hour->get_as() + ":" + 
+      minute->get_as() + ":" +
+      second->get_as() + ")";
+  }
+  dffunction_make_datetime(const std::shared_ptr<dffunction>& year, 
+                           const std::shared_ptr<dffunction>& month,
+                           const std::shared_ptr<dffunction>& day,
+                           const std::shared_ptr<dffunction>& hour,
+                           const std::shared_ptr<dffunction>& minute,
+                           const std::shared_ptr<dffunction>& second,
+                           const std::string& as_name) :
+    year(year), month(month), day(day),
+    hour(hour), minute(minute), second(second), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_make_datetime>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("2 arg version of execute on this operator is not implemented");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto yearuse = year->columns_to_use(t);
+    auto monthuse = month->columns_to_use(t);
+    auto dayuse = day->columns_to_use(t);
+    auto houruse = hour->columns_to_use(t);
+    auto minuteuse = minute->columns_to_use(t);
+    auto seconduse = second->columns_to_use(t);
+    yearuse.insert(yearuse.end(), monthuse.begin(), monthuse.end());
+    yearuse.insert(yearuse.end(), dayuse.begin(), dayuse.end());
+    yearuse.insert(yearuse.end(), houruse.begin(), houruse.end());
+    yearuse.insert(yearuse.end(), minuteuse.begin(), minuteuse.end());
+    yearuse.insert(yearuse.end(), seconduse.begin(), seconduse.end());
+    return yearuse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("2 arg version of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto yearnames = year->used_col_names();
+    auto monthnames = month->used_col_names();
+    auto daynames = day->used_col_names();
+    auto hournames = hour->used_col_names();
+    auto minutenames = minute->used_col_names();
+    auto secondnames = second->used_col_names();
+    yearnames.insert(yearnames.end(), monthnames.begin(), monthnames.end());
+    yearnames.insert(yearnames.end(), daynames.begin(), daynames.end());
+    yearnames.insert(yearnames.end(), hournames.begin(), hournames.end());
+    yearnames.insert(yearnames.end(), minutenames.begin(), minutenames.end());
+    yearnames.insert(yearnames.end(), secondnames.begin(), secondnames.end());
+    return yearnames;
+  }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& t);
+
+  std::shared_ptr<dffunction> year, month, day, hour, minute, second;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+make_datetime_col(const std::string& year,
+                  const std::string& month,
+                  const std::string& day,
+                  const std::string& hour,
+                  const std::string& minuite,
+                  const std::string& second);
+
+std::shared_ptr<dffunction>
+make_datetime_col(const std::shared_ptr<dffunction>& year,
+                  const std::shared_ptr<dffunction>& month,
+                  const std::shared_ptr<dffunction>& day,
+                  const std::shared_ptr<dffunction>& hour,
+                  const std::shared_ptr<dffunction>& minuite,
+                  const std::shared_ptr<dffunction>& second);
+
+std::shared_ptr<dffunction>
+make_datetime_col_as(const std::string& year,
+                     const std::string& month,
+                     const std::string& day,
+                     const std::string& hour,
+                     const std::string& minuite,
+                     const std::string& second,
+                     const std::string& as);
+
+std::shared_ptr<dffunction>
+make_datetime_col_as(const std::shared_ptr<dffunction>& year,
+                 const std::shared_ptr<dffunction>& month,
+                 const std::shared_ptr<dffunction>& day,
+                 const std::shared_ptr<dffunction>& hour,
+                 const std::shared_ptr<dffunction>& minute,
+                 const std::shared_ptr<dffunction>& second,
+                 const std::string& as);
 
 // ----- utility functions for user's direct use -----
 
