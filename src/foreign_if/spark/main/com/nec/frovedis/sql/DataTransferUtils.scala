@@ -187,6 +187,7 @@ object sDFTransfer extends java.io.Serializable {
 
   def load_columnar(columnar: RDD[ColumnarBatch],
                     cols: Array[String],
+                    colIds: Array[Int],
                     types: Array[Short],
                     word_count: Int,
                     offset: Array[Int]): Long = {
@@ -213,7 +214,7 @@ object sDFTransfer extends java.io.Serializable {
     t_log.show("server process preparation: ")
                                                       
     // (3) data transfer
-    transfer_columnar_batch(columnar, fw_nodes, vptrs, offset, types, 
+    transfer_columnar_batch(columnar, colIds, fw_nodes, vptrs, offset, types, 
                             block_sizes, ncol, nproc)
     t_log.show("[batch: " + npart + "] server side data transfer: ")
     JNISupport.unlockParallel()
@@ -287,6 +288,7 @@ object sDFTransfer extends java.io.Serializable {
 
   private def transfer_columnar_batch(
               columnar: RDD[ColumnarBatch],
+              colIds: Array[Int],
               fw_nodes: Array[Node],
               vptrs: Array[Long],
               offset: Array[Int],
@@ -303,14 +305,15 @@ object sDFTransfer extends java.io.Serializable {
 /*
         val k = batch.numRows()
         for (i <- 0 until ncol) {
-          val tcol = batch.column(i)
+          val cid = colIds(i)
+          val tcol = batch.column(cid)
           val row_offset = offset(i)
           val vptr = vptrs(row_offset * nproc + destId)
-          types(i) match { // TODO: check room for improving StringType case
+          types(i) match {
             case DTYPE.INT => {
               //val iArr = tcol.getInts(0, k)
               val iArr = new Array[Int](k)
-              for(j <- 0 until k) iArr(j) = if (tcol.isNullAt(j)) Integer.MAX_VALUE else tcol.getInt(j)
+              for(j <- 0 until k) iArr(j) = if (tcol.isNullAt(j)) Int.MaxValue else tcol.getInt(j)
               t0.show("ColumnVector -> IntArray: ")
               JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr, k)
             }
@@ -318,7 +321,7 @@ object sDFTransfer extends java.io.Serializable {
               //val iArr = tcol.getBooleans(0, k).map(x => if (x) 1 else  0)
               val iArr = new Array[Int](k)
               for(j <- 0 until k) {
-                if (tcol.isNullAt(j)) iArr(j) = Integer.MAX_VALUE
+                if (tcol.isNullAt(j)) iArr(j) = Int.MaxValue
                 else                  iArr(j) = if (tcol.getBoolean(j)) 1 else 0
               }
               t0.show("ColumnVector -> (Boolean) IntArray: ")
@@ -327,21 +330,21 @@ object sDFTransfer extends java.io.Serializable {
             case DTYPE.LONG => {
               //val lArr = tcol.getLongs(0, k)
               val lArr = new Array[Long](k)
-              for(j <- 0 until k) lArr(j) = if (tcol.isNullAt(j)) Long.MAX_VALUE else tcol.getLong(j)
+              for(j <- 0 until k) lArr(j) = if (tcol.isNullAt(j)) Long.MaxValue else tcol.getLong(j)
               t0.show("ColumnVector -> LongArray: ")
               JNISupport.loadFrovedisWorkerLongVector(w_node, vptr, localId, lArr, k)
             }
             case DTYPE.FLOAT => {
               //val fArr = tcol.getFloats(0, k)
               val fArr = new Array[Float](k)
-              for(j <- 0 until k) fArr(j) = if (tcol.isNullAt(j)) Float.MAX_VALUE else tcol.getFloat(j)
+              for(j <- 0 until k) fArr(j) = if (tcol.isNullAt(j)) Float.MaxValue else tcol.getFloat(j)
               t0.show("ColumnVector -> FloatArray: ")
               JNISupport.loadFrovedisWorkerFloatVector(w_node, vptr, localId, fArr, k)
             }
             case DTYPE.DOUBLE => {
               //val dArr = tcol.getDoubles(0, k)
               val dArr = new Array[Double](k)
-              for(j <- 0 until k) dArr(j) = if (tcol.isNullAt(j)) Double.MAX_VALUE else tcol.getDouble(j)
+              for(j <- 0 until k) dArr(j) = if (tcol.isNullAt(j)) Double.MaxValue else tcol.getDouble(j)
               t0.show("ColumnVector -> DoubleArray: ")
               JNISupport.loadFrovedisWorkerDoubleVector(w_node, vptr, localId, dArr, k)
             }
@@ -351,7 +354,7 @@ object sDFTransfer extends java.io.Serializable {
               t0.show("ColumnVector -> StringArray: ")
               JNISupport.loadFrovedisWorkerStringVector(w_node, vptr, localId, sArr, k)
             }
-            case DTYPE.WORDS => {
+            case DTYPE.WORDS => { // TODO: improve as in jDFTransfer
               val next_row_offset = row_offset + 1
               val sptr = vptrs(next_row_offset * nproc + destId)
               val sArr = new Array[Array[Char]](k)
@@ -375,7 +378,7 @@ object sDFTransfer extends java.io.Serializable {
           t0.show("spark-worker to frovedis-rank local data copy: ")
         }
 */
-        jDFTransfer.transfer_batch_data(batch, w_node, vptrs, offset, types, 
+        jDFTransfer.transfer_batch_data(batch, colIds, w_node, vptrs, offset, types, 
                                         ncol, nproc, destId, localId, t0)
         Array(true).toIterator
     })

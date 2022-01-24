@@ -21,6 +21,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions.{col => sp_col}
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.vectorized.ColumnarBatch
 import scala.collection.mutable.{Map => mMap}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
@@ -107,8 +108,16 @@ class FrovedisDataFrame extends java.io.Serializable {
     if (!targets.isEmpty) {
       val tarr = targets.toArray
       this.owned_cols = tarr
-      val sdf = df.select(tarr.map(x => sp_col(x)):_*)
-      optimized_load(sdf)
+      val columnar = sDFTransfer.get_columnar(df)
+      if (columnar == null) {
+        //println("non-columnar data is detected!")
+        val sdf = df.select(tarr.map(x => sp_col(x)):_*)
+        optimized_load(sdf)
+      }
+      else {
+        //println("columnar data is detected!")
+        columnar_load(df, tarr, columnar)
+      }
       DFMemoryManager.insert(code, this, tarr.toIterator) // TODO: store size of columns as well...
     }
     if (!base_ptr.isEmpty) { // TODO: correct order
@@ -200,23 +209,38 @@ class FrovedisDataFrame extends java.io.Serializable {
       offset(i) = i + word_count
       word_count += (if (types(i) == DTYPE.WORDS) 1 else 0)
     }
-    val columnar = sDFTransfer.get_columnar(df)
-    if (columnar == null) {
-      //println("non-columnar data is detected!")
-      this.fdata = sDFTransfer.load_rows(df.queryExecution.toRdd, cols, types, 
-                                         word_count, offset)
-    }
-    else {
-      //println("columnar data is detected!")
-      this.fdata = sDFTransfer.load_columnar(columnar, cols, types, 
-                                             word_count, offset)
-    }
-
+    this.fdata = sDFTransfer.load_rows(df.queryExecution.toRdd, cols, types, 
+                                       word_count, offset)
     val fs = FrovedisServer.getServerInstance()
     this.mem_size = JNISupport.calcMemorySize(fs.master_node, this.fdata)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
+    this.code = df.hashCode
+    this
+  }
 
+  def columnar_load (df: DataFrame, tcols: Array[String],
+                     columnar: RDD[ColumnarBatch]): this.type = {
+    release()
+    val dfcols = df.columns
+    val name_type_map = df.dtypes.toMap
+    this.cols = tcols
+    this.types = cols.map(x => TMAPPER.string2id(name_type_map(x)))
+    val colIds = cols.map(x => dfcols.indexOf(x))
+    val ncol = cols.size
+    //for (i <- 0 until ncol) println(cols(i) + " -> " + types(i) + " -> " + colIds(i))
+    val offset = new Array[Int](ncol)
+    var word_count = 0
+    for (i <- 0 until ncol) {
+      offset(i) = i + word_count
+      word_count += (if (types(i) == DTYPE.WORDS) 1 else 0)
+    }
+    this.fdata = sDFTransfer.load_columnar(columnar, cols, colIds, types,
+                                           word_count, offset)
+    val fs = FrovedisServer.getServerInstance()
+    this.mem_size = JNISupport.calcMemorySize(fs.master_node, this.fdata)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
     this.code = df.hashCode
     this
   }

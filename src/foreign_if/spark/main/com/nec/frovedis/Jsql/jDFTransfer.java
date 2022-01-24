@@ -63,6 +63,7 @@ public class jDFTransfer implements java.io.Serializable {
   }
 
   public static void transfer_batch_data(ColumnarBatch batch,
+                                         int[] colIds,
                                          Node w_node,
                                          long[] vptrs,
                                          int[] offset,
@@ -74,7 +75,8 @@ public class jDFTransfer implements java.io.Serializable {
 
     int k = batch.numRows();
     for (int i = 0; i < ncol; ++i) {
-      ColumnVector tcol = batch.column(i);
+      int cid = colIds[i];
+      ColumnVector tcol = batch.column(cid);
       int row_offset = offset[i];
       long vptr = vptrs[row_offset * nproc + destId];
       switch(types[i]) {
@@ -129,20 +131,18 @@ public class jDFTransfer implements java.io.Serializable {
         }
         case DTYPE.WORDS: { 
           int flat_size = 0;
-          int[] szArr = new int[k];
-          String[] sArr = new String[k];
-          for(int j = 0; j < k; ++j) {
-            String tmp = tcol.isNullAt(j) ? "NULL" : tcol.getUTF8String(j).toString();
-            sArr[j] = tmp;
-            szArr[j] = tmp.length();
-            flat_size += tmp.length();
-          }
+          for(int j = 0; j < k; ++j) flat_size += tcol.isNullAt(j) ? 4 : tcol.getBinary(j).length; // TODO: improve
+          byte[] nulls = new byte[4];
+          nulls[0] = 'N'; nulls[1] = 'U'; nulls[2] = 'L'; nulls[3] = 'L';
           int cur = 0;
+          int[] szArr = new int[k];
           char[] cArr = new char[flat_size];
           for(int j = 0; j < k; ++j) {
-            char[] tmp = sArr[j].toCharArray();
-            System.arraycopy(tmp, 0, cArr, cur, tmp.length);
-            cur += tmp.length;
+            byte[] tmp = tcol.isNullAt(j) ? nulls : tcol.getBinary(j);
+            int size = tmp.length;
+            szArr[j] = size;
+            for(int c = 0; c < size; ++c) cArr[cur + c] = (char) tmp[c];
+            cur += size;
           }
           t0.show("ColumnVector -> flatten-charArray: ");
           int next_row_offset = row_offset + 1;
