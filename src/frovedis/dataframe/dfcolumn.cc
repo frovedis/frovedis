@@ -651,7 +651,7 @@ std::string dfcolumn::last(bool ignore_nulls) {
   } else throw std::runtime_error("unsupported type: " + dtype());
 }
 
-
+// TODO: support UTF-8
 std::shared_ptr<dfcolumn> dfcolumn::substr(int pos, int num) {
   // to avoid error in substr
   auto ws = pos >= 0 ? as_words(6,"%Y-%m-%d",false,std::string(pos+num, 'N'))
@@ -1005,6 +1005,30 @@ std::shared_ptr<dfcolumn> dfcolumn::substr(int pos) {
       (std::move(ws), std::move(nulls));
     return ret;
   }
+}
+
+// TODO: support UTF-8
+std::shared_ptr<dfcolumn> dfcolumn::char_length() {
+  auto ws = as_words();
+  auto nulls = get_nulls();
+  auto len = ws.map(+[](words& ws, std::vector<size_t>& nulls){
+      auto size = ws.lens.size();
+      std::vector<int> ret(size);
+      auto retp = ret.data();
+      auto lensp = ws.lens.data();
+      for(size_t i = 0; i < size; i++) retp[i] = lensp[i];
+      auto nullsp = nulls.data();
+      auto nulls_size = nulls.size();
+      auto max = std::numeric_limits<int>::max();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+      for(size_t i = 0; i < nulls_size; i++) {
+        retp[nullsp[i]] = max;
+      }
+      return ret;}, nulls);
+  return std::make_shared<typed_dfcolumn<int>>
+    (std::move(len), std::move(nulls));
 }
 
 std::vector<std::string> 
