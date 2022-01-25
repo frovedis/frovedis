@@ -1,0 +1,255 @@
+.TH "connected_components()" "" "" "" ""
+.SH NAME
+.PP
+connected_components() \- generates the connected components of an
+undirected graph \[aq]G\[aq].
+.SH SYNOPSIS
+.IP
+.nf
+\f[C]
+frovedis.graph.ConnectedComponents.connected_components(G,\ opt_level=2,\ hyb_threshold=0.4,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ verbose=0,\ print_summary=False,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ print_limit=5)\ \ 
+\f[]
+.fi
+.SH DESCRIPTION
+.PP
+In graph theory, a component of an undirected graph is a connected
+subgraph that is not part of any larger connected subgraph.
+The components of any graph partition its vertices into disjoint sets,
+and are the induced subgraphs of those sets.
+A graph that is itself connected has exactly one component, consisting
+of the whole graph.
+Components are also sometimes called connected components.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The frovedis public connected_components method interface is almost same
+as NetworkX connected_components public method interface, but it doesn't
+have any dependency on NetworkX.
+It can be used simply even if the system doesn't have NetworkX
+installed.
+Thus, in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for connected_components() on the frovedis server.
+Once the connected components
+.PD 0
+.P
+.PD
+are computed for the given input graph data at the frovedis server, it
+returns a dictionary with keys as root\-nodeid for each component and
+values as list of pairs of nodeid with its distance from root of the
+component to which the node belongs.
+.SS Detailed Description
+.SS 1. connected_components()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]G\f[]\f[]: An instance of networkx graph or frovedis graph.
+The graph must be undirected.
+.PD 0
+.P
+.PD
+\f[I]\f[B]opt_level\f[]\f[]: Zero or a positive integer parameter that
+must be in range 0 to 2.
+It is an optimization parameter that is used for reducing computation
+time while generating the connected components.
+(Default: 1)
+.PD 0
+.P
+.PD
+\- \f[B]When opt_level = 0\f[]: this should only be used where systems
+have memory constraints.
+It is slowest.
+.PD 0
+.P
+.PD
+\- \f[B]When opt_level = 1\f[]: this is fastest.
+It uses comparatively large amount of memory.
+.PD 0
+.P
+.PD
+\- \f[B]When opt_level = 2\f[]: this is much better than
+\f[B]\[aq]opt_level = 0\[aq]\f[], but slightly slower than
+\f[B]opt_level = 1\f[].
+It optimizes the memory usage over \f[B]\[aq]opt_level = 1\[aq]\f[].
+.PP
+\f[I]\f[B]hyb_threshold\f[]\f[]: A double (float64) parameter that
+specifies a threshold value which performs optimization in generating
+connected components when the number of remaining nodes to be visited
+becomes less then this value.
+It optimizes the execution time.
+This parameter works only with \f[B]\[aq]opt_level = 2\[aq]\f[].
+It must be within the range 0 to 1.
+(Default: 0.4)
+.PD 0
+.P
+.PD
+For example, if it is 0.5, then optimization starts when number of
+remaining nodes to be visited is less than 50%.
+.PD 0
+.P
+.PD
+\f[I]\f[B]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is 0 by default (INFO level).
+But it can be set to 1 (DEBUG level) or 2 (TRACE level) for getting
+training time logs from frovedis server.
+.PD 0
+.P
+.PD
+\f[I]\f[B]print_summary\f[]\f[]: A boolean parameter that specifies
+whether to print summary of connected components.
+(Default: False)
+.PD 0
+.P
+.PD
+\f[I]\f[B]print_limit\f[]\f[]: An integer parameter that specifies the
+maximum number of nodes info to be printed.
+(Default: 5)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method computes connected components of an undirected graph.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ An\ undirected\ graph\ loaded\ from\ edgelist\ file
+import\ numpy\ as\ np
+import\ networkx\ as\ nx
+import\ frovedis.graph\ as\ fnx
+frov_graph\ =\ fnx.read_edgelist(\[aq]input/cit\-Patents_10.txt\[aq],\ nodetype\ =\ np.int64)
+ret\ =\ fnx.connected_components(frov_graph)
+for\ i\ in\ ret:
+\ \ \ \ print(i)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{1,\ 2,\ 3,\ 4,\ 5,\ 6}
+{7,\ 8,\ 9,\ 10,\ 11}
+{12,\ 13}
+\f[]
+.fi
+.PP
+\f[B]When print_summary = True and print_limit = 5 (by default),
+then,\f[]
+.IP
+.nf
+\f[C]
+#\ An\ undirected\ graph\ loaded\ from\ edgelist\ file
+import\ numpy\ as\ np
+import\ networkx\ as\ nx
+import\ frovedis.graph\ as\ fnx
+frov_graph\ =\ fnx.read_edgelist(\[aq]input/cit\-Patents_10.txt\[aq],\ nodetype\ =\ np.int64)
+ret\ =\ fnx.connected_components(frov_graph,\ print_summary\ =\ True)
+for\ i\ in\ ret:
+\ \ \ \ print(i)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Number\ of\ connected\ components:\ 3
+Root\ with\ its\ count\ of\ nodes\ in\ each\ connected\ component:\ (root_id:count)
+1:6
+7:5
+12:2
+Nodes\ in\ which\ cc:\ (node_id:root_id)
+1:1
+2:1
+3:1
+4:1
+5:1
+\&...
+Nodes\ dist:\ (node:level_from_root)
+1:0
+2:1
+3:1
+4:1
+5:1
+\&...
+{1,\ 2,\ 3,\ 4,\ 5,\ 6}
+{7,\ 8,\ 9,\ 10,\ 11}
+{12,\ 13}
+\f[]
+.fi
+.PP
+\f[B]When print_limit = 10, then,\f[]
+.IP
+.nf
+\f[C]
+#\ An\ undirected\ graph\ loaded\ from\ edgelist\ file
+import\ numpy\ as\ np
+import\ networkx\ as\ nx
+import\ frovedis.graph\ as\ fnx
+frov_graph\ =\ fnx.read_edgelist(\[aq]input/cit\-Patents_10.txt\[aq],\ nodetype\ =\ np.int64)
+ret\ =\ fnx.connected_components(frov_graph,\ print_summary\ =\ True,\ print_limit\ =\ 10)
+for\ i\ in\ ret:
+\ \ \ \ print(i)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Number\ of\ connected\ components:\ 3
+Root\ with\ its\ count\ of\ nodes\ in\ each\ connected\ component:\ (root_id:count)
+1:6
+7:5
+12:2
+Nodes\ in\ which\ cc:\ (node_id:root_id)
+1:1
+2:1
+3:1
+4:1
+5:1
+6:1
+7:7
+8:7
+9:7
+10:7
+\&...
+Nodes\ dist:\ (node:level_from_root)
+1:0
+2:1
+3:1
+4:1
+5:1
+6:1
+7:0
+8:1
+9:1
+10:1
+\&...
+{1,\ 2,\ 3,\ 4,\ 5,\ 6}
+{7,\ 8,\ 9,\ 10,\ 11}
+{12,\ 13}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It yields an output as Sets of nodes for each connected components.
+.SS SEE ALSO
+.PP
+graph, bfs, sssp, pagerank

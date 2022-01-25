@@ -51,8 +51,8 @@ This method iterates over only those edges in the component, reachable from this
 range **[1, G.num_vertices]**.  
 _**depth\_limit**_: A positive integer parameter that specifies the maximum search depth. (Default: None)  
 When it is None (not specified explicitly), it will be set as maximum value for int64 datatype.  
-_**opt\_level**_: Zero or a positive integer parameter that must be 0, 1 or 2. It is an optimization 
-parameter that can be used for fast computation, reduce memory constraints during breadth first search. (Default: 1)  
+_**opt\_level**_: Zero or a positive integer parameter that must be in range 0 to 2. It is an optimization 
+parameter that is used for reducing computation times during breadth first search. (Default: 1)  
 - **When opt_level = 0**: this should only be used where systems have memory constraints. It is slowest.  
 - **When opt_level = 1**: this is fastest. It uses comparatively large amount of memory.  
 - **When opt_level = 2**: this is much better than **'opt_level = 0'** but slightly slower than **opt_level = 1**. 
@@ -128,8 +128,8 @@ not supported yet)**. (Default: False)
 _**depth\_limit**_: A positive integer parameter that specifies the maximum search depth. (Default: None)  
 When it is None (not specified explicitly), it will be set as maximum value for int64 datatype.  
 _**sort\_neighbors**_: An unused parameter. (Default: None)  
-_**opt\_level**_: Zero or a positive integer parameter that must be 0, 1 or 2. It is an optimization 
-parameter that can be used for fast computation, reduce memory constraints during breadth first search. (Default: 1)  
+_**opt\_level**_: Zero or a positive integer parameter that must be in range 0 to 2. It is an optimization 
+parameter that is used for reducing computation times during breadth first search. (Default: 1)  
 - **When opt_level = 0**: this should only be used where systems have memory constraints. It is slowest.  
 - **When opt_level = 1**: this is fastest. It uses comparatively large amount of memory.  
 - **When opt_level = 2**: this is much better than **'opt_level = 0'** but slightly slower than **opt_level = 1**. 
@@ -204,8 +204,8 @@ not supported yet)**. (Default: False)
 _**depth\_limit**_: A positive integer parameter that specifies the maximum search depth. (Default: None)  
 When it is None (not specified explicitly), it will be set as maximum value for int64 datatype.  
 _**sort\_neighbors**_: An unused parameter. (Default: None)  
-_**opt\_level**_: Zero or a positive integer parameter that must be 0, 1 or 2. It is an optimization 
-parameter that can be used for fast computation, reduce memory constraints during breadth first search. (Default: 1)  
+_**opt\_level**_: Zero or a positive integer parameter that must be in range 0 to 2. It is an optimization 
+parameter that is used for reducing computation times during breadth first search. (Default: 1)  
 - **When opt_level = 0**: this should only be used where systems have memory constraints. It is slowest.  
 - **When opt_level = 1**: this is fastest. It uses comparatively large amount of memory.  
 - **When opt_level = 2**: this is much better than **'opt_level = 0'** but slightly slower than **opt_level = 1**. 
@@ -287,8 +287,8 @@ range **[1, G.num_vertices]**.
 _**depth\_limit**_: A positive integer parameter that specifies the maximum search depth. (Default: None)  
 When it is None (not specified explicitly), it will be set as maximum value for int64 datatype.  
 _**sort\_neighbors**_: An unused parameter. (Default: None)  
-_**opt\_level**_: Zero or a positive integer parameter that must be 0, 1 or 2. It is an optimization 
-parameter that can be used for fast computation, reduce memory constraints during breadth first search. (Default: 1)  
+_**opt\_level**_: Zero or a positive integer parameter that must be in range 0 to 2. It is an optimization 
+parameter that is used for reducing computation times during breadth first search. (Default: 1)  
 - **When opt_level = 0**: this should only be used where systems have memory constraints. It is slowest.  
 - **When opt_level = 1**: this is fastest. It uses comparatively large amount of memory.  
 - **When opt_level = 2**: this is much better than **'opt_level = 0'** but slightly slower than **opt_level = 1**. 
@@ -368,8 +368,8 @@ range **[1, G.num_vertices]**.
 _**depth\_limit**_: A positive integer parameter that specifies the maximum search depth. (Default: None)  
 When it is None (not specified explicitly), it will be set as maximum value for int64 datatype.  
 _**sort\_neighbors**_: An unused parameter. (Default: None)  
-_**opt\_level**_: Zero or a positive integer parameter that must be 0, 1 or 2. It is an optimization 
-parameter that can be used for fast computation, reduce memory constraints during breadth first search. (Default: 1)  
+_**opt\_level**_: Zero or a positive integer parameter that must be in range 0 to 2. It is an optimization 
+parameter that is used for reducing computation times during breadth first search. (Default: 1)  
 - **When opt_level = 0**: this should only be used where systems have memory constraints. It is slowest.  
 - **When opt_level = 1**: this is fastest. It uses comparatively large amount of memory.  
 - **When opt_level = 2**: this is much better than **'opt_level = 0'** but slightly slower than **opt_level = 1**. 
@@ -443,8 +443,8 @@ _**source**_: A positive integer parameter that specifies the starting node for 
 This method iterates over only those edges in the component, reachable from this node. It must be in 
 range **[1, G.num_vertices]**.  
 _**distance**_: A positive integer parameter that specifies the distance of the wanted nodes from source.  
-_**opt\_level**_: Zero or a positive integer parameter that must be 0, 1 or 2. It is an optimization 
-parameter that can be used for fast computation, reduce memory constraints during breadth first search. (Default: 1)  
+_**opt\_level**_: Zero or a positive integer parameter that must be in range 0 to 2. It is an optimization 
+parameter is used for reducing computation times during breadth first search. (Default: 1)  
 - **When opt_level = 0**: this should only be used where systems have memory constraints. It is slowest.  
 - **When opt_level = 1**: this is fastest. It uses comparatively large amount of memory.  
 - **When opt_level = 2**: this is much better than **'opt_level = 0'** but slightly slower than **opt_level = 1**. 
