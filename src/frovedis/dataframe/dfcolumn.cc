@@ -653,6 +653,7 @@ std::string dfcolumn::last(bool ignore_nulls) {
 
 // TODO: support UTF-8
 std::shared_ptr<dfcolumn> dfcolumn::substr(int pos, int num) {
+  if(pos > 0) pos--; // convert 1-based to 0-based
   // to avoid error in substr
   auto ws = pos >= 0 ? as_words(6,"%Y-%m-%d",false,std::string(pos+num, 'N'))
     : as_words(6,"%Y-%m-%d",false,std::string(-pos, 'N'));
@@ -709,6 +710,9 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos, int num) {
 #pragma _NEC vovertake
 #pragma _NEC ivdep
           for(size_t i = 0; i < nulls1_size; i++) valp[nulls1p[i]] = 0;
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
           for(size_t i = 0; i < nulls2_size; i++) valp[nulls2p[i]] = 0;
         }, tintcol->nulls, nulls);
       ws.mapv
@@ -733,10 +737,16 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos, int num) {
           }
         }, tintcol->nulls, nulls, broadcast(num));
       ws.mapv(+[](words& ws, std::vector<int>& pos, int num){
+          auto posp = pos.data();
+          auto pos_size = pos.size();
+          for(size_t i = 0; i < pos_size; i++) {if(posp[i] > 0) posp[i]--;}
           ws.substr(pos, num);
         }, posval, broadcast(num));
     } else {
       ws.mapv(+[](words& ws, std::vector<int>& pos, int num){
+          auto posp = pos.data();
+          auto pos_size = pos.size();
+          for(size_t i = 0; i < pos_size; i++) {if(posp[i] > 0) posp[i]--;}
           ws.substr(pos, num);
         }, tintcol->val, broadcast(num));
     }
@@ -765,6 +775,7 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos, int num) {
 
 std::shared_ptr<dfcolumn>
 dfcolumn::substr(int pos, const std::shared_ptr<dfcolumn>& num) {
+  if(pos > 0) pos--; // convert 1-based to 0-based
   // to guard when words does not contain pos size chars
   if(num->is_all_null()) {
     if(dtype() == "string") {
@@ -796,6 +807,9 @@ dfcolumn::substr(int pos, const std::shared_ptr<dfcolumn>& num) {
 #pragma _NEC vovertake
 #pragma _NEC ivdep
           for(size_t i = 0; i < nulls1_size; i++) valp[nulls1p[i]] = 0;
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
           for(size_t i = 0; i < nulls2_size; i++) valp[nulls2p[i]] = 0;
         }, tintcol->nulls, nulls);
       ws.mapv
@@ -814,6 +828,9 @@ dfcolumn::substr(int pos, const std::shared_ptr<dfcolumn>& num) {
             startsp[nulls1p[i]] = 0;
             lensp[nulls1p[i]] = abspos;
           }
+#pragma _NEC vob
+#pragma _NEC vovertake
+#pragma _NEC ivdep
           for(size_t i = 0; i < nulls2_size; i++) {
             startsp[nulls2p[i]] = 0;
             lensp[nulls2p[i]] = abspos;
@@ -903,6 +920,9 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos,
         }
       }, numval, tintcol_pos->nulls, tintcol_num->nulls, nulls);
     ws.mapv(+[](words& ws, std::vector<int>& pos, std::vector<int>& num){
+        auto posp = pos.data();
+        auto pos_size = pos.size();
+        for(size_t i = 0; i < pos_size; i++) {if(posp[i] > 0) posp[i]--;}
         ws.substr(pos, num);
       }, posval, numval);
     nulls.mapv(+[](std::vector<size_t>& nulls,
@@ -915,6 +935,9 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos,
                }, tintcol_num->nulls);
   } else {
     ws.mapv(+[](words& ws, std::vector<int>& pos, std::vector<int>& num){
+        auto posp = pos.data();
+        auto pos_size = pos.size();
+        for(size_t i = 0; i < pos_size; i++) {if(posp[i] > 0) posp[i]--;}
         ws.substr(pos, num);
       }, tintcol_pos->val, tintcol_num->val);
   }
@@ -959,10 +982,19 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos) {
         for(size_t i = 0; i < nulls1_size; i++) valp[nulls1p[i]] = 0;
         for(size_t i = 0; i < nulls2_size; i++) valp[nulls2p[i]] = 0;
       }, tintcol->nulls, nulls);
-    ws.mapv(+[](words& ws, std::vector<int>& pos){ws.substr(pos);}, posval);
+    ws.mapv(+[](words& ws, std::vector<int>& pos){
+        auto posp = pos.data();
+        auto pos_size = pos.size();
+        for(size_t i = 0; i < pos_size; i++) {if(posp[i] > 0) posp[i]--;}
+        ws.substr(pos);
+      }, posval);
   } else {
-    ws.mapv(+[](words& ws, std::vector<int>& pos)
-            {ws.substr(pos);}, tintcol->val);
+    ws.mapv(+[](words& ws, std::vector<int>& pos) {
+        auto posp = pos.data();
+        auto pos_size = pos.size();
+        for(size_t i = 0; i < pos_size; i++) {if(posp[i] > 0) posp[i]--;}
+        ws.substr(pos);
+      }, tintcol->val);
   }
   if(tintcol->if_contain_nulls()) {
     nulls.mapv(+[](std::vector<size_t>& nulls,
@@ -987,6 +1019,7 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos) {
 }
 
 std::shared_ptr<dfcolumn> dfcolumn::substr(int pos) {
+  if(pos > 0) pos--; // convert 1-based to 0-based
   auto ws = as_words(6,"%Y-%m-%d",false,std::string(std::abs(pos), 'N'));
   ws.mapv(+[](words& ws, int pos){ws.substr(pos);}, broadcast(pos));
   auto nulls = get_nulls();
