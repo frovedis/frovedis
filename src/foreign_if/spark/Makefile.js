@@ -2,7 +2,7 @@ include ../../../Makefile.in.x86
 
 # CLASSES are just for dependency; not all the classes are listed
 
-JCLASSES_NOSERVER := bin/com/nec/frovedis/Jmatrix/DTYPE.class bin/com/nec/frovedis/Jmatrix/DummyEvdResult.class bin/com/nec/frovedis/Jmatrix/DummyFreqItemset.class bin/com/nec/frovedis/Jmatrix/DummyGesvdResult.class bin/com/nec/frovedis/Jmatrix/DummyGetrfResult.class bin/com/nec/frovedis/Jmatrix/DummyMatrix.class bin/com/nec/frovedis/Jmatrix/DummyPCAResult.class \
+JCLASSES_NOSERVER := bin/com/nec/frovedis/Jmatrix/DTYPE.class bin/com/nec/frovedis/Jmatrix/OffHeapArray.class bin/com/nec/frovedis/Jmatrix/DummyEvdResult.class bin/com/nec/frovedis/Jmatrix/DummyFreqItemset.class bin/com/nec/frovedis/Jmatrix/DummyGesvdResult.class bin/com/nec/frovedis/Jmatrix/DummyGetrfResult.class bin/com/nec/frovedis/Jmatrix/DummyMatrix.class bin/com/nec/frovedis/Jmatrix/DummyPCAResult.class \
 bin/com/nec/frovedis/Jmllib/DummyDftable.class bin/com/nec/frovedis/Jmllib/DummyGLM.class bin/com/nec/frovedis/Jmllib/DummyKNNResult.class bin/com/nec/frovedis/Jmllib/DummyLDAModel.class bin/com/nec/frovedis/Jmllib/DummyLDAResult.class bin/com/nec/frovedis/Jmllib/DummyTSNEResult.class bin/com/nec/frovedis/Jmllib/IntDoublePair.class \
 bin/com/nec/frovedis/Jgraph/DummyEdge.class bin/com/nec/frovedis/Jgraph/DummyGraph.class
 
@@ -34,6 +34,8 @@ bin/com/nec/frovedis/Jexrpc/FrovedisServer.class: main/com/nec/frovedis/Jexrpc/F
 	${JAVA_HOME}/bin/javac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jexrpc/*.java 
 bin/com/nec/frovedis/Jmatrix/DTYPE.class: main/com/nec/frovedis/Jmatrix/DTYPE.java
 	${JAVA_HOME}/bin/javac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jmatrix/DTYPE.java
+bin/com/nec/frovedis/Jmatrix/OffHeapArray.class: main/com/nec/frovedis/Jmatrix/OffHeapArray.java bin/com/nec/frovedis/Jmatrix/DTYPE.class
+	${JAVA_HOME}/bin/javac -XDignore.symbol.file -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jmatrix/OffHeapArray.java
 bin/com/nec/frovedis/Jmatrix/DummyEvdResult.class: main/com/nec/frovedis/Jmatrix/DummyEvdResult.java
 	${JAVA_HOME}/bin/javac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jmatrix/DummyEvdResult.java
 bin/com/nec/frovedis/Jmatrix/DummyFreqItemset.class: main/com/nec/frovedis/Jmatrix/DummyFreqItemset.java

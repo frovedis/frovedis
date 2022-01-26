@@ -7,6 +7,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 import org.apache.spark.sql.vectorized.ColumnVector;
+import java.util.Iterator;
 import com.nec.frovedis.Jexrpc.Node;
 import com.nec.frovedis.Jexrpc.JNISupport;
 import com.nec.frovedis.Jmatrix.DTYPE;
@@ -129,19 +130,23 @@ public class jDFTransfer implements java.io.Serializable {
           JNISupport.loadFrovedisWorkerStringVector(w_node, vptr, localId, sArr, k);
           break;
         }
-        case DTYPE.WORDS: { 
-          int flat_size = 0;
-          for(int j = 0; j < k; ++j) flat_size += tcol.isNullAt(j) ? 4 : tcol.getBinary(j).length; // TODO: improve
+        case DTYPE.WORDS: {
           byte[] nulls = new byte[4];
           nulls[0] = 'N'; nulls[1] = 'U'; nulls[2] = 'L'; nulls[3] = 'L';
-          int cur = 0;
           int[] szArr = new int[k];
+          byte[][] buffer = new byte[k][]; 
+          int flat_size = 0;
+          for(int j = 0; j < k; ++j) {
+            buffer[j] = tcol.isNullAt(j) ? nulls : tcol.getBinary(j);
+            int size = buffer[j].length;
+            szArr[j] = size;
+            flat_size += size;
+          }
+          int cur = 0;
           char[] cArr = new char[flat_size];
           for(int j = 0; j < k; ++j) {
-            byte[] tmp = tcol.isNullAt(j) ? nulls : tcol.getBinary(j);
-            int size = tmp.length;
-            szArr[j] = size;
-            for(int c = 0; c < size; ++c) cArr[cur + c] = (char) tmp[c];
+            int size = buffer[j].length;
+            for(int c = 0; c < size; ++c) cArr[cur + c] = (char) buffer[j][c];
             cur += size;
           }
           t0.show("ColumnVector -> flatten-charArray: ");
@@ -156,6 +161,6 @@ public class jDFTransfer implements java.io.Serializable {
       String err = JNISupport.checkServerException();
       if (!err.isEmpty()) throw new java.rmi.ServerException(err);
       t0.show("spark-worker to frovedis-rank local data copy: ");
-    }
-  }
+    } // end of switch
+  } // end of for-loop (iterating columns)
 }
