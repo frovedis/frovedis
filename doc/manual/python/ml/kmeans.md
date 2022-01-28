@@ -531,7 +531,10 @@ Output
     centroid:
     node = 0, local_num_row = 2, local_num_col = 3, val = 0.15 0.15 0.15 9.1 9.1 9.1
     
-It displays the centroid information on the trained model which is currently present on the server.  
+This output will be visible on server side. It displays the centroid information on the trained 
+model which is currently present on the server.  
+
+**No such output will be visible on client side.**  
 
 __Return Value__  
 It returns nothing.   

@@ -377,6 +377,11 @@ Output:
      Intercept:: 19.3242
      Threshold:: 0
 
+This output will be visible on server side. It displays the weights, intercept and threshold values 
+on the trained model which is currently present on the server.  
+
+**No such output will be visible on client side.**  
+
 __Return Value__  
 It returns nothing.   
 

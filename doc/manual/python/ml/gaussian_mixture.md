@@ -595,8 +595,10 @@ Output
     Covariances:
     node = 0, local_num_row = 2, local_num_col = 4, val = 0 0 0 2.66667 0 0 0 2.66667
     
-It displays the information on the trained model such as means, weights, covariances which 
-is currently present on the server.  
+This output will be visible on server side. It displays the information on the trained model 
+such as means, weights, covariances which is currently present on the server.  
+
+**No such output will be visible on client side.**  
 
 __Return Value__  
 It returns nothing.   

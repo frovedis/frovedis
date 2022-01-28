@@ -369,8 +369,10 @@ Output
     7:      4       5       0.259808        3
     8:      6       7       15.5019 5
 
-It displays the dendrogram on the trained model which is currently present on the server. 
-Using the dendrogram, the desired number of clusters may be found. 
+This output will be visible on server side. It displays the dendrogram on the trained model which 
+is currently present on the server. Using the dendrogram, the desired number of clusters may be found.  
+
+**No such output will be visible on client side.**  
 
 __Return Value__  
 It returns nothing.  

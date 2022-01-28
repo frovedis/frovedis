@@ -318,6 +318,11 @@ Output
     node = 0, local_num_row = 5, local_num_col = 2, val = -0.628988 -0.345834 -0.628988 
     -0.345834 -0.202594 0.368471 -0.202594 0.368471 -0.202594 0.368471
 
+This output will be visible on server side. It displays the affinity matrix and embedding matrix 
+on the trained model which is currently present on the server.  
+
+**No such output will be visible on client side.**  
+
 __Return Value__  
 It returns nothing.  
 

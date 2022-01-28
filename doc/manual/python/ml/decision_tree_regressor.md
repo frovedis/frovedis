@@ -403,7 +403,10 @@ Output
                  \_ (62) Predict: 13.88
                  \_ (63) Predict: 9.15938
 
-It displays the decision tree having maximum depth of 5 and total 51 nodes in the tree.  
+This output will be visible on server side. It displays the decision tree having maximum depth 
+of 5 and total 51 nodes in the tree.  
+
+**No such output will be visible on client side.**  
 
 __Return Value__  
 It returns nothing.  

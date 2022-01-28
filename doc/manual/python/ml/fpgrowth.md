@@ -505,6 +505,8 @@ Output,
           mango   cake         apple           banana  1           1     0.25     NULL
 
 
+**This output will be visible on server side. No such output will be visible on client side.**  
+
 These above generated rules can also be saved and loaded separately as shown below:  
 
     rule.save("./out/FPRule")
@@ -675,8 +677,10 @@ Output
 
     total #FIS: 17
 
-It displays the in memory frequent itemsets, generated fprules, frequent itemsets count 
-which is currently present on the server.
+This output will be visible on server side. It displays the in memory frequent itemsets, 
+generated fprules, frequent itemsets count which is currently present on the server.
+
+**No such output will be visible on client side.**  
 
 __Return Value__  
 It returns nothing

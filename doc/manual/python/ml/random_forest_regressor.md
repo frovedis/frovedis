@@ -441,7 +441,10 @@ Output
        |  \_ (5) Predict: 1.2
        \_ (3) Predict: 0.3
 
-It displays the random forest having maximum depth of 5 and total 10 decision trees.  
+This output will be visible on server side. It displays the random forest having maximum 
+depth of 5 and total 10 decision trees.  
+
+**No such output will be visible on client side.**  
 
 __Return Value__  
 It returns nothing.  

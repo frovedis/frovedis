@@ -281,7 +281,9 @@ Output:
      0.473117 -0.481813 -0.087049 0.32502
      0.473117 -0.481813 -0.087049 0.32502
      
-It will print the matrix and labels of training data. 
+This output will be visible on server side. It will print the matrix and labels of training data.  
+
+**No such output will be visible on client side.**  
 
 __Return Value__  
 It returns nothing.   

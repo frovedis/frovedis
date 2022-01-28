@@ -259,6 +259,8 @@ __Purpose__
 It shows the target model information like weight values, intercept on the server side 
 user terminal. It is mainly used for debugging purpose.  
 
+**No such output will be visible on client side.**  
+
 __Return Value__  
 It returns nothing.  
 

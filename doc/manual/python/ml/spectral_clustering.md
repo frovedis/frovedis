@@ -404,7 +404,9 @@ Output
     0 0 1 1 1
     ncluster: 2
 
-It dispays the affinity matrix.  
+This output will be visible on server side. It dispays the affinity matrix.  
+
+**No such output will be visible on client side.**  
 
 __Return Value__  
 It returns nothing.  

@@ -368,6 +368,11 @@ Output:
     0.513352 -0.341082 0.460518 -0.292171 0.433433
     Intercept:: 1.00832
 
+This output will be visible on server side. It displays the weights and intercept values on the 
+trained model which is currently present on the server.  
+
+**No such output will be visible on client side.**  
+
 __Return Value__  
 It returns nothing.   
 

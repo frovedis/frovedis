@@ -402,7 +402,10 @@ Output
        \_ (2) Predict: 0.476812
        \_ (3) Predict: -0.476812
 
-It displays the gradient boosting tree having maximum depth of 4 and total 2 decision trees.  
+This output will be visible on server side. It displays the gradient boosting tree having maximum 
+depth of 4 and total 2 decision trees.  
+
+**No such output will be visible on client side.**  
 
 __Return Value__  
 It returns nothing.  

@@ -391,8 +391,10 @@ Output
     label: 0 1
     class count: 212 357
 
-It displays the target model information like model_type, binarize, feature_count, theta, pi, etc. values on
-the trained model which is currently present on the server.  
+This output will be visible on server side. It displays the target model information like model_type, 
+binarize, feature_count, theta, pi, etc. values on the trained model which is currently present on the server.  
+
+**No such output will be visible on client side.**  
 
 __Return Value__  
 It returns nothing.  
