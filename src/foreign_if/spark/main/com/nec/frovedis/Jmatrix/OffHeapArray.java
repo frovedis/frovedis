@@ -2,6 +2,9 @@ package com.nec.frovedis.Jmatrix;
 
 import sun.misc.Unsafe;
 import java.lang.reflect.Field;
+import com.nec.frovedis.Jexrpc.Node;
+import com.nec.frovedis.Jexrpc.JNISupport;
+import com.nec.frovedis.Jexrpc.FrovedisServer;
 
 public class OffHeapArray {
     private long size, address;
@@ -34,6 +37,15 @@ public class OffHeapArray {
       _Unsafe.freeMemory(address);
     }
 
+    // for debugging
+    public void sendData() 
+    throws java.rmi.ServerException {
+      FrovedisServer fs = FrovedisServer.getServerInstance();
+      JNISupport.loadVectorData(fs.master_node, address, size, dtype);
+      String err = JNISupport.checkServerException();
+      if (!err.isEmpty()) throw new java.rmi.ServerException(err);
+    }
+
     // -------- for double data --------
     public double getDouble(int idx) {
       assert(this.dtype == DTYPE.DOUBLE); 
@@ -47,6 +59,11 @@ public class OffHeapArray {
                          ret, Unsafe.ARRAY_DOUBLE_BASE_OFFSET, 
                          count * sizeof(DTYPE.DOUBLE));
       return ret;
+    }
+
+    public void putDouble(int idx, double value) {
+      assert(this.dtype == DTYPE.DOUBLE); 
+      _Unsafe.putDouble(null, address + idx * sizeof(DTYPE.DOUBLE), value);
     }
 
     public void putDoubles(int idx, int count, double[] src, int srcIndex) { 
@@ -78,6 +95,11 @@ public class OffHeapArray {
       return ret;
     }
 
+    public void putFloat(int idx, float value) {
+      assert(this.dtype == DTYPE.FLOAT); 
+      _Unsafe.putFloat(null, address + idx * sizeof(DTYPE.FLOAT), value);
+    }
+
     public void putFloats(int idx, int count, float[] src, int srcIndex) {
       assert(this.dtype == DTYPE.FLOAT); 
       _Unsafe.copyMemory(src, Unsafe.ARRAY_FLOAT_BASE_OFFSET + srcIndex * sizeof(DTYPE.FLOAT),
@@ -107,6 +129,11 @@ public class OffHeapArray {
       return ret;
     }
 
+    public void putLong(int idx, long value) {
+      assert(this.dtype == DTYPE.LONG); 
+      _Unsafe.putLong(null, address + idx * sizeof(DTYPE.LONG), value);
+    }
+
     public void putLongs(int idx, int count, long[] src, int srcIndex) {
       assert(this.dtype == DTYPE.LONG); 
       _Unsafe.copyMemory(src, Unsafe.ARRAY_LONG_BASE_OFFSET + srcIndex * sizeof(DTYPE.LONG),
@@ -134,6 +161,11 @@ public class OffHeapArray {
                          ret, Unsafe.ARRAY_INT_BASE_OFFSET, 
                          count * sizeof(DTYPE.INT));
       return ret;
+    }
+
+    public void putInt(int idx, int value) {
+      assert(this.dtype == DTYPE.INT); 
+      _Unsafe.putInt(null, address + idx * sizeof(DTYPE.INT), value);
     }
 
     public void putInts(int idx, int count, int[] src, int srcIndex) {
@@ -167,6 +199,11 @@ public class OffHeapArray {
       return ret;
     }
 
+    public void putBoolean(int idx, boolean value) {
+      assert(this.dtype == DTYPE.BOOL); 
+      _Unsafe.putInt(null, address + idx * sizeof(DTYPE.INT), value ? 1 : 0);
+    }
+
     public void putBoolean(int idx, int count, boolean[] src, int srcIndex) {
       assert(this.dtype == DTYPE.BOOL); 
       int[] tmp = new int[count];
@@ -196,6 +233,11 @@ public class OffHeapArray {
                          ret, Unsafe.ARRAY_BYTE_BASE_OFFSET,
                          count * sizeof(DTYPE.BYTE));
       return ret;
+    }
+
+    public void putByte(int idx, byte value) {
+      assert(this.dtype == DTYPE.BYTE); 
+      _Unsafe.putByte(null, address + idx * sizeof(DTYPE.BYTE), value);
     }
 
     public void putBytes(int idx, int count, byte[] src, int srcIndex) {

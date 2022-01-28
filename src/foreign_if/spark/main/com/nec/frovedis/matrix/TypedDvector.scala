@@ -17,6 +17,7 @@ object DTYPE extends java.io.Serializable {
   val BOOL:   Short = 6
   val ULONG:  Short = 7
   val WORDS:  Short = 8
+  val BYTE:   Short = 9
 
   def detect(x: Any): Short = {
     var ret: Short = NONE
@@ -30,6 +31,19 @@ object DTYPE extends java.io.Serializable {
     else if (x.isInstanceOf[org.apache.spark.sql.Column] &&
             !x.isInstanceOf[org.apache.spark.sql.ColumnName]) ret = DOUBLE
     else throw new IllegalArgumentException("Unknown Any Type!") 
+    return ret
+  }
+
+  def sizeof(dtype: Short): Long = {
+    val ret = dtype match {
+      case BYTE   => 1L // for char etc...
+      case INT    => 4L
+      case BOOL   => 4L
+      case LONG   => 8L
+      case FLOAT  => 4L
+      case DOUBLE => 8L
+      case _      => throw new IllegalArgumentException("sizeof: Unknown primitive type!")
+    }
     return ret
   }
 

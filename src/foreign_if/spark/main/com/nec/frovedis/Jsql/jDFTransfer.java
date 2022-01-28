@@ -11,6 +11,8 @@ import java.util.Iterator;
 import com.nec.frovedis.Jexrpc.Node;
 import com.nec.frovedis.Jexrpc.JNISupport;
 import com.nec.frovedis.Jmatrix.DTYPE;
+import com.nec.frovedis.Jmatrix.OffHeapArray;
+import com.nec.frovedis.Jmatrix.configs;
 import com.nec.frovedis.matrix.TimeSpent;
 
 public class jDFTransfer implements java.io.Serializable {
@@ -78,82 +80,127 @@ public class jDFTransfer implements java.io.Serializable {
     for (int i = 0; i < ncol; ++i) {
       int cid = colIds[i];
       ColumnVector tcol = batch.column(cid);
+      boolean check_null = tcol.hasNull();
       int row_offset = offset[i];
       long vptr = vptrs[row_offset * nproc + destId];
       switch(types[i]) {
         case DTYPE.INT: { 
-          //int[] iArr = tcol.getInts(0, k);
-          int[] iArr = new int[k];
-          for(int j = 0; j < k; ++j) iArr[j] = tcol.isNullAt(j) ? Integer.MAX_VALUE : tcol.getInt(j);
+          OffHeapArray buf = new OffHeapArray(k, DTYPE.INT);
+          if (check_null) {
+            for(int j = 0; j < k; ++j) buf.putInt(j, tcol.isNullAt(j) ? Integer.MAX_VALUE : tcol.getInt(j));
+          } else {
+            for(int j = 0; j < k; ++j) buf.putInt(j, tcol.getInt(j));
+          }
           t0.show("ColumnVector -> IntArray: ");
-          JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr, k);
+          JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId, 
+                                                   buf.get(), k, DTYPE.INT, 
+                                                   configs.rawsend_enabled);
+          buf.freeMemory();
           break;
         }
         case DTYPE.BOOL: { 
-          int[] iArr = new int[k];
-          for(int j = 0; j < k; ++j) {
-            if (tcol.isNullAt(j)) iArr[j] = Integer.MAX_VALUE;
-            else                  iArr[j] = tcol.getBoolean(j) ? 1 : 0;
+          OffHeapArray buf = new OffHeapArray(k, DTYPE.INT);
+          if (check_null) {
+            for(int j = 0; j < k; ++j) {
+              if (tcol.isNullAt(j)) buf.putInt(j, Integer.MAX_VALUE);
+              else                  buf.putInt(j, tcol.getBoolean(j) ? 1 : 0);
+            }
+          } else {
+            for(int j = 0; j < k; ++j) buf.putInt(j, tcol.getBoolean(j) ? 1 : 0);
           }
           t0.show("ColumnVector -> (Boolean) IntArray: ");
-          JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr, k);
+          JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId, 
+                                                   buf.get(), k, DTYPE.INT, 
+                                                   configs.rawsend_enabled);
           break;
         }
         case DTYPE.LONG: { 
-          //long[] lArr = tcol.getLongs(0, k);
-          long[] lArr = new long[k];
-          for(int j = 0; j < k; ++j) lArr[j] = tcol.isNullAt(j) ? Long.MAX_VALUE : tcol.getLong(j);
+          OffHeapArray buf = new OffHeapArray(k, DTYPE.LONG);
+          if (check_null) {
+            for(int j = 0; j < k; ++j) buf.putLong(j, tcol.isNullAt(j) ? Long.MAX_VALUE : tcol.getLong(j));
+          } else {
+            for(int j = 0; j < k; ++j) buf.putLong(j, tcol.getLong(j));
+          }
           t0.show("ColumnVector -> LongArray: ");
-          JNISupport.loadFrovedisWorkerLongVector(w_node, vptr, localId, lArr, k);
+          JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId, 
+                                                   buf.get(), k, DTYPE.LONG,
+                                                   configs.rawsend_enabled);
+          buf.freeMemory();
           break;
         }
         case DTYPE.FLOAT: { 
-          //float[] fArr = tcol.getFloats(0, k);
-          float[] fArr = new float[k];
-          for(int j = 0; j < k; ++j) fArr[j] = tcol.isNullAt(j) ? Float.MAX_VALUE : tcol.getFloat(j);
+          OffHeapArray buf = new OffHeapArray(k, DTYPE.FLOAT);
+          if (check_null) {
+            for(int j = 0; j < k; ++j) buf.putFloat(j, tcol.isNullAt(j) ? Float.MAX_VALUE : tcol.getFloat(j));
+          } else {
+            for(int j = 0; j < k; ++j) buf.putFloat(j, tcol.getFloat(j));
+          }
           t0.show("ColumnVector -> FloatArray: ");
-          JNISupport.loadFrovedisWorkerFloatVector(w_node, vptr, localId, fArr, k);
+          JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId, 
+                                                   buf.get(), k, DTYPE.FLOAT,
+                                                   configs.rawsend_enabled);
+          buf.freeMemory();
           break;
         }
         case DTYPE.DOUBLE: { 
-          //double[] dArr = tcol.getDoubles(0, k);
-          double[] dArr = new double[k];
-          for(int j = 0; j < k; ++j) dArr[j] = tcol.isNullAt(j) ? Double.MAX_VALUE : tcol.getDouble(j);
+          OffHeapArray buf = new OffHeapArray(k, DTYPE.DOUBLE);
+          if (check_null) {
+            for(int j = 0; j < k; ++j) buf.putDouble(j, tcol.isNullAt(j) ? Double.MAX_VALUE : tcol.getDouble(j));
+          } else {
+            for(int j = 0; j < k; ++j) buf.putDouble(j, tcol.getDouble(j));
+          }
           t0.show("ColumnVector -> DoubleArray: ");
-          JNISupport.loadFrovedisWorkerDoubleVector(w_node, vptr, localId, dArr, k);
+          JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId, 
+                                                   buf.get(), k, DTYPE.DOUBLE,
+                                                   configs.rawsend_enabled);
+          buf.freeMemory();
           break;
         }
-        case DTYPE.STRING: { 
+        case DTYPE.STRING: { // mostly used for debugging 
           String[] sArr = new String[k];
-          for(int j = 0; j < k; ++j) sArr[j] = tcol.isNullAt(j) ? "NULL" : tcol.getUTF8String(j).toString();
+          if (check_null) {
+            for(int j = 0; j < k; ++j) sArr[j] = tcol.isNullAt(j) ? "NULL" : tcol.getUTF8String(j).toString();
+          } else {
+            for(int j = 0; j < k; ++j) sArr[j] = tcol.getUTF8String(j).toString();
+          }
           t0.show("ColumnVector -> StringArray: ");
           JNISupport.loadFrovedisWorkerStringVector(w_node, vptr, localId, sArr, k);
           break;
         }
         case DTYPE.WORDS: {
-          byte[] nulls = new byte[4];
-          nulls[0] = 'N'; nulls[1] = 'U'; nulls[2] = 'L'; nulls[3] = 'L';
-          int[] szArr = new int[k];
           byte[][] buffer = new byte[k][]; 
           int flat_size = 0;
-          for(int j = 0; j < k; ++j) {
-            buffer[j] = tcol.isNullAt(j) ? nulls : tcol.getBinary(j);
-            int size = buffer[j].length;
-            szArr[j] = size;
-            flat_size += size;
+          if (check_null) {
+            byte[] nulls = new byte[4];
+            nulls[0] = 'N'; nulls[1] = 'U'; nulls[2] = 'L'; nulls[3] = 'L';
+            for(int j = 0; j < k; ++j) {
+              buffer[j] = tcol.isNullAt(j) ? nulls : tcol.getBinary(j);
+              flat_size += buffer[j].length;
+            }
+          } else {
+            for(int j = 0; j < k; ++j) {
+              buffer[j] = tcol.getBinary(j);
+              flat_size += buffer[j].length;
+            }
           }
           int cur = 0;
-          char[] cArr = new char[flat_size];
+          OffHeapArray szbuf = new OffHeapArray(k, DTYPE.INT);
+          OffHeapArray charbuf = new OffHeapArray(flat_size, DTYPE.BYTE);
           for(int j = 0; j < k; ++j) {
             int size = buffer[j].length;
-            for(int c = 0; c < size; ++c) cArr[cur + c] = (char) buffer[j][c];
+            for(int c = 0; c < size; ++c) charbuf.putByte(cur + c, buffer[j][c]);
+            szbuf.putInt(j, size);
             cur += size;
           }
-          t0.show("ColumnVector -> flatten-charArray: ");
+          t0.show("ColumnVector -> flatten-byteArray: ");
           int next_row_offset = row_offset + 1;
           long sptr = vptrs[next_row_offset * nproc + destId];
-          JNISupport.loadFrovedisWorkerCharSizePair(w_node, vptr, sptr, localId, 
-                                                    cArr, szArr, flat_size, k);
+          JNISupport.loadFrovedisWorkerByteSizePair2(w_node, vptr, sptr, localId, 
+                                                     charbuf.get(), szbuf.get(), 
+                                                     flat_size, k,
+                                                     configs.rawsend_enabled);
+          szbuf.freeMemory();
+          charbuf.freeMemory();
           break;
         }
         default: throw new IllegalArgumentException("Unsupported type is encountered!\n");

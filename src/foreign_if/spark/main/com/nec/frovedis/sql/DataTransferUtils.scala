@@ -1,6 +1,7 @@
 package com.nec.frovedis.sql;
 
 import com.nec.frovedis.Jexrpc._
+import com.nec.frovedis.Jmatrix.configs
 import com.nec.frovedis.Jsql.{jPlatform, jDFTransfer}
 import com.nec.frovedis.matrix.{GenericUtils, TimeSpent, DTYPE}
 import com.nec.frovedis.matrix.{
@@ -207,8 +208,10 @@ object sDFTransfer extends java.io.Serializable {
 
     // (2) prepare server side ranks for processing N parallel requests
     JNISupport.lockParallel()
+    var scale = ncol;
+    if (configs.rawsend_enabled) scale = (ncol + word_count) * 2
     val fw_nodes = JNISupport.getWorkerInfoMulti(fs.master_node,
-                                        block_sizes.map(_ * ncol), nproc)
+                                        block_sizes.map(_ * scale), nproc)
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     t_log.show("server process preparation: ")
@@ -302,82 +305,6 @@ object sDFTransfer extends java.io.Serializable {
         val localId = index - myst
         val w_node = fw_nodes(destId)
 
-/*
-        val k = batch.numRows()
-        for (i <- 0 until ncol) {
-          val cid = colIds(i)
-          val tcol = batch.column(cid)
-          val row_offset = offset(i)
-          val vptr = vptrs(row_offset * nproc + destId)
-          types(i) match {
-            case DTYPE.INT => {
-              //val iArr = tcol.getInts(0, k)
-              val iArr = new Array[Int](k)
-              for(j <- 0 until k) iArr(j) = if (tcol.isNullAt(j)) Int.MaxValue else tcol.getInt(j)
-              t0.show("ColumnVector -> IntArray: ")
-              JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr, k)
-            }
-            case DTYPE.BOOL => {
-              //val iArr = tcol.getBooleans(0, k).map(x => if (x) 1 else  0)
-              val iArr = new Array[Int](k)
-              for(j <- 0 until k) {
-                if (tcol.isNullAt(j)) iArr(j) = Int.MaxValue
-                else                  iArr(j) = if (tcol.getBoolean(j)) 1 else 0
-              }
-              t0.show("ColumnVector -> (Boolean) IntArray: ")
-              JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr, k)
-            }
-            case DTYPE.LONG => {
-              //val lArr = tcol.getLongs(0, k)
-              val lArr = new Array[Long](k)
-              for(j <- 0 until k) lArr(j) = if (tcol.isNullAt(j)) Long.MaxValue else tcol.getLong(j)
-              t0.show("ColumnVector -> LongArray: ")
-              JNISupport.loadFrovedisWorkerLongVector(w_node, vptr, localId, lArr, k)
-            }
-            case DTYPE.FLOAT => {
-              //val fArr = tcol.getFloats(0, k)
-              val fArr = new Array[Float](k)
-              for(j <- 0 until k) fArr(j) = if (tcol.isNullAt(j)) Float.MaxValue else tcol.getFloat(j)
-              t0.show("ColumnVector -> FloatArray: ")
-              JNISupport.loadFrovedisWorkerFloatVector(w_node, vptr, localId, fArr, k)
-            }
-            case DTYPE.DOUBLE => {
-              //val dArr = tcol.getDoubles(0, k)
-              val dArr = new Array[Double](k)
-              for(j <- 0 until k) dArr(j) = if (tcol.isNullAt(j)) Double.MaxValue else tcol.getDouble(j)
-              t0.show("ColumnVector -> DoubleArray: ")
-              JNISupport.loadFrovedisWorkerDoubleVector(w_node, vptr, localId, dArr, k)
-            }
-            case DTYPE.STRING => {
-              val sArr = new Array[String](k)
-              for (j <- 0 until k) sArr(j) = if (tcol.isNullAt(j)) "NULL" else tcol.getUTF8String(j).toString()
-              t0.show("ColumnVector -> StringArray: ")
-              JNISupport.loadFrovedisWorkerStringVector(w_node, vptr, localId, sArr, k)
-            }
-            case DTYPE.WORDS => { // TODO: improve as in jDFTransfer
-              val next_row_offset = row_offset + 1
-              val sptr = vptrs(next_row_offset * nproc + destId)
-              val sArr = new Array[Array[Char]](k)
-              for (j <- 0 until k) {
-                val tmp = if (tcol.isNullAt(j)) "NULL" else tcol.getUTF8String(j).toString()
-                sArr(j) = tmp.toCharArray()
-              }
-              t0.show("ColumnVector -> array-of-CharArray: ")
-
-              val (flat_sArr, sizes_arr) = GenericUtils.flatten(sArr)
-              t0.show("array-of-CharArray flatten: ")
-              JNISupport.loadFrovedisWorkerCharSizePair(w_node, vptr, sptr, localId,
-                                                        flat_sArr, sizes_arr,
-                                                        flat_sArr.size, k)
-            }
-            case _ => throw new IllegalArgumentException(
-                      "[optimized_load] Unsupported type: " + TMAPPER.id2string(types(i)))
-          }
-          val err = JNISupport.checkServerException()
-          if (err != "") throw new java.rmi.ServerException(err)
-          t0.show("spark-worker to frovedis-rank local data copy: ")
-        }
-*/
         jDFTransfer.transfer_batch_data(batch, colIds, w_node, vptrs, offset, types, 
                                         ncol, nproc, destId, localId, t0)
         Array(true).toIterator

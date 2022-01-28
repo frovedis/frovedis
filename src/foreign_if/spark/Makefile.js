@@ -2,14 +2,14 @@ include ../../../Makefile.in.x86
 
 # CLASSES are just for dependency; not all the classes are listed
 
-JCLASSES_NOSERVER := bin/com/nec/frovedis/Jmatrix/DTYPE.class bin/com/nec/frovedis/Jmatrix/OffHeapArray.class bin/com/nec/frovedis/Jmatrix/DummyEvdResult.class bin/com/nec/frovedis/Jmatrix/DummyFreqItemset.class bin/com/nec/frovedis/Jmatrix/DummyGesvdResult.class bin/com/nec/frovedis/Jmatrix/DummyGetrfResult.class bin/com/nec/frovedis/Jmatrix/DummyMatrix.class bin/com/nec/frovedis/Jmatrix/DummyPCAResult.class \
+JCLASSES_NOSERVER := bin/com/nec/frovedis/Jmatrix/configs.class bin/com/nec/frovedis/Jmatrix/DTYPE.class bin/com/nec/frovedis/Jmatrix/DummyEvdResult.class bin/com/nec/frovedis/Jmatrix/DummyFreqItemset.class bin/com/nec/frovedis/Jmatrix/DummyGesvdResult.class bin/com/nec/frovedis/Jmatrix/DummyGetrfResult.class bin/com/nec/frovedis/Jmatrix/DummyMatrix.class bin/com/nec/frovedis/Jmatrix/DummyPCAResult.class \
 bin/com/nec/frovedis/Jmllib/DummyDftable.class bin/com/nec/frovedis/Jmllib/DummyGLM.class bin/com/nec/frovedis/Jmllib/DummyKNNResult.class bin/com/nec/frovedis/Jmllib/DummyLDAModel.class bin/com/nec/frovedis/Jmllib/DummyLDAResult.class bin/com/nec/frovedis/Jmllib/DummyTSNEResult.class bin/com/nec/frovedis/Jmllib/IntDoublePair.class \
 bin/com/nec/frovedis/Jgraph/DummyEdge.class bin/com/nec/frovedis/Jgraph/DummyGraph.class
 
 JCLASSES := bin/com/nec/frovedis/Jexrpc/FrovedisServer.class ${JCLASSES_NOSERVER}
 
 SMATCLASSES_BASE := bin/com/nec/frovedis/matrix/GenericUtils.class bin/com/nec/frovedis/matrix/Utils.class bin/com/nec/frovedis/matrix/ScalaCRS.class bin/com/nec/frovedis/matrix/MAT_KIND.class bin/com/nec/frovedis/matrix/DTYPE.class bin/com/nec/frovedis/matrix/FrovedisDenseMatrix.class 
-SMATCLASSES := ${SMATCLASSES_BASE} bin/com/nec/frovedis/matrix/BLAS.class bin/com/nec/frovedis/matrix/PBLAS.class bin/com/nec/frovedis/matrix/EvdResult.class bin/com/nec/frovedis/matrix/GetrfResult.class bin/com/nec/frovedis/matrix/FrovedisPCAModel.class bin/com/nec/frovedis/matrix/ScaLAPACK.class bin/com/nec/frovedis/matrix/LAPACK.class bin/com/nec/frovedis/matrix/RowMatrixUtils.class 
+SMATCLASSES := ${SMATCLASSES_BASE} bin/com/nec/frovedis/matrix/BLAS.class bin/com/nec/frovedis/matrix/PBLAS.class bin/com/nec/frovedis/matrix/EvdResult.class bin/com/nec/frovedis/matrix/GetrfResult.class bin/com/nec/frovedis/matrix/FrovedisPCAModel.class bin/com/nec/frovedis/matrix/ScaLAPACK.class bin/com/nec/frovedis/matrix/LAPACK.class bin/com/nec/frovedis/matrix/RowMatrixUtils.class bin/com/nec/frovedis/Jmatrix/OffHeapArray.class 
 
 SCLASSES := ${SMATCLASSES} \
 bin/com/nec/frovedis/exrpc/FrovedisSparseData.class bin/com/nec/frovedis/exrpc/FrovedisLabeledPoint.class \
@@ -32,10 +32,10 @@ main/cpp/JNISupport.hpp: ${JCLASSES} bin/com/nec/frovedis/graphx/bfs_result.clas
 # use * to handle circular dependency
 bin/com/nec/frovedis/Jexrpc/FrovedisServer.class: main/com/nec/frovedis/Jexrpc/FrovedisServer.java main/com/nec/frovedis/Jexrpc/JNISupport.java main/com/nec/frovedis/Jexrpc/MemPair.java main/com/nec/frovedis/Jexrpc/Node.java main/com/nec/frovedis/Jexrpc/SparseSVDResult.java ${JCLASSES_NOSERVER} bin/com/nec/frovedis/graphx/bfs_result.class bin/com/nec/frovedis/graphx/sssp_result.class
 	${JAVA_HOME}/bin/javac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jexrpc/*.java 
+bin/com/nec/frovedis/Jmatrix/configs.class: main/com/nec/frovedis/Jmatrix/configs.java
+	${JAVA_HOME}/bin/javac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jmatrix/configs.java
 bin/com/nec/frovedis/Jmatrix/DTYPE.class: main/com/nec/frovedis/Jmatrix/DTYPE.java
 	${JAVA_HOME}/bin/javac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jmatrix/DTYPE.java
-bin/com/nec/frovedis/Jmatrix/OffHeapArray.class: main/com/nec/frovedis/Jmatrix/OffHeapArray.java bin/com/nec/frovedis/Jmatrix/DTYPE.class
-	${JAVA_HOME}/bin/javac -XDignore.symbol.file -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jmatrix/OffHeapArray.java
 bin/com/nec/frovedis/Jmatrix/DummyEvdResult.class: main/com/nec/frovedis/Jmatrix/DummyEvdResult.java
 	${JAVA_HOME}/bin/javac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jmatrix/DummyEvdResult.java
 bin/com/nec/frovedis/Jmatrix/DummyFreqItemset.class: main/com/nec/frovedis/Jmatrix/DummyFreqItemset.java
@@ -75,6 +75,9 @@ bin/com/nec/frovedis/exrpc/FrovedisLabeledPoint.class: main/com/nec/frovedis/exr
 
 bin/com/nec/frovedis/io/FrovedisIO.class: main/com/nec/frovedis/io/iohandler.scala
 	${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/io/iohandler.scala
+
+bin/com/nec/frovedis/Jmatrix/OffHeapArray.class: main/com/nec/frovedis/Jmatrix/OffHeapArray.java bin/com/nec/frovedis/Jmatrix/DTYPE.class bin/com/nec/frovedis/Jexrpc/FrovedisServer.class 
+	${JAVA_HOME}/bin/javac -XDignore.symbol.file -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jmatrix/OffHeapArray.java
 
 bin/com/nec/frovedis/matrix/GenericUtils.class: main/com/nec/frovedis/matrix/GenericUtils.scala
 	${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/matrix/GenericUtils.scala
@@ -124,7 +127,7 @@ bin/com/nec/frovedis/sql/FrovedisDataFrame.class: main/com/nec/frovedis/sql/Frov
 	${JAVA_HOME}/bin/javac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jsql/FrovedisGroupedDFFinalizer.java
 bin/com/nec/frovedis/Jsql/jPlatform.class: ./main/com/nec/frovedis/Jsql/jPlatform.java 
 	${JAVA_HOME}/bin/javac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jsql/jPlatform.java
-bin/com/nec/frovedis/Jsql/jDFTransfer.class: ./main/com/nec/frovedis/Jsql/jDFTransfer.java ./bin/com/nec/frovedis/Jsql/jPlatform.class ./bin/com/nec/frovedis/Jexrpc/FrovedisServer.class bin/com/nec/frovedis/Jmatrix/DTYPE.class bin/com/nec/frovedis/matrix/GenericUtils.class 
+bin/com/nec/frovedis/Jsql/jDFTransfer.class: ./main/com/nec/frovedis/Jsql/jDFTransfer.java ./bin/com/nec/frovedis/Jsql/jPlatform.class bin/com/nec/frovedis/Jmatrix/OffHeapArray.class bin/com/nec/frovedis/matrix/GenericUtils.class
 	${JAVA_HOME}/bin/javac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jsql/jDFTransfer.java
 bin/com/nec/frovedis/sql/DFtoSparseInfo.class: main/com/nec/frovedis/sql/DFtoSparseInfo.scala ${JCLASSES} bin/com/nec/frovedis/mllib/GenericModel.class
 	${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/DFtoSparseInfo.scala

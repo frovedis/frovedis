@@ -1,7 +1,6 @@
-#include "exrpc_data_storage.hpp"
+#include "spark_client_headers.hpp"
 #include "short_hand_dense_type.hpp"
 #include "short_hand_sparse_type.hpp"
-#include "spark_client_headers.hpp"
 
 using namespace frovedis;
 

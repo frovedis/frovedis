@@ -128,6 +128,29 @@ set_dvector_data(std::vector<T>& vec,
   return ret;
 }
 
+// CAUTION: returns base address of the allocated memory pointer, 
+// instead of pointer to the container
+template <class T>
+exrpc_ptr_t allocate_vector(size_t& size) {
+  auto retp = new std::vector<T>(size);
+  return reinterpret_cast<exrpc_ptr_t>(retp->data());
+}
+
+// CAUTION: vecp: accepts base address of the allocated memory pointer, 
+// instead of pointer to the container
+template <class T>
+void show_vector(exrpc_ptr_t& vecp, size_t& size) {
+  auto vp = reinterpret_cast<T*>(vecp);
+  if (size <= 20) {
+    for(size_t i = 0; i < size; ++i) std::cout << vp[i] << " ";
+  } else {
+    for(size_t i = 0; i < 10; ++i) std::cout << vp[i] << " ";
+    std::cout << " ... ";
+    for(size_t i = size - 10; i < size; ++i) std::cout << vp[i] << " ";
+  }
+  std::cout << std::endl;
+}
+
 std::vector<exrpc_ptr_t>
 allocate_local_vectors(std::vector<size_t>& sizes,
                        std::vector<short>& dtypes);
@@ -171,6 +194,15 @@ void load_local_vector_pair(size_t& index,
   require(index < dvec.size(), "load_local_vector: index is out-of-bound!\n");
   dvec[index] = std::move(p_dvec);
   svec[index] = std::move(p_svec);
+}
+
+template <class T>
+exrpc_ptr_t allocate_vector_partition(exrpc_ptr_t& vp, size_t& index, 
+                                      size_t& size) {
+  auto& vecvec = *reinterpret_cast<std::vector<std::vector<T>>*>(vp); 
+  require(index < vecvec.size(), "allocate_vector_partition: index is out-of-bound!\n");
+  vecvec[index].resize(size);
+  return reinterpret_cast<exrpc_ptr_t>(vecvec[index].data());
 }
 
 // after the loading, input data will be destroyed...

@@ -99,6 +99,23 @@ get_node_local_word_pointers(exrpc_ptr_t& words_nl_ptr) {
 }
 
 void expose_frovedis_dvector_functions() {
+  // --- mostly for debugging rawsend of client side allocated memory ---
+  expose(allocate_vector<char>);
+  expose(allocate_vector<int>);
+  expose(allocate_vector<long>);
+  expose(allocate_vector<float>);
+  expose(allocate_vector<double>);
+  expose(show_vector<char>);
+  expose(show_vector<int>);
+  expose(show_vector<long>);
+  expose(show_vector<float>);
+  expose(show_vector<double>);
+  // --------------------------------------------------------------------
+  expose(allocate_vector_partition<char>);
+  expose(allocate_vector_partition<int>);
+  expose(allocate_vector_partition<long>);
+  expose(allocate_vector_partition<float>);
+  expose(allocate_vector_partition<double>);
   expose(count_distinct<int>);
   expose(count_distinct<long>);
   expose(count_distinct<unsigned long>);

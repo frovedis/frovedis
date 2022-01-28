@@ -23,10 +23,12 @@ public class JNISupport {
   static {
     // Load native library libfrovedis_client.so at runtime
     System.loadLibrary("frovedis_client_spark");
+    Thread.setDefaultUncaughtExceptionHandler(new MyHandler());
 
     // to ensure server will be shut_down,
     // even if user program aborts abnormally
     Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+       @Override
         public void run() {
           try {  
             FrovedisServer.shut_down();
@@ -38,11 +40,28 @@ public class JNISupport {
     }, "Shutdown-thread"));
   }
 
+  private static final class MyHandler implements Thread.UncaughtExceptionHandler {
+    @Override
+    public void uncaughtException(Thread t, Throwable e) {
+      try { 
+        FrovedisServer.shut_down();
+      }
+      catch(java.rmi.ServerException e2) {
+        System.out.println(e2.getMessage());
+      }
+      System.err.println(e.getMessage());
+      System.exit(-1);
+    }
+  }
+
   public static native String checkServerException();
   public static native void lockParallel();
   public static native void unlockParallel();
  
   // ---
+  public static native void loadVectorData(Node t_node, 
+                                           long address, long size, short dtype);
+
   public static native MemPair loadFrovedisWorkerGLMData(Node t_node, 
                                                        long nrows, long ncols,
                                                        double lbl[],
@@ -752,11 +771,18 @@ public class JNISupport {
                                                     short[] dtypes, long ncol);
   public static native MemPair[] allocateLocalVectorPair(Node master_node, 
                                                          long[] block_sizes, int nproc); 
+  public static native void loadFrovedisWorkerTypedVector(Node t_node, long vptr,
+                                                          long index, long datap,
+                                                          long size, short dtype,
+                                                          boolean rawsend);
   public static native void loadFrovedisWorkerIntVector(Node t_node, long vptr,
                                                         long index, int data[],
                                                         long size);
   public static native void loadFrovedisWorkerLongVector(Node t_node, long vptr,
                                                          long index, long data[],
+                                                         long size);
+  public static native void loadFrovedisWorkerBoolVector(Node t_node, long vptr,
+                                                         long index, boolean data[],
                                                          long size);
   public static native void loadFrovedisWorkerFloatVector(Node t_node, long vptr,
                                                           long index, float data[],
@@ -780,9 +806,19 @@ public class JNISupport {
                                                            char data[], int sizes[], 
                                                            long flat_size,
                                                            long actual_size);
-  public static native void loadFrovedisWorkerBoolVector(Node t_node, long vptr,
-                                                         long index, boolean data[],
-                                                         long size);
+  public static native void loadFrovedisWorkerByteSizePair(Node t_node, 
+                                                           long dptr, long sptr, 
+                                                           long index, 
+                                                           byte data[], int sizes[], 
+                                                           long flat_size,
+                                                           long actual_size);
+  public static native void loadFrovedisWorkerByteSizePair2(Node t_node, 
+                                                            long dptr, long sptr, 
+                                                            long index, 
+                                                            long datap, long sizesp,  
+                                                            long flat_size,
+                                                            long actual_size,
+                                                            boolean rawsend);
   public static native long createNodeLocalOfWords(Node master_node, 
                                                    long[] dptrs, long[] sptrs,
                                                    int nproc);

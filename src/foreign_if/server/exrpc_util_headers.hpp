@@ -2,6 +2,7 @@
 #define _EXRPC_UTIL_HPP_
 
 #include "../exrpc/exrpc_expose.hpp"
+#include "exrpc_data_storage.hpp"
 #include "model_tracker.hpp"
 #include "frovedis_mem_pair.hpp"
 #include "dummy_matrix.hpp"

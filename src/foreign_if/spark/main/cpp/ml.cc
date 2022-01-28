@@ -1,7 +1,7 @@
+#include "spark_client_headers.hpp"
 #include "exrpc_ml.hpp"
 #include "short_hand_dense_type.hpp"
 #include "short_hand_sparse_type.hpp"
-#include "spark_client_headers.hpp"
 #include "exrpc_model.hpp"
 #include "short_hand_model_type.hpp"
 

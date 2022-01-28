@@ -77,7 +77,8 @@ enum DTYPE {
   STRING = 5,
   BOOL = 6,
   ULONG = 7,
-  WORDS = 8
+  WORDS = 8,
+  BYTE = 9
 };
 
 enum OPTYPE {

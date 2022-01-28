@@ -435,6 +435,17 @@ std::vector<char> to_char_vector(JNIEnv *env, jcharArray& data, size_t size) {
   return data_vec;
 }
 
+// conversion jbyteArray => std::vector<char>
+std::vector<char> bytes_to_char_vector(JNIEnv *env, jbyteArray& data, size_t size) {
+  jsize d_len = env->GetArrayLength(data);
+  if(d_len != size) REPORT_ERROR(INTERNAL_ERROR, "Error in data extraction from JRE");
+  jbyte *datap = env->GetByteArrayElements(data, 0);
+  std::vector<char> data_vec(d_len);
+  for(size_t i=0; i<d_len; ++i) data_vec[i] = datap[i];
+  env->ReleaseByteArrayElements(data,datap,JNI_ABORT);
+  return data_vec;
+}
+
 // conversion jshortArray => std::vector<short>
 std::vector<short> to_short_vector(JNIEnv *env, jshortArray& data, size_t size) {
   jsize d_len = env->GetArrayLength(data);

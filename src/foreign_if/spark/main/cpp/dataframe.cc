@@ -1,6 +1,5 @@
-#include "exrpc_data_storage.hpp"
-#include "exrpc_dataframe.hpp"
 #include "spark_client_headers.hpp"
+#include "exrpc_dataframe.hpp"
 
 using namespace frovedis;
 

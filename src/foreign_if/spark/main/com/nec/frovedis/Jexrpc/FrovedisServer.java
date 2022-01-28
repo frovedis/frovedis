@@ -52,6 +52,7 @@ public class FrovedisServer implements java.io.Serializable {
       if (!info.isEmpty()) throw new ServerException(info);
       instantiated = false;
     }
+    //else System.out.println("No server found for finalization!");
   }
   public static void display() throws ServerException {
     System.out.println(getServerInstance().toString());

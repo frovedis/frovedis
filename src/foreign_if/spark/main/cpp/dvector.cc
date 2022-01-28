@@ -1,6 +1,5 @@
-#include "exrpc_data_storage.hpp"
-#include "short_hand_dtype.hpp"
 #include "spark_client_headers.hpp"
+#include "short_hand_dtype.hpp"
 
 using namespace frovedis;
 
@@ -63,9 +62,160 @@ JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateL
   return to_jMemPairArray(env, proxies);
 }
 
+// --- mainly for debugging purpose ---
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadVectorData
+  (JNIEnv *env, jclass thisCls, jobject target_node,
+   jlong address, jlong size_, jshort dtype) {
+
+  exrpc_ptr_t recvbufp = 0;
+  size_t size = size_;
+  auto node = java_node_to_frovedis_node(env, target_node);
+  auto sendbufp = reinterpret_cast<char*>(address);
+
+  try {
+    switch(dtype) {
+      case BYTE:   recvbufp = exrpc_async(node, allocate_vector<char>, size).get();
+                   exrpc_rawsend(node, sendbufp, recvbufp, sizeof(char) * size);
+                   exrpc_oneway(node, show_vector<char>, recvbufp, size);
+                   break;
+      case BOOL:
+      case INT:    recvbufp = exrpc_async(node, allocate_vector<int>, size).get();
+                   exrpc_rawsend(node, sendbufp, recvbufp, sizeof(int) * size);
+                   exrpc_oneway(node, show_vector<int>, recvbufp, size);
+                   break;
+      case LONG:   recvbufp = exrpc_async(node, allocate_vector<long>, size).get();
+                   exrpc_rawsend(node, sendbufp, recvbufp, sizeof(long) * size);
+                   exrpc_oneway(node, show_vector<long>, recvbufp, size);
+                   break;
+      case FLOAT:  recvbufp = exrpc_async(node, allocate_vector<float>, size).get();
+                   exrpc_rawsend(node, sendbufp, recvbufp, sizeof(float) * size);
+                   exrpc_oneway(node, show_vector<float>, recvbufp, size);
+                   break;
+      case DOUBLE: recvbufp = exrpc_async(node, allocate_vector<double>, size).get();
+                   exrpc_rawsend(node, sendbufp, recvbufp, sizeof(double) * size);
+                   exrpc_oneway(node, show_vector<double>, recvbufp, size);
+                   break;
+      default:     REPORT_ERROR(USER_ERROR, "Unsupported type encountered!");
+    }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+void send_raw_local_vector(char* sendbufp, size_t size, short dtype,
+                           exrpc_ptr_t vp, size_t idx,
+                           exrpc_node& tnode) {
+  exrpc_ptr_t recvbufp = 0;
+  try {
+    switch (dtype) {
+      case BYTE: {
+        recvbufp = exrpc_async(tnode, allocate_vector_partition<char>, 
+                               vp, idx, size).get();
+        exrpc_rawsend(tnode, sendbufp, recvbufp, sizeof(char) * size);
+        break;
+      }
+      case BOOL:
+      case INT: {
+        recvbufp = exrpc_async(tnode, allocate_vector_partition<int>, 
+                               vp, idx, size).get();
+        exrpc_rawsend(tnode, sendbufp, recvbufp, sizeof(int) * size);
+        break;
+      }
+      case LONG: {
+        recvbufp = exrpc_async(tnode, allocate_vector_partition<long>, 
+                               vp, idx, size).get();
+        exrpc_rawsend(tnode, sendbufp, recvbufp, sizeof(long) * size);
+        break;
+      }
+      case FLOAT: {
+        recvbufp = exrpc_async(tnode, allocate_vector_partition<float>, 
+                               vp, idx, size).get();
+        exrpc_rawsend(tnode, sendbufp, recvbufp, sizeof(float) * size);
+        break;
+      }
+      case DOUBLE: {
+        recvbufp = exrpc_async(tnode, allocate_vector_partition<double>, 
+                               vp, idx, size).get();
+        exrpc_rawsend(tnode, sendbufp, recvbufp, sizeof(double) * size);
+        break;
+      }
+      default:  REPORT_ERROR(USER_ERROR, 
+                "send_raw_local_vector: unsupported type encountered!");
+    }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+void send_local_vector(long datap, size_t size, short dtype,
+                       exrpc_ptr_t vp, size_t idx,
+                       exrpc_node& tnode) {
+  try {
+    switch (dtype) {
+      case BYTE: {
+        std::vector<char> vec(size);
+        auto vecp = vec.data();
+        auto sendbufp = reinterpret_cast<char*>(datap);
+        for (size_t i = 0; i < size; ++i) vecp[i] = sendbufp[i];
+        exrpc_oneway(tnode, (load_local_vector<std::vector<char>>), vp, idx, vec); // vp[idx] = vec
+        break;
+      }
+      case BOOL:
+      case INT: {
+        std::vector<int> vec(size);
+        auto vecp = vec.data();
+        auto sendbufp = reinterpret_cast<int*>(datap);
+        for (size_t i = 0; i < size; ++i) vecp[i] = sendbufp[i];
+        exrpc_oneway(tnode, (load_local_vector<std::vector<int>>), vp, idx, vec); // vp[idx] = vec
+        break;
+      }
+      case LONG: {
+        std::vector<long> vec(size);
+        auto vecp = vec.data();
+        auto sendbufp = reinterpret_cast<long*>(datap);
+        for (size_t i = 0; i < size; ++i) vecp[i] = sendbufp[i];
+        exrpc_oneway(tnode, (load_local_vector<std::vector<long>>), vp, idx, vec); // vp[idx] = vec
+        break;
+      }
+      case FLOAT: {
+        std::vector<float> vec(size);
+        auto vecp = vec.data();
+        auto sendbufp = reinterpret_cast<float*>(datap);
+        for (size_t i = 0; i < size; ++i) vecp[i] = sendbufp[i];
+        exrpc_oneway(tnode, (load_local_vector<std::vector<float>>), vp, idx, vec); // vp[idx] = vec
+        break;
+      }
+      case DOUBLE: {
+        std::vector<double> vec(size);
+        auto vecp = vec.data();
+        auto sendbufp = reinterpret_cast<double*>(datap);
+        for (size_t i = 0; i < size; ++i) vecp[i] = sendbufp[i];
+        exrpc_oneway(tnode, (load_local_vector<std::vector<double>>), vp, idx, vec); // vp[idx] = vec
+        break;
+      }
+      default:  REPORT_ERROR(USER_ERROR,
+                "send_local_vector: unsupported type encountered!");
+    }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerTypedVector
+  (JNIEnv *env, jclass thisCls, jobject worker_node, jlong vptr,
+   jlong index, jlong datap, jlong size, jshort dtype, jboolean rawsend) {
+
+  auto fw_node = java_node_to_frovedis_node(env, worker_node);
+  auto vp = (exrpc_ptr_t) vptr;
+  if (rawsend) {
+    auto sendbufp = reinterpret_cast<char*>(datap);
+    send_raw_local_vector(sendbufp, size, dtype, vp, index, fw_node); 
+  }
+  else {
+    send_local_vector(datap, size, dtype, vp, index, fw_node);
+  }
+}
+
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerIntVector
   (JNIEnv *env, jclass thisCls, jobject worker_node, jlong vptr, 
-   jlong index,  jintArray data, jlong size) {
+   jlong index, jintArray data, jlong size) {
 
   auto fw_node = java_node_to_frovedis_node(env, worker_node);
   auto p_vec = to_int_vector(env, data, size);
@@ -79,7 +229,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorke
 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerLongVector
   (JNIEnv *env, jclass thisCls, jobject worker_node, jlong vptr, 
-   jlong index,  jlongArray data, jlong size) {
+   jlong index, jlongArray data, jlong size) {
 
   auto fw_node = java_node_to_frovedis_node(env, worker_node);
   auto p_vec = to_long_vector(env, data, size);
@@ -93,7 +243,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorke
 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerFloatVector
   (JNIEnv *env, jclass thisCls, jobject worker_node, jlong vptr, 
-   jlong index,  jfloatArray data, jlong size) {
+   jlong index, jfloatArray data, jlong size) {
 
   auto fw_node = java_node_to_frovedis_node(env, worker_node);
   auto p_vec = to_float_vector(env, data, size);
@@ -107,7 +257,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorke
 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerDoubleVector
   (JNIEnv *env, jclass thisCls, jobject worker_node, jlong vptr, 
-   jlong index,  jdoubleArray data, jlong size) {
+   jlong index, jdoubleArray data, jlong size) {
 
   auto fw_node = java_node_to_frovedis_node(env, worker_node);
   auto p_vec = to_double_vector(env, data, size);
@@ -121,7 +271,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorke
 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerBoolVector
   (JNIEnv *env, jclass thisCls, jobject worker_node, jlong vptr, 
-   jlong index,  jbooleanArray data, jlong size) {
+   jlong index, jbooleanArray data, jlong size) {
 
   auto fw_node = java_node_to_frovedis_node(env, worker_node);
   auto p_vec = to_bool_vector(env, data, size);
@@ -135,7 +285,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorke
 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerStringVector
   (JNIEnv *env, jclass thisCls, jobject worker_node, jlong vptr, 
-   jlong index,  jobjectArray data, jlong size) {
+   jlong index, jobjectArray data, jlong size) {
 
   auto fw_node = java_node_to_frovedis_node(env, worker_node);
   auto p_vec = to_string_vector(env, data, size);
@@ -149,7 +299,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorke
 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerCharArrayVector
   (JNIEnv *env, jclass thisCls, jobject worker_node, jlong vptr,
-   jlong index,  jobjectArray data, jlong size) {
+   jlong index, jobjectArray data, jlong size) {
 
   auto fw_node = java_node_to_frovedis_node(env, worker_node);
   auto p_vec = charArray_to_string_vector(env, data, size);
@@ -163,7 +313,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorke
 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerCharArray
   (JNIEnv *env, jclass thisCls, jobject worker_node, jlong vptr,
-   jlong index,  jcharArray data, jintArray sizes, 
+   jlong index, jcharArray data, jintArray sizes, 
    jlong flat_size, jlong actual_size) {
 
   auto fw_node = java_node_to_frovedis_node(env, worker_node);
@@ -179,7 +329,7 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorke
 
 JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerCharSizePair
   (JNIEnv *env, jclass thisCls, jobject worker_node, jlong dptr, jlong sptr,
-   jlong index,  jcharArray data, jintArray sizes,
+   jlong index, jcharArray data, jintArray sizes,
    jlong flat_size, jlong actual_size) {
 
   auto fw_node = java_node_to_frovedis_node(env, worker_node);
@@ -191,6 +341,55 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorke
   try{
     exrpc_oneway(fw_node, (load_local_vector_pair<std::vector<char>, std::vector<int>>), 
                  idx, dp, p_dvec, sp, p_svec); // dp[idx] = p_dvec; sp[idx] = p_svec;
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerByteSizePair
+  (JNIEnv *env, jclass thisCls, jobject worker_node, jlong dptr, jlong sptr,
+   jlong index, jbyteArray data, jintArray sizes,
+   jlong flat_size, jlong actual_size) {
+
+  auto fw_node = java_node_to_frovedis_node(env, worker_node);
+  auto p_dvec = bytes_to_char_vector(env, data, flat_size);
+  auto p_svec = to_int_vector(env, sizes, actual_size);
+  auto dp = (exrpc_ptr_t) dptr;
+  auto sp = (exrpc_ptr_t) sptr;
+  size_t idx = index;
+  try{
+    exrpc_oneway(fw_node, (load_local_vector_pair<std::vector<char>, std::vector<int>>),
+                 idx, dp, p_dvec, sp, p_svec); // dp[idx] = p_dvec; sp[idx] = p_svec;
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+}
+
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorkerByteSizePair2
+  (JNIEnv *env, jclass thisCls, jobject worker_node, jlong dptr, jlong sptr,
+   jlong index, jlong datap, jlong sizesp, jlong flat_size, jlong actual_size,
+   jboolean rawsend) {
+
+  auto fw_node = java_node_to_frovedis_node(env, worker_node);
+  auto send_data_bufp = reinterpret_cast<char*>(datap);
+  auto send_size_bufp = reinterpret_cast<char*>(sizesp);
+  auto dp = (exrpc_ptr_t) dptr;
+  auto sp = (exrpc_ptr_t) sptr;
+  try {
+    if (rawsend) {
+      send_raw_local_vector(send_data_bufp, flat_size, BYTE, dp, index, fw_node);  // dp[idx] = *datap
+      send_raw_local_vector(send_size_bufp, actual_size, INT, sp, index, fw_node); // sp[idx] = *sizesp
+    } else {
+      size_t idx = index;
+      std::vector<char> p_dvec(flat_size);
+      auto dvecp = p_dvec.data();
+      auto d_sendbufp = reinterpret_cast<char*>(datap);
+      for (size_t i = 0; i < flat_size; ++i) dvecp[i] = d_sendbufp[i];
+      std::vector<int> p_svec(actual_size);
+      auto svecp = p_svec.data();
+      auto s_sendbufp = reinterpret_cast<int*>(sizesp);
+      for (size_t i = 0; i < actual_size; ++i) svecp[i] = s_sendbufp[i];
+      exrpc_oneway(fw_node, (load_local_vector_pair<std::vector<char>, std::vector<int>>),
+                   idx, dp, p_dvec, sp, p_svec); // dp[idx] = p_dvec; sp[idx] = p_svec;
+    }
   }
   catch(std::exception& e) { set_status(true,e.what()); }
 }
