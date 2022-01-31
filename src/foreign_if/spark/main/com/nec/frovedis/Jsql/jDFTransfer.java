@@ -204,10 +204,126 @@ public class jDFTransfer implements java.io.Serializable {
           break;
         }
         default: throw new IllegalArgumentException("Unsupported type is encountered!\n");
-      }
+      } // end of switch
       String err = JNISupport.checkServerException();
       if (!err.isEmpty()) throw new java.rmi.ServerException(err);
       t0.show("spark-worker to frovedis-rank local data copy: ");
-    } // end of switch
-  } // end of for-loop (iterating columns)
+    } // end of for-loop (iterating columns)
+  } 
+
+  public static OffHeapArray[]
+  copy_batch_data(ColumnarBatch batch,
+                  int[] colIds,
+                  int[] offset,
+                  short[] types,
+                  int ncol, int word_count,
+                  TimeSpent t0)
+    throws java.rmi.ServerException, IllegalArgumentException {
+
+    int ntargets = ncol + word_count;
+    OffHeapArray[] out = new OffHeapArray[ntargets];
+    int k = batch.numRows();
+    for (int i = 0; i < ncol; ++i) {
+      int cid = colIds[i];
+      ColumnVector tcol = batch.column(cid);
+      boolean check_null = tcol.hasNull();
+      int row_offset = offset[i];
+      switch(types[i]) {
+        case DTYPE.INT: {
+          OffHeapArray buf = new OffHeapArray(k, DTYPE.INT);
+          if (check_null) {
+            for(int j = 0; j < k; ++j) buf.putInt(j, tcol.isNullAt(j) ? Integer.MAX_VALUE : tcol.getInt(j));
+          } else {
+            for(int j = 0; j < k; ++j) buf.putInt(j, tcol.getInt(j));
+          }
+          t0.show("ColumnVector -> IntArray: ");
+          out[row_offset] = buf;
+          break;
+        }
+        case DTYPE.BOOL: {
+          OffHeapArray buf = new OffHeapArray(k, DTYPE.INT);
+          if (check_null) {
+            for(int j = 0; j < k; ++j) {
+              if (tcol.isNullAt(j)) buf.putInt(j, Integer.MAX_VALUE);
+              else                  buf.putInt(j, tcol.getBoolean(j) ? 1 : 0);
+            }
+          } else {
+            for(int j = 0; j < k; ++j) buf.putInt(j, tcol.getBoolean(j) ? 1 : 0);
+          }
+          t0.show("ColumnVector -> (Boolean) IntArray: ");
+          out[row_offset] = buf;
+          break;
+        }
+        case DTYPE.LONG: {
+          OffHeapArray buf = new OffHeapArray(k, DTYPE.LONG);
+          if (check_null) {
+            for(int j = 0; j < k; ++j) buf.putLong(j, tcol.isNullAt(j) ? Long.MAX_VALUE : tcol.getLong(j));
+          } else {
+            for(int j = 0; j < k; ++j) buf.putLong(j, tcol.getLong(j));
+          }
+          t0.show("ColumnVector -> LongArray: ");
+          out[row_offset] = buf;
+          break;
+        }
+        case DTYPE.FLOAT: {
+          OffHeapArray buf = new OffHeapArray(k, DTYPE.FLOAT);
+          if (check_null) {
+            for(int j = 0; j < k; ++j) buf.putFloat(j, tcol.isNullAt(j) ? Float.MAX_VALUE : tcol.getFloat(j));
+          } else {
+            for(int j = 0; j < k; ++j) buf.putFloat(j, tcol.getFloat(j));
+          }
+          t0.show("ColumnVector -> FloatArray: ");
+          out[row_offset] = buf;
+          break;
+        }
+        case DTYPE.DOUBLE: {
+          OffHeapArray buf = new OffHeapArray(k, DTYPE.DOUBLE);
+          if (check_null) {
+            for(int j = 0; j < k; ++j) buf.putDouble(j, tcol.isNullAt(j) ? Double.MAX_VALUE : tcol.getDouble(j));
+          } else {
+            for(int j = 0; j < k; ++j) buf.putDouble(j, tcol.getDouble(j));
+          }
+          t0.show("ColumnVector -> DoubleArray: ");
+          out[row_offset] = buf;
+          break;
+        }
+        case DTYPE.STRING: { 
+          throw new IllegalArgumentException("copy_batch_data: 'String' type is not supported!");
+        } 
+        case DTYPE.WORDS: {
+          byte[][] buffer = new byte[k][];
+          int flat_size = 0;
+          if (check_null) {
+            byte[] nulls = new byte[4];
+            nulls[0] = 'N'; nulls[1] = 'U'; nulls[2] = 'L'; nulls[3] = 'L';
+            for(int j = 0; j < k; ++j) {
+              buffer[j] = tcol.isNullAt(j) ? nulls : tcol.getBinary(j);
+              flat_size += buffer[j].length;
+            }
+          } else {
+            for(int j = 0; j < k; ++j) {
+              buffer[j] = tcol.getBinary(j);
+              flat_size += buffer[j].length;
+            }
+          }
+          int cur = 0;
+          OffHeapArray szbuf = new OffHeapArray(k, DTYPE.INT);
+          OffHeapArray charbuf = new OffHeapArray(flat_size, DTYPE.BYTE);
+          for(int j = 0; j < k; ++j) {
+            int size = buffer[j].length;
+            for(int c = 0; c < size; ++c) charbuf.putByte(cur + c, buffer[j][c]);
+            szbuf.putInt(j, size);
+            cur += size;
+          }
+          t0.show("ColumnVector -> flatten-byteArray: ");
+          int next_row_offset = row_offset + 1;
+          out[row_offset] = charbuf;
+          out[next_row_offset] = szbuf;
+          break;
+        }
+        default: throw new IllegalArgumentException("Unsupported type is encountered!\n");
+      } // end of switch
+    } // end of for-loop (iterating columns)
+    return out;
+  }
 }

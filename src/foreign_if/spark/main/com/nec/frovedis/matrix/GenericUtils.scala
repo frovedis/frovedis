@@ -103,9 +103,10 @@ object FrovedisLogger extends java.io.Serializable {
 class TimeSpent(level: Level) extends java.io.Serializable {
   private val tlog_level = level
   private var t0 = System.nanoTime()
+  private var lap_sum = 0L
 
-  def show(msg: String): Unit = {
-    val elapsed = (System.nanoTime() - t0) / 1000000000.0f 
+  def show_impl(msg: String, diff_t: Long): Unit = {
+    val elapsed = diff_t / 1000000000.0f 
     val show_msg = msg + elapsed + " sec"
     tlog_level match {
       case Level.TRACE =>  FrovedisLogger.trace(show_msg)
@@ -115,6 +116,12 @@ class TimeSpent(level: Level) extends java.io.Serializable {
       case _           =>  throw new IllegalArgumentException(
                            "Unsupported LogLevel: " + tlog_level)
     }
+  }
+  def lap_start(): Unit = { t0 = System.nanoTime() }
+  def lap_stop(): Unit = { lap_sum += System.nanoTime() - t0}
+  def show_lap(msg: String): Unit = show_impl(msg, lap_sum)
+  def show(msg: String): Unit = {
+    show_impl(msg, System.nanoTime() - t0)
     t0 = System.nanoTime()
   }
 }

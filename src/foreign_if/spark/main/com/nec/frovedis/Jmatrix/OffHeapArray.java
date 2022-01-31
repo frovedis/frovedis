@@ -7,11 +7,12 @@ import com.nec.frovedis.Jexrpc.JNISupport;
 import com.nec.frovedis.Jexrpc.FrovedisServer;
 
 public class OffHeapArray {
-    private long size, address;
+    private int size;
+    private long address;
     private Unsafe _Unsafe;
     private short dtype;
 
-    public OffHeapArray(long size, short dtype) { 
+    public OffHeapArray(int size, short dtype) { 
       // TODO: make _Unsafe as static final
       try {
         Field f = Unsafe.class.getDeclaredField("theUnsafe");
@@ -27,12 +28,13 @@ public class OffHeapArray {
       this.address = _Unsafe.allocateMemory(size_in_bytes);
     }
 
-    public long size () { return size; }
+    public int size () { return size; }
     public long get ()  { return address; }
     private long sizeof (short dtype) { return DTYPE.sizeof(dtype); }
 
     public void freeMemory() { 
-      size = address = 0;
+      size = 0;
+      address = 0;
       dtype = DTYPE.NONE;
       _Unsafe.freeMemory(address);
     }

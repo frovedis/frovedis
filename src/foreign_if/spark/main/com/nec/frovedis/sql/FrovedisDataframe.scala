@@ -2,7 +2,7 @@ package com.nec.frovedis.sql;
 
 import com.nec.frovedis.Jexrpc._
 import com.nec.frovedis.Jmllib.DummyDftable
-import com.nec.frovedis.matrix.{GenericUtils, TimeSpent, DTYPE}
+import com.nec.frovedis.matrix.{TimeSpent, DTYPE}
 import com.nec.frovedis.matrix.{
   IntDvector, LongDvector, 
   FloatDvector, DoubleDvector,
@@ -87,6 +87,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     this.ref = FrovedisDataFrameFinalizer.addObject(this)
   }
   private def const_impl(df: DataFrame, cols: Array[String]): this.type = {
+    val t1 = new TimeSpent(Level.DEBUG)
     val code = df.hashCode // assumed to be unique per spark dataframe object
     val base_ptr = new ArrayBuffer[Long]()
     val base_col = new ArrayBuffer[String]()
@@ -105,10 +106,12 @@ class FrovedisDataFrame extends java.io.Serializable {
         }
       }
     }
+    t1.show("column loop-up: ")
     if (!targets.isEmpty) {
       val tarr = targets.toArray
       this.owned_cols = tarr
       val columnar = sDFTransfer.get_columnar(df)
+      t1.show("columnar creation: ")
       if (columnar == null) {
         //println("non-columnar data is detected!")
         val sdf = df.select(tarr.map(x => sp_col(x)):_*)
@@ -121,6 +124,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       DFMemoryManager.insert(code, this, tarr.toIterator) // TODO: store size of columns as well...
     }
     if (!base_ptr.isEmpty) { // TODO: correct order
+      val t2 = new TimeSpent(Level.DEBUG)
       //println("*** cols hit ***")
       //base_col.foreach(println)
       val fs = FrovedisServer.getServerInstance()
@@ -133,6 +137,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       this.fdata = dummy.dfptr
       this.cols = dummy.names.clone()
       this.types = dummy.types.clone() // TODO: mark bool/ulong
+      t2.show("column copy: ")
     }
     this.code = code
     this
