@@ -485,6 +485,7 @@ public:
   virtual std::shared_ptr<dfcolumn>
   substr(const std::shared_ptr<dfcolumn>& pos);
   virtual std::shared_ptr<dfcolumn> length();
+  virtual std::shared_ptr<dfcolumn> locate(const std::string& str, int pos);
   virtual std::shared_ptr<dfcolumn>
   union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols) = 0;
   virtual std::shared_ptr<dfcolumn> head(size_t limit) = 0;

@@ -3818,6 +3818,91 @@ std::shared_ptr<dffunction>
 length_col_as(const std::shared_ptr<dffunction>& left,
               const std::string& as);
 
+
+// ----- locate -----
+struct dffunction_locate : public dffunction {
+  dffunction_locate(const std::shared_ptr<dffunction>& left,
+                    const std::string& str, int pos) :
+    left(left), str(str), pos(pos) {
+    if(pos > 1)
+      as_name = "locate(" + left->get_as() + "," + str + "," + STR(pos) + ")";
+    else
+      as_name = "locate(" + left->get_as() + "," + str + ")";
+  }
+  dffunction_locate(const std::shared_ptr<dffunction>& left,
+                    const std::string& str, int pos,
+                    const std::string& as_name) :
+    left(left), str(str), pos(pos), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_locate>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("locate(): is not available for binary operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
+
+  std::shared_ptr<dffunction> left;
+  std::string str;
+  int pos;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+locate_im(const std::string& left, const std::string& str);
+
+std::shared_ptr<dffunction>
+locate_im(const std::shared_ptr<dffunction>& left, const std::string& str);
+
+std::shared_ptr<dffunction>
+locate_im(const std::string& left, const std::string& str, int pos);
+
+std::shared_ptr<dffunction>
+locate_im(const std::shared_ptr<dffunction>& left, const std::string& str,
+          int pos);
+
+std::shared_ptr<dffunction>
+locate_im_as(const std::string& left, const std::string& str,
+             const std::string& as);
+
+std::shared_ptr<dffunction>
+locate_im_as(const std::shared_ptr<dffunction>& left, const std::string& str,
+             const std::string& as);
+
+std::shared_ptr<dffunction>
+locate_im_as(const std::string& left, const std::string& str,
+             int pos, const std::string& as);
+
+std::shared_ptr<dffunction>
+locate_im_as(const std::shared_ptr<dffunction>& left, const std::string& str,
+             int pos, const std::string& as);
+
+
 // ----- utility functions for user's direct use -----
 
 // alias of id_col

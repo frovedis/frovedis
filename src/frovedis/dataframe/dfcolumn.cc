@@ -1065,6 +1065,75 @@ std::shared_ptr<dfcolumn> dfcolumn::length() {
     (std::move(len), std::move(nulls));
 }
 
+// TODO: support UTF-8
+std::shared_ptr<dfcolumn> dfcolumn::locate(const std::string& str, int start) {
+  start--; // change to 0-base
+  auto ws = as_words();
+  auto nulls = get_nulls();
+  auto len = ws.map
+    (+[](words& ws, std::string& str, int start, std::vector<size_t>& nulls){
+      std::vector<size_t> idx, pos;
+      auto size = ws.lens.size();
+      if(start > 0) { // negative is treated as 0
+        auto wsstartsp = ws.starts.data();
+        auto wslensp = ws.lens.data();
+        for(size_t i = 0; i < size; i++) {
+          if(start < wslensp[i]) {
+            wsstartsp[i] += start;
+            wslensp[i] -= start;
+          } else {
+            wsstartsp[i] += wslensp[i];
+            wslensp[i] = 0;
+          }
+        }
+      }
+      search(ws, str, idx, pos);
+      auto sep = set_separate(idx); // get first occurrence
+      auto idxp = idx.data();
+      auto posp = pos.data();
+      auto sep_size = sep.size();
+      auto sepp = sep.data();
+      std::vector<size_t> idx2(sep_size-1), pos2(sep_size-1);
+      auto idx2p = idx2.data();
+      auto pos2p = pos2.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+      for(size_t i = 0; i < sep_size - 1; i++) {
+        idx2p[i] = idxp[sepp[i]];
+        pos2p[i] = posp[sepp[i]];
+      }
+      std::vector<int> ret(size); // initialized by 0 (== not found)
+      auto retp = ret.data();
+      if(start > 0) { 
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t i = 0; i < sep_size - 1; i++) {
+          retp[idx2p[i]] = pos2p[i] + 1 + start; // 1-base
+        }
+      } else {
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t i = 0; i < sep_size - 1; i++) {
+          retp[idx2p[i]] = pos2p[i] + 1; // 1-base
+        }
+      }
+      auto nullsp = nulls.data();
+      auto nulls_size = nulls.size();
+      auto max = std::numeric_limits<int>::max();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+      for(size_t i = 0; i < nulls_size; i++) {
+        retp[nullsp[i]] = max;
+      }
+      return ret;}, broadcast(str), broadcast(start), nulls);
+  return std::make_shared<typed_dfcolumn<int>>
+    (std::move(len), std::move(nulls));
+}
+
 std::vector<std::string> 
 words_to_string_vector(words& ws, 
                        std::vector<size_t>& nulls,
