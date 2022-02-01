@@ -213,6 +213,11 @@ exrpc_ptr_t create_dataframe_from_local_vectors (
                        auto v5 = reinterpret_cast<dvector<std::string>*>(dvec);
                        dftblp->append_column(cols[i],std::move(*v5),true);
                        delete v5; break; }
+        case TIMESTAMP:
+        case DATETIME: { auto dvec = merge_and_set_dvector<datetime_t>(proxies, sizes, verify_size);
+                       auto v6 = reinterpret_cast<dvector<datetime_t>*>(dvec);
+                       dftblp->append_datetime_column(cols[i], std::move(*v6), true);
+                       delete v6; break; }
         default:     auto msg = "Unsupported datatype in dataframe creation: " + std::to_string(types[i]);
                      REPORT_ERROR(USER_ERROR,msg);
       }

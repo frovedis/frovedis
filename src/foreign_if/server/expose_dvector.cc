@@ -39,6 +39,8 @@ allocate_local_vectors(std::vector<size_t>& sizes,
         case FLOAT:  tmp = allocate_local_vector<std::vector<float>>(sizes); break;
         case DOUBLE: tmp = allocate_local_vector<std::vector<double>>(sizes); break;
         case STRING: tmp = allocate_local_vector<std::vector<std::string>>(sizes); break;
+        case TIMESTAMP:
+        case DATETIME: tmp = allocate_local_vector<std::vector<int64_t>>(sizes); break;
         default: REPORT_ERROR(USER_ERROR, "Unsupported dtype is encountered!\n");
       }
       auto tmpp = tmp.data();
@@ -191,6 +193,7 @@ void expose_frovedis_dvector_functions() {
   expose(release_dvector<float>);
   expose(release_dvector<double>);
   expose(release_dvector<std::string>);
+  expose(release_dvector<int64_t>);
   // frovedis (simple std::vector) vector functionalities
   expose(create_frovedis_vector<int>);
   expose(create_frovedis_vector<long>);

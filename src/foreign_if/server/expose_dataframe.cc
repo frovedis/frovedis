@@ -85,6 +85,7 @@ void expose_frovedis_dataframe_functions() {
   expose(get_df_column_pointer<float>);        // for spark
   expose(get_df_column_pointer<double>);       // for spark
   expose(get_df_column_pointer<std::string>);  // for spark
+  expose(get_df_column_pointer<int64_t>);      // for spark
   expose(frov_df_copy_index);
   expose(frov_df_copy_column);
   expose(frov_df_union);

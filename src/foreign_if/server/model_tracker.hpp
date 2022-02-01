@@ -78,7 +78,9 @@ enum DTYPE {
   BOOL = 6,
   ULONG = 7,
   WORDS = 8,
-  BYTE = 9
+  BYTE = 9,
+  DATETIME = 10,
+  TIMESTAMP = 11
 };
 
 enum OPTYPE {
