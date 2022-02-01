@@ -660,7 +660,7 @@ object sDFTransfer extends java.io.Serializable {
               t0.show("buffer to int-array: ")
               JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr, k)
             }
-            case DTYPE.LONG => {
+            case DTYPE.LONG | DTYPE.DATETIME | DTYPE.TIMESTAMP => {
               val lArr = new Array[Long](k)
               for (j <- 0 until k) lArr(j) = jPlatform.getLong(obj(j), off(j), ncol, i)
               t0.show("buffer to long-array: ")

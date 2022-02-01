@@ -10,22 +10,27 @@ object TMAPPER extends java.io.Serializable {
   val spk2frov_namedDT = Map("IntegerType" -> "int", "LongType" -> "long",
                              "FloatType" -> "float", "DoubleType" -> "double",
                              "StringType" -> "dic_string", 
-                             "BooleanType" -> "boolean")
+                             "BooleanType" -> "boolean",
+                             "DateType" -> "datetime",
+                             "TimestampType" -> "timestamp")
 
   val castedName = Map("int" -> "INT", "long" -> "BIGINT",
                        "float" -> "FLOAT", "double" -> "DOUBLE",
                        "dic_string" -> "STRING", "string" -> "STRING",
-                       "boolean" -> "BOOLEAN")
+                       "boolean" -> "BOOLEAN", "datetime" -> "DATETIME",
+                       "timestamp" -> "TIMESTAMP")
 
   val id2field = Map(DTYPE.INT -> IntegerType,   DTYPE.LONG -> LongType,
                      DTYPE.FLOAT -> FloatType,   DTYPE.DOUBLE -> DoubleType,
                      DTYPE.STRING -> StringType, DTYPE.WORDS -> StringType,
-                     DTYPE.BOOL -> BooleanType)
+                     DTYPE.BOOL -> BooleanType, DTYPE.DATETIME -> DateType,
+                     DTYPE.TIMESTAMP -> TimestampType)
 
   val id2string = Map(DTYPE.INT -> "IntegerType",   DTYPE.LONG -> "LongType",
                       DTYPE.FLOAT -> "FloatType",   DTYPE.DOUBLE -> "DoubleType",
                       DTYPE.STRING -> "StringType", DTYPE.WORDS -> "StringType",
-                      DTYPE.BOOL -> "BooleanType")
+                      DTYPE.BOOL -> "BooleanType", DTYPE.DATETIME -> "DateType",
+                      DTYPE.TIMESTAMP -> "TimestampType")
 
   // string2id: only used in dataframe load and in cast
   // used WORDS instead of STRING, while loading string column (RDD[STRING]) as Dvector for better performance
@@ -34,7 +39,9 @@ object TMAPPER extends java.io.Serializable {
                    "FloatType"   -> DTYPE.FLOAT,  "DoubleType" -> DTYPE.DOUBLE,
                    //"StringType"  -> DTYPE.STRING, 
                    "StringType"  -> DTYPE.WORDS,
-                   "BooleanType" -> DTYPE.BOOL)
+                   "BooleanType" -> DTYPE.BOOL,
+                   "DateType" -> DTYPE.DATETIME,
+                   "TimestampType" -> DTYPE.TIMESTAMP)
 }
 
 object ColKind extends java.io.Serializable {

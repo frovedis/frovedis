@@ -18,6 +18,8 @@ object DTYPE extends java.io.Serializable {
   val ULONG:  Short = 7
   val WORDS:  Short = 8
   val BYTE:   Short = 9
+  val DATETIME:  Short = 10
+  val TIMESTAMP: Short = 11
 
   def detect(x: Any): Short = {
     var ret: Short = NONE

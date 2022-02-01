@@ -26,6 +26,8 @@ import scala.collection.mutable.{Map => mMap}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
 import org.apache.log4j.Level
+import org.apache.spark.sql.functions.{unix_timestamp, from_unixtime, to_date, from_utc_timestamp}
+import org.apache.spark.sql.catalyst.InternalRow
 
 class FrovedisDataFrame extends java.io.Serializable {
   protected var fdata: Long = -1
@@ -204,6 +206,31 @@ class FrovedisDataFrame extends java.io.Serializable {
   //   - might cause bad-alloc in ve-memory when target columns in 'df' are too large to fit
   def optimized_load (df: DataFrame) : this.type = {
     release()
+
+    val spark = SparkSession.builder().getOrCreate()
+    spark.conf.set("spark.sql.session.timeZone", "UTC")
+
+    var dtypes_map = df.dtypes.toMap
+    val need_conversion = dtypes_map.exists(_._2 == "DateType") | dtypes_map.exists(_._2 == "TimestampType") 
+    var converted_df: DataFrame = null
+
+    if (need_conversion){
+      val new_columns = 
+        df.columns
+          .map(x => dtypes_map(x) match {
+            case "DateType" => 
+              (unix_timestamp( sp_col(x) ) * Math.pow(10,9).longValue).as(x)
+            case "TimestampType" => 
+              (unix_timestamp( sp_col(x) ) * Math.pow(10,9).longValue).as(x)
+            case _ => sp_col(x)
+          })
+      converted_df = df.select(new_columns:_*)
+    }
+
+    var rddData: RDD[InternalRow] = null
+    if (need_conversion) rddData = converted_df.queryExecution.toRdd
+    else rddData = df.queryExecution.toRdd
+
     val name_type_pair = df.dtypes
     this.cols = name_type_pair.map(_._1)
     this.types = name_type_pair.map(_._2).map(x => TMAPPER.string2id(x))
@@ -214,7 +241,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       offset(i) = i + word_count
       word_count += (if (types(i) == DTYPE.WORDS) 1 else 0)
     }
-    this.fdata = sDFTransfer.load_rows(df.queryExecution.toRdd, cols, types, 
+    this.fdata = sDFTransfer.load_rows(rddData, cols, types, 
                                        word_count, offset)
     val fs = FrovedisServer.getServerInstance()
     this.mem_size = JNISupport.calcMemorySize(fs.master_node, this.fdata)
@@ -659,6 +686,9 @@ class FrovedisDataFrame extends java.io.Serializable {
     if(fdata == -1)  throw new IllegalArgumentException("Invalid Frovedis Dataframe!\n")
     val size = cols.size
     var ret_lb = ListBuffer[RDD[_]]()
+
+    var need_conversion = false
+    
     val fs = FrovedisServer.getServerInstance()
     for (i <- 0 until size) {
       val tid = types(i)
@@ -674,6 +704,10 @@ class FrovedisDataFrame extends java.io.Serializable {
         case DTYPE.STRING => StringDvector.to_RDD(cptr)
         case DTYPE.WORDS => StringDvector.to_RDD(cptr) // cptr is dvector<string> even for WORDS
         case DTYPE.BOOL => IntDvector.to_RDD(cptr)
+        case DTYPE.DATETIME => {need_conversion = true
+                                LongDvector.to_RDD(cptr)}
+        case DTYPE.TIMESTAMP => {need_conversion = true
+                                LongDvector.to_RDD(cptr)}
         case _  => throw new IllegalArgumentException("to_spark_DF: Invalid " +
                                                     "datatype encountered: %s !\n"
                                                     .format(tid))
@@ -687,7 +721,8 @@ class FrovedisDataFrame extends java.io.Serializable {
     val maxValueMap = Map(DTYPE.INT -> Int.MaxValue, DTYPE.LONG -> Long.MaxValue,
                       DTYPE.FLOAT -> Float.MaxValue, DTYPE.DOUBLE -> Double.MaxValue,
                       DTYPE.STRING -> "NULL", DTYPE.WORDS -> "NULL", 
-                      DTYPE.BOOL -> Int.MaxValue)
+                      DTYPE.BOOL -> Int.MaxValue, DTYPE.DATETIME -> Long.MaxValue,
+                      DTYPE.TIMESTAMP -> Long.MaxValue)
 
     for (i <- 0 until ret.size) {
       if (types(i) == DTYPE.BOOL ) ret(i) = ret(i).map(x => int2bool(x))
@@ -708,6 +743,8 @@ class FrovedisDataFrame extends java.io.Serializable {
         case DTYPE.STRING => StructField(cname, StringType, true)
         case DTYPE.WORDS  => StructField(cname, StringType, true)
         case DTYPE.BOOL => StructField(cname, BooleanType, true)
+        case DTYPE.DATETIME => StructField(cname, LongType, true)
+        case DTYPE.TIMESTAMP => StructField(cname, LongType, true)
         case _  => throw new IllegalArgumentException("to_spark_DF: Invalid " +
                                                     "datatype encountered: %s !\n"
                                                     .format(tid))
@@ -715,7 +752,23 @@ class FrovedisDataFrame extends java.io.Serializable {
       df_schema += col_field
     }
     val resRdd = combine_rows_as_partitions(ret.toSeq)
-    val res_df = spark.createDataFrame(resRdd, StructType(df_schema.toArray))
+    var res_df = spark.createDataFrame(resRdd, StructType(df_schema.toArray))
+
+    if (need_conversion) {
+      var default_timezone = java.util.TimeZone.getDefault().getID
+      val dtypes_map = this.dtypes_as_map
+      val new_columns = 
+        res_df.columns
+              .map(x => dtypes_map(x) match {
+                case DTYPE.DATETIME => 
+                  to_date(from_unixtime( sp_col(x) * Math.pow(10, -9) )).as(x)
+                case DTYPE.TIMESTAMP =>
+                  from_utc_timestamp(from_unixtime( sp_col(x) * Math.pow(10, -9)),
+                                    default_timezone).as(x)
+                case _ => sp_col(x)
+              })
+      res_df = res_df.select(new_columns:_*)
+    }
     return res_df
   }
 
