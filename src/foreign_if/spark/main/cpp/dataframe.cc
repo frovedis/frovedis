@@ -606,6 +606,8 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getDFColumnPoint
       case WORDS:
       case STRING: ret = exrpc_async(fm_node, get_df_column_pointer<std::string>, df, cname).get(); break;
       case BOOL:   ret = exrpc_async(fm_node, get_df_column_pointer<int>, df, cname).get(); break;
+      case TIMESTAMP:
+      case DATETIME:   ret = exrpc_async(fm_node, get_df_column_pointer<int64_t>, df, cname).get(); break;
       default:     REPORT_ERROR(USER_ERROR, 
                    "Unsupported datatype is encountered in df column extraction!\n");
     }
@@ -628,6 +630,8 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseDFColumnPo
        case WORDS:
        case STRING: exrpc_oneway(fm_node, release_dvector<std::string>, f_dptr); break;
        case BOOL:   exrpc_oneway(fm_node, release_dvector<int>, f_dptr); break;
+       case TIMESTAMP:
+       case DATETIME:   exrpc_oneway(fm_node, release_dvector<int64_t>, f_dptr); break;
        default:     REPORT_ERROR(USER_ERROR, 
                     "Unsupported datatype is encountered in df column destruction!\n");
      }
