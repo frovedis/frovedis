@@ -1040,8 +1040,9 @@ std::shared_ptr<dfcolumn> dfcolumn::substr(int pos) {
   }
 }
 
-// TODO: support UTF-8
-std::shared_ptr<dfcolumn> dfcolumn::char_length() {
+// length returns length in bytes
+// TODO: support UTF-8 length as char_length
+std::shared_ptr<dfcolumn> dfcolumn::length() {
   auto ws = as_words();
   auto nulls = get_nulls();
   auto len = ws.map(+[](words& ws, std::vector<size_t>& nulls){

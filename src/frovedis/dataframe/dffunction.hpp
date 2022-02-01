@@ -3759,24 +3759,24 @@ make_datetime_col_as(const std::shared_ptr<dffunction>& year,
                  const std::string& as);
 
 
-// ----- char_length -----
-struct dffunction_char_length : public dffunction {
-  dffunction_char_length(const std::shared_ptr<dffunction>& left) : left(left) {
-    as_name = "char_length(" + left->get_as() + ")";
+// ----- length -----
+struct dffunction_length : public dffunction {
+  dffunction_length(const std::shared_ptr<dffunction>& left) : left(left) {
+    as_name = "length(" + left->get_as() + ")";
   }
-  dffunction_char_length(const std::shared_ptr<dffunction>& left,
+  dffunction_length(const std::shared_ptr<dffunction>& left,
                          const std::string& as_name) :
     left(left), as_name(as_name) {}
   virtual std::string get_as() {return as_name;}
   virtual std::shared_ptr<dffunction> as(const std::string& cname) {
     as_name = cname;
-    return std::make_shared<dffunction_char_length>(*this);
+    return std::make_shared<dffunction_length>(*this);
   }
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
   virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
                                             dftable_base& t2) const {
     throw std::runtime_error
-      ("char_length(): is not available for binary operation!\n");
+      ("length(): is not available for binary operation!\n");
   }
   virtual std::vector<std::shared_ptr<dfcolumn>>
   columns_to_use(dftable_base& t) {
@@ -3806,17 +3806,17 @@ struct dffunction_char_length : public dffunction {
 };
 
 std::shared_ptr<dffunction>
-char_length_col(const std::string& left);
+length_col(const std::string& left);
 
 std::shared_ptr<dffunction>
-char_length_col(const std::shared_ptr<dffunction>& left);
+length_col(const std::shared_ptr<dffunction>& left);
 
 std::shared_ptr<dffunction>
-char_length_col_as(const std::string& left, const std::string& as);
+length_col_as(const std::string& left, const std::string& as);
 
 std::shared_ptr<dffunction>
-char_length_col_as(const std::shared_ptr<dffunction>& left,
-                   const std::string& as);
+length_col_as(const std::shared_ptr<dffunction>& left,
+              const std::string& as);
 
 // ----- utility functions for user's direct use -----
 

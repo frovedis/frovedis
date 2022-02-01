@@ -2865,14 +2865,14 @@ make_datetime_col_as(const std::shared_ptr<dffunction>& year,
 }
 
 
-// ----- char_length -----
+// ----- length -----
 std::shared_ptr<dfcolumn>
-dffunction_char_length::execute(dftable_base& t) const {
+dffunction_length::execute(dftable_base& t) const {
   auto left_column = left->execute(t);
-  return left_column->char_length();
+  return left_column->length();
 }
 
-std::shared_ptr<dfcolumn> dffunction_char_length::aggregate
+std::shared_ptr<dfcolumn> dffunction_length::aggregate
 (dftable_base& table,
  node_local<std::vector<size_t>>& local_grouped_idx,
  node_local<std::vector<size_t>>& local_idx_split,
@@ -2883,34 +2883,34 @@ std::shared_ptr<dfcolumn> dffunction_char_length::aggregate
   auto left_column = left->aggregate(table, local_grouped_idx,
                                      local_idx_split, hash_divide,
                                      merge_map, row_sizes, grouped_table);
-  return left_column->char_length();
+  return left_column->length();
 }
 
 std::shared_ptr<dfcolumn>
-dffunction_char_length::whole_column_aggregate(dftable_base& t) {
+dffunction_length::whole_column_aggregate(dftable_base& t) {
   auto left_column = left->whole_column_aggregate(t);
-  return left_column->char_length();
+  return left_column->length();
 }
 
 std::shared_ptr<dffunction>
-char_length_col(const std::string& left) {
-  return std::make_shared<dffunction_char_length>(id_col(left));
+length_col(const std::string& left) {
+  return std::make_shared<dffunction_length>(id_col(left));
 }
 
 std::shared_ptr<dffunction>
-char_length_col(const std::shared_ptr<dffunction>& left) {
-  return std::make_shared<dffunction_char_length>(left);
+length_col(const std::shared_ptr<dffunction>& left) {
+  return std::make_shared<dffunction_length>(left);
 }
 
 std::shared_ptr<dffunction>
-char_length_col_as(const std::string& left, const std::string& as) {
-  return std::make_shared<dffunction_char_length>(id_col(left), as);
+length_col_as(const std::string& left, const std::string& as) {
+  return std::make_shared<dffunction_length>(id_col(left), as);
 }
 
 std::shared_ptr<dffunction>
-char_length_col_as(const std::shared_ptr<dffunction>& left,
-                   const std::string& as) {
-  return std::make_shared<dffunction_char_length>(left, as);
+length_col_as(const std::shared_ptr<dffunction>& left,
+              const std::string& as) {
+  return std::make_shared<dffunction_length>(left, as);
 }
 
 // ----- utility functions for user's direct use -----
