@@ -32,6 +32,12 @@ enum spill_state_type {
   spilled
 };
 
+enum trim_type {
+  leading,
+  trailing,
+  both
+};
+
 class dfcolumn {
 public:
   dfcolumn() : spillable(dfcolumn_spillable.get()), spill_initialized(false),
@@ -486,6 +492,8 @@ public:
   substr(const std::shared_ptr<dfcolumn>& pos);
   virtual std::shared_ptr<dfcolumn> length();
   virtual std::shared_ptr<dfcolumn> locate(const std::string& str, int pos);
+  virtual std::shared_ptr<dfcolumn>
+  trim(trim_type kind, const std::string& to_trim);
   virtual std::shared_ptr<dfcolumn>
   union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols) = 0;
   virtual std::shared_ptr<dfcolumn> head(size_t limit) = 0;

@@ -1134,6 +1134,36 @@ std::shared_ptr<dfcolumn> dfcolumn::locate(const std::string& str, int start) {
     (std::move(len), std::move(nulls));
 }
 
+std::shared_ptr<dfcolumn>
+dfcolumn::trim(trim_type kind, const std::string& to_trim) {
+  auto ws = as_words();
+  if(kind == trim_type::leading) {
+    ws.mapv(+[](words& ws, const std::string& to_trim){ws.trim_head(to_trim);},
+            broadcast(to_trim));
+  } else if(kind == trim_type::trailing) {
+    ws.mapv(+[](words& ws, const std::string& to_trim){ws.trim_tail(to_trim);},
+            broadcast(to_trim));
+  } else { // both
+    ws.mapv(+[](words& ws, const std::string& to_trim){ws.trim(to_trim);},
+            broadcast(to_trim));
+  }
+  auto nulls = get_nulls();
+  if(dtype() == "string") {
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  }
+}
+
 std::vector<std::string> 
 words_to_string_vector(words& ws, 
                        std::vector<size_t>& nulls,

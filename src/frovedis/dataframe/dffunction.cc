@@ -2986,6 +2986,215 @@ locate_im_as(const std::shared_ptr<dffunction>& left, const std::string& str,
   return std::make_shared<dffunction_locate>(left, str, pos, as);
 }
 
+
+// ----- trim -----
+std::shared_ptr<dfcolumn>
+dffunction_trim::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->trim(kind, str);
+}
+
+std::shared_ptr<dfcolumn> dffunction_trim::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  return left_column->trim(kind, str);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_trim::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->trim(kind, str);
+}
+
+std::shared_ptr<dffunction>
+ltrim_im(const std::string& left) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), std::string(" "), trim_type::leading);
+}
+
+std::shared_ptr<dffunction>
+ltrim_im(const std::string& left, const std::string& str) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), str, trim_type::leading);
+}
+
+std::shared_ptr<dffunction>
+rtrim_im(const std::string& left) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), std::string(" "), trim_type::trailing);
+}
+
+std::shared_ptr<dffunction>
+rtrim_im(const std::string& left, const std::string& str) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), str, trim_type::trailing);
+}
+
+std::shared_ptr<dffunction>
+trim_im(const std::string& left) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), std::string(" "), trim_type::both);
+}
+
+std::shared_ptr<dffunction>
+trim_im(const std::string& left, const std::string& str) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), str, trim_type::both);
+}
+
+std::shared_ptr<dffunction>
+trim_im(const std::string& left, const std::string& str, trim_type kind) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), str, kind);
+}
+
+std::shared_ptr<dffunction>
+ltrim_im(const std::shared_ptr<dffunction>& left) {
+  return std::make_shared<dffunction_trim>
+    (left, std::string(" "), trim_type::leading);
+}
+
+std::shared_ptr<dffunction>
+ltrim_im(const std::shared_ptr<dffunction>& left, const std::string& str) {
+  return std::make_shared<dffunction_trim>
+    (left, str, trim_type::leading);
+}
+
+std::shared_ptr<dffunction>
+rtrim_im(const std::shared_ptr<dffunction>& left) {
+  return std::make_shared<dffunction_trim>
+    (left, std::string(" "), trim_type::trailing);
+}
+
+std::shared_ptr<dffunction>
+rtrim_im(const std::shared_ptr<dffunction>& left, const std::string& str) {
+  return std::make_shared<dffunction_trim>
+    (left, str, trim_type::trailing);
+}
+
+std::shared_ptr<dffunction>
+trim_im(const std::shared_ptr<dffunction>& left) {
+  return std::make_shared<dffunction_trim>
+    (left, std::string(" "), trim_type::both);
+}
+
+std::shared_ptr<dffunction>
+trim_im(const std::shared_ptr<dffunction>& left, const std::string& str) {
+  return std::make_shared<dffunction_trim>
+    (left, str, trim_type::both);
+}
+
+std::shared_ptr<dffunction>
+trim_im(const std::shared_ptr<dffunction>& left,
+        const std::string& str, trim_type kind) {
+  return std::make_shared<dffunction_trim>
+    (left, str, kind);
+}
+
+std::shared_ptr<dffunction>
+ltrim_im_as(const std::string& left, const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), std::string(" "), trim_type::leading, as);
+}
+
+std::shared_ptr<dffunction>
+ltrim_im_as(const std::string& left, const std::string& str,
+            const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), str, trim_type::leading, as);
+}
+
+std::shared_ptr<dffunction>
+rtrim_im_as(const std::string& left, const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), std::string(" "), trim_type::trailing, as);
+}
+
+std::shared_ptr<dffunction>
+rtrim_im_as(const std::string& left, const std::string& str,
+            const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), str, trim_type::trailing, as);
+}
+
+std::shared_ptr<dffunction>
+trim_im_as(const std::string& left, const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), std::string(" "), trim_type::both, as);
+}
+
+std::shared_ptr<dffunction>
+trim_im_as(const std::string& left, const std::string& str,
+           const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), str, trim_type::both, as);
+}
+
+std::shared_ptr<dffunction>
+trim_im_as(const std::string& left, const std::string& str, trim_type kind,
+           const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (id_col(left), str, kind, as);
+}
+
+std::shared_ptr<dffunction>
+ltrim_im_as(const std::shared_ptr<dffunction>& left,
+            const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (left, std::string(" "), trim_type::leading, as);
+}
+
+std::shared_ptr<dffunction>
+ltrim_im_as(const std::shared_ptr<dffunction>& left, const std::string& str,
+            const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (left, str, trim_type::leading, as);
+}
+
+std::shared_ptr<dffunction>
+rtrim_im_as(const std::shared_ptr<dffunction>& left,
+            const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (left, std::string(" "), trim_type::trailing, as);
+}
+
+std::shared_ptr<dffunction>
+rtrim_im_as(const std::shared_ptr<dffunction>& left, const std::string& str,
+            const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (left, str, trim_type::trailing, as);
+}
+
+std::shared_ptr<dffunction>
+trim_im_as(const std::shared_ptr<dffunction>& left,
+           const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (left, std::string(" "), trim_type::both, as);
+}
+
+std::shared_ptr<dffunction>
+trim_im_as(const std::shared_ptr<dffunction>& left, const std::string& str,
+           const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (left, str, trim_type::both, as);
+}
+
+std::shared_ptr<dffunction>
+trim_im_as(const std::shared_ptr<dffunction>& left,
+           const std::string& str, trim_type kind,
+           const std::string& as) {
+  return std::make_shared<dffunction_trim>
+    (left, str, kind, as);
+}
+
 // ----- utility functions for user's direct use -----
 
 std::shared_ptr<dffunction> col(const std::string& col) {
