@@ -1,0 +1,201 @@
+.TH "FrovedisGroupedDataframe" "" "" "" ""
+.SH NAME
+.PP
+FrovedisGroupedDataframe \- A python class for handling grouped
+dataframes.
+These are returned by groupby calls.
+.SH SYNOPSIS
+.IP
+.nf
+\f[C]
+frovedis.dataframe.grouped_df.FrovedisGroupedDataframe(df=None)\ \ 
+\f[]
+.fi
+.SH DESCRIPTION
+.PP
+FrovedisGroupedDataframe instance contains information about the grouped
+dataframe.
+After columns are grouped, various aggregations can be performed like
+groupwise average, groupwise variance, etc.
+.PD 0
+.P
+.PD
+\f[B]In FrovedisGroupedDataframe, currently aggregation operations is
+performed along the index levels only.\f[]
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The FrovedisGroupedDataframe interface is almost same as pandas
+DataFrameGroupBy interface, but it doesn't have any dependency on
+pandas.
+It can be used simply even if the system doesn't have pandas installed.
+The FrovedisGroupedDataframe instance is created when groupby interface
+is called for frovedis Dataframe instance.
+Thus, in this implementation, a python client can interact with a
+frovedis server sending the required python dataframe for performing
+query at frovedis side.
+Python dataframe is converted into frovedis compatible dataframe
+internally and the python client side call is linked with the respective
+frovedis side call to get the job done at frovedis server.
+.SS Detailed description
+.SS 1. FrovedisGroupedDataframe(df = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]df\f[]\f[]: It accepts only frovedis dataframe as parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), an empty
+FrovedisGroupedDataframe instance is created.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It is used for a specific purpose.
+It\[aq]s instance is created in order to hold result of groupby method
+calls.
+.PD 0
+.P
+.PD
+This instance can then further be used with aggregate functions such as
+mean(), sem(), etc.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ create\ frovedis\ dataframe
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \[aq]Ename\[aq]\ :\ [\[aq]Michael\[aq],\ \[aq]Andy\[aq],\ \[aq]Tanaka\[aq],\ \[aq]Raul\[aq],\ \[aq]Yuta\[aq]],\ 
+\ \ \ \ \ \ \ \ \[aq]Age\[aq]\ :\ [29,\ 30,\ 27,\ 19,\ 31],
+\ \ \ \ \ \ \ \ \[aq]Country\[aq]\ :\ [\[aq]USA\[aq],\ \[aq]England\[aq],\ \[aq]Japan\[aq],\ \[aq]France\[aq],\ \[aq]Japan\[aq]],
+\ \ \ \ \ \ \ \ \[aq]isMale\[aq]:\ [False,\ False,\ False,\ False,\ True]
+\ \ \ \ \ \ \ }
+pdf1\ =\ pd.DataFrame(peopleDF)
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ create\ FrovedisGroupedDataframe\ object
+g_df\ =\ fdf1.groupby(\[aq]Country\[aq])
+\f[]
+.fi
+.PP
+The groupby call returns a FrovedisGroupedDataframe instance.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ In\ order\ to\ select\ the\ grouped\ column\ 
+print(g_df[\[aq]Country\[aq]])
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Country
+England
+France
+Japan
+USA
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 2. release()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method acts like a destructor.
+It is used to release dataframe pointer from server heap and it resets
+all its attributes to None.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+g_df.release()
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns nothing.
+.SS Public Member Functions
+.PP
+FrovedisGroupedDataFrame provides a lot of utilities to perform various
+operations.
+.SS List of Aggregate Functions
+.IP " 1." 4
+\f[B]agg()\f[] \- it agggregates using one or more operations over the
+specified axis.
+It is an alias for aggregate().
+.PD 0
+.P
+.PD
+.IP " 2." 4
+\f[B]aggregate()\f[] \- it agggregates using one or more operations over
+the specified axis.
+The alias agg() can be used instead.
+.PD 0
+.P
+.PD
+.IP " 3." 4
+\f[B]min()\f[] \- it computes minimum of group values.
+.PD 0
+.P
+.PD
+.IP " 4." 4
+\f[B]max()\f[] \- it computes maximum of group values.
+.PD 0
+.P
+.PD
+.IP " 5." 4
+\f[B]mean()\f[] \- it computes mean of groups, excluding missing values.
+.PD 0
+.P
+.PD
+.IP " 6." 4
+\f[B]sum()\f[] \- it computes sum of group values.
+.PD 0
+.P
+.PD
+.IP " 7." 4
+\f[B]count()\f[] \- it computes count of group, excluding missing
+values.
+.PD 0
+.P
+.PD
+.IP " 8." 4
+\f[B]size()\f[] \- it computes group sizes.
+.PD 0
+.P
+.PD
+.IP " 9." 4
+\f[B]var()\f[] \- it computes variance of groups, excluding missing
+values.
+.PD 0
+.P
+.PD
+.IP "10." 4
+\f[B]sem()\f[] \- it computes standard error of the mean of groups,
+excluding missing values.
+.PP
+\f[B]For more details on the aggregate functions, refer
+Grouped_DataFrame_AggregateFunctions (./Grouped_DataFrame_AggregateFunctions.md)\f[]
