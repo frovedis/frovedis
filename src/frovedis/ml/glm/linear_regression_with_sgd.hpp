@@ -125,10 +125,11 @@ public:
     bool isIntercept=false,
     double convergenceTol=0.001, 
 #if defined(_SX) || defined(__ve__)
-    MatType mType = HYBRID 
+    MatType mType = HYBRID, 
 #else
-    MatType mType = CRS
+    MatType mType = CRS,
 #endif 
+    bool inputMovable=false 
   );
 
   template <class T>
@@ -143,10 +144,31 @@ public:
     bool isIntercept=false,
     double convergenceTol=0.001, 
 #if defined(_SX) || defined(__ve__)
-    MatType mType = HYBRID 
+    MatType mType = HYBRID, 
 #else
-    MatType mType = CRS
+    MatType mType = CRS,
 #endif 
+    bool inputMovable=false 
+  );
+
+  template <class T>
+  static linear_regression_model<T> train (
+    rowmajor_matrix<T>& data,
+    dvector<T>& label,
+    linear_regression_model<T>& lrm,
+    std::vector<T>& sample_weight,
+    size_t& n_iter,
+    size_t numIteration=1000,
+    double alpha=0.01,
+    double miniBatchFraction=1.0,
+    bool isIntercept=false,
+    double convergenceTol=0.001,
+#if defined(_SX) || defined(__ve__)
+    MatType mType = HYBRID,
+#else
+    MatType mType = CRS,
+#endif
+    bool inputMovable=false
   );
 
   template <class T>
@@ -159,10 +181,11 @@ public:
     bool isIntercept=false,
     double convergenceTol=0.001, 
 #if defined(_SX) || defined(__ve__)
-    MatType mType = HYBRID 
+    MatType mType = HYBRID,
 #else
-    MatType mType = CRS
+    MatType mType = CRS,
 #endif 
+    bool inputMovable=false 
   );
 
   template <class T>
@@ -177,10 +200,11 @@ public:
     bool isIntercept=false,
     double convergenceTol=0.001, 
 #if defined(_SX) || defined(__ve__)
-    MatType mType = HYBRID 
+    MatType mType = HYBRID, 
 #else
-    MatType mType = CRS
+    MatType mType = CRS,
 #endif 
+    bool inputMovable=false 
   );
 
   template <class T>
@@ -332,10 +356,11 @@ linear_regression_with_sgd::train (rowmajor_matrix<T>& data,
                                    double miniBatchFraction,
                                    bool isIntercept,
                                    double convergenceTol,
-                                   MatType mType) {
+                                   MatType mType,
+                                   bool inputMovable) {
   return train<T>(colmajor_matrix<T>(data),label,
                   numIteration,alpha,miniBatchFraction,
-                  isIntercept,convergenceTol,mType);
+                  isIntercept,convergenceTol,mType,inputMovable);
 }
 
 template <class T>
@@ -349,10 +374,30 @@ linear_regression_with_sgd::train (rowmajor_matrix<T>& data,
                                    double miniBatchFraction,
                                    bool isIntercept,
                                    double convergenceTol,
-                                   MatType mType) {
+                                   MatType mType,
+                                   bool inputMovable) {
   return train<T>(colmajor_matrix<T>(data),label,sample_weight,n_iter,
                   numIteration,alpha,miniBatchFraction,
-                  isIntercept,convergenceTol,mType);
+                  isIntercept,convergenceTol,mType,inputMovable);
+}
+
+template <class T>
+linear_regression_model<T>
+linear_regression_with_sgd::train (rowmajor_matrix<T>& data,
+                                   dvector<T>& label,
+                                   linear_regression_model<T>& initModel,
+                                   std::vector<T>& sample_weight,
+                                   size_t& n_iter,
+                                   size_t numIteration,
+                                   double alpha,
+                                   double miniBatchFraction,
+                                   bool isIntercept,
+                                   double convergenceTol,
+                                   MatType mType,
+                                   bool inputMovable) {
+  return train<T>(colmajor_matrix<T>(data),label,initModel,sample_weight,n_iter,
+                  numIteration,alpha,miniBatchFraction,
+                  isIntercept,convergenceTol,mType,inputMovable);
 }
 
 template <class T>
@@ -364,13 +409,14 @@ linear_regression_with_sgd::train (const colmajor_matrix<T>& data,
                                    double miniBatchFraction,
                                    bool isIntercept,
                                    double convergenceTol,
-                                   MatType mType) {
+                                   MatType mType,
+                                   bool inputMovable) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
   size_t n_iter = 0;
   std::vector<T> sample_weight;
   return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,
-                  miniBatchFraction,isIntercept,convergenceTol,mType);
+                  miniBatchFraction,isIntercept,convergenceTol,mType,inputMovable);
 }
 
 template <class T>
@@ -384,11 +430,12 @@ linear_regression_with_sgd::train (const colmajor_matrix<T>& data,
                                    double miniBatchFraction,
                                    bool isIntercept,
                                    double convergenceTol,
-                                   MatType mType) {
+                                   MatType mType,
+                                   bool inputMovable) {
   size_t numFeatures = data.num_col;
   linear_regression_model<T> initModel(numFeatures);
   return train<T>(data,label,initModel,sample_weight,n_iter,numIteration,alpha,
-                  miniBatchFraction,isIntercept,convergenceTol,mType);
+                  miniBatchFraction,isIntercept,convergenceTol,mType,inputMovable);
 }
 
 // --- main api with dense data support ---
@@ -404,8 +451,8 @@ linear_regression_with_sgd::train (const colmajor_matrix<T>& data,
                                    double miniBatchFraction,
                                    bool isIntercept,
                                    double convergenceTol,
-                                   MatType mType,
-                                   bool inputMovable) {
+                                   MatType mType,         // unused
+                                   bool inputMovable) {   // unused
 #ifdef _DEBUG_
   std::cout << "Initial model: \n";
   initModel.debug_print(); std::cout << "\n";

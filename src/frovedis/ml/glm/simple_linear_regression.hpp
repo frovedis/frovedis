@@ -64,8 +64,21 @@ void preprocess_data(crs_matrix<T,I,O>& mat,
 }  
 
 // -------- for lapack solvers --------
+
 template <class T>
 void preprocess_data(colmajor_matrix<T>& mat,
+                     dvector<T>& label,
+                     colmajor_matrix_local<T>& Amat,
+                     colmajor_matrix_local<T>& Bmat,
+                     std::vector<T>& Amean,
+                     T& Bmean,
+                     std::vector<T>& sample_weight) {
+  auto rmat = mat.to_rowmajor(); // to_rowmajor(): gather() is supported only on rowmajor_matrix<T> 
+  preprocess_data(rmat, label, Amat, Bmat, Amean, Bmean, sample_weight);
+}
+
+template <class T>
+void preprocess_data(rowmajor_matrix<T>& mat,
                      dvector<T>& label,
                      colmajor_matrix_local<T>& Amat,
                      colmajor_matrix_local<T>& Bmat,
@@ -82,11 +95,9 @@ void preprocess_data(colmajor_matrix<T>& mat,
     REPORT_ERROR(USER_ERROR, "Number of samples in input matrix and label vector doesn't match!\n");
 
   // centerizing feature
-  auto rmat = mat.to_rowmajor(); // to_rowmajor(): gather() is supported only on rowmajor_matrix<T> 
-  Amean = compute_mean(rmat, 0, sample_weight); // column-wise mean
-  centerize(rmat, Amean);
-  Amat = colmajor_matrix_local<T>(rmat.gather());
-  rmat.clear();
+  Amean = compute_mean(mat, 0, sample_weight); // column-wise mean
+  centerize(mat, Amean);
+  Amat = colmajor_matrix_local<T>(mat.gather());
 
   // centerizing label
   auto label_vec = label.gather();
@@ -157,8 +168,6 @@ void preprocess_data(colmajor_matrix<T>& mat,
   Amat = blockcyclic_matrix<T>(copy_mat);
   copy_mat.clear();
 }
-
-
 
 template <class T>
 void set_intercept(linear_regression_model<T>& model,
@@ -237,6 +246,19 @@ linear_regression_with_lsqr_impl(colmajor_matrix<T>& mat,
   return linear_regression_model<T>(); // never reachable: to supress compiler warning!
 }
 
+template <class T>
+linear_regression_model<T>
+linear_regression_with_lsqr_impl(rowmajor_matrix<T>& mat,
+                                 dvector<T>& in_label,
+                                 std::vector<T>& sample_weight,
+                                 int max_iter,
+                                 bool fit_intercept,
+                                 size_t& n_iter) {
+  std::string msg = "lsqr solver is supported only for sparse data!\n";
+  REPORT_ERROR(USER_ERROR, msg);
+  return linear_regression_model<T>(); // never reachable: to supress compiler warning!
+}
+
 // -------- User APIs -------
 template <class T, class I, class O>
 linear_regression_model<T>
@@ -263,19 +285,31 @@ linear_regression_with_lsqr(crs_matrix<T,I,O>& mat,
 
 template <class T>
 linear_regression_model<T>
-linear_regression_with_lapack(colmajor_matrix<T>& mat,
+linear_regression_with_lapack(rowmajor_matrix<T>& mat,
+                              dvector<T>& label,
+                              bool fit_intercept = true) {
+  int rank;
+  std::vector<T> sval;
+  std::vector<T> sample_weight;
+  return linear_regression_with_lapack(mat, label, rank, sval, sample_weight,
+                                       fit_intercept);
+}
+
+template <class T>
+linear_regression_model<T>
+linear_regression_with_lapack(rowmajor_matrix<T>& mat,
                               dvector<T>& label,
                               int& rank,
                               std::vector<T>& sval,
                               bool fit_intercept = true) {
-
   std::vector<T> sample_weight;
-  return linear_regression_with_lapack(mat, label, rank, sval, sample_weight, 
+  return linear_regression_with_lapack(mat, label, rank, sval, sample_weight,
                                        fit_intercept);
 }
+
 template <class T>
 linear_regression_model<T>
-linear_regression_with_lapack(colmajor_matrix<T>& mat,
+linear_regression_with_lapack(rowmajor_matrix<T>& mat,
                               dvector<T>& label,
                               int& rank,
                               std::vector<T>& sval,
@@ -286,12 +320,8 @@ linear_regression_with_lapack(colmajor_matrix<T>& mat,
   colmajor_matrix_local<T> Amat, Bmat;
   if(sample_weight.empty()) sample_weight = vector_full<T>(mat.num_row, 1);
   preprocess_data(mat, label, Amat, Bmat, Amean, Bmean, sample_weight);
-  auto rcond = 0; // as per scipy.linalg.lstsq
-  gelsd<T>(Amat, Bmat, sval, rank, rcond);
-  auto model = extract_solution<T, colmajor_matrix_local<T>>(
-                                Bmat, mat.num_col);
-  if(fit_intercept) set_intercept(model, Amean, Bmean);
-  return model;
+  return linear_regression_with_lapack_impl(Amat, Bmat, Amean, Bmean, 
+                                            rank, sval, fit_intercept);
 }
 
 template <class T>
@@ -306,6 +336,52 @@ linear_regression_with_lapack(colmajor_matrix<T>& mat,
                                        fit_intercept);
 }
 
+template <class T>
+linear_regression_model<T>
+linear_regression_with_lapack(colmajor_matrix<T>& mat,
+                              dvector<T>& label,
+                              int& rank,
+                              std::vector<T>& sval,
+                              bool fit_intercept = true) {
+  std::vector<T> sample_weight;
+  return linear_regression_with_lapack(mat, label, rank, sval, sample_weight, 
+                                       fit_intercept);
+}
+
+template <class T>
+linear_regression_model<T>
+linear_regression_with_lapack(colmajor_matrix<T>& mat,
+                              dvector<T>& label,
+                              int& rank,
+                              std::vector<T>& sval,
+                              std::vector<T>& sample_weight,
+                              bool fit_intercept = true) {
+  T Bmean;
+  std::vector<T> Amean;
+  colmajor_matrix_local<T> Amat, Bmat;
+  if(sample_weight.empty()) sample_weight = vector_full<T>(mat.num_row, 1);
+  preprocess_data(mat, label, Amat, Bmat, Amean, Bmean, sample_weight);
+  return linear_regression_with_lapack_impl(Amat, Bmat, Amean, Bmean, 
+                                            rank, sval, fit_intercept);
+}
+
+template <class T>
+linear_regression_model<T>
+linear_regression_with_lapack_impl(colmajor_matrix_local<T>& Amat,
+                                   colmajor_matrix_local<T>& Bmat,
+                                   std::vector<T>& Amean,
+                                   T Bmean,
+                                   int& rank,
+                                   std::vector<T>& sval,
+                                   bool fit_intercept = true) {
+  auto rcond = 0; // as per scipy.linalg.lstsq
+  gelsd<T>(Amat, Bmat, sval, rank, rcond);
+  auto model = extract_solution<T, colmajor_matrix_local<T>>(
+                                Bmat, Amat.local_num_col);
+  if(fit_intercept) set_intercept(model, Amean, Bmean);
+  return model;
+}
+
 template <class T, class I, class O>
 linear_regression_model<T>
 linear_regression_with_lapack(crs_matrix<T,I,O>& mat,
@@ -317,6 +393,28 @@ linear_regression_with_lapack(crs_matrix<T,I,O>& mat,
   std::string msg = "lapack solver is supported only for dense data!\n";
   REPORT_ERROR(USER_ERROR, msg);
   return linear_regression_model<T>(); // never reachable: to supress compiler warning!
+}
+
+template <class T>
+linear_regression_model<T>
+linear_regression_with_scalapack(rowmajor_matrix<T>& mat,
+                                 dvector<T>& label,
+                                 bool fit_intercept = true) {
+  std::vector<T> sample_weight;
+  auto cmat = colmajor_matrix<T>(mat);
+  return linear_regression_with_scalapack(cmat, label, sample_weight, 
+                                          fit_intercept);
+}
+
+template <class T>
+linear_regression_model<T>
+linear_regression_with_scalapack(rowmajor_matrix<T>& mat,
+                                 dvector<T>& label,
+                                 std::vector<T>& sample_weight,
+                                 bool fit_intercept = true) {
+  auto cmat = colmajor_matrix<T>(mat);
+  return linear_regression_with_scalapack(cmat, label, sample_weight, 
+                                          fit_intercept);
 }
 
 template <class T>
