@@ -9,19 +9,23 @@ import com.nec.frovedis.Jexrpc.FrovedisServer;
 public class OffHeapArray {
     private int size;
     private long address;
-    private Unsafe _Unsafe;
     private short dtype;
 
-    public OffHeapArray(int size, short dtype) { 
-      // TODO: make _Unsafe as static final
+    private static Unsafe getUnsafe() {
+      Unsafe ret = null;
       try {
         Field f = Unsafe.class.getDeclaredField("theUnsafe");
         f.setAccessible(true);
-        _Unsafe = (Unsafe) f.get(null);
+        ret = (Unsafe) f.get(null);
       } catch (Throwable t) {
         System.err.println("exception caught: " + t.getMessage());
         System.exit(-1);
       }
+      return ret;
+    }
+    private static final Unsafe _Unsafe = getUnsafe();
+
+    public OffHeapArray(int size, short dtype) {
       this.dtype = dtype;
       this.size = size;
       long size_in_bytes = size * DTYPE.sizeof(dtype);
@@ -50,7 +54,7 @@ public class OffHeapArray {
 
     // -------- for double data --------
     public double getDouble(int idx) {
-      assert(this.dtype == DTYPE.DOUBLE); 
+      f assert(this.dtype == DTYPE.DOUBLE); 
       return _Unsafe.getDouble(address + idx * sizeof(DTYPE.DOUBLE));
     }
 
