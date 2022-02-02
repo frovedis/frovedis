@@ -119,7 +119,10 @@ class TimeSpent(level: Level) extends java.io.Serializable {
   }
   def lap_start(): Unit = { t0 = System.nanoTime() }
   def lap_stop(): Unit = { lap_sum += System.nanoTime() - t0}
-  def show_lap(msg: String): Unit = show_impl(msg, lap_sum)
+  def show_lap(msg: String): Unit = {
+    show_impl(msg, lap_sum)
+    lap_sum = 0L
+  }
   def show(msg: String): Unit = {
     show_impl(msg, System.nanoTime() - t0)
     t0 = System.nanoTime()
