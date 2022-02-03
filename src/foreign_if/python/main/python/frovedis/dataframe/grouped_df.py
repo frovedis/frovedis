@@ -6,6 +6,7 @@ grouped_df
 import copy
 from ctypes import c_char_p
 import numpy as np
+import pandas as pd
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
@@ -269,6 +270,16 @@ class FrovedisGroupedDataframe(object):
             ret.set_index(keys=self.__cols, drop=True, inplace=True)
         return ret
 
+    def mad(self, axis=0, skipna=True, level=None):
+        """ mad """
+        if axis is 1:
+            raise ValueError("mad: Currently supported only for axis = 0!")
+        if skipna is False:
+            raise ValueError("mad: Currently supported only for skipna = False!")
+        if level is not None:
+            raise ValueError("mad: Currently supported only for level = None!")
+        return self.agg("mad")
+
     def __agg_with_list(self, func):
         """
         __agg_with_list
@@ -355,8 +366,12 @@ class FrovedisGroupedDataframe(object):
         ret = DataFrame().load_dummy(fdata, cols, types)
         if len(self.__cols) > 1: #TODO: support multi-level index
             ret.add_index("index")
+            ret.set_multi_index_targets(self.__cols)
         else:
             ret.set_index(keys=self.__cols, drop=True, inplace=True)
+
+        multi = pd.MultiIndex.from_tuples(list(zip(agg_col, agg_func)))
+        ret.set_multi_level_column(multi)
         return ret
 
     def __get_numeric_columns(self):

@@ -268,6 +268,8 @@ class DataFrame(object):
         self.__cols = None
         self.__types = None
         self.index = None
+        self.__multi_cols = None
+        self.__multi_index = None
         self.is_series = is_series
         if df is not None:
             self.load(df)
@@ -1473,9 +1475,15 @@ class DataFrame(object):
                 res[col].replace(to_replace={"NULL": np.nan}, inplace=True)
 
         if self.is_series:
-            return res[self.columns[0]]
-        else:
-            return res
+            res = res[self.columns[0]]
+
+        if self.__multi_index is not None:
+            res.set_index(self.__multi_index, drop=True, inplace=True)
+
+        if self.__multi_cols is not None:
+            res.columns = self.__multi_cols
+
+        return res
 
     @deprecated("Use to_pandas() instead!\n")
     def to_panda_dataframe(self):
@@ -3541,5 +3549,30 @@ class DataFrame(object):
         returns string representation of the dataframe
         """
         return self.__str__()
+
+    def set_multi_level_column(self, multi):
+        """
+        sets column name to be MultiIndex, used in to_pandas() 
+        """
+        if self.__multi_index is None:
+            tsize = len(self.__cols)
+        else:
+            # multi-index is included in self.__cols
+            tsize = len(self.__cols) - len(self.__multi_index)
+
+        if (multi.size != tsize):
+            raise ValueError("set_multi_level_column: size mismatch")
+        if (not isinstance(multi, pd.MultiIndex)):
+            raise TypeError(\
+            "set_multi_level_column: input is not an instance of MultiIndex")
+        self.__multi_cols = multi
+        return self
+
+    def set_multi_index_targets(self, cols):
+        """
+        sets target columns to be set as MultiIndex index in to_pandas() 
+        """
+        self.__multi_index = cols
+        return self
 
 FrovedisDataframe = DataFrame
