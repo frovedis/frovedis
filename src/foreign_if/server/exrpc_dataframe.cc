@@ -150,6 +150,10 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
                      //TODO: if (nan_as_null) 
                      dftblp->append_dic_string_column(cols[i],(*v7),true);
                      delete v7; break; }
+      case TIMESTAMP:
+      case DATETIME: { auto v8 = reinterpret_cast<dvector<datetime_t>*>(dvec_proxies[i]);
+                     dftblp->append_datetime_column(cols[i],std::move(*v8),true);
+                     delete v8; break; }
       default:     auto msg = "Unsupported datatype in dataframe creation: " + std::to_string(types[i]);
                    REPORT_ERROR(USER_ERROR,msg);
     }

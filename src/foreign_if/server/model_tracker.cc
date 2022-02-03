@@ -108,6 +108,8 @@ int get_numeric_dtype(const std::string& dt) {
   else if (dt == "double" || dt == "float64") return DOUBLE; 
   else if (dt == "dic_string") return STRING; 
   else if (dt == "unsigned long" || dt == "uint64") return ULONG;
+  else if (dt == "datetime") return DATETIME;
+  else if (dt == "timestamp") return TIMESTAMP;
   else throw std::runtime_error(dt + ": unsupported dtype encountered!\n");
 }
 
@@ -120,6 +122,8 @@ std::string get_string_dtype(short dt) {
   else if (dt == STRING) return "dic_string"; 
   else if (dt == WORDS) return "dic_string"; 
   else if (dt == ULONG) return "unsigned long";
+  else if (dt == DATETIME) return "datetime";
+  else if (dt == TIMESTAMP) return "timestamp";
   else throw std::runtime_error(STR(dt) + ": unsupported dtype encountered!\n");
 }
 
