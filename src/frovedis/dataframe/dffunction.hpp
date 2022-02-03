@@ -4060,6 +4060,74 @@ trim_im_as(const std::shared_ptr<dffunction>& left,
            const std::string& str, trim_type kind,
            const std::string& as);
 
+
+// ----- replace -----
+struct dffunction_replace : public dffunction {
+  dffunction_replace(const std::shared_ptr<dffunction>& left,
+                     const std::string& from, const std::string& to) :
+    left(left), from(from), to(to) {
+    as_name = "replace(" + left->get_as() + "," + from + "," + to + ")";
+  }
+  dffunction_replace(const std::shared_ptr<dffunction>& left,
+                     const std::string& from, const std::string& to,
+                     const std::string& as_name) :
+    left(left), from(from), to(to), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_replace>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("replace is not available for binary operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
+
+  std::shared_ptr<dffunction> left;
+  std::string from, to;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+replace_im(const std::string& left, const std::string& from,
+           const std::string& to);
+
+std::shared_ptr<dffunction>
+replace_im(const std::shared_ptr<dffunction>& left, const std::string& from,
+           const std::string& to);
+
+std::shared_ptr<dffunction>
+replace_im_as(const std::string& left, const std::string& from,
+              const std::string& to, const std::string& as);
+
+std::shared_ptr<dffunction>
+replace_im_as(const std::shared_ptr<dffunction>& left, const std::string& from,
+              const std::string& to, const std::string& as);
+
+
 // ----- utility functions for user's direct use -----
 
 // alias of id_col

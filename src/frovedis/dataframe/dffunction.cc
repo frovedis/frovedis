@@ -3195,6 +3195,58 @@ trim_im_as(const std::shared_ptr<dffunction>& left,
     (left, str, kind, as);
 }
 
+
+// ----- replace -----
+std::shared_ptr<dfcolumn>
+dffunction_replace::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->replace(from, to);
+}
+
+std::shared_ptr<dfcolumn> dffunction_replace::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  return left_column->replace(from, to);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_replace::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->replace(from, to);
+}
+
+std::shared_ptr<dffunction>
+replace_im(const std::string& left, const std::string& from,
+           const std::string& to) {
+  return std::make_shared<dffunction_replace>(id_col(left), from, to);
+}
+
+std::shared_ptr<dffunction>
+replace_im(const std::shared_ptr<dffunction>& left, const std::string& from,
+           const std::string& to) {
+  return std::make_shared<dffunction_replace>(left, from, to);
+}
+
+std::shared_ptr<dffunction>
+replace_im_as(const std::string& left, const std::string& from,
+              const std::string& to, const std::string& as) {
+  return std::make_shared<dffunction_replace>(id_col(left), from, to, as);
+}
+
+std::shared_ptr<dffunction>
+replace_im_as(const std::shared_ptr<dffunction>& left, const std::string& from,
+              const std::string& to, const std::string& as) {
+  return std::make_shared<dffunction_replace>(left, from, to, as);
+}
+
 // ----- utility functions for user's direct use -----
 
 std::shared_ptr<dffunction> col(const std::string& col) {

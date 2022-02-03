@@ -495,6 +495,8 @@ public:
   virtual std::shared_ptr<dfcolumn>
   trim(trim_type kind, const std::string& to_trim);
   virtual std::shared_ptr<dfcolumn>
+  replace(const std::string& from, const std::string& to);
+  virtual std::shared_ptr<dfcolumn>
   union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols) = 0;
   virtual std::shared_ptr<dfcolumn> head(size_t limit) = 0;
   virtual std::shared_ptr<dfcolumn> tail(size_t limit) = 0;

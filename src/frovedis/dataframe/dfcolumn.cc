@@ -1164,6 +1164,28 @@ dfcolumn::trim(trim_type kind, const std::string& to_trim) {
   }
 }
 
+std::shared_ptr<dfcolumn>
+dfcolumn::replace(const std::string& from, const std::string& to) {
+  auto ws = as_words();
+  ws.mapv(+[](words& ws, const std::string& from, const std::string& to)
+          {ws.replace(from, to);}, broadcast(from), broadcast(to));
+  auto nulls = get_nulls();
+  if(dtype() == "string") {
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  }
+}
+
 std::vector<std::string> 
 words_to_string_vector(words& ws, 
                        std::vector<size_t>& nulls,
