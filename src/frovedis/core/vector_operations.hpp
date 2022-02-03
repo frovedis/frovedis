@@ -1092,6 +1092,11 @@ auto vector_add(const std::vector<T>& v1,
   return ret;
 }
 
+template <>
+std::vector<std::string> 
+vector_add (const std::vector<std::string>& v1,
+            const std::string& by_elem); // defined in vector_operations.cc 
+
 template <class T, class I>
 auto operator+ (const std::vector<T>& v1,
                 const std::vector<I>& v2) 

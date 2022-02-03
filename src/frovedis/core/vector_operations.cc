@@ -3,6 +3,17 @@
 namespace frovedis {
 
 template <>
+std::vector<std::string> 
+vector_add(const std::vector<std::string>& vec,
+           const std::string& by_elem) {
+  if (by_elem == "") return vec;
+  auto vecsz = vec.size();
+  std::vector<std::string> ret(vecsz);
+  for(size_t i = 0; i < vecsz; ++i) ret[i] = vec[i] + by_elem;
+  return ret;
+}
+
+template <>
 std::vector<int>
 vector_divide(const std::vector<int>& vec,
               const int& by_elem) {
