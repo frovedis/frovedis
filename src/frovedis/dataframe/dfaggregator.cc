@@ -118,10 +118,37 @@ aggregate(dftable_base& table,
           node_local<std::vector<std::vector<size_t>>>& merge_map,
           node_local<size_t>& row_sizes,
           dftable& grouped_table) {
+  auto avgcol = "avg_col";
+  auto tcol = col->get_as();    // target column name
+  auto grouped_cols = grouped_table.columns();
+  auto renamed_grouped_cols = grouped_table.columns() + "_";
+
   dftable_base sliced_table = table;
   auto colp = col->execute(sliced_table);
-  return colp->mad(local_grouped_idx, local_idx_split, hash_divide,
-                   merge_map, row_sizes);
+  auto avg_colp = colp->avg(local_grouped_idx, local_idx_split, hash_divide,
+                            merge_map, row_sizes);
+
+  dftable t1 = table.select(grouped_cols);
+  if (!vector_contains(grouped_cols, tcol)) t1.append_column(tcol, colp);
+
+  dftable t2 = grouped_table.select(grouped_cols);
+  for (auto& c: grouped_cols) t2.rename(c, c + "_");
+  t2.append_column(avgcol, avg_colp);
+
+  dftable joined;
+  if (grouped_cols.size() == 1) { // single-key-group-by
+    joined = t1.bcast_join(t2, eq(grouped_cols[0], renamed_grouped_cols[0]))
+               .select({tcol, avgcol});
+  } else {
+    joined = t1.bcast_join(t2, multi_eq(grouped_cols, renamed_grouped_cols))
+               .select({tcol, avgcol});
+  }
+  joined.call_function(abs_col_as(sub_col(tcol, avgcol),"abs_diff"));
+
+  use_dfcolumn use(joined.raw_column("abs_diff"));
+  auto diff_colp = joined.column("abs_diff");
+  return diff_colp->avg(local_grouped_idx, local_idx_split, hash_divide,
+                        merge_map, row_sizes);
 }
 
 std::shared_ptr<dfcolumn> 
