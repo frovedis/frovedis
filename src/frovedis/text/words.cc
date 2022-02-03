@@ -2004,4 +2004,33 @@ words horizontal_concat_words(std::vector<words>& vec_words) {
   return ret;
 }
 
+void reverse(const std::vector<int>& chars,
+             const std::vector<size_t>& starts,
+             const std::vector<size_t>& lens,
+             std::vector<int>& ret_chars,
+             std::vector<size_t>& ret_starts) {
+  auto chars_size = chars.size();
+  ret_chars.resize(chars_size);
+  auto charsp = chars.data();
+  auto ret_charsp = ret_chars.data();
+  for(size_t i = 0; i < chars_size; i++) {
+    ret_charsp[i] = charsp[chars_size - 1 - i];
+  }
+  auto starts_size = starts.size();
+  ret_starts.resize(starts_size);
+  auto startsp = starts.data();
+  auto ret_startsp = ret_starts.data();
+  auto lensp = lens.data();
+  for(size_t i = 0; i < starts_size; i++) {
+    ret_startsp[i] = chars_size - starts[i] - lensp[i];
+  }
+}
+
+words reverse(const words& w) {
+  words ret;
+  reverse(w.chars, w.starts, w.lens, ret.chars, ret.starts);
+  ret.lens = w.lens;
+  return ret;
+}
+
 }

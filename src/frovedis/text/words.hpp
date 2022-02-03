@@ -180,6 +180,11 @@ void append(const std::vector<int>& chars,
             std::vector<size_t>& ret_starts,
             std::vector<size_t>& ret_lens,
             const std::string& to_append);
+void reverse(const std::vector<int>& chars,
+             const std::vector<size_t>& starts,
+             const std::vector<size_t>& lens,
+             std::vector<int>& ret_chars,
+             std::vector<size_t>& ret_starts); // lens are the same
 
 // utility struct
 struct words {
@@ -242,10 +247,17 @@ struct words {
     std::vector<int> ret_chars;
     std::vector<size_t> ret_starts, ret_lens;
     frovedis::append(chars, starts, lens, ret_chars, ret_starts, ret_lens,
-                      to_append);
+                     to_append);
     chars.swap(ret_chars);
     starts.swap(ret_starts);
     lens.swap(ret_lens);
+  }
+  void reverse() { // destructive
+    std::vector<int> ret_chars;
+    std::vector<size_t> ret_starts, ret_lens;
+    frovedis::reverse(chars, starts, lens, ret_chars, ret_starts);
+    chars.swap(ret_chars);
+    starts.swap(ret_starts);
   }
 
   SERIALIZE(chars, starts, lens)
@@ -293,6 +305,7 @@ words replace(const words& w, const std::string& from, const std::string& to);
 words prepend(const words& w, const std::string& to_prepend);
 words append(const words& w, const std::string& to_append);
 words horizontal_concat_words(std::vector<words>& vec_words);
+words reverse(const words& w);
 
 }
 #endif
