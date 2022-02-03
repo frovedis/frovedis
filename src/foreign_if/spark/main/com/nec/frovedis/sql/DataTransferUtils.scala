@@ -128,7 +128,7 @@ object Dvec extends java.io.Serializable {
            t0.show("get intDvector: ")
            ret
         }
-        case DTYPE.LONG => {
+        case DTYPE.LONG | DTYPE.DATETIME | DTYPE.TIMESTAMP => {
            val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Long.MaxValue else y.getLong(i)))
            val ret = LongDvector.get(data, part_sizes)
            t0.show("get longDvector: ")
@@ -573,7 +573,8 @@ object sDFTransfer extends java.io.Serializable {
             val tmp = types(i) match {
               case DTYPE.INT    => if(row.isNullAt(i)) Int.MaxValue else row.getInt(i)
               case DTYPE.BOOL   => if(row.isNullAt(i)) Int.MaxValue else row.getInt(i)
-              case DTYPE.LONG   => if(row.isNullAt(i)) Long.MaxValue else row.getLong(i)
+              case DTYPE.LONG | DTYPE.DATETIME | DTYPE.TIMESTAMP  =>
+                                   if(row.isNullAt(i)) Long.MaxValue else row.getLong(i)
               case DTYPE.FLOAT  => if(row.isNullAt(i)) Float.MaxValue else row.getFloat(i)
               case DTYPE.DOUBLE => if(row.isNullAt(i)) Double.MaxValue else row.getDouble(i)
               case DTYPE.STRING => if(row.isNullAt(i)) "NULL" else row.getString(i)

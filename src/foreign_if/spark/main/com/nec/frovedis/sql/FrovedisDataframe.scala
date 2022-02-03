@@ -228,9 +228,33 @@ class FrovedisDataFrame extends java.io.Serializable {
     val name_type_pair = df.dtypes
     this.cols = name_type_pair.map(_._1)
     this.types = name_type_pair.map(_._2).map(x => TMAPPER.string2id(x))
+
+    val spark = SparkSession.builder().getOrCreate()
+    spark.conf.set("spark.sql.session.timeZone", "UTC")
+
+    var dtypes_map = df.dtypes.toMap
+    val need_conversion = dtypes_map.exists(_._2 == "DateType") | dtypes_map.exists(_._2 == "TimestampType")
+    var converted_df: DataFrame = null
+
+    if (need_conversion){
+      val new_columns =
+        df.columns
+          .map(x => dtypes_map(x) match {
+            case "DateType" =>
+              (unix_timestamp( sp_col(x) ) * Math.pow(10,9).longValue).as(x)
+            case "TimestampType" =>
+              (unix_timestamp( sp_col(x) ) * Math.pow(10,9).longValue).as(x)
+            case _ => sp_col(x)
+          })
+      converted_df = df.select(new_columns:_*)
+    }
+
+    var rddData: RDD[InternalRow] = null
+    if (need_conversion) rddData = converted_df.queryExecution.toRdd
+    else rddData = df.queryExecution.toRdd
+
     val ncol = cols.size
-    val dvecs = new Array[Long](ncol)
-    val rddData = df.queryExecution.toRdd
+    val dvecs = new Array[Long](ncol)    
     val part_sizes = rddData.mapPartitions(x => Array(x.size).toIterator).persist
     for (i <- 0 until ncol) dvecs(i) = Dvec.get(rddData, types(i), i, part_sizes)
     val fs = FrovedisServer.getServerInstance()
@@ -849,13 +873,16 @@ class FrovedisDataFrame extends java.io.Serializable {
   }
 
   // for internal purpose
-  private def mark_boolean_columns(dt: mMap[String, Short], 
+  private def mark_boolean_and_timestamp_columns(dt: mMap[String, Short], 
                                    dummy: DummyDftable): Unit = {
     val bool_id = DTYPE.BOOL
+    val timestamp_id = DTYPE.TIMESTAMP
+    
     val ncol = dummy.names.size
     for (i <- 0 until ncol) {
       val c = dummy.names(i)
       if (dt.contains(c) && dt(c) == bool_id) dummy.types(i) = bool_id
+      if (dt.contains(c) && dt(c) == timestamp_id) dummy.types(i) = timestamp_id
     }
   }
 
@@ -1152,7 +1179,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     val dummy = JNISupport.executeDFfunc(fs.master_node, get(), cname, op.get())
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    mark_boolean_columns(this.dtypes_as_map, dummy)
+    mark_boolean_and_timestamp_columns(this.dtypes_as_map, dummy)
     if (op.isBOOL) { // mark newly added column (cname) as BOOL
       val ncol = dummy.names.size
       dummy.types(ncol - 1) = DTYPE.BOOL
@@ -1207,7 +1234,7 @@ class FrovedisDataFrame extends java.io.Serializable {
                                           colNames.size, keep)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    mark_boolean_columns(this.dtypes_as_map, dummy)
+    mark_boolean_and_timestamp_columns(this.dtypes_as_map, dummy)
     return new FrovedisDataFrame(dummy)
   }
 
@@ -1226,7 +1253,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     val dummy = JNISupport.limitDF(fs.master_node, get(), n)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    mark_boolean_columns(this.dtypes_as_map, dummy)
+    mark_boolean_and_timestamp_columns(this.dtypes_as_map, dummy)
     return new FrovedisDataFrame(dummy)
   }
 
