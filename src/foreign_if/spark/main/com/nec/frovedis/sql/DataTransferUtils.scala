@@ -179,7 +179,6 @@ object sDFTransfer extends java.io.Serializable {
     var ret: RDD[ColumnarBatch] = null
     try {
       ret = qe.executedPlan.executeColumnar()
-      ret.count // for action
     } catch { // IllegalStateException etc...
       case e1: IllegalStateException => {ret = null} 
       case other: Throwable => {ret = null}
@@ -323,9 +322,6 @@ object sDFTransfer extends java.io.Serializable {
               word_count: Int): Unit = {
     val ret = columnar.mapPartitionsWithIndex({ case(index, batches) =>
         val t0 = new TimeSpent(Level.TRACE)
-        val t1 = new TimeSpent(Level.DEBUG)
-        val t2 = new TimeSpent(Level.DEBUG)
-
         val (destId, myst) = GenericUtils.index2Dest(index, block_sizes)
         val localId = index - myst
         val w_node = fw_nodes(destId)
@@ -334,14 +330,34 @@ object sDFTransfer extends java.io.Serializable {
         val bufs = new ArrayBuffer[Array[OffHeapArray]]()
         var tot_sizes = new Array[Int](n_targets)
 
-        while(batches.hasNext) {
+        val t1 = new TimeSpent(Level.DEBUG)
+        val t2 = new TimeSpent(Level.DEBUG)
+        val alloc_t = new TimeSpent(Level.DEBUG)
+        val copy_t = new TimeSpent(Level.DEBUG)
+        val full_copy_t = new TimeSpent(Level.DEBUG)
+
+        var cond = batches.hasNext
+        while(cond) {
           val batch: ColumnarBatch = batches.next
           val out = jDFTransfer.copy_batch_data(batch, colIds, offset, types, 
-                                                ncol, word_count, t0)
+                                                ncol, word_count, t0,
+                                                alloc_t, copy_t)
+
+          t1.lap_start()
           for(i <- 0 until n_targets) tot_sizes(i) += out(i).size()
           bufs += out
+          t1.lap_stop()
+
+          t2.lap_start()
+          cond = batches.hasNext
+          t2.lap_stop()
         }
-        t1.show("[partition: " + index + "] copy batch data: ")
+
+        alloc_t.show_lap("[partition: " + index + "] a. memory allocation: ")
+        copy_t.show_lap("[partition: " + index + "] b. copy to OffHeapArray: ")
+        t1.show_lap("[partition: " + index + "] c. total batch-size calculation: ")
+        t2.show_lap("[partition: " + index + "] d. has next: ")
+        full_copy_t.show("[partition: " + index + "] (a + b + c + d + other): total batch-copy: ")
 
         val nbatches = bufs.size 
         for (i <- 0 until ncol) {
@@ -463,8 +479,8 @@ object sDFTransfer extends java.io.Serializable {
           t0.show("spark-worker to frovedis-rank local data copy: ")
         }
 
-        t1.show("[partition: " + index + "] batch data flattening: ")
-        t2.show("[partition: " + index + "] spark-to-frovedis data transfer: ")
+        t1.show_lap("[partition: " + index + "] batch data flattening: ")
+        t2.show_lap("[partition: " + index + "] spark-to-frovedis data transfer: ")
         Array(true).toIterator
     })
     ret.count // for action

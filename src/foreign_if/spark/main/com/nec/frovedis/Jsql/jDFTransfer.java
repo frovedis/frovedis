@@ -217,7 +217,9 @@ public class jDFTransfer implements java.io.Serializable {
                   int[] offset,
                   short[] types,
                   int ncol, int word_count,
-                  TimeSpent t0)
+                  TimeSpent t0,
+                  TimeSpent alloc_t,
+                  TimeSpent copy_t)
     throws java.rmi.ServerException, IllegalArgumentException {
 
     int ntargets = ncol + word_count;
@@ -230,18 +232,27 @@ public class jDFTransfer implements java.io.Serializable {
       int row_offset = offset[i];
       switch(types[i]) {
         case DTYPE.INT: {
+          alloc_t.lap_start();
           OffHeapArray buf = new OffHeapArray(k, DTYPE.INT);
+          alloc_t.lap_stop();
+
+          copy_t.lap_start();
           if (check_null) {
             for(int j = 0; j < k; ++j) buf.putInt(j, tcol.isNullAt(j) ? Integer.MAX_VALUE : tcol.getInt(j));
           } else {
             for(int j = 0; j < k; ++j) buf.putInt(j, tcol.getInt(j));
           }
-          t0.show("ColumnVector -> IntArray: ");
           out[row_offset] = buf;
+          copy_t.lap_stop();
+          t0.show("ColumnVector -> IntArray: ");
           break;
         }
         case DTYPE.BOOL: {
+          alloc_t.lap_start();
           OffHeapArray buf = new OffHeapArray(k, DTYPE.INT);
+          alloc_t.lap_stop();
+
+          copy_t.lap_start();
           if (check_null) {
             for(int j = 0; j < k; ++j) {
               if (tcol.isNullAt(j)) buf.putInt(j, Integer.MAX_VALUE);
@@ -250,47 +261,64 @@ public class jDFTransfer implements java.io.Serializable {
           } else {
             for(int j = 0; j < k; ++j) buf.putInt(j, tcol.getBoolean(j) ? 1 : 0);
           }
-          t0.show("ColumnVector -> (Boolean) IntArray: ");
           out[row_offset] = buf;
+          copy_t.lap_stop();
+          t0.show("ColumnVector -> (Boolean) IntArray: ");
           break;
         }
         case DTYPE.LONG: {
+          alloc_t.lap_start();
           OffHeapArray buf = new OffHeapArray(k, DTYPE.LONG);
+          alloc_t.lap_stop();
+
+          copy_t.lap_start();
           if (check_null) {
             for(int j = 0; j < k; ++j) buf.putLong(j, tcol.isNullAt(j) ? Long.MAX_VALUE : tcol.getLong(j));
           } else {
             for(int j = 0; j < k; ++j) buf.putLong(j, tcol.getLong(j));
           }
-          t0.show("ColumnVector -> LongArray: ");
           out[row_offset] = buf;
+          copy_t.lap_stop();
+          t0.show("ColumnVector -> LongArray: ");
           break;
         }
         case DTYPE.FLOAT: {
+          alloc_t.lap_start();
           OffHeapArray buf = new OffHeapArray(k, DTYPE.FLOAT);
+          alloc_t.lap_stop();
+
+          copy_t.lap_start();
           if (check_null) {
             for(int j = 0; j < k; ++j) buf.putFloat(j, tcol.isNullAt(j) ? Float.MAX_VALUE : tcol.getFloat(j));
           } else {
             for(int j = 0; j < k; ++j) buf.putFloat(j, tcol.getFloat(j));
           }
-          t0.show("ColumnVector -> FloatArray: ");
           out[row_offset] = buf;
+          copy_t.lap_stop();
+          t0.show("ColumnVector -> FloatArray: ");
           break;
         }
         case DTYPE.DOUBLE: {
+          alloc_t.lap_start();
           OffHeapArray buf = new OffHeapArray(k, DTYPE.DOUBLE);
+          alloc_t.lap_stop();
+
+          copy_t.lap_start();
           if (check_null) {
             for(int j = 0; j < k; ++j) buf.putDouble(j, tcol.isNullAt(j) ? Double.MAX_VALUE : tcol.getDouble(j));
           } else {
             for(int j = 0; j < k; ++j) buf.putDouble(j, tcol.getDouble(j));
           }
-          t0.show("ColumnVector -> DoubleArray: ");
           out[row_offset] = buf;
+          copy_t.lap_stop();
+          t0.show("ColumnVector -> DoubleArray: ");
           break;
         }
         case DTYPE.STRING: { 
           throw new IllegalArgumentException("copy_batch_data: 'String' type is not supported!");
         } 
         case DTYPE.WORDS: {
+          copy_t.lap_start();
           byte[][] buffer = new byte[k][];
           int flat_size = 0;
           if (check_null) {
@@ -306,19 +334,26 @@ public class jDFTransfer implements java.io.Serializable {
               flat_size += buffer[j].length;
             }
           }
-          int cur = 0;
+          copy_t.lap_stop();
+
+          alloc_t.lap_start();
           OffHeapArray szbuf = new OffHeapArray(k, DTYPE.INT);
           OffHeapArray charbuf = new OffHeapArray(flat_size, DTYPE.BYTE);
+          alloc_t.lap_stop();
+
+          copy_t.lap_start();
+          int cur = 0;
           for(int j = 0; j < k; ++j) {
             int size = buffer[j].length;
             for(int c = 0; c < size; ++c) charbuf.putByte(cur + c, buffer[j][c]);
             szbuf.putInt(j, size);
             cur += size;
           }
-          t0.show("ColumnVector -> flatten-byteArray: ");
           int next_row_offset = row_offset + 1;
           out[row_offset] = charbuf;
           out[next_row_offset] = szbuf;
+          copy_t.lap_stop();
+          t0.show("ColumnVector -> flatten-byteArray: ");
           break;
         }
         default: throw new IllegalArgumentException("Unsupported type is encountered!\n");

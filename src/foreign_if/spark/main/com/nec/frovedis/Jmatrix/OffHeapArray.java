@@ -54,7 +54,7 @@ public class OffHeapArray {
 
     // -------- for double data --------
     public double getDouble(int idx) {
-      f assert(this.dtype == DTYPE.DOUBLE); 
+      assert(this.dtype == DTYPE.DOUBLE); 
       return _Unsafe.getDouble(address + idx * sizeof(DTYPE.DOUBLE));
     }
 
