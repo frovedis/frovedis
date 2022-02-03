@@ -51,9 +51,8 @@ fdf1.sort_values(["Country", "Age"], ascending=[0,1]).show() # multiple column
 # groupby demo
 fdf1.groupby('Country')['Country'].show()
  
-fdf1.groupby('Country').agg({'Age': ['max','min','mean'],
-                             'Ename': ['count']}).show()
-
+print(fdf1.groupby('Country').agg({'Age': ['max','min','mean'],
+                             'Ename': ['count']}).to_pandas())
 # merge demo
 fdf1.merge(fdf2, left_on="Country", right_on="Country").show()
 
@@ -90,8 +89,8 @@ joined = fdf1.merge(pdf2, left_on="Country", right_on="Cname")
 joined.show()
 
 # conversion demo
-print(fdf1.to_pandas_dataframe()); print("\n")
-print(joined.to_pandas_dataframe()); print("\n")
+print(fdf1.to_pandas()); print("\n")
+print(joined.to_pandas()); print("\n")
 joined.release()
 
 # miscellaneous
@@ -158,7 +157,7 @@ info.save("./out/info")
 info.release()
 
 print(fdf1.drop(columns=["Age"]))
-print(fdf1.isnull().to_pandas_dataframe())
+print(fdf1.isnull().to_pandas())
 fdf1.release()
 fdf2.release()
 
