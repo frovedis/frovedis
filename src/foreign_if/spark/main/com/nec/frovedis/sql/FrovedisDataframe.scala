@@ -120,23 +120,32 @@ class FrovedisDataFrame extends java.io.Serializable {
     }
     t1.show("column look-up: ")
 
-    if (!numeric_targets.isEmpty) {
-      val numeric_targets_arr = numeric_targets.toArray
-      this.owned_cols = numeric_targets_arr
-      val sdf = df.select(numeric_targets_arr.map(x => sp_col(x)):_*)
+    var columnar_targets = new Array[String](0)
+    if (!numeric_targets.isEmpty) columnar_targets = numeric_targets.toArray
+
+    var irow_targets = new Array[String](0)
+    if (!non_numeric_targets.isEmpty) irow_targets = non_numeric_targets.toArray
+
+    if (!columnar_targets.isEmpty) {
+      val sdf = df.select(columnar_targets.map(x => sp_col(x)):_*)
       val columnar = sDFTransfer.get_columnar(sdf)
       t1.show("columnar creation: ")
-      if (columnar == null) throw new IllegalArgumentException("issue in columnar creation!")
-      columnar_load(sdf, numeric_targets_arr, columnar) // TODO: send cols, types, columnar
-      DFMemoryManager.insert(code, this, numeric_targets_arr.toIterator)
+      if (columnar != null) {
+        this.owned_cols = columnar_targets
+        columnar_load(sdf, columnar_targets, columnar) // TODO: send cols, types, columnar
+        DFMemoryManager.insert(code, this, columnar_targets.toIterator)
+      }
+      else { // columnar creation might fail, if sdf doesn't have ColumnarSupport
+        irow_targets = irow_targets ++ columnar_targets
+      }
     }
 
-    if (!non_numeric_targets.isEmpty) {
-      val non_numeric_targets_arr = non_numeric_targets.toArray
-      this.owned_cols = this.owned_cols ++ non_numeric_targets_arr
-      val sdf = df.select(non_numeric_targets_arr.map(x => sp_col(x)):_*)
+    if (!irow_targets.isEmpty) {
+      if (this.owned_cols != null) this.owned_cols = this.owned_cols ++ irow_targets
+      else                         this.owned_cols = irow_targets
+      val sdf = df.select(irow_targets.map(x => sp_col(x)):_*)
       optimized_load(sdf)
-      DFMemoryManager.insert(code, this, non_numeric_targets_arr.toIterator)
+      DFMemoryManager.insert(code, this, irow_targets.toIterator)
     }
 
     if (!base_ptr.isEmpty) { // TODO: correct order
