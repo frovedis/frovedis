@@ -21,7 +21,7 @@ groupwise average, groupwise variance, etc.
 .P
 .PD
 \f[B]In FrovedisGroupedDataframe, currently aggregation operations is
-performed along the index levels only.\f[]
+performed along the rows only.\f[]
 .PP
 This module provides a client\-server implementation, where the client
 application is a normal python program.
@@ -196,6 +196,7 @@ values.
 .IP "10." 4
 \f[B]sem()\f[] \- it computes standard error of the mean of groups,
 excluding missing values.
-.PP
-\f[B]For more details on the aggregate functions, refer
-Grouped_DataFrame_AggregateFunctions (./Grouped_DataFrame_AggregateFunctions.md)\f[]
+.SH SEE ALSO
+.IP \[bu] 2
+\f[B]Using aggregate functions on
+GroupedDataframe (https://github.com/frovedis/frovedis/tree/master/doc/manual/python/dataframe/Grouped_DataFrame_AggregateFunctions.md)\f[]

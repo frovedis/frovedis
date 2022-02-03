@@ -12,7 +12,7 @@ FrovedisGroupedDataframe - A python class for handling grouped dataframes. These
 
 FrovedisGroupedDataframe instance contains information about the grouped dataframe. After columns are 
 grouped, various aggregations can be performed like groupwise average, groupwise variance, etc.  
-**In FrovedisGroupedDataframe, currently aggregation operations is performed along the index levels only.**  
+**In FrovedisGroupedDataframe, currently aggregation operations is performed along the rows only.**  
 
 This module provides a client-server implementation, where the client application is a normal python 
 program. The FrovedisGroupedDataframe interface is almost same as pandas DataFrameGroupBy interface, but 
@@ -100,4 +100,5 @@ FrovedisGroupedDataFrame provides a lot of utilities to perform various operatio
 9. **var()** - it computes variance of groups, excluding missing values.  
 10. **sem()** - it computes standard error of the mean of groups, excluding missing values.  
 
-**For more details on the aggregate functions, refer [Grouped_DataFrame_AggregateFunctions](./Grouped_DataFrame_AggregateFunctions.md)**
+# SEE ALSO
+- **[Using aggregate functions on GroupedDataframe](https://github.com/frovedis/frovedis/tree/master/doc/manual/python/dataframe/Grouped_DataFrame_AggregateFunctions.md)**

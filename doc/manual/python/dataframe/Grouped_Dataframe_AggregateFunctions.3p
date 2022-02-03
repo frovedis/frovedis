@@ -1,0 +1,1143 @@
+.TH "FrovedisGroupedDataFrame Aggregate Functions" "" "" "" ""
+.SH NAME
+.PP
+FrovedisGroupedDataFrame Aggregate Functions \- functions related to
+aggregate operations on grouped dataframe are illustrated here.
+.SS SYNOPSIS
+.IP
+.nf
+\f[C]
+frovedis.dataframe.grouped_df.FrovedisGroupedDataframe(df=None)\ \ 
+\f[]
+.fi
+.SS Detailed Description
+.SS 1. agg(func, *args, **kwargs)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]func\f[]\f[]: Names of functions to use for aggregating the
+data.
+The input to be used with the function must be a frovedis DataFrame
+instance having atleast one numeric column.
+.PD 0
+.P
+.PD
+Accepted combinations for this parameter are: \- A string function name
+such as \[aq]max\[aq], \[aq]min\[aq], etc.
+.PD 0
+.P
+.PD
+\- list of functions and/or function names, For example, [\[aq]max\[aq],
+\[aq]mean\[aq]].
+.PD 0
+.P
+.PD
+\- dictionary with keys as column labels and values as function name or
+list of such functions.
+For Example, {\[aq]Age\[aq]:
+[\[aq]max\[aq],\[aq]min\[aq],\[aq]mean\[aq]], \[aq]Ename\[aq]:
+[\[aq]count\[aq]]}
+.PP
+\f[I]\f[B]*args\f[]\f[]: This is an unused parameter.
+.PD 0
+.P
+.PD
+\f[I]\f[B]**kwargs\f[]\f[]: This is an unused parameter.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes an aggregate operation based on the condition specified in
+\[aq]func\[aq].
+It is an alias for aggregate().
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+\ \ \ \ \ \ \ \ \ \ \ \ 
+#\ convert\ to\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ convert\ to\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ displaying\ created\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ agg()\ demo\ with\ func\ as\ a\ function\ string\ name\ 
+fdf1.groupby(\[aq]Qualification\[aq]).agg(\[aq]min\[aq]).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ min_Age\ min_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 22\ \ \ \ \ \ 23
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 24\ \ \ \ \ \ 34
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe containing numeric column(s) with newly
+computed minimum of each groups.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ agg()\ demo\ with\ func\ as\ a\ dictionary\ 
+fdf1.groupby(\[aq]Qualification\[aq]).agg({\[aq]Age\[aq]:\ [\[aq]max\[aq],\[aq]min\[aq],\[aq]mean\[aq]],\ \[aq]Score\[aq]:\ [\[aq]sum\[aq]]}).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ max_Age\ min_Age\ mean_Age\ \ sum_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 36\ \ \ \ \ \ 22\ \ \ \ \ \ 29.25\ \ \ \ \ 108
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 33\ \ \ \ \ \ 24\ \ \ \ \ \ 29\ \ \ \ \ \ \ \ 13
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ agg()\ demo\ where\ func\ is\ a\ list\ of\ functions\ 
+fdf1.groupby(\[aq]Qualification\[aq]).agg([\[aq]min\[aq],\ \[aq]max\[aq]]).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ min_Age\ max_Age\ min_Score\ \ max_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 22\ \ \ \ \ \ 36\ \ \ \ \ \ 23\ \ \ \ \ \ \ \ \ 50
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 24\ \ \ \ \ \ 33\ \ \ \ \ \ 34\ \ \ \ \ \ \ \ \ 52
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a new frovedis DataFrame instance with the result of the
+specified aggregate functions.
+.SS 2. aggregate(func, *args, **kwargs)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]func\f[]\f[]: Names of functions to use for aggregating the
+data.
+The input to be used with the function must be a frovedis DataFrame
+instance having atleast one numeric column.
+.PD 0
+.P
+.PD
+Accepted combinations for this parameter are: \- A string function name
+such as \[aq]max\[aq], \[aq]min\[aq], etc.
+.PD 0
+.P
+.PD
+\- list of functions and/or function names, For example, [\[aq]max\[aq],
+\[aq]mean\[aq]].
+.PD 0
+.P
+.PD
+\- dictionary with keys as column labels and values as function name or
+list of such functions.
+For Example, {\[aq]Age\[aq]:
+[\[aq]max\[aq],\[aq]min\[aq],\[aq]mean\[aq]], \[aq]Ename\[aq]:
+[\[aq]count\[aq]]}
+.PP
+\f[I]\f[B]*args\f[]\f[]: This is an unused parameter.
+.PD 0
+.P
+.PD
+\f[I]\f[B]**kwargs\f[]\f[]: This is an unused parameter.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes an aggregate operation based on the condition specified in
+\[aq]func\[aq].
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+
+#\ convert\ to\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ convert\ to\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ displaying\ created\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ aggregate()\ demo\ using\ FrovedisGroupedDataframe\ instance\ and\ \[aq]func\[aq]\ as\ a\ function\ string\ name\ 
+fdf1.groupby(\[aq]Qualification\[aq]).agg(\[aq]max\[aq]).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ max_Age\ max_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 36\ \ \ \ \ \ 50
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 33\ \ \ \ \ \ 52
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe containing numeric column(s) with newly
+computed minimum of each groups.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ aggregate()\ demo\ using\ FrovedisGroupedDataframe\ instance\ and\ \[aq]func\[aq]\ as\ a\ dictionary\ 
+fdf1.groupby(\[aq]Qualification\[aq]).agg({\[aq]Age\[aq]:\ [\[aq]count\[aq]],\ \[aq]Score\[aq]:\ [\[aq]max\[aq],\[aq]min\[aq]]}).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ count_Age\ \ max_Score\ \ min_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 4\ \ \ \ \ \ \ \ \ \ 50\ \ \ \ \ \ \ \ \ 23
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 4\ \ \ \ \ \ \ \ \ \ 52\ \ \ \ \ \ \ \ \ 34
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ aggregate()\ demo\ using\ FrovedisGroupedDataframe\ instance\ and\ \[aq]func\[aq]\ is\ a\ list\ of\ functions\ 
+fdf1.groupby(\[aq]Qualification\[aq]).agg([\[aq]mean\[aq],\[aq]sum\[aq]]).show()\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ mean_Age\ \ sum_Age\ mean_Score\ \ sum_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 29.25\ \ \ \ \ 117\ \ \ \ \ 36\ \ \ \ \ \ \ \ \ \ 108
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 29\ \ \ \ \ \ \ \ 116\ \ \ \ \ 43.6666\ \ \ \ \ 131
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a new frovedis DataFrame instance with the result of the
+specified aggregate functions.
+.SS 3. min(numeric_only = True, min_count = \-1)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]numeric_only\f[]\f[]: It accepts a boolean parameter that
+specifies whether or not to use only numeric columns for aggregation.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_count\f[]\f[]: This is an unused parameter.
+(Default: \-1)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the minimum of group values.
+.PP
+The parameter: "min_count" is simply kept in to to make the interface
+uniform to the pandas GroupBy.min().
+This is not used anywhere within the frovedis implementation.
+.PP
+\f[B]Currently, this method only displays result for dataframe having
+atleast one numeric column.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+\ \ \ \ \ \ \ \ \ \ \ \ 
+#\ convert\ to\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ convert\ to\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ displaying\ created\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ min()\ demo\ using\ FrovedisGroupedDataframe\ instance\ 
+fdf1.groupby(\[aq]Qualification\[aq]).min().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ min_Age\ min_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 22\ \ \ \ \ \ 23
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 24\ \ \ \ \ \ 34
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe containing numeric column(s) with newly
+computed minimum of each groups.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a new frovedis DataFrame instance with the result of the
+specified aggregate functions.
+.SS 4. max(numeric_only = True, min_count = \-1)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]numeric_only\f[]\f[]: It accepts a boolean parameter that
+specifies whether or not to use only numeric columns for aggregation.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_count\f[]\f[]: This is an unused parameter.
+(Default: \-1)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the maximum of group values.
+.PP
+The parameter: "min_count" is simply kept in to to make the interface
+uniform to the pandas GroupBy.max().
+.PD 0
+.P
+.PD
+This is not used anywhere within the frovedis implementation.
+.PP
+\f[B]Currently, this method only displays result for dataframe having
+atleast one numeric column.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+
+#\ convert\ to\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ convert\ to\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ displaying\ created\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ max()\ demo\ using\ FrovedisGroupedDataframe\ instance\ 
+fdf1.groupby(\[aq]Qualification\[aq]).max().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ max_Age\ max_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 36\ \ \ \ \ \ 50
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 33\ \ \ \ \ \ 52
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe containing numeric column(s) with newly
+computed maximum of each groups.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a new frovedis DataFrame instance with the result of the
+specified aggregate functions.
+.SS 5. mean(numeric_only = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]numeric_only\f[]\f[]: It accepts a boolean parameter that
+specifies whether or not to use only numeric column data as input.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes mean of groups, excluding the missing values.
+.PP
+\f[B]Currently, this method only displays result for dataframe having
+atleast one numeric column.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+\ \ \ \ \ \ \ \ \ \ \ \ 
+#\ convert\ to\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ convert\ to\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ displaying\ created\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mean()\ demo\ using\ FrovedisGroupedDataframe\ instance\ 
+fdf1.groupby(\[aq]Qualification\[aq]).mean().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ mean_Age\ \ mean_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 29.25\ \ \ \ \ 36
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 29\ \ \ \ \ \ \ \ 43.6666
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe containing numeric column(s) with newly
+computed mean of each groups.
+.PP
+Also, it excludes the missing value(s) in \f[B]\[aq]Score\[aq]\f[]
+column while computing mean of groups \f[B]\[aq]B.Tech\[aq]\f[] and
+\f[B]\[aq]Phd\[aq]\f[].
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a new frovedis DataFrame instance with the result of the
+specified aggregate functions.
+.SS 6. sum(numeric_only = True, min_count = 0)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]numeric_only\f[]\f[]: It accepts a boolean parameter that
+specifies whether or not to use only numeric column data as input.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_count\f[]\f[]: This is an unused parameter.
+(Default: 0)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the sum of group values.
+.PP
+The parameter: "min_count" is simply kept in to to make the interface
+uniform to the pandas GroupBy.sum().
+.PD 0
+.P
+.PD
+This is not used anywhere within the frovedis implementation.
+.PP
+\f[B]Currently, this method only displays result for dataframe having
+atleast one numeric column.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+\ \ \ \ \ \ \ \ \ \ \ \ 
+#\ convert\ to\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ convert\ to\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ displaying\ created\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ sum()\ demo\ using\ FrovedisGroupedDataframe\ instance\ 
+fdf1.groupby(\[aq]Qualification\[aq]).sum().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ sum_Age\ sum_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 117\ \ \ \ \ 108
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 116\ \ \ \ \ 131
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe containing numeric column(s) with newly
+computed sum of each groups.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a new frovedis DataFrame instance with the result of the
+specified aggregate functions.
+.SS 7. count(numeric_only = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]numeric_only\f[]\f[]: It accepts a boolean parameter that
+specifies whether or not to use only numeric column data as input.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes count of groups, excluding the missing values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+\ \ \ \ \ \ \ \ \ \ \ \ 
+#\ convert\ to\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ convert\ to\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ displaying\ created\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ count()\ demo\ using\ FrovedisGroupedDataframe\ instance\ 
+fdf1.groupby(\[aq]Qualification\[aq]).count().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ count_Age\ \ \ count_Score\ \ count_Name\ \ count_City
+B.Tech\ \ \ \ \ \ \ \ \ \ 4\ \ \ \ \ \ \ \ \ \ \ 3\ \ \ \ \ \ \ \ \ \ \ \ 4\ \ \ \ \ \ \ \ \ \ \ 4
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 4\ \ \ \ \ \ \ \ \ \ \ 3\ \ \ \ \ \ \ \ \ \ \ \ 4\ \ \ \ \ \ \ \ \ \ \ 4
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe containing the newly computed count of
+each groups.
+.PP
+Also, it excludes the missing value(s) in \f[B]\[aq]Score\[aq]\f[]
+column while computing count of groups \f[B]\[aq]B.Tech\[aq]\f[] and
+\f[B]\[aq]Phd\[aq]\f[].
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a new frovedis DataFrame instance with the result of the
+specified aggregate functions.
+.SS 8. size(numeric_only = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]numeric_only\f[]\f[]: It accepts a boolean parameter that
+specifies whether or not to use only numeric column data as input.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes group sizes, including the missing values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+\ \ \ \ \ \ \ \ \ \ \ \ 
+#\ convert\ to\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ convert\ to\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ displaying\ created\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ size()\ demo\ using\ FrovedisGroupedDataframe\ instance\ 
+fdf1.groupby(\[aq]Qualification\[aq]).size().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ size_Qualification
+B.Tech\ \ \ \ \ \ \ \ \ \ 4
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 4
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe containing a column with the newly
+computed size of each group.
+.PP
+Also, it does not exclude the missings values while computing group
+size.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a new frovedis DataFrame instance with the result of the
+specified aggregate functions.
+.SS 9. var(ddof = 1.0)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]ddof\f[]\f[]: It accepts an integer parameter that specifies
+the delta degrees of freedom.
+(Default: 1.0)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the variance of groups, excluding missing values.
+.PP
+\f[B]Currently, this method only displays result for dataframe having
+atleast one numeric column.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+\ \ \ \ \ \ \ \ \ \ \ \ 
+#\ convert\ to\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ convert\ to\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ displaying\ created\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ var()\ demo\ using\ FrovedisGroupedDataframe\ instance\ and\ default\ ddof\ value
+fdf1.groupby(\[aq]Qualification\[aq]).var().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ var_Age\ \ var_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 36.9166\ \ 183
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 18\ \ \ \ \ \ \ 82.3333
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe with numeric column(s) containing the
+newly computed variance for each groups.
+.PP
+Also, it excludes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing variance of groups \f[B]\[aq]B.Tech\[aq]\f[] and
+\f[B]\[aq]Phd\[aq]\f[].
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ var()\ demo\ using\ ddof\ =\ 2\ 
+fdf1.groupby(\[aq]Qualification\[aq]).var(ddof\ =\ 2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ var_Age\ var_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 55.375\ \ 366
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 27\ \ \ \ \ \ 164.666
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a new frovedis DataFrame instance with the result of the
+specified aggregate functions.
+.SS 10. sem(ddof = 1.0)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]ddof\f[]\f[]: It accepts an integer parameter that specifies
+the delta degrees of freedom.
+(Default: 1.0)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes standard error of the mean of groups, excluding missing
+values.
+.PP
+\f[B]Currently, this method only displays result for dataframe having
+atleast one numeric column.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+\ \ \ \ \ \ \ \ \ \ \ \ 
+#\ convert\ to\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ convert\ to\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ displaying\ created\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ sem()\ demo\ using\ FrovedisGroupedDataframe\ instance\ and\ default\ ddof\ value\ 
+fdf1.groupby(\[aq]Qualification\[aq]).sem().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ sem_Age\ \ sem_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 3.03795\ \ 7.81024
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 2.12132\ \ 5.23874
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe with numeric column(s) containing the
+newly computed standard error of mean for each groups.
+.PP
+Also, it excludes the missing value(s) in \f[B]\[aq]Score\[aq]\f[]
+column while computing standard error of mean for the groups
+\f[B]\[aq]B.Tech\[aq]\f[] and \f[B]\[aq]Phd\[aq]\f[].
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ sem()\ demo\ using\ ddof\ =\ 2\ 
+fdf1.groupby(\[aq]Qualification\[aq]).sem(ddof\ =\ 2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ sem_Age\ \ sem_Score
+B.Tech\ \ \ \ \ \ \ \ \ \ 3.72071\ \ 11.0453
+Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 2.59807\ \ 7.4087
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a new frovedis DataFrame instance with the result of the
+specified aggregate functions.
+.SH SEE ALSO
+.IP \[bu] 2
+\f[B]Introduction to Frovedis
+GroupedDataframe (https://github.com/frovedis/frovedis/tree/master/doc/manual/python/dataframe/Grouped_DataFrame_Introduction.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]Introduction to Frovedis
+Dataframe (https://github.com/frovedis/frovedis/tree/master/doc/manual/python/dataframe/DataFrame_Introduction.md)\f[]
