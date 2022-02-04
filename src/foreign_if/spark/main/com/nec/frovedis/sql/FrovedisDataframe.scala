@@ -20,7 +20,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions.{col => sp_col}
-import org.apache.spark.sql.functions.{unix_timestamp, from_unixtime, to_date, from_utc_timestamp}
+import org.apache.spark.sql.functions.{unix_timestamp, from_unixtime, to_date, to_timestamp}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.sql.catalyst.InternalRow
@@ -28,6 +28,7 @@ import scala.collection.mutable.{Map => mMap}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
 import org.apache.log4j.Level
+import java.util.TimeZone
 
 class FrovedisDataFrame extends java.io.Serializable {
   protected var fdata: Long = -1
@@ -229,8 +230,8 @@ class FrovedisDataFrame extends java.io.Serializable {
     this.cols = name_type_pair.map(_._1)
     this.types = name_type_pair.map(_._2).map(x => TMAPPER.string2id(x))
 
-    val spark = SparkSession.builder().getOrCreate()
-    spark.conf.set("spark.sql.session.timeZone", "UTC")
+    var orig_timezone = TimeZone.getDefault().getID
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
 
     var dtypes_map = df.dtypes.toMap
     val need_conversion = dtypes_map.exists(_._2 == "DateType") | dtypes_map.exists(_._2 == "TimestampType")
@@ -248,6 +249,8 @@ class FrovedisDataFrame extends java.io.Serializable {
           })
       converted_df = df.select(new_columns:_*)
     }
+
+    TimeZone.setDefault(TimeZone.getTimeZone(orig_timezone))
 
     var rddData: RDD[InternalRow] = null
     if (need_conversion) rddData = converted_df.queryExecution.toRdd
@@ -272,8 +275,8 @@ class FrovedisDataFrame extends java.io.Serializable {
   def optimized_load (df: DataFrame) : this.type = {
     release()
 
-    val spark = SparkSession.builder().getOrCreate()
-    spark.conf.set("spark.sql.session.timeZone", "UTC")
+    var orig_timezone = TimeZone.getDefault().getID
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
 
     var dtypes_map = df.dtypes.toMap
     val need_conversion = dtypes_map.exists(_._2 == "DateType") | dtypes_map.exists(_._2 == "TimestampType")
@@ -291,6 +294,8 @@ class FrovedisDataFrame extends java.io.Serializable {
           })
       converted_df = df.select(new_columns:_*)
     }
+
+    TimeZone.setDefault(TimeZone.getTimeZone(orig_timezone))
 
     var rddData: RDD[InternalRow] = null
     if (need_conversion) rddData = converted_df.queryExecution.toRdd
@@ -832,7 +837,6 @@ class FrovedisDataFrame extends java.io.Serializable {
     var res_df = spark.createDataFrame(resRdd, StructType(df_schema.toArray))
 
     if (need_conversion) {
-      var default_timezone = java.util.TimeZone.getDefault().getID
       val dtypes_map = this.dtypes_as_map
       val new_columns =
         res_df.columns
@@ -840,8 +844,7 @@ class FrovedisDataFrame extends java.io.Serializable {
                 case DTYPE.DATETIME =>
                   to_date(from_unixtime( sp_col(x) * Math.pow(10, -9) )).as(x)
                 case DTYPE.TIMESTAMP =>
-                  from_utc_timestamp(from_unixtime( sp_col(x) * Math.pow(10, -9)),
-                                    default_timezone).as(x)
+                  to_timestamp(from_unixtime( sp_col(x) * Math.pow(10, -9))).as(x)
                 case _ => sp_col(x)
               })
       res_df = res_df.select(new_columns:_*)
