@@ -2139,7 +2139,6 @@ right_col(const std::string& left, const std::string& right) {
               std::make_shared<dffunction_substr>
               (left_col, sub_im(0,right_col)))
     ->as("right_col(" + left + "," + right + ")");
-               
 }
 
 std::shared_ptr<dffunction>
@@ -3345,6 +3344,143 @@ std::shared_ptr<dffunction>
 substring_index_im_as(const std::shared_ptr<dffunction>& left,
                       const std::string& str, int pos, const std::string& as) {
   return std::make_shared<dffunction_substring_index>(left, str, pos, as);
+}
+
+
+// ----- concat -----
+std::shared_ptr<dfcolumn> dffunction_concat::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->concat(right->execute(t));
+}
+
+std::shared_ptr<dfcolumn> dffunction_concat::execute(dftable_base& t1, 
+                                                     dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto right_column = right->execute(t2);
+  auto aligned_right_column = realign_df(t1, t2, right_column);
+  return left_column->concat(aligned_right_column);
+}
+
+std::shared_ptr<dfcolumn> dffunction_concat::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  auto right_column = right->aggregate(table, local_grouped_idx,
+                                       local_idx_split, hash_divide,
+                                       merge_map, row_sizes, grouped_table);
+  return left_column->concat(right_column);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_concat::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->concat(right->whole_column_aggregate(t));
+}
+
+std::shared_ptr<dffunction> concat_col(const std::string& left,
+                                       const std::string& right) {
+  return std::make_shared<dffunction_concat>(id_col(left), id_col(right));
+}
+
+
+std::shared_ptr<dffunction>
+concat_col(const std::shared_ptr<dffunction>& left,
+           const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dffunction_concat>(left, right);
+} 
+
+std::shared_ptr<dffunction> concat_col_as(const std::string& left,
+                                          const std::string& right,
+                                          const std::string& as) {
+  return std::make_shared<dffunction_concat>(id_col(left), id_col(right), as);
+}
+
+std::shared_ptr<dffunction>
+concat_col_as(const std::shared_ptr<dffunction>& left,
+              const std::shared_ptr<dffunction>& right,
+              const std::string& as) {
+  return std::make_shared<dffunction_concat>(left, right, as);
+}
+
+// ----- concat_im -----
+std::shared_ptr<dfcolumn> dffunction_concat_im::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  if(!is_reversed) return left_column->append_string(str);
+  else return left_column->prepend_string(str);
+}
+
+std::shared_ptr<dfcolumn> dffunction_concat_im::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  if(!is_reversed) return left_column->append_string(str);
+  else return left_column->prepend_string(str);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_concat_im::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  if(!is_reversed) return left_column->append_string(str);
+  else return left_column->prepend_string(str);
+}
+
+// we do not support specifying column by std::string,
+// because it cannot be distinguished from appending/prepending string!
+
+std::shared_ptr<dffunction>
+concat_im(const std::shared_ptr<dffunction>& left,
+          const std::string& str) {
+  return std::make_shared<dffunction_concat_im>(left, str);
+} 
+
+std::shared_ptr<dffunction>
+concat_im(const std::string& str,
+          const std::shared_ptr<dffunction>& left) {
+  return std::make_shared<dffunction_concat_im>(left, str, true);
+} 
+
+std::shared_ptr<dffunction>
+concat_im_as(const std::shared_ptr<dffunction>& left,
+             const std::string& str,
+             const std::string& as) {
+  return std::make_shared<dffunction_concat_im>(left, str, as);
+} 
+
+std::shared_ptr<dffunction>
+concat_im(const std::string& str,
+          const std::shared_ptr<dffunction>& left,
+          const std::string& as) {
+  return std::make_shared<dffunction_concat_im>(left, str, as, true);
+} 
+
+std::shared_ptr<dffunction>
+concat_ws(const std::string& sep,
+          const std::string& left,
+          const std::string& right) {
+  return std::make_shared<dffunction_concat>
+    (concat_im(id_col(left), sep), id_col(right));
+}
+
+std::shared_ptr<dffunction>
+concat_ws(const std::string& sep,
+          const std::shared_ptr<dffunction>& left,
+          const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dffunction_concat>
+    (concat_im(left, sep), right);
 }
 
 // ----- utility functions for user's direct use -----

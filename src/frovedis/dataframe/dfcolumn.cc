@@ -1280,6 +1280,82 @@ dfcolumn::substring_index(const std::string& delim, int count) {
   }
 }
 
+std::shared_ptr<dfcolumn>
+dfcolumn::concat(const std::shared_ptr<dfcolumn>& right) {
+  auto left_ws = as_words();
+  auto right_ws = right->as_words();
+  auto ws = left_ws.map
+    (+[](words& left_ws, words& right_ws){
+      std::vector<words> vws(2);
+      vws[0] = std::move(left_ws);
+      vws[1] = std::move(right_ws);
+      return horizontal_concat_words(vws);
+    }, right_ws);
+  auto left_nulls = get_nulls();
+  auto right_nulls = right->get_nulls();
+  auto nulls = left_nulls.map
+    (+[](std::vector<size_t>& left_nulls, std::vector<size_t>& right_nulls)
+     {return set_union(left_nulls, right_nulls);}, right_nulls);
+  if(dtype() == "string") {
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  }
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::prepend_string(const std::string& str) {
+  auto ws = as_words();
+  ws.mapv(+[](words& ws, std::string& str){ws.prepend(str);},
+          broadcast(str));
+  auto nulls = get_nulls();
+  if(dtype() == "string") {
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  }
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::append_string(const std::string& str) {
+  auto ws = as_words();
+  ws.mapv(+[](words& ws, std::string& str){ws.append(str);},
+          broadcast(str));
+  auto nulls = get_nulls();
+  if(dtype() == "string") {
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  }
+}
+
 std::vector<std::string> 
 words_to_string_vector(words& ws, 
                        std::vector<size_t>& nulls,

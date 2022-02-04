@@ -500,6 +500,12 @@ public:
   virtual std::shared_ptr<dfcolumn>
   substring_index(const std::string& delim, int count);
   virtual std::shared_ptr<dfcolumn>
+  concat(const std::shared_ptr<dfcolumn>& right);
+  virtual std::shared_ptr<dfcolumn>
+  prepend_string(const std::string& str);
+  virtual std::shared_ptr<dfcolumn>
+  append_string(const std::string& str);
+  virtual std::shared_ptr<dfcolumn>
   union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols) = 0;
   virtual std::shared_ptr<dfcolumn> head(size_t limit) = 0;
   virtual std::shared_ptr<dfcolumn> tail(size_t limit) = 0;
