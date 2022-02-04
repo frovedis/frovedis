@@ -7,6 +7,7 @@ import com.nec.frovedis.sql.implicits_._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.sql.{ functions=>spark_functions}
 
 object FrovedisDataframeDemo {
   def main(args: Array[String]): Unit = {
@@ -206,6 +207,20 @@ object FrovedisDataframeDemo {
     cmat.debug_print()
     crsmat1.debug_print()
     crsmat2.debug_print()
+
+    // datetime
+    var dateDate = Seq( ("A", "02/07/2016"),
+                        ("B", "08/01/2018"),
+                        ("C", "18/12/2021"),
+                        ("D", "03/06/2022") )
+    val sp_df6 = dateDate.toDF("c1", "c2").select( spark_functions.col("c1"),
+                         spark_functions.to_date( spark_functions.col("c2"), "dd/MM/yyyy").as("date_c2"),
+                         spark_functions.to_timestamp( spark_functions.col("c2"), "dd/MM/yyyy").as("ts_c2")
+                          )
+    sp_df6.show()
+    val df6 = new FrovedisDataFrame(sp_df6)
+    df6.show()
+    df6.to_spark_DF().show()
 
     // releasing the dataframe objects from frovedis side
     df1.release()
