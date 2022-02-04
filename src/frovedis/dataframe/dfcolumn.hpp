@@ -498,6 +498,8 @@ public:
   replace(const std::string& from, const std::string& to);
   virtual std::shared_ptr<dfcolumn> reverse();
   virtual std::shared_ptr<dfcolumn>
+  substring_index(const std::string& delim, int count);
+  virtual std::shared_ptr<dfcolumn>
   union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols) = 0;
   virtual std::shared_ptr<dfcolumn> head(size_t limit) = 0;
   virtual std::shared_ptr<dfcolumn> tail(size_t limit) = 0;

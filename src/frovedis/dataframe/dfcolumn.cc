@@ -1207,6 +1207,79 @@ dfcolumn::reverse() {
   }
 }
 
+std::shared_ptr<dfcolumn>
+dfcolumn::substring_index(const std::string& delim, int count) {
+  auto ws = as_words();
+  ws.mapv(+[](words& ws, const std::string& delim, int count) {
+      auto lens_size = ws.lens.size();
+      auto lensp = ws.lens.data();
+      auto startsp = ws.starts.data();
+      if(count == 0) {
+        for(size_t i = 0; i < lens_size; i++) {
+          lensp[i] = 0;
+        }
+        return;
+      }
+      std::vector<size_t> idx, pos;
+      search(ws, delim, idx, pos);
+      auto sep = set_separate(idx);
+      auto idxp = idx.data();
+      auto posp = pos.data();
+      auto sep_size = sep.size();
+      auto sepp = sep.data();
+      std::vector<size_t> num_delim(sep_size-1);
+      auto num_delimp = num_delim.data();
+      for(size_t i = 0; i < sep_size - 1; i++) {
+        num_delimp[i] = sepp[i+1] - sepp[i];
+      }
+      if(count > 0) {
+        auto end_delim = vector_find_ge(num_delim, size_t(count));
+        auto end_delimp = end_delim.data();
+        auto end_delim_size = end_delim.size();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t i = 0; i < end_delim_size; i++) {
+          auto search_pos = sepp[end_delimp[i]];
+          auto words_idx = idxp[search_pos];
+          lensp[words_idx] = posp[search_pos + count - 1];
+        }
+      } else {
+        auto abscount = -count;
+        auto start_delim = vector_find_ge(num_delim, size_t(abscount));
+        auto start_delimp = start_delim.data();
+        auto start_delim_size = start_delim.size();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t i = 0; i < start_delim_size; i++) {
+          auto start_delimp_i = start_delimp[i];
+          auto search_pos = sepp[start_delimp_i];
+          auto words_idx = idxp[search_pos];
+          auto shift =
+            posp[search_pos + num_delimp[start_delimp_i] - abscount] + 1;
+          startsp[words_idx] += shift;
+          lensp[words_idx] -= shift;
+        }
+      }
+    }, broadcast(delim), broadcast(count));
+  auto nulls = get_nulls();
+  if(dtype() == "string") {
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  }
+}
+
 std::vector<std::string> 
 words_to_string_vector(words& ws, 
                        std::vector<size_t>& nulls,
