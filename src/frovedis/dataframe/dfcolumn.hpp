@@ -505,6 +505,8 @@ public:
   prepend_string(const std::string& str);
   virtual std::shared_ptr<dfcolumn>
   append_string(const std::string& str);
+  virtual std::shared_ptr<dfcolumn> lower();
+  virtual std::shared_ptr<dfcolumn> upper();
   virtual std::shared_ptr<dfcolumn>
   union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols) = 0;
   virtual std::shared_ptr<dfcolumn> head(size_t limit) = 0;

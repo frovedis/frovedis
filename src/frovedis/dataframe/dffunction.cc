@@ -3483,6 +3483,102 @@ concat_ws(const std::string& sep,
     (concat_im(left, sep), right);
 }
 
+
+// ----- lower -----
+std::shared_ptr<dfcolumn>
+dffunction_lower::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->lower();
+}
+
+std::shared_ptr<dfcolumn> dffunction_lower::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  return left_column->lower();
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_lower::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->lower();
+}
+
+std::shared_ptr<dffunction>
+lower_col(const std::string& left) {
+  return std::make_shared<dffunction_lower>(id_col(left));
+}
+
+std::shared_ptr<dffunction>
+lower_col(const std::shared_ptr<dffunction>& left) {
+  return std::make_shared<dffunction_lower>(left);
+}
+
+std::shared_ptr<dffunction>
+lower_col_as(const std::string& left, const std::string& as) {
+  return std::make_shared<dffunction_lower>(id_col(left), as);
+}
+
+std::shared_ptr<dffunction>
+lower_col_as(const std::shared_ptr<dffunction>& left, const std::string& as) {
+  return std::make_shared<dffunction_lower>(left, as);
+}
+
+
+// ----- upper -----
+std::shared_ptr<dfcolumn>
+dffunction_upper::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->upper();
+}
+
+std::shared_ptr<dfcolumn> dffunction_upper::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  return left_column->upper();
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_upper::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->upper();
+}
+
+std::shared_ptr<dffunction>
+upper_col(const std::string& left) {
+  return std::make_shared<dffunction_upper>(id_col(left));
+}
+
+std::shared_ptr<dffunction>
+upper_col(const std::shared_ptr<dffunction>& left) {
+  return std::make_shared<dffunction_upper>(left);
+}
+
+std::shared_ptr<dffunction>
+upper_col_as(const std::string& left, const std::string& as) {
+  return std::make_shared<dffunction_upper>(id_col(left), as);
+}
+
+std::shared_ptr<dffunction>
+upper_col_as(const std::shared_ptr<dffunction>& left, const std::string& as) {
+  return std::make_shared<dffunction_upper>(left, as);
+}
+
 // ----- utility functions for user's direct use -----
 
 std::shared_ptr<dffunction> col(const std::string& col) {
