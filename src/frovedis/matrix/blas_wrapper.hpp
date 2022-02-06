@@ -233,6 +233,124 @@ namespace frovedis {
             double alpha,
             double beta);
 
+  template <>
+  void gemm(const sliced_colmajor_matrix_local<int>& inMat1,
+            const sliced_colmajor_matrix_local<int>& inMat2,
+            const sliced_colmajor_matrix_local<int>& outMat,
+            char TRANS_M1,
+            char TRANS_M2,
+            int alpha,
+            int beta);
+
+  template <>
+  void gemm(const sliced_colmajor_matrix_local<unsigned int>& inMat1,
+            const sliced_colmajor_matrix_local<unsigned int>& inMat2,
+            const sliced_colmajor_matrix_local<unsigned int>& outMat,
+            char TRANS_M1,
+            char TRANS_M2,
+            unsigned int alpha,
+            unsigned int beta);
+
+  template <>
+  void gemm(const sliced_colmajor_matrix_local<long>& inMat1,
+            const sliced_colmajor_matrix_local<long>& inMat2,
+            const sliced_colmajor_matrix_local<long>& outMat,
+            char TRANS_M1,
+            char TRANS_M2,
+            long alpha,
+            long beta);
+
+  template <>
+  void gemm(const sliced_colmajor_matrix_local<unsigned long>& inMat1,
+            const sliced_colmajor_matrix_local<unsigned long>& inMat2,
+            const sliced_colmajor_matrix_local<unsigned long>& outMat,
+            char TRANS_M1,
+            char TRANS_M2,
+            unsigned long alpha,
+            unsigned long beta);
+
+  template <>
+  void gemm(const sliced_colmajor_matrix_local<long long>& inMat1,
+            const sliced_colmajor_matrix_local<long long>& inMat2,
+            const sliced_colmajor_matrix_local<long long>& outMat,
+            char TRANS_M1,
+            char TRANS_M2,
+            long long alpha,
+            long long beta);
+
+  template <>
+  void gemm(const sliced_colmajor_matrix_local<unsigned long long>& inMat1,
+            const sliced_colmajor_matrix_local<unsigned long long>& inMat2,
+            const sliced_colmajor_matrix_local<unsigned long long>& outMat,
+            char TRANS_M1,
+            char TRANS_M2,
+            unsigned long long alpha,
+            unsigned long long beta);
+
+  template <class T>
+  void gemm_prep(const sliced_colmajor_matrix_local<T>& inMat1,
+                 const sliced_colmajor_matrix_local<T>& inMat2,
+                 const sliced_colmajor_matrix_local<T>& outMat,
+                 char TRANS_M1, char TRANS_M2,
+                 int& M, int& N, int& K,
+                 int& LDM, int& LDX, int& LDY) {
+
+#ifdef ERROR_CHK
+    ASSERT_PTR(inMat1.data && inMat2.data);
+
+    if(!inMat1.is_valid() || !inMat2.is_valid())
+      REPORT_ERROR(USER_ERROR, "Invalid input matrix!!\n");
+
+    if(!outMat.data)
+      REPORT_ERROR(USER_ERROR, "Unallocated output matrix!!\n");
+
+    if(!outMat.is_valid())
+      REPORT_ERROR(USER_ERROR, "Invalid output matrix!!\n");
+#endif
+
+    size_t nrowa = 0, nrowb = 0, nrowc = 0, ncola = 0, ncolb = 0, ncolc = 0;
+
+    if(TRANS_M1 == 'N') {
+      nrowa = inMat1.local_num_row;
+      ncola = inMat1.local_num_col;
+    }
+    else if(TRANS_M1 == 'T') {
+      nrowa = inMat1.local_num_col;
+      ncola = inMat1.local_num_row;
+    }
+    else {
+      REPORT_ERROR(USER_ERROR, "Invalid value for TRANS parameter!!\n");
+    }
+
+    if(TRANS_M2 == 'N') {
+      nrowb = inMat2.local_num_row;
+      ncolb = inMat2.local_num_col;
+    }
+    else if(TRANS_M2 == 'T') {
+      nrowb = inMat2.local_num_col;
+      ncolb = inMat2.local_num_row;
+    }
+    else {
+      REPORT_ERROR(USER_ERROR, "Invalid value for TRANS parameter!!\n");
+    }
+
+    nrowc = outMat.local_num_row;
+    ncolc = outMat.local_num_col;
+
+    if (ncola != nrowb || nrowc < nrowa || ncolc < ncolb) {
+      REPORT_ERROR(USER_ERROR,
+            "Incompatible input sizes: Matrix-multiplication not possible!!\n");
+    }
+ 
+    // --- output ---   
+    M = static_cast<int>(nrowa);
+    N = static_cast<int>(ncolb);
+    K = static_cast<int>(nrowb); // = ncola;
+    LDM = static_cast<int>(outMat.ldm);
+    LDX = static_cast<int>(inMat1.ldm);
+    LDY = static_cast<int>(inMat2.ldm);
+  }
+
   template <class T>
   rowmajor_matrix_local<T>
   mult_sliceA_trans_sliceB(rowmajor_matrix_local<T>& mat,
@@ -311,15 +429,7 @@ namespace frovedis {
     auto out = sm2 * sm1;
     rowmajor_matrix_local<T> ret(out.val);
     ret.set_local_num(inMat1.local_num_row, inMat2.local_num_col);
-
     return ret;
-  }
-
-  template <class T>
-  rowmajor_matrix_local<T>
-  gemm_rxr(const rowmajor_matrix_local<T>& aloc,
-           const rowmajor_matrix_local<T>& bloc) {
-    return aloc * bloc;
   }
 
   template <class T>
@@ -330,21 +440,24 @@ namespace frovedis {
       throw std::runtime_error("invalid size for matrix multiplication");
     auto& amat = const_cast<rowmajor_matrix<T>&>(a); // const_cast: to call map()
     auto& bmat = const_cast<rowmajor_matrix<T>&>(b); // const_cast: to call gather()
-    rowmajor_matrix<T> ret(amat.data.map(gemm_rxr<T>, 
-                           broadcast(bmat.gather())));
+    rowmajor_matrix<T> ret =
+      amat.data.map(+[](const rowmajor_matrix_local<T>& lm1,
+                        const rowmajor_matrix_local<T>& lm2) {
+                        return lm1 * lm2; }, broadcast(bmat.gather()));
     ret.num_row = amat.num_row;
     ret.num_col = bmat.num_col;
     return ret;
   }
 
   template <class T>
-  rowmajor_matrix<T> operator*(rowmajor_matrix<T>& m1, 
-                             rowmajor_matrix<T>& m2) {
+  rowmajor_matrix<T> 
+  operator*(rowmajor_matrix<T>& m1, 
+            rowmajor_matrix<T>& m2) {
     if(m1.num_col != m2.num_row)
       throw std::runtime_error("invalid size for matrix multiplication");
     rowmajor_matrix<T> ret =
-      m1.data.map(+[](rowmajor_matrix_local<T>& lm1,
-                      rowmajor_matrix_local<T>& lm2) {
+      m1.data.map(+[](const rowmajor_matrix_local<T>& lm1,
+                      const rowmajor_matrix_local<T>& lm2) {
                       return lm1 * lm2; }, broadcast(m2.gather()));
     ret.num_row = m1.num_row;
     ret.num_col = m2.num_col;

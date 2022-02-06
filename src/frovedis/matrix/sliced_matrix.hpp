@@ -35,30 +35,45 @@ struct sliced_colmajor_matrix_local {
   }
 
   bool is_valid() const {
-    if(ldm < local_num_row)
-      return false;
-    else
-      return true;
+    return (ldm >= local_num_row);
   }
 
   void debug_print() const {
     std::cout << "value = \n";
-    for(size_t i=0; i<local_num_row; i++){
-       for(size_t j=0; j<local_num_col; j++)
-          std::cout << data[j*ldm+i] << " ";
-       std::cout << std::endl;
+    for(size_t i = 0; i < local_num_row; i++) {
+      for(size_t j = 0; j < local_num_col; j++) {
+        std::cout << data[j * ldm + i] << " ";
+      }
+      std::cout << std::endl;
     }
   }
 
-  colmajor_matrix_local<T> get_copy() {
-    colmajor_matrix_local<T> ret(local_num_row,local_num_col);
-    T* retp = &ret.val[0];
+  template <class R = T>
+  colmajor_matrix_local<R> 
+  get_physical_copy() const {
+    colmajor_matrix_local<R> ret(local_num_row, local_num_col);
+    R* retp = &ret.val[0];
     auto ret_ldm = local_num_row;
-    for(size_t i=0; i<local_num_row; i++){
-      for(size_t j=0; j<local_num_col; j++)
-        retp[j*ret_ldm+i] = data[j*ldm+i];
+    for(size_t i = 0; i < local_num_row; ++i) {
+      for(size_t j = 0; j < local_num_col; ++j) {
+        retp[j * ret_ldm + i] = static_cast<R> (data[j * ldm + i]);
+      }
     }
     return ret;
+  }
+
+  template <class R>
+  void memcopy(sliced_colmajor_matrix_local<R>& out) const {
+    require(out.is_valid(), "Invalid output matrix!!\n");
+    require(out.local_num_row == local_num_row && 
+            out.local_num_col == local_num_col, "memcopy: size mismatch!\n");
+    R* retp = out.data;
+    auto ret_ldm = out.ldm;
+    for(size_t i = 0; i < local_num_row; ++i) {
+      for(size_t j = 0; j < local_num_col; ++j) {
+        retp[j * ret_ldm + i] = static_cast<R> (data[j * ldm + i]);
+      }
+    }
   }
 
   T*  data;      // Pointer to the input (colmajor_matrix_local<T>) matrix

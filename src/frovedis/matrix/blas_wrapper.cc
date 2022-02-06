@@ -659,64 +659,14 @@ void gemm(const sliced_colmajor_matrix_local<float>& inMat1,
           char TRANS_M2,
           float alpha,
           float beta) {
-
-#ifdef ERROR_CHK
-    ASSERT_PTR(inMat1.data && inMat2.data);
-
-    if(!inMat1.is_valid() || !inMat2.is_valid())
-      REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
-
-    if(!outMat.data)
-      REPORT_ERROR(USER_ERROR,"Unallocated output matrix!!\n");
-
-    if(!outMat.is_valid())
-      REPORT_ERROR(USER_ERROR,"Invalid output matrix!!\n");
-#endif
-
-    size_t nrowa=0, nrowb=0, nrowc=0, ncola=0, ncolb=0, ncolc=0;
-
-    if(TRANS_M1 == 'N') {
-      nrowa = inMat1.local_num_row;
-      ncola = inMat1.local_num_col;
-    }
-    else if(TRANS_M1 == 'T') {
-      nrowa = inMat1.local_num_col;
-      ncola = inMat1.local_num_row;
-    }
-    else
-      REPORT_ERROR(USER_ERROR,"Invalid value for TRANS parameter!!\n");
-
-    if(TRANS_M2 == 'N') {
-      nrowb = inMat2.local_num_row;
-      ncolb = inMat2.local_num_col;
-    }
-    else if(TRANS_M2 == 'T') {
-      nrowb = inMat2.local_num_col;
-      ncolb = inMat2.local_num_row;
-    }
-    else
-      REPORT_ERROR(USER_ERROR,"Invalid value for TRANS parameter!!\n");
-
-    nrowc = outMat.local_num_row;
-    ncolc = outMat.local_num_col;
-
-    if (ncola != nrowb || nrowc < nrowa || ncolc < ncolb)
-      REPORT_ERROR(USER_ERROR,
-            "Incompatible input sizes: Matrix-multiplication not possible!!\n");
-    
-    int M = static_cast<int>(nrowa);
-    int N = static_cast<int>(ncolb);
-    int K = static_cast<int>(nrowb); // = ncola;
-
+    int M = 0, N = 0, K = 0, LDM = 0, LDX = 0, LDY = 0;
+    gemm_prep(inMat1, inMat2, outMat, TRANS_M1, TRANS_M2, 
+              M, N, K, LDM, LDX, LDY);
     float* mptr = outMat.data;
-    int LDM = static_cast<int>(outMat.ldm);
-
     float* xptr = inMat1.data;
-    int LDX = static_cast<int>(inMat1.ldm);
-
     float* yptr = inMat2.data;
-    int LDY = static_cast<int>(inMat2.ldm);
 
+    outMat.debug_print();
     sgemm_(&TRANS_M1, &TRANS_M2,
            &M, &N, &K,
            &alpha,
@@ -724,6 +674,7 @@ void gemm(const sliced_colmajor_matrix_local<float>& inMat1,
            yptr, &LDY,
            &beta,
            mptr, &LDM);
+    outMat.debug_print();
 }
 
 template<>
@@ -734,63 +685,12 @@ void gemm(const sliced_colmajor_matrix_local<double>& inMat1,
           char TRANS_M2,
           double alpha,
           double beta){
-
-#ifdef ERROR_CHK   
-    ASSERT_PTR(inMat1.data && inMat2.data);
-
-    if(!inMat1.is_valid() || !inMat2.is_valid())
-      REPORT_ERROR(USER_ERROR,"Invalid input matrix!!\n");
-
-    if(!outMat.data)
-      REPORT_ERROR(USER_ERROR,"Unallocated output matrix!!\n");
-
-    if(!outMat.is_valid())
-      REPORT_ERROR(USER_ERROR,"Invalid output matrix!!\n");
-#endif
-
-    size_t nrowa=0, nrowb=0, nrowc=0, ncola=0, ncolb=0, ncolc=0;
-
-    if(TRANS_M1 == 'N') {
-      nrowa = inMat1.local_num_row;
-      ncola = inMat1.local_num_col;
-    }
-    else if(TRANS_M1 == 'T') {
-      nrowa = inMat1.local_num_col;
-      ncola = inMat1.local_num_row;
-    }
-    else
-      REPORT_ERROR(USER_ERROR,"Invalid value for TRANS parameter!!\n");
-
-    if(TRANS_M2 == 'N') {
-      nrowb = inMat2.local_num_row;
-      ncolb = inMat2.local_num_col;
-    }
-    else if(TRANS_M2 == 'T') {
-      nrowb = inMat2.local_num_col;
-      ncolb = inMat2.local_num_row;
-    }
-    else
-      REPORT_ERROR(USER_ERROR,"Invalid value for TRANS parameter!!\n");
-
-    nrowc = outMat.local_num_row;
-    ncolc = outMat.local_num_col;
-
-    if (ncola != nrowb || nrowc < nrowa || ncolc < ncolb)
-      REPORT_ERROR(USER_ERROR,
-            "Incompatible input sizes: Matrix-multiplication not possible!!\n");
-    
-    int M = static_cast<int>(nrowa);
-    int N = static_cast<int>(ncolb);
-    int K = static_cast<int>(nrowb); // = ncola;
-
+    int M = 0, N = 0, K = 0, LDM = 0, LDX = 0, LDY = 0;
+    gemm_prep(inMat1, inMat2, outMat, TRANS_M1, TRANS_M2, 
+              M, N, K, LDM, LDX, LDY);
     double* mptr = outMat.data;
-    int LDM = static_cast<int>(outMat.ldm);
-
     double* xptr = inMat1.data;
-    int LDX = static_cast<int>(inMat1.ldm);
-
     double* yptr = inMat2.data;
-    int LDY = static_cast<int>(inMat2.ldm);
 
     dgemm_(&TRANS_M1, &TRANS_M2,
            &M, &N, &K,
@@ -799,6 +699,210 @@ void gemm(const sliced_colmajor_matrix_local<double>& inMat1,
            yptr, &LDY,
            &beta,
            mptr, &LDM);
+}
+
+template<>
+void gemm(const sliced_colmajor_matrix_local<int>& inMat1,
+          const sliced_colmajor_matrix_local<int>& inMat2,
+          const sliced_colmajor_matrix_local<int>& outMat,
+          char TRANS_M1,
+          char TRANS_M2,
+          int alpha,
+          int beta){
+    auto m1  = inMat1.get_physical_copy<double>();
+    auto m2  = inMat2.get_physical_copy<double>();
+    auto out = outMat.get_physical_copy<double>();
+    sliced_colmajor_matrix_local<double> d_inMat1(m1), d_inMat2(m2), d_outMat(out);
+    auto d_alpha = static_cast<double> (alpha);
+    auto d_beta = static_cast<double> (beta);
+
+    int M = 0, N = 0, K = 0, LDM = 0, LDX = 0, LDY = 0;
+    gemm_prep(d_inMat1, d_inMat2, d_outMat, TRANS_M1, TRANS_M2, 
+              M, N, K, LDM, LDX, LDY);
+    double* mptr = d_outMat.data;
+    double* xptr = d_inMat1.data;
+    double* yptr = d_inMat2.data;
+
+    dgemm_(&TRANS_M1, &TRANS_M2,
+           &M, &N, &K,
+           &d_alpha,
+           xptr, &LDX,
+           yptr, &LDY,
+           &d_beta,
+           mptr, &LDM);
+
+    auto& outMat_ = const_cast<sliced_colmajor_matrix_local<int>&> (outMat);
+    d_outMat.memcopy(outMat_); // casting back
+}
+
+template<>
+void gemm(const sliced_colmajor_matrix_local<unsigned int>& inMat1,
+          const sliced_colmajor_matrix_local<unsigned int>& inMat2,
+          const sliced_colmajor_matrix_local<unsigned int>& outMat,
+          char TRANS_M1,
+          char TRANS_M2,
+          unsigned int alpha,
+          unsigned int beta){
+    auto m1  = inMat1.get_physical_copy<double>();
+    auto m2  = inMat2.get_physical_copy<double>();
+    auto out = outMat.get_physical_copy<double>();
+    sliced_colmajor_matrix_local<double> d_inMat1(m1), d_inMat2(m2), d_outMat(out);
+    auto d_alpha = static_cast<double> (alpha);
+    auto d_beta = static_cast<double> (beta);
+
+    int M = 0, N = 0, K = 0, LDM = 0, LDX = 0, LDY = 0;
+    gemm_prep(d_inMat1, d_inMat2, d_outMat, TRANS_M1, TRANS_M2, 
+              M, N, K, LDM, LDX, LDY);
+    double* mptr = d_outMat.data;
+    double* xptr = d_inMat1.data;
+    double* yptr = d_inMat2.data;
+
+    dgemm_(&TRANS_M1, &TRANS_M2,
+           &M, &N, &K,
+           &d_alpha,
+           xptr, &LDX,
+           yptr, &LDY,
+           &d_beta,
+           mptr, &LDM);
+
+    auto& outMat_ = const_cast<sliced_colmajor_matrix_local<unsigned int>&> (outMat);
+    d_outMat.memcopy(outMat_); // casting back
+}
+
+template<>
+void gemm(const sliced_colmajor_matrix_local<long>& inMat1,
+          const sliced_colmajor_matrix_local<long>& inMat2,
+          const sliced_colmajor_matrix_local<long>& outMat,
+          char TRANS_M1,
+          char TRANS_M2,
+          long alpha,
+          long beta){
+    auto m1  = inMat1.get_physical_copy<double>();
+    auto m2  = inMat2.get_physical_copy<double>();
+    auto out = outMat.get_physical_copy<double>();
+    sliced_colmajor_matrix_local<double> d_inMat1(m1), d_inMat2(m2), d_outMat(out);
+    auto d_alpha = static_cast<double> (alpha);
+    auto d_beta = static_cast<double> (beta);
+
+    int M = 0, N = 0, K = 0, LDM = 0, LDX = 0, LDY = 0;
+    gemm_prep(d_inMat1, d_inMat2, d_outMat, TRANS_M1, TRANS_M2, 
+              M, N, K, LDM, LDX, LDY);
+    double* mptr = d_outMat.data;
+    double* xptr = d_inMat1.data;
+    double* yptr = d_inMat2.data;
+
+    dgemm_(&TRANS_M1, &TRANS_M2,
+           &M, &N, &K,
+           &d_alpha,
+           xptr, &LDX,
+           yptr, &LDY,
+           &d_beta,
+           mptr, &LDM);
+
+    auto& outMat_ = const_cast<sliced_colmajor_matrix_local<long>&> (outMat);
+    d_outMat.memcopy(outMat_); // casting back
+}
+
+template<>
+void gemm(const sliced_colmajor_matrix_local<unsigned long>& inMat1,
+          const sliced_colmajor_matrix_local<unsigned long>& inMat2,
+          const sliced_colmajor_matrix_local<unsigned long>& outMat,
+          char TRANS_M1,
+          char TRANS_M2,
+          unsigned long alpha,
+          unsigned long beta){
+    auto m1  = inMat1.get_physical_copy<double>();
+    auto m2  = inMat2.get_physical_copy<double>();
+    auto out = outMat.get_physical_copy<double>();
+    sliced_colmajor_matrix_local<double> d_inMat1(m1), d_inMat2(m2), d_outMat(out);
+    auto d_alpha = static_cast<double> (alpha);
+    auto d_beta = static_cast<double> (beta);
+
+    int M = 0, N = 0, K = 0, LDM = 0, LDX = 0, LDY = 0;
+    gemm_prep(d_inMat1, d_inMat2, d_outMat, TRANS_M1, TRANS_M2, 
+              M, N, K, LDM, LDX, LDY);
+    double* mptr = d_outMat.data;
+    double* xptr = d_inMat1.data;
+    double* yptr = d_inMat2.data;
+
+    dgemm_(&TRANS_M1, &TRANS_M2,
+           &M, &N, &K,
+           &d_alpha,
+           xptr, &LDX,
+           yptr, &LDY,
+           &d_beta,
+           mptr, &LDM);
+
+    auto& outMat_ = const_cast<sliced_colmajor_matrix_local<unsigned long>&> (outMat);
+    d_outMat.memcopy(outMat_); // casting back
+}
+
+template<>
+void gemm(const sliced_colmajor_matrix_local<long long>& inMat1,
+          const sliced_colmajor_matrix_local<long long>& inMat2,
+          const sliced_colmajor_matrix_local<long long>& outMat,
+          char TRANS_M1,
+          char TRANS_M2,
+          long long alpha,
+          long long beta){
+    auto m1  = inMat1.get_physical_copy<double>();
+    auto m2  = inMat2.get_physical_copy<double>();
+    auto out = outMat.get_physical_copy<double>();
+    sliced_colmajor_matrix_local<double> d_inMat1(m1), d_inMat2(m2), d_outMat(out);
+    auto d_alpha = static_cast<double> (alpha);
+    auto d_beta = static_cast<double> (beta);
+
+    int M = 0, N = 0, K = 0, LDM = 0, LDX = 0, LDY = 0;
+    gemm_prep(d_inMat1, d_inMat2, d_outMat, TRANS_M1, TRANS_M2, 
+              M, N, K, LDM, LDX, LDY);
+    double* mptr = d_outMat.data;
+    double* xptr = d_inMat1.data;
+    double* yptr = d_inMat2.data;
+
+    dgemm_(&TRANS_M1, &TRANS_M2,
+           &M, &N, &K,
+           &d_alpha,
+           xptr, &LDX,
+           yptr, &LDY,
+           &d_beta,
+           mptr, &LDM);
+
+    auto& outMat_ = const_cast<sliced_colmajor_matrix_local<long long>&> (outMat);
+    d_outMat.memcopy(outMat_); // casting back
+}
+
+template<>
+void gemm(const sliced_colmajor_matrix_local<unsigned long long>& inMat1,
+          const sliced_colmajor_matrix_local<unsigned long long>& inMat2,
+          const sliced_colmajor_matrix_local<unsigned long long>& outMat,
+          char TRANS_M1,
+          char TRANS_M2,
+          unsigned long long alpha,
+          unsigned long long beta){
+    auto m1  = inMat1.get_physical_copy<double>();
+    auto m2  = inMat2.get_physical_copy<double>();
+    auto out = outMat.get_physical_copy<double>();
+    sliced_colmajor_matrix_local<double> d_inMat1(m1), d_inMat2(m2), d_outMat(out);
+    auto d_alpha = static_cast<double> (alpha);
+    auto d_beta = static_cast<double> (beta);
+
+    int M = 0, N = 0, K = 0, LDM = 0, LDX = 0, LDY = 0;
+    gemm_prep(d_inMat1, d_inMat2, d_outMat, TRANS_M1, TRANS_M2, 
+              M, N, K, LDM, LDX, LDY);
+    double* mptr = d_outMat.data;
+    double* xptr = d_inMat1.data;
+    double* yptr = d_inMat2.data;
+
+    dgemm_(&TRANS_M1, &TRANS_M2,
+           &M, &N, &K,
+           &d_alpha,
+           xptr, &LDX,
+           yptr, &LDY,
+           &d_beta,
+           mptr, &LDM);
+
+    auto& outMat_ = const_cast<sliced_colmajor_matrix_local<unsigned long long>&> (outMat);
+    d_outMat.memcopy(outMat_); // casting back
 }
 
 }
