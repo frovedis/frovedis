@@ -2022,7 +2022,7 @@ void reverse(const std::vector<int>& chars,
   auto ret_startsp = ret_starts.data();
   auto lensp = lens.data();
   for(size_t i = 0; i < starts_size; i++) {
-    ret_startsp[i] = chars_size - starts[i] - lensp[i];
+    ret_startsp[i] = chars_size - startsp[i] - lensp[i];
   }
 }
 
@@ -2030,6 +2030,52 @@ words reverse(const words& w) {
   words ret;
   reverse(w.chars, w.starts, w.lens, ret.chars, ret.starts);
   ret.lens = w.lens;
+  return ret;
+}
+
+void tolower(const std::vector<int>& chars,
+             std::vector<int>& ret_chars) {
+  auto chars_size = chars.size();
+  ret_chars.resize(chars_size);
+  auto charsp = chars.data();
+  auto ret_charsp = ret_chars.data();
+  for(size_t i = 0; i < chars_size; i++) {
+    if(charsp[i] >= 'A' && charsp[i] <= 'Z')
+      ret_charsp[i] = charsp[i] + ('a' - 'A');
+    else
+      ret_charsp[i] = charsp[i];
+  }
+}
+
+words tolower(const words& ws) {
+  words ret;
+  std::vector<int> ret_chars;
+  frovedis::tolower(ws.chars, ret.chars);
+  ret.starts = ws.starts;
+  ret.lens = ws.lens;
+  return ret;
+}
+
+void toupper(const std::vector<int>& chars,
+             std::vector<int>& ret_chars) {
+  auto chars_size = chars.size();
+  ret_chars.resize(chars_size);
+  auto charsp = chars.data();
+  auto ret_charsp = ret_chars.data();
+  for(size_t i = 0; i < chars_size; i++) {
+    if(charsp[i] >= 'a' && charsp[i] <= 'z')
+      ret_charsp[i] = charsp[i] - ('a' - 'A');
+    else
+      ret_charsp[i] = charsp[i];
+  }
+}
+
+words toupper(const words& ws) {
+  words ret;
+  std::vector<int> ret_chars;
+  frovedis::toupper(ws.chars, ret.chars);
+  ret.starts = ws.starts;
+  ret.lens = ws.lens;
   return ret;
 }
 

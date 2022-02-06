@@ -185,6 +185,10 @@ void reverse(const std::vector<int>& chars,
              const std::vector<size_t>& lens,
              std::vector<int>& ret_chars,
              std::vector<size_t>& ret_starts); // lens are the same
+void tolower(const std::vector<int>& chars,
+             std::vector<int>& ret_chars);
+void toupper(const std::vector<int>& chars,
+             std::vector<int>& ret_chars);
 
 // utility struct
 struct words {
@@ -259,6 +263,16 @@ struct words {
     chars.swap(ret_chars);
     starts.swap(ret_starts);
   }
+  void tolower() { // destructive
+    std::vector<int> ret_chars;
+    frovedis::tolower(chars, ret_chars);
+    chars.swap(ret_chars);
+  }
+  void toupper() { // destructive
+    std::vector<int> ret_chars;
+    frovedis::toupper(chars, ret_chars);
+    chars.swap(ret_chars);
+  }
 
   SERIALIZE(chars, starts, lens)
 };
@@ -306,6 +320,8 @@ words prepend(const words& w, const std::string& to_prepend);
 words append(const words& w, const std::string& to_append);
 words horizontal_concat_words(std::vector<words>& vec_words);
 words reverse(const words& w);
+words tolower(const words& w);
+words toupper(const words& w);
 
 }
 #endif
