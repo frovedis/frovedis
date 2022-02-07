@@ -1383,6 +1383,29 @@ typed_dfcolumn<datetime>::datetime_next_day_im(int right) {
   }
 }
 
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::datetime_format(const std::string& fmt,
+                                          const std::string& type) {
+  auto ws = as_words(6, fmt, false, "NULL");
+  auto newnulls = nulls;
+  if(type == "string") {
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(newnulls));
+    return ret;
+  } else if (type == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(newnulls));
+    return ret;
+  } else if (type == "dic_string") {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(newnulls));
+    return ret;
+  } else {
+    throw std::runtime_error("unsupported type: " + type);
+  }
+}
+
 template <>
 std::shared_ptr<dfcolumn>
 create_null_column<datetime>(const std::vector<size_t>& sizes) {

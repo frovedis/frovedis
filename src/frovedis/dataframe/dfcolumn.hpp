@@ -508,6 +508,11 @@ public:
   virtual std::shared_ptr<dfcolumn> lower();
   virtual std::shared_ptr<dfcolumn> upper();
   virtual std::shared_ptr<dfcolumn>
+  datetime_format(const std::string& fmt,
+                  const std::string& type = "dic_string") {
+    throw std::runtime_error("datetime_format is not supported for this type");
+  }
+  virtual std::shared_ptr<dfcolumn>
   union_columns(const std::vector<std::shared_ptr<dfcolumn>>& cols) = 0;
   virtual std::shared_ptr<dfcolumn> head(size_t limit) = 0;
   virtual std::shared_ptr<dfcolumn> tail(size_t limit) = 0;
@@ -583,7 +588,7 @@ public:
   virtual dvector<std::string> as_string();
   virtual node_local<words> as_words(size_t precision = 6,
                                      const std::string& datetime_fmt = "%Y-%m-%d",
-                                     bool escape = true,
+                                     bool escape = false,
                                      const std::string& nullstr = "NULL");
   virtual node_local<std::vector<size_t>>
   filter_eq(std::shared_ptr<dfcolumn>& right);
@@ -2187,7 +2192,7 @@ public:
     typed_dfcolumn<datetime_t>(val, nulls) {}
   virtual node_local<words> as_words(size_t precision = 6,
                                      const std::string& datetime_fmt="%Y-%m-%d",
-                                     bool escape = true,
+                                     bool escape = false,
                                      const std::string& nullstr = "NULL");
   virtual node_local<std::vector<size_t>>
   filter_eq(std::shared_ptr<dfcolumn>& right);
@@ -2368,6 +2373,9 @@ public:
   datetime_next_day(const std::shared_ptr<dfcolumn>& right);
   virtual std::shared_ptr<dfcolumn>
   datetime_next_day_im(int right);
+  virtual std::shared_ptr<dfcolumn>
+  datetime_format(const std::string& fmt,
+                  const std::string& type = "dic_string");
   virtual void debug_print();
   virtual std::shared_ptr<dfcolumn> head(size_t limit);
   virtual std::shared_ptr<dfcolumn> tail(size_t limit);

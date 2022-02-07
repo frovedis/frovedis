@@ -3579,6 +3579,65 @@ upper_col_as(const std::shared_ptr<dffunction>& left, const std::string& as) {
   return std::make_shared<dffunction_upper>(left, as);
 }
 
+
+// ----- datetime_format_im -----
+std::shared_ptr<dfcolumn>
+dffunction_datetime_format_im::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->datetime_format(fmt, type);
+}
+
+std::shared_ptr<dfcolumn> dffunction_datetime_format_im::aggregate(dftable_base& table,
+          node_local<std::vector<size_t>>& local_grouped_idx,
+          node_local<std::vector<size_t>>& local_idx_split,
+          node_local<std::vector<std::vector<size_t>>>& hash_divide,
+          node_local<std::vector<std::vector<size_t>>>& merge_map,
+          node_local<size_t>& row_sizes,
+          dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  return left_column->datetime_format(fmt, type);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_datetime_format_im::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->datetime_format(fmt, type);
+}
+
+std::shared_ptr<dffunction>
+datetime_format_im(const std::string& left,
+                   const std::string& fmt,
+                   const std::string& type) {
+  return std::make_shared<dffunction_datetime_format_im>
+    (id_col(left), fmt, type);
+}
+
+std::shared_ptr<dffunction>
+datetime_format_im(const std::shared_ptr<dffunction>& left,
+                   const std::string& fmt,
+                   const std::string& type) {
+  return std::make_shared<dffunction_datetime_format_im>(left, fmt, type);
+}
+
+std::shared_ptr<dffunction>
+datetime_format_im_as(const std::string& left,
+                      const std::string& fmt,
+                      const std::string& type,
+                      const std::string& as) {
+  return std::make_shared<dffunction_datetime_format_im>
+    (id_col(left), fmt, type, as);
+}
+
+std::shared_ptr<dffunction>
+datetime_format_im_as(const std::shared_ptr<dffunction>& left,
+                      const std::string& fmt,
+                      const std::string& type,
+                      const std::string& as) {
+  return std::make_shared<dffunction_datetime_format_im>(left, fmt, type, as);
+}
+
 // ----- utility functions for user's direct use -----
 
 std::shared_ptr<dffunction> col(const std::string& col) {
