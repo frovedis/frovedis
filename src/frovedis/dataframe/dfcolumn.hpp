@@ -2388,11 +2388,6 @@ dvector<T> dfcolumn::as_dvector() {
 template <>
 dvector<std::string> dfcolumn::as_dvector();
 
-std::vector<std::string> 
-words_to_string_vector(words& ws,
-                       std::vector<size_t>& nulls,
-                       const std::string& nullstr = "NULL");
-
 template <class T>
 T dfcolumn::sum() {
   try {

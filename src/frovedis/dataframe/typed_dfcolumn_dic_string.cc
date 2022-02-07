@@ -1757,9 +1757,7 @@ typed_dfcolumn<dic_string>::type_cast(const std::string& to_type,
       ret = std::make_shared<typed_dfcolumn<int>>(std::move(newcol), nulls);
     } else {
       // True if non-empty string
-      std::string nullstr = "NULL";
-      auto strvec = as_words().map(words_to_string_vector,
-                                   get_nulls(), broadcast(nullstr));
+      auto strvec = as_words().map(words_to_vector_string);
       auto newcol = strvec.map(+[](const std::vector<std::string>& vec) {
                       auto sz = vec.size();
                       std::vector<int> ret(sz); 

@@ -1398,39 +1398,22 @@ dfcolumn::upper() {
   }
 }
 
-std::vector<std::string> 
-words_to_string_vector(words& ws, 
-                       std::vector<size_t>& nulls,
-                       const std::string& nullstr) {
-  auto lensp = ws.lens.data();
-  auto startsp = ws.starts.data();
-  auto size = ws.lens.size();
-  std::vector<std::string> ret(size);
-  auto temp = int_to_char(ws.chars);
-  for(size_t i = 0; i < size; ++i) ret[i] = temp.substr(startsp[i], lensp[i]);
-  for(size_t i = 0; i < nulls.size(); ++i) ret[nulls[i]] = nullstr;
-  return ret;
-}
-
 template <>
 dvector<std::string> dfcolumn::as_dvector() {
   dvector<std::string> ret;
-  std::string nullstr = "NULL";
   if (dtype() == "string") {
     auto& typed_col = dynamic_cast<typed_dfcolumn<std::string>&>(*this);
     ret = typed_col.get_val().as_dvector<std::string>();
   }
   else if (dtype() == "dic_string") {
     auto& typed_col = dynamic_cast<typed_dfcolumn<dic_string>&>(*this);
-    ret = typed_col.as_words().map(words_to_string_vector, 
-                                   get_nulls(), broadcast(nullstr))
-                              .as_dvector<std::string>();
+    ret = typed_col.as_words().map(words_to_vector_string)
+      .as_dvector<std::string>();
   }
   else if (dtype() == "raw_string") {
     auto& typed_col = dynamic_cast<typed_dfcolumn<raw_string>&>(*this);
-    ret = typed_col.as_words().map(words_to_string_vector,
-                                   get_nulls(), broadcast(nullstr))
-                              .as_dvector<std::string>();
+    ret = typed_col.as_words().map(words_to_vector_string)
+      .as_dvector<std::string>();
   }
   else {
     throw std::runtime_error("as_dvector<std::string>: non-string column is specified with string target!");

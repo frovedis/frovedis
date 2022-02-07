@@ -4685,9 +4685,7 @@ typed_dfcolumn<T>::type_cast(const std::string& to_type,
     auto newval = val.map(do_static_cast<T,double>, nulls);
     ret = std::make_shared<typed_dfcolumn<double>>(newval, nulls);
   } else if(to_type == "string") {
-    std::string nullstr = "NULL";
-    auto newval = as_words().map(words_to_string_vector, 
-                                 nulls, broadcast(nullstr));
+    auto newval = as_words().map(words_to_vector_string); 
     ret = std::make_shared<typed_dfcolumn<std::string>>(newval, nulls);
   } else if(to_type == "dic_string") {
     auto words = as_words();
