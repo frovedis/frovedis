@@ -1981,6 +1981,8 @@ public:
                           hash_divide) {
     throw std::runtime_error("group_by is not defined for raw_string");
   }
+  virtual std::shared_ptr<dfcolumn> type_cast(const std::string& to_type,
+                                              bool check_bool_like = false);
   virtual std::shared_ptr<dfcolumn>
   sum(node_local<std::vector<size_t>>& local_grouped_idx,
       node_local<std::vector<size_t>>& local_idx_split,

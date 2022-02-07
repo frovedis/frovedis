@@ -1,4 +1,5 @@
 #include "dfcolumn_impl.hpp"
+#include "../text/parsefloat.hpp"
 #if !(defined(_SX) || defined(__ve__))
 #include <unordered_set>
 #endif
@@ -1748,27 +1749,84 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<dic_string>::type_cast(const std::string& to_type,
                                       bool check_bool_like) {
   std::shared_ptr<dfcolumn> ret;
+  auto newnulls = nulls; // copy to move
   if(to_type == "boolean") {
     if (check_bool_like) {
       auto ddic = dic->decompress();
       auto b_words_to_bool_map = broadcast(words_to_bool(ddic));
       auto newcol = b_words_to_bool_map.map(vector_take<int,int>, val);
       // TODO: should treat nulls as true?
-      ret = std::make_shared<typed_dfcolumn<int>>(std::move(newcol), nulls);
+      ret = std::make_shared<typed_dfcolumn<int>>
+        (std::move(newcol), std::move(newnulls));
     } else {
       // True if non-empty string
-      auto strvec = as_words().map(words_to_vector_string);
-      auto newcol = strvec.map(+[](const std::vector<std::string>& vec) {
-                      auto sz = vec.size();
-                      std::vector<int> ret(sz); 
-                      for(size_t i = 0; i < sz; ++i) ret[i] = vec[i] != "";
-                      return ret;
-                    }).template moveto_dvector<int>();
+      auto newcol = as_words().map(+[](const words& ws) {
+          auto lensp = ws.lens.data();
+          auto lens_size = ws.lens.size();
+          std::vector<int> ret(lens_size);
+          auto retp = ret.data();
+          for(size_t i = 0; i < lens_size; i++) retp[i] = (lensp[i] != 0);
+          return ret;
+        }).template moveto_dvector<int>();
       // nulls would also be treated as true, hence no nulls in casted column
       ret = std::make_shared<typed_dfcolumn<int>>(std::move(newcol));
     }
+  } else if(to_type == "int") {
+    auto newval = as_words(6,"%Y-%m-%d",false,"0").
+      map(+[](const words& ws){return parsenumber<int>(ws);});
+    ret = std::make_shared<typed_dfcolumn<int>>
+      (std::move(newval), std::move(newnulls));
+  } else if(to_type == "unsigned int") {
+    auto newval = as_words(6,"%Y-%m-%d",false,"0").
+      map(+[](const words& ws){return parsenumber<unsigned int>(ws);});
+    ret = std::make_shared<typed_dfcolumn<unsigned int>>
+      (std::move(newval), std::move(newnulls));
+  } else if(to_type == "long") {
+    auto newval = as_words(6,"%Y-%m-%d",false,"0").
+      map(+[](const words& ws){return parsenumber<long>(ws);});
+    ret = std::make_shared<typed_dfcolumn<long>>
+      (std::move(newval), std::move(newnulls));
+  } else if(to_type == "unsigned long") {
+    auto newval = as_words(6,"%Y-%m-%d",false,"0").
+      map(+[](const words& ws){return parsenumber<unsigned long>(ws);});
+    ret = std::make_shared<typed_dfcolumn<unsigned long>>
+      (std::move(newval), std::move(newnulls));
+  } else if(to_type == "float") {
+    auto newval = as_words(6,"%Y-%m-%d",false,"0").
+      map(+[](const words& ws){return parsenumber<float>(ws);});
+    ret = std::make_shared<typed_dfcolumn<float>>
+      (std::move(newval), std::move(newnulls));
+  } else if(to_type == "double") {
+    auto newval = as_words(6,"%Y-%m-%d",false,"0").
+      map(+[](const words& ws){return parsenumber<double>(ws);});
+    ret = std::make_shared<typed_dfcolumn<double>>
+      (std::move(newval), std::move(newnulls));
+  } else if(to_type == "string") {
+    auto newval = as_words().map(+[](const words& ws)
+                                 {return words_to_vector_string(ws);});
+    ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(newval), std::move(newnulls));
+  } else if(to_type == "dic_string") {
+    ret = std::make_shared<typed_dfcolumn<dic_string>>(*this);
+  } else if(to_type == "raw_string") {
+    auto newval = as_words();
+    ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(newval), std::move(newnulls));
+  } else if(to_type.find("datetime:") == 0) {
+    auto fmt = to_type.substr(9);
+    // create safe NULL string
+    auto nullstr_size = fmt.size();
+    if(fmt.find("%Y") != std::string::npos) nullstr_size += 2;
+    if(fmt.find("%b") != std::string::npos) nullstr_size += 1;
+    std::string nullstr(nullstr_size, '0');
+    auto newval = as_words(6,"%Y-%m-%d",false,nullstr).
+      map(+[](const words& ws, const std::string& fmt)
+          {return parsedatetime(ws, fmt);}, broadcast(fmt));
+    ret = std::make_shared<typed_dfcolumn<datetime>>
+      (std::move(newval), std::move(newnulls));
   } else {
-    throw std::runtime_error("dic_string column doesn't support casting to: " + to_type);
+    throw std::runtime_error
+      ("dic_string column doesn't support casting to: " + to_type);
   }
   return ret;
 }

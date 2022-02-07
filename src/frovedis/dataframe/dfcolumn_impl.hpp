@@ -4659,40 +4659,54 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<T>::type_cast(const std::string& to_type,
                              bool check_bool_like) {
   std::shared_ptr<dfcolumn> ret;
-  if(to_type == "int") {
-    auto newval = val.map(do_static_cast<T,int>, nulls);
-    ret = std::make_shared<typed_dfcolumn<int>>(newval, nulls);
-  } else if(to_type == "boolean") {
+  auto newnulls = nulls; // copy to move
+  if(to_type == "boolean") {
     auto b_ctype = broadcast(dtype());
     auto newval = val.map(do_boolean_cast<T>, 
                           b_ctype, broadcast(check_bool_like))
                      .template moveto_dvector<int>();
     // nulls would also be treated as true, hence no nulls in casted column
     ret = std::make_shared<typed_dfcolumn<int>>(std::move(newval));
+  } else if(to_type == "int") {
+    auto newval = val.map(do_static_cast<T,int>, nulls);
+    ret = std::make_shared<typed_dfcolumn<int>>
+      (std::move(newval), std::move(newnulls));
   } else if(to_type == "unsigned int") {
     auto newval = val.map(do_static_cast<T,unsigned int>, nulls);
-    ret = std::make_shared<typed_dfcolumn<unsigned int>>(newval, nulls);
+    ret = std::make_shared<typed_dfcolumn<unsigned int>>
+      (std::move(newval), std::move(newnulls));
   } else if(to_type == "long") {
     auto newval = val.map(do_static_cast<T,long>, nulls);
-    ret = std::make_shared<typed_dfcolumn<long>>(newval, nulls);
+    ret = std::make_shared<typed_dfcolumn<long>>
+      (std::move(newval), std::move(newnulls));
   } else if(to_type == "unsigned long") {
     auto newval = val.map(do_static_cast<T,unsigned long>, nulls);
-    ret = std::make_shared<typed_dfcolumn<unsigned long>>(newval, nulls);
+    ret = std::make_shared<typed_dfcolumn<unsigned long>>
+      (std::move(newval), std::move(newnulls));
   } else if(to_type == "float") {
     auto newval = val.map(do_static_cast<T,float>, nulls);
-    ret = std::make_shared<typed_dfcolumn<float>>(newval, nulls);
+    ret = std::make_shared<typed_dfcolumn<float>>
+      (std::move(newval), std::move(newnulls));
   } else if(to_type == "double") {
     auto newval = val.map(do_static_cast<T,double>, nulls);
-    ret = std::make_shared<typed_dfcolumn<double>>(newval, nulls);
+    ret = std::make_shared<typed_dfcolumn<double>>
+      (std::move(newval), std::move(newnulls));
   } else if(to_type == "string") {
     auto newval = as_words().map(words_to_vector_string); 
-    ret = std::make_shared<typed_dfcolumn<std::string>>(newval, nulls);
+    ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(newval), std::move(newnulls));
   } else if(to_type == "dic_string") {
     auto words = as_words();
-    ret = std::make_shared<typed_dfcolumn<dic_string>>(words, nulls);
+    ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(words), std::move(newnulls));
   } else if(to_type == "raw_string") {
     auto words = as_words();
-    ret = std::make_shared<typed_dfcolumn<raw_string>>(words, nulls);
+    ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(words), std::move(newnulls));
+  } else if(to_type == "datetime") { // do we need this?
+    auto newval = val.map(do_static_cast<T,datetime_t>, nulls);
+    ret = std::make_shared<typed_dfcolumn<datetime>>
+      (std::move(newval), std::move(newnulls));
   } else {
     throw std::runtime_error("type_cast: unsupported type: " + to_type);
   }
