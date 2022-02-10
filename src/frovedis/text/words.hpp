@@ -156,6 +156,11 @@ void substr(std::vector<size_t>& starts,
 void search(const std::vector<int>& chars,
             const std::vector<size_t>& starts,
             const std::vector<size_t>& lens,
+            const std::vector<int>& to_search,
+            std::vector<size_t>& idx, std::vector<size_t>& pos);
+void search(const std::vector<int>& chars,
+            const std::vector<size_t>& starts,
+            const std::vector<size_t>& lens,
             const std::string& to_search,
             std::vector<size_t>& idx, std::vector<size_t>& pos);
 void replace(const std::vector<int>& chars,
@@ -345,6 +350,8 @@ std::vector<std::string> words_to_vector_string(const words& ws);
 
 void search(const words& w, const std::string& to_search,
             std::vector<size_t>& idx, std::vector<size_t>& pos);
+void search(const words& w, const std::vector<int>& to_search,
+            std::vector<size_t>& idx, std::vector<size_t>& pos);
 words replace(const words& w, const std::string& from, const std::string& to);
 words prepend(const words& w, const std::string& to_prepend);
 words append(const words& w, const std::string& to_append);
@@ -354,6 +361,6 @@ words tolower(const words& w);
 words toupper(const words& w);
 words utf8_to_utf32(const words& w);
 words utf32_to_utf8(const words& w);
-
+std::vector<int> utf8_to_utf32(const std::string& str);
 }
 #endif

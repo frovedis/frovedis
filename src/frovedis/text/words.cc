@@ -169,7 +169,7 @@ void trim_head(const int* vp,
   auto to_trim_size = to_trim.size();
   vector<int> to_trim_int(to_trim_size);
   for(size_t i = 0; i < to_trim_size; i++) {
-    to_trim_int[i] = static_cast<int>(to_trim[i]);
+    to_trim_int[i] = static_cast<unsigned char>(to_trim[i]);
   }
   auto to_trim_intp = to_trim_int.data();
   for(size_t i = 0; i < num_words; i++) crnt[i] = i;
@@ -268,7 +268,7 @@ void trim_tail(const int* vp,
   auto to_trim_size = to_trim.size();
   vector<int> to_trim_int(to_trim_size);
   for(size_t i = 0; i < to_trim_size; i++) {
-    to_trim_int[i] = static_cast<int>(to_trim[i]);
+    to_trim_int[i] = static_cast<unsigned char>(to_trim[i]);
   }
   auto to_trim_intp = to_trim_int.data();
   for(size_t i = 0; i < num_words; i++) crnt[i] = i;
@@ -1134,7 +1134,7 @@ vector<int> concat_words(const vector<int>& v,
     }
   }
   for(size_t d = 0; d < delim_size; d++) {
-    int crnt_delim = delim[d];
+    int crnt_delim = static_cast<unsigned char>(delim[d]);
 #pragma _NEC ivdep
 #pragma _NEC vovertake
     for(size_t i = 1; i < starts_size; i++) {
@@ -1336,7 +1336,7 @@ std::vector<size_t> like(const std::vector<int>& chars,
   bool is_in_wildcard = false;
   bool is_in_escape = false;
   for(size_t i = 0; i < to_search_size; i++) {
-    int crnt_char = static_cast<int>(to_search[i]);
+    int crnt_char = static_cast<unsigned char>(to_search[i]);
     if(is_in_escape && is_in_wildcard) {
       advance_until_char_like(chars, starts, lens, crnt_pos, crnt_lens,
                               crnt_idx, crnt_char);
@@ -1523,7 +1523,7 @@ words vector_string_to_words(const vector<string>& str) {
       auto crnt_strp = strp[idx].data();
       auto lensp_idx = lensp[idx];
       for(size_t j = pos4; j < lensp_idx; j++) {
-        charsp[startsp[idx] + j] = crnt_strp[j];
+        charsp[startsp[idx] + j] = static_cast<unsigned char>(crnt_strp[j]);
       }
     }
   }
@@ -1550,7 +1550,7 @@ words vector_string_to_words(const vector<string>& str) {
     auto crnt_strp = strp[idx].data();
     auto lensp_idx = lensp[idx];
     for(size_t j = pos4; j < lensp_idx; j++) {
-      charsp[startsp[idx] + j] = crnt_strp[j];
+      charsp[startsp[idx] + j] = static_cast<unsigned char>(crnt_strp[j]);
     }
   }
   return ret;
@@ -1602,7 +1602,8 @@ vector<string> words_to_vector_string(const words& ws) {
     for(size_t i = 0; i < WORDS_VECTOR_BLOCK; i++) {
       auto idx = b * WORDS_VECTOR_BLOCK + i;
       auto pos4 = posp[idx] * 4;
-      auto crnt_strp = const_cast<char*>(strp[idx].data());
+      auto crnt_strp = reinterpret_cast<unsigned char*>
+        (const_cast<char*>(strp[idx].data()));
       auto lensp_idx = lensp[idx];
       for(size_t j = pos4; j < lensp_idx; j++) {
         crnt_strp[j] = charsp[startsp[idx] + j];
@@ -1629,7 +1630,8 @@ vector<string> words_to_vector_string(const words& ws) {
   for(size_t i = 0; i < rest; i++) {
     auto idx = num_block * WORDS_VECTOR_BLOCK + i;
     auto pos4 = posp[idx] * 4;
-    auto crnt_strp = const_cast<char*>(strp[idx].data());
+    auto crnt_strp = reinterpret_cast<unsigned char*>
+      (const_cast<char*>(strp[idx].data()));
     auto lensp_idx = lensp[idx];
     for(size_t j = pos4; j < lensp_idx; j++) {
       crnt_strp[j] = charsp[startsp[idx] + j];
@@ -1641,7 +1643,7 @@ vector<string> words_to_vector_string(const words& ws) {
 void search(const std::vector<int>& chars,
             const std::vector<size_t>& starts,
             const std::vector<size_t>& lens,
-            const std::string& to_search,
+            const std::vector<int>& to_search,
             std::vector<size_t>& idx,
             std::vector<size_t>& pos) {
   auto to_search_size = to_search.size();
@@ -1664,11 +1666,11 @@ void search(const std::vector<int>& chars,
     crnt_idxp[i] = i;
   }
   // size of to_search is guarantted not to be zero
-  int crnt_char = static_cast<int>(to_search[0]);
+  int crnt_char = to_search[0];
   advance_until_char_like(chars, starts, lens, crnt_pos, crnt_lens,
                           crnt_idx, crnt_char);
   for(size_t i = 1; i < to_search_size; i++) {
-    crnt_char = static_cast<int>(to_search[i]);
+    crnt_char = to_search[i];
     advance_char_like(chars, crnt_pos, crnt_lens, crnt_idx, crnt_char);
   }
   crnt_posp = crnt_pos.data();
@@ -1681,7 +1683,25 @@ void search(const std::vector<int>& chars,
   pos.swap(crnt_pos);
 }
 
+void search(const std::vector<int>& chars,
+            const std::vector<size_t>& starts,
+            const std::vector<size_t>& lens,
+            const string& to_search,
+            std::vector<size_t>& idx,
+            std::vector<size_t>& pos) {
+  std::vector<int> int_to_search(to_search.size());
+  for(size_t i = 0; i < to_search.size(); i++) {
+    int_to_search[i] = static_cast<unsigned char>(to_search[i]);
+  }
+  search(chars, starts, lens, int_to_search, idx, pos);
+}
+
 void search(const words& w, const std::string& to_search,
+            std::vector<size_t>& idx, std::vector<size_t>& pos) {
+  search(w.chars, w.starts, w.lens, to_search, idx, pos);
+}
+
+void search(const words& w, const std::vector<int>& to_search,
             std::vector<size_t>& idx, std::vector<size_t>& pos) {
   search(w.chars, w.starts, w.lens, to_search, idx, pos);
 }
@@ -2367,6 +2387,15 @@ words utf32_to_utf8(const words& ws) {
   words ret;
   utf32_to_utf8(ws.chars, ws.starts, ws.lens, ret.chars, ret.starts, ret.lens);
   return ret;
+}
+
+vector<int> utf8_to_utf32(const std::string& str) {
+  words tmp;
+  tmp.chars = char_to_int(str);
+  tmp.lens = {str.size()};
+  tmp.starts = {0};
+  auto tmp2 = utf8_to_utf32(tmp);
+  return tmp2.chars;
 }
 
 }
