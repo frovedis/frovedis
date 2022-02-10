@@ -28,7 +28,7 @@ get_subsampling_strategy(const std::string& arg) {
   static auto ssmap = get_subsampling_map();
   std::string str;
   str.resize(arg.length());
-  std::transform(arg.cbegin(), arg.cend(), str.begin(), tolower);
+  std::transform(arg.cbegin(), arg.cend(), str.begin(), ::tolower);
 
   try {
     return ssmap.at(str);
@@ -58,7 +58,7 @@ get_feature_subset_strategy(const std::string& arg) {
   static auto fsmap = get_feature_subset_map();
   std::string str;
   str.resize(arg.length());
-  std::transform(arg.cbegin(), arg.cend(), str.begin(), tolower);
+  std::transform(arg.cbegin(), arg.cend(), str.begin(), ::tolower);
 
   try {
     return fsmap.at(str);

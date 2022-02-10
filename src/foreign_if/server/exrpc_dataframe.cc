@@ -413,9 +413,9 @@ exrpc_ptr_t fgroup_by_df(exrpc_ptr_t& df_proxy,
 }
 
 std::shared_ptr<dfaggregator> 
-get_aggr(std::string& funcname, 
-         std::string& col, 
-         std::string& as_col) {
+get_aggr(const std::string& funcname, 
+         const std::string& col, 
+         const std::string& as_col) {
   std::shared_ptr<dfaggregator> ret;
   if (funcname == "sum")        ret = sum_as(col,as_col);
   else if (funcname == "avg" || 
@@ -433,10 +433,10 @@ get_aggr(std::string& funcname,
 }
 
 std::shared_ptr<dfaggregator> 
-get_aggr(std::string& funcname, 
-        std::string& col, 
-        std::string& as_col,
-        double& ddof) {
+get_aggr(const std::string& funcname, 
+         const std::string& col, 
+         const std::string& as_col,
+         double& ddof) {
   std::shared_ptr<dfaggregator> ret;
   if (funcname == "var")        ret = var_as(col, as_col, ddof);
   else if (funcname == "sem")   ret = sem_as(col, as_col, ddof);
@@ -543,6 +543,51 @@ frovedis_gdf_aggr_with_ddof(exrpc_ptr_t& df_proxy,
   if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   return to_dummy_dftable(retp);
 }
+
+dummy_dftable
+frovedis_gdf_aggr_with_mincount(exrpc_ptr_t& df_proxy,
+                                std::vector<std::string>& groupedCols,
+                                std::string& aggFunc,
+                                std::vector<std::string>& aggCols,
+                                std::vector<std::string>& aggAsCols,
+                                int& mincount) {
+  auto& gdf = *reinterpret_cast<grouped_dftable*>(df_proxy);
+  auto size = aggCols.size();
+
+  dftable ret;
+  std::vector<std::shared_ptr<dfaggregator>> agg;
+  if (mincount == -1) {
+    agg.resize(size);
+    for(size_t i = 0; i < size; ++i) {
+      agg[i] = get_aggr(aggFunc, aggCols[i], aggAsCols[i]);
+    }
+    ret = gdf.select(groupedCols, agg);
+  } else {
+    require(mincount > 0, "expected a positive mincount value!\n");
+    agg.resize(size * 2);
+    std::string tmp = "__temp__", cnt = "__count__";
+    for(size_t i = 0; i < size; ++i) {
+      agg[i * 2 + 0] = get_aggr(aggFunc, aggCols[i], aggAsCols[i] + tmp);
+      agg[i * 2 + 1] = get_aggr("count", aggCols[i], aggCols[i] + cnt);
+    }
+    ret = gdf.select(groupedCols, agg);
+    auto gcol_size = groupedCols.size();
+    std::vector<std::shared_ptr<dffunction>> func(gcol_size + size);
+    for(size_t i = 0; i < gcol_size; ++i) func[i] = ~groupedCols[i];
+    for(size_t i = 0; i < size; ++i) {
+      auto count_col = aggCols[i] + cnt;
+      auto tcol = aggAsCols[i] + tmp;
+      func[gcol_size + i] = when({(~count_col >= mincount) >> ~tcol})->as(aggAsCols[i]);
+    }
+    ret = ret.fselect(func);
+  }
+  
+  auto retp = new dftable(std::move(ret));
+  convert_float_nan_to_null(*retp);
+  if (!retp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
+  return to_dummy_dftable(retp);
+}
+
 
 long frovedis_df_size(exrpc_ptr_t& df_proxy) {
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
@@ -2072,9 +2117,11 @@ exrpc_ptr_t get_dffunc_string_im(std::string& value) {
   return reinterpret_cast<exrpc_ptr_t> (retptr);
 }
 
-int named_bool_toInt(std::string data) { // copying data since would be tolowered in-place
-  std::for_each(data.begin(), data.end(), [](char & c) { c = ::tolower(c); });
-  return data == "true"; 
+int named_bool_toInt(std::string& arg) {
+  std::string str;
+  str.resize(arg.length());
+  std::transform(arg.cbegin(), arg.cend(), str.begin(), ::tolower);
+  return str == "true"; 
 }
 
 exrpc_ptr_t get_dffunc_bool_im(std::string& value) {

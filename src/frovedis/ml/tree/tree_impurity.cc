@@ -27,7 +27,7 @@ impurity_type get_impurity_type(const std::string& arg) {
   static auto imap = get_impurity_map();
   std::string str;
   str.resize(arg.length());
-  std::transform(arg.cbegin(), arg.cend(), str.begin(), tolower);
+  std::transform(arg.cbegin(), arg.cend(), str.begin(), ::tolower);
 
   try {
     return imap.at(str);

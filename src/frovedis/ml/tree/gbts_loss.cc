@@ -25,7 +25,7 @@ loss_type get_loss_type(const std::string& arg) {
   static auto imap = get_loss_map();
   std::string str;
   str.resize(arg.length());
-  std::transform(arg.cbegin(), arg.cend(), str.begin(), tolower);
+  std::transform(arg.cbegin(), arg.cend(), str.begin(), ::tolower);
 
   try {
     return imap.at(str);
