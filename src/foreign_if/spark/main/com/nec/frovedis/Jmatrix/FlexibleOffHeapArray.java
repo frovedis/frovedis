@@ -31,7 +31,7 @@ public class FlexibleOffHeapArray {
     }
 
     public OffHeapArray getFlattenMemory () {
-      if (flatten_movable) flatten_array.freeMemory(); // to free previously flattened memory, if any
+      freeFlattenMemory(); // to free previously flattened memory, if any
 
       int tot = bufs.size(); 
       if (tot == 1) {
@@ -78,7 +78,7 @@ public class FlexibleOffHeapArray {
       System.out.println("active length: " + get_active_length());
       //for(int i = 0; i < bufs.size(); ++i) bufs.get(i).show();
       OffHeapArray tmp = getFlattenMemory(); tmp.show();
-      if (flatten_movable) flatten_array.freeMemory(); // to free in case of actual flattening
+      freeFlattenMemory(); // to free memory, in case of actual flattening
     }
 
     public void freeMemory() { 
@@ -88,11 +88,13 @@ public class FlexibleOffHeapArray {
       size = 0;
       curpos = 0;
       dtype = DTYPE.NONE;
-      if (flatten_movable) {
-        flatten_array.freeMemory();
-        flatten_array = null;
-        flatten_movable = false;
-      }
+      freeFlattenMemory();
+    }
+
+    private void freeFlattenMemory() {
+      if (flatten_movable) flatten_array.freeMemory();
+      flatten_array = null;
+      flatten_movable = false;
     }
 
     private void allocateNext() {
