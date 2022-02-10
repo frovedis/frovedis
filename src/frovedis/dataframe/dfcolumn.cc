@@ -651,15 +651,16 @@ std::string dfcolumn::last(bool ignore_nulls) {
   } else throw std::runtime_error("unsupported type: " + dtype());
 }
 
-// TODO: support UTF-8
 std::shared_ptr<dfcolumn> dfcolumn::substr(int pos, int num) {
   if(pos > 0) pos--; // convert 1-based to 0-based
   // to avoid error in substr
   auto ws = pos >= 0 ? as_words(6,"%Y-%m-%d",false,std::string(pos+num, 'N'))
     : as_words(6,"%Y-%m-%d",false,std::string(-pos, 'N'));
   auto nulls = get_nulls();
+  ws.mapv(+[](words& ws){ws.utf8_to_utf32();});
   ws.mapv(+[](words& ws, int pos, int num){ws.substr(pos, num);},
           broadcast(pos), broadcast(num));
+  ws.mapv(+[](words& ws){ws.utf32_to_utf8();});
   if(dtype() == "string") {
     // TODO: in the case of string, not using words would be faster
     auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
@@ -679,7 +680,6 @@ std::shared_ptr<dfcolumn> dfcolumn::substr(int pos, int num) {
 
 std::shared_ptr<dfcolumn>
 dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos, int num) {
-  // to guard when words does not contain num size chars
   if(pos->is_all_null()) {
     if(dtype() == "string") {
       return create_null_column<std::string>(sizes());
@@ -694,7 +694,9 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos, int num) {
     auto tintcol = dynamic_pointer_cast<typed_dfcolumn<int>>(intcol);
     if(!static_cast<bool>(tintcol))
       throw std::runtime_error("internal cast error");
+    // to guard when words does not contain num size chars
     auto ws = as_words(6,"%Y-%m-%d",false,std::string(num,'N'));
+    ws.mapv(+[](words& ws){ws.utf8_to_utf32();});
     if(tintcol->if_contain_nulls() || if_contain_nulls()) {
       auto posval = tintcol->val;
       posval.mapv
@@ -756,6 +758,7 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos, int num) {
                    nulls = set_union(nulls, colnulls);
                  }, tintcol->nulls);
     }
+    ws.mapv(+[](words& ws){ws.utf32_to_utf8();});
     if(dtype() == "string") {
       auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
       auto ret = std::make_shared<typed_dfcolumn<std::string>>
@@ -776,7 +779,6 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos, int num) {
 std::shared_ptr<dfcolumn>
 dfcolumn::substr(int pos, const std::shared_ptr<dfcolumn>& num) {
   if(pos > 0) pos--; // convert 1-based to 0-based
-  // to guard when words does not contain pos size chars
   if(num->is_all_null()) {
     if(dtype() == "string") {
       return create_null_column<std::string>(sizes());
@@ -791,7 +793,9 @@ dfcolumn::substr(int pos, const std::shared_ptr<dfcolumn>& num) {
     auto tintcol = dynamic_pointer_cast<typed_dfcolumn<int>>(intcol);
     if(!static_cast<bool>(tintcol))
       throw std::runtime_error("internal cast error");
+    // to guard when words does not contain pos size chars
     auto ws = as_words(6,"%Y-%m-%d",false,std::string(std::abs(pos),'N'));
+    ws.mapv(+[](words& ws){ws.utf8_to_utf32();});
     if(tintcol->if_contain_nulls() || if_contain_nulls()) {
       auto numval = tintcol->val;
       numval.mapv
@@ -850,6 +854,7 @@ dfcolumn::substr(int pos, const std::shared_ptr<dfcolumn>& num) {
                    nulls = set_union(nulls, colnulls);
                  }, tintcol->nulls);
     }
+    ws.mapv(+[](words& ws){ws.utf32_to_utf8();});
     if(dtype() == "string") {
       auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
       auto ret = std::make_shared<typed_dfcolumn<std::string>>
@@ -877,6 +882,7 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos,
   if(!static_cast<bool>(tintcol_pos) || !static_cast<bool>(tintcol_num))
     throw std::runtime_error("internal cast error");
   auto ws = as_words();
+  ws.mapv(+[](words& ws){ws.utf8_to_utf32();});
   auto nulls = get_nulls();
   if(tintcol_pos->if_contain_nulls() || tintcol_num->if_contain_nulls() ||
      if_contain_nulls()) {
@@ -941,6 +947,7 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos,
         ws.substr(pos, num);
       }, tintcol_pos->val, tintcol_num->val);
   }
+  ws.mapv(+[](words& ws){ws.utf32_to_utf8();});
   if(dtype() == "string") {
     auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
     auto ret = std::make_shared<typed_dfcolumn<std::string>>
@@ -964,6 +971,7 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos) {
   if(!static_cast<bool>(tintcol))
     throw std::runtime_error("internal cast error");
   auto ws = as_words();
+  ws.mapv(+[](words& ws){ws.utf8_to_utf32();});
   auto nulls = get_nulls();
   if(tintcol->if_contain_nulls() || if_contain_nulls()) {
     auto posval = tintcol->val; // copy
@@ -1002,6 +1010,7 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos) {
                  nulls = set_union(nulls, colnulls);
                }, tintcol->nulls);
   }
+  ws.mapv(+[](words& ws){ws.utf32_to_utf8();});
   if(dtype() == "string") {
     auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
     auto ret = std::make_shared<typed_dfcolumn<std::string>>
@@ -1021,7 +1030,9 @@ dfcolumn::substr(const std::shared_ptr<dfcolumn>& pos) {
 std::shared_ptr<dfcolumn> dfcolumn::substr(int pos) {
   if(pos > 0) pos--; // convert 1-based to 0-based
   auto ws = as_words(6,"%Y-%m-%d",false,std::string(std::abs(pos), 'N'));
+  ws.mapv(+[](words& ws){ws.utf8_to_utf32();});
   ws.mapv(+[](words& ws, int pos){ws.substr(pos);}, broadcast(pos));
+  ws.mapv(+[](words& ws){ws.utf32_to_utf8();});
   auto nulls = get_nulls();
   if(dtype() == "string") {
     // TODO: in the case of string, not using words would be faster
@@ -1041,7 +1052,6 @@ std::shared_ptr<dfcolumn> dfcolumn::substr(int pos) {
 }
 
 // length returns length in bytes
-// TODO: support UTF-8 length as char_length
 std::shared_ptr<dfcolumn> dfcolumn::length() {
   auto ws = as_words();
   auto nulls = get_nulls();
@@ -1065,13 +1075,40 @@ std::shared_ptr<dfcolumn> dfcolumn::length() {
     (std::move(len), std::move(nulls));
 }
 
-// TODO: support UTF-8
+// char_length returns length in number of chars
+std::shared_ptr<dfcolumn> dfcolumn::char_length() {
+  auto ws = as_words();
+  ws.mapv(+[](words& ws){ws.utf8_to_utf32();});
+  auto nulls = get_nulls();
+  auto len = ws.map(+[](words& ws, std::vector<size_t>& nulls){
+      auto size = ws.lens.size();
+      std::vector<int> ret(size);
+      auto retp = ret.data();
+      auto lensp = ws.lens.data();
+      for(size_t i = 0; i < size; i++) retp[i] = lensp[i];
+      auto nullsp = nulls.data();
+      auto nulls_size = nulls.size();
+      auto max = std::numeric_limits<int>::max();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+      for(size_t i = 0; i < nulls_size; i++) {
+        retp[nullsp[i]] = max;
+      }
+      return ret;}, nulls);
+  return std::make_shared<typed_dfcolumn<int>>
+    (std::move(len), std::move(nulls));
+}
+
 std::shared_ptr<dfcolumn> dfcolumn::locate(const std::string& str, int start) {
   start--; // change to 0-base
   auto ws = as_words();
+  ws.mapv(+[](words& ws){ws.utf8_to_utf32();});
+  auto utf32str = utf8_to_utf32(str);
   auto nulls = get_nulls();
   auto len = ws.map
-    (+[](words& ws, std::string& str, int start, std::vector<size_t>& nulls){
+    (+[](words& ws, std::vector<int>& utf32str, int start,
+         std::vector<size_t>& nulls){
       std::vector<size_t> idx, pos;
       auto size = ws.lens.size();
       if(start > 0) { // negative is treated as 0
@@ -1087,7 +1124,7 @@ std::shared_ptr<dfcolumn> dfcolumn::locate(const std::string& str, int start) {
           }
         }
       }
-      search(ws, str, idx, pos);
+      search(ws, utf32str, idx, pos);
       auto sep = set_separate(idx); // get first occurrence
       auto idxp = idx.data();
       auto posp = pos.data();
@@ -1129,7 +1166,7 @@ std::shared_ptr<dfcolumn> dfcolumn::locate(const std::string& str, int start) {
       for(size_t i = 0; i < nulls_size; i++) {
         retp[nullsp[i]] = max;
       }
-      return ret;}, broadcast(str), broadcast(start), nulls);
+      return ret;}, broadcast(utf32str), broadcast(start), nulls);
   return std::make_shared<typed_dfcolumn<int>>
     (std::move(len), std::move(nulls));
 }
@@ -1189,7 +1226,9 @@ dfcolumn::replace(const std::string& from, const std::string& to) {
 std::shared_ptr<dfcolumn>
 dfcolumn::reverse() {
   auto ws = as_words();
+  ws.mapv(+[](words& ws){ws.utf8_to_utf32();});
   ws.mapv(+[](words& ws){ws.reverse();});
+  ws.mapv(+[](words& ws){ws.utf32_to_utf8();});  
   auto nulls = get_nulls();
   if(dtype() == "string") {
     auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});

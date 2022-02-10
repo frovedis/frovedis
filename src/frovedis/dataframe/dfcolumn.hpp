@@ -491,6 +491,7 @@ public:
   virtual std::shared_ptr<dfcolumn>
   substr(const std::shared_ptr<dfcolumn>& pos);
   virtual std::shared_ptr<dfcolumn> length();
+  virtual std::shared_ptr<dfcolumn> char_length();
   virtual std::shared_ptr<dfcolumn> locate(const std::string& str, int pos);
   virtual std::shared_ptr<dfcolumn>
   trim(trim_type kind, const std::string& to_trim);
