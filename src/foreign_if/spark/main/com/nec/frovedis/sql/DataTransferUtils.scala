@@ -9,7 +9,7 @@ import com.nec.frovedis.matrix.{
   FloatDvector, DoubleDvector,
   StringDvector, WordsNodeLocal,
   BoolDvector}
-import com.nec.frovedis.Jmatrix.OffHeapArray
+import com.nec.frovedis.Jmatrix.FlexibleOffHeapArray
 import org.apache.log4j.Level
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
@@ -198,7 +198,8 @@ object sDFTransfer extends java.io.Serializable {
     // (1) allocate
     val fs = FrovedisServer.getServerInstance()
     val nproc = fs.worker_size
-    val npart = columnar.getNumPartitions
+    var npart = columnar.getNumPartitions
+    if (configs.transfer_by_batch) npart = columnar.count.toInt
     val block_sizes = GenericUtils.get_block_sizes(npart, nproc)
     val vptrs = JNISupport.allocateLocalVectors2(fs.master_node, block_sizes,
                                                  nproc, types, ncol) // vptrs: (ncol + no-of-words) x nproc
@@ -217,9 +218,15 @@ object sDFTransfer extends java.io.Serializable {
     t_log.show("server process preparation: ")
                                                       
     // (3) data transfer
-    transfer_columnar_by_batched_partition(columnar, colIds, fw_nodes, 
-      vptrs, offset, types, block_sizes, ncol, nproc, word_count)
-    t_log.show("[numpartition: " + npart + "] server side data transfer: ")
+    if (configs.transfer_by_batch) {
+      transfer_columnar_by_batch(columnar, colIds, fw_nodes, 
+        vptrs, offset, types, block_sizes, ncol, nproc)
+      t_log.show("[numbatch: " + npart + "] server side data transfer: ")
+    } else {
+      transfer_columnar_by_batched_partition(columnar, colIds, fw_nodes, 
+        vptrs, offset, types, block_sizes, ncol, nproc, word_count)
+      t_log.show("[numpartition: " + npart + "] server side data transfer: ")
+    }
     JNISupport.unlockParallel()
 
     val fdata = JNISupport.createFrovedisDataframe2(fs.master_node, cols, types,
@@ -289,6 +296,9 @@ object sDFTransfer extends java.io.Serializable {
     }
   }
 
+  // transfer data batch-by-batch 
+  //   -> pros: limited memory used for OffHeapArray
+  //   -> cons: too many exrpc calls (no. of batches times) would be involved, so very slow performance
   private def transfer_columnar_by_batch(
               columnar: RDD[ColumnarBatch],
               colIds: Array[Int],
@@ -310,6 +320,11 @@ object sDFTransfer extends java.io.Serializable {
     ret.count // for action
   }
 
+  // transfer data partition-by-partition (combining batches in each partition)
+  //   -> pros: very less exrpc calls (no. of partitions times) would be involved
+  //   -> cons: large memory used for FlexibleOffHeapArray
+  // due to performance benefit, this version is currently 
+  // used as default (configs.transfer_by_batch = false)...
   private def transfer_columnar_by_batched_partition(
               columnar: RDD[ColumnarBatch],
               colIds: Array[Int],
@@ -321,166 +336,104 @@ object sDFTransfer extends java.io.Serializable {
               ncol: Int, nproc: Int,
               word_count: Int): Unit = {
     val ret = columnar.mapPartitionsWithIndex({ case(index, batches) =>
+        val t1 = new TimeSpent(Level.DEBUG)
+        val t2 = new TimeSpent(Level.DEBUG)
+        val copy_t = new TimeSpent(Level.DEBUG)
         val t0 = new TimeSpent(Level.TRACE)
+
         val (destId, myst) = GenericUtils.index2Dest(index, block_sizes)
         val localId = index - myst
         val w_node = fw_nodes(destId)
 
         val n_targets = ncol + word_count
-        val bufs = new ArrayBuffer[Array[OffHeapArray]]()
-        var tot_sizes = new Array[Int](n_targets)
+        val out = new Array[FlexibleOffHeapArray](n_targets)
+        val buf_size = configs.get_default_buffer_size();
+        val str_size = configs.get_default_string_size();
+        for (i <- 0 until ncol) {
+          val row_offset = offset(i)
+          types(i) match {
+            case DTYPE.INT | 
+                 DTYPE.BOOL   => out(row_offset) = new FlexibleOffHeapArray(buf_size, DTYPE.INT) 
+            case DTYPE.LONG   => out(row_offset) = new FlexibleOffHeapArray(buf_size, DTYPE.LONG) 
+            case DTYPE.FLOAT  => out(row_offset) = new FlexibleOffHeapArray(buf_size, DTYPE.FLOAT) 
+            case DTYPE.DOUBLE => out(row_offset) = new FlexibleOffHeapArray(buf_size, DTYPE.DOUBLE) 
+            case DTYPE.WORDS  => { 
+              out(row_offset) = new FlexibleOffHeapArray(buf_size * str_size, DTYPE.BYTE) 
+              out(row_offset + 1) = new FlexibleOffHeapArray(buf_size, DTYPE.INT) 
+            }
+          }          
+        }
+        t1.show("[partition: " + index + "] a. memory allocation: ")
 
-        val t1 = new TimeSpent(Level.DEBUG)
-        val t2 = new TimeSpent(Level.DEBUG)
-        val alloc_t = new TimeSpent(Level.DEBUG)
-        val copy_t = new TimeSpent(Level.DEBUG)
         val full_copy_t = new TimeSpent(Level.DEBUG)
-
         var cond = batches.hasNext
         while(cond) {
           val batch: ColumnarBatch = batches.next
-          val out = jDFTransfer.copy_batch_data(batch, colIds, offset, types, 
-                                                ncol, word_count, t0,
-                                                alloc_t, copy_t)
-
+          jDFTransfer.copy_batch_data(batch, colIds, offset, types, 
+                                      ncol, out, t0, copy_t)
           t1.lap_start()
-          for(i <- 0 until n_targets) tot_sizes(i) += out(i).size()
-          bufs += out
-          t1.lap_stop()
-
-          t2.lap_start()
           cond = batches.hasNext
-          t2.lap_stop()
+          t1.lap_stop()
         }
+        copy_t.show_lap("[partition: " + index + "] b. copy to FlexibleOffHeapArray: ")
+        t1.show_lap("[partition: " + index + "] c. has next: ")
+        full_copy_t.show("[partition: " + index + "] (a + b + c + other): total batch-copy: ")
 
-        alloc_t.show_lap("[partition: " + index + "] a. memory allocation: ")
-        copy_t.show_lap("[partition: " + index + "] b. copy to OffHeapArray: ")
-        t1.show_lap("[partition: " + index + "] c. total batch-size calculation: ")
-        t2.show_lap("[partition: " + index + "] d. has next: ")
-        full_copy_t.show("[partition: " + index + "] (a + b + c + d + other): total batch-copy: ")
-
-        val nbatches = bufs.size 
         for (i <- 0 until ncol) {
           val row_offset = offset(i)
           val vptr = vptrs(row_offset * nproc + destId)
-          val tsize = tot_sizes(row_offset)
+          val arr = out(row_offset).getFlattenMemory()
           types(i) match {
             case DTYPE.INT | DTYPE.BOOL => {
               t1.lap_start()
-              var cur = 0
-              val arr = new OffHeapArray(tsize, DTYPE.INT)
-              for(j <- 0 until nbatches) {
-                val tmp = bufs(j)(row_offset)
-                arr.putInts(cur, tmp.size(), tmp.get(), 0)
-                cur += tmp.size()
-                tmp.freeMemory() 
-              }
-              t1.lap_stop()
-              t0.show("int/bool buffer flattening: ")
-
-              t2.lap_start()
               JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId, 
-                        arr.get(), tsize, DTYPE.INT, configs.rawsend_enabled)
-              arr.freeMemory()
-              t2.lap_stop()
+                        arr.get(), arr.get_active_length(), DTYPE.INT, 
+                        configs.rawsend_enabled)
+              t1.lap_stop()
             }
             case DTYPE.LONG => {
-              var cur = 0
               t1.lap_start()
-              val arr = new OffHeapArray(tsize, DTYPE.LONG)
-              for(j <- 0 until nbatches) {
-                val tmp = bufs(j)(row_offset)
-                arr.putLongs(cur, tmp.size(), tmp.get(), 0)
-                cur += tmp.size()
-                tmp.freeMemory() 
-              }
-              t1.lap_stop()
-              t0.show("long buffer flattening: ")
-
-              t2.lap_start()
               JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId,
-                        arr.get(), tsize, DTYPE.LONG, configs.rawsend_enabled)
-              arr.freeMemory()
-              t2.lap_stop()
+                        arr.get(), arr.get_active_length(), DTYPE.LONG, 
+                        configs.rawsend_enabled)
+              t1.lap_stop()
             }
             case DTYPE.FLOAT => {
-              var cur = 0
               t1.lap_start()
-              val arr = new OffHeapArray(tsize, DTYPE.FLOAT)
-              for(j <- 0 until nbatches) {
-                val tmp = bufs(j)(row_offset)
-                arr.putFloats(cur, tmp.size(), tmp.get(), 0)
-                cur += tmp.size()
-                tmp.freeMemory()
-              }
-              t1.lap_stop()
-              t0.show("float buffer flattening: ")
-
-              t2.lap_start()
               JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId,
-                        arr.get(), tsize, DTYPE.FLOAT, configs.rawsend_enabled)
-              arr.freeMemory()
-              t2.lap_stop()
+                        arr.get(), arr.get_active_length(), DTYPE.FLOAT, 
+                        configs.rawsend_enabled)
+              t1.lap_stop()
             }
             case DTYPE.DOUBLE => {
-              var cur = 0
               t1.lap_start()
-              val arr = new OffHeapArray(tsize, DTYPE.DOUBLE)
-              for(j <- 0 until nbatches) {
-                val tmp = bufs(j)(row_offset)
-                arr.putDoubles(cur, tmp.size(), tmp.get(), 0)
-                cur += tmp.size()
-                tmp.freeMemory()
-              }
-              t1.lap_stop()
-              t0.show("double buffer flattening: ")
-
-              t2.lap_start()
               JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId,
-                        arr.get(), tsize, DTYPE.DOUBLE, configs.rawsend_enabled)
-              arr.freeMemory()
-              t2.lap_stop()
+                        arr.get(), arr.get_active_length(), DTYPE.DOUBLE, 
+                        configs.rawsend_enabled)
+              t1.lap_stop()
             }
             case DTYPE.WORDS => {
-              t1.lap_start()
-              var cur = 0
-              var cur2 = 0
               val next_row_offset = row_offset + 1
-              val tsize2 = tot_sizes(next_row_offset)
-              val char_arr = new OffHeapArray(tsize, DTYPE.BYTE)
-              val sz_arr = new OffHeapArray(tsize2, DTYPE.INT)
-              for(j <- 0 until nbatches) {
-                val tmp = bufs(j)(row_offset)
-                char_arr.putBytes(cur, tmp.size(), tmp.get(), 0)
-                cur += tmp.size()
-                tmp.freeMemory()
-
-                val tmp2 = bufs(j)(next_row_offset)
-                sz_arr.putInts(cur2, tmp2.size(), tmp2.get(), 0)
-                cur2 += tmp2.size()
-                tmp2.freeMemory()
-              }
-              t1.lap_stop()
-              t0.show("words buffer flattening: ")
-
-              t2.lap_start()
               val sptr = vptrs(next_row_offset * nproc + destId)
-              JNISupport.loadFrovedisWorkerByteSizePair2(w_node, vptr, sptr, localId, 
-                char_arr.get(), sz_arr.get(), tsize, tsize2, configs.rawsend_enabled)
-              char_arr.freeMemory()
-              sz_arr.freeMemory()
-              t2.lap_stop()
+              val arr2 = out(next_row_offset).getFlattenMemory()
+              t1.lap_start()
+              JNISupport.loadFrovedisWorkerByteSizePair2(
+                w_node, vptr, sptr, localId, 
+                arr.get(), arr2.get(), 
+                arr.get_active_length(), arr2.get_active_length(), 
+                configs.rawsend_enabled)
+              t1.lap_stop()
+              out(next_row_offset).freeMemory()
             }
             case _ => throw new IllegalArgumentException(
                       "[columnar_load] Unsupported type: " + TMAPPER.id2string(types(i)))
           }
+          out(row_offset).freeMemory()
           val err = JNISupport.checkServerException()
           if (err != "") throw new java.rmi.ServerException(err)
           t0.show("spark-worker to frovedis-rank local data copy: ")
         }
-
-        t1.show_lap("[partition: " + index + "] batch data flattening: ")
-        t2.show_lap("[partition: " + index + "] spark-to-frovedis data transfer: ")
+        t1.show_lap("[partition: " + index + "] spark-to-frovedis data transfer: ")
         Array(true).toIterator
     })
     ret.count // for action

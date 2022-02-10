@@ -7,7 +7,7 @@ import com.nec.frovedis.Jexrpc.JNISupport;
 import com.nec.frovedis.Jexrpc.FrovedisServer;
 
 public class OffHeapArray {
-    private int size;
+    private int size, active_length;
     private long address;
     private short dtype;
 
@@ -28,11 +28,17 @@ public class OffHeapArray {
     public OffHeapArray(int size, short dtype) {
       this.dtype = dtype;
       this.size = size;
+      this.active_length = size; 
       long size_in_bytes = size * DTYPE.sizeof(dtype);
       this.address = _Unsafe.allocateMemory(size_in_bytes);
     }
 
     public int size () { return size; }
+    public int get_active_length ()  { return active_length; }
+    public void set_active_length (int len) {
+      assert(len > 0 && len <= size);
+      active_length = len; 
+    }
     public long get ()  { return address; }
     private long sizeof (short dtype) { return DTYPE.sizeof(dtype); }
 
@@ -50,6 +56,40 @@ public class OffHeapArray {
       JNISupport.loadVectorData(fs.master_node, address, size, dtype);
       String err = JNISupport.checkServerException();
       if (!err.isEmpty()) throw new java.rmi.ServerException(err);
+    }
+
+    public void show () {
+      switch(dtype) {
+        case DTYPE.BOOL:
+        case DTYPE.INT: {
+          int[] arr = getInts(0, size);
+          for(int i = 0; i < size; ++i) System.out.print(arr[i] + ", ");
+          break;
+        }
+        case DTYPE.LONG: {
+          long[] arr = getLongs(0, size);
+          for(int i = 0; i < size; ++i) System.out.print(arr[i] + ", ");
+          break;
+        }
+        case DTYPE.FLOAT: {
+          float[] arr = getFloats(0, size);
+          for(int i = 0; i < size; ++i) System.out.print(arr[i] + ", ");
+          break;
+        }
+        case DTYPE.DOUBLE: {
+          double[] arr = getDoubles(0, size);
+          for(int i = 0; i < size; ++i) System.out.print(arr[i] + ", ");
+          break;
+        }
+        case DTYPE.BYTE: {
+          byte[] arr = getBytes(0, size);
+          for(int i = 0; i < size; ++i) System.out.print(arr[i] + ", ");
+          break;
+        }
+        default: throw new
+          IllegalArgumentException("Unsupported type is encountered!\n");
+      }
+      System.out.println();
     }
 
     // -------- for double data --------
@@ -210,7 +250,7 @@ public class OffHeapArray {
       _Unsafe.putInt(null, address + idx * sizeof(DTYPE.INT), value ? 1 : 0);
     }
 
-    public void putBoolean(int idx, int count, boolean[] src, int srcIndex) {
+    public void putBooleans(int idx, int count, boolean[] src, int srcIndex) {
       assert(this.dtype == DTYPE.BOOL); 
       int[] tmp = new int[count];
       for(int i = 0; i < count; ++i) tmp[i] = src[srcIndex + i] ? 1 : 0;

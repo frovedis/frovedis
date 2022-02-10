@@ -12,6 +12,7 @@ import com.nec.frovedis.Jexrpc.Node;
 import com.nec.frovedis.Jexrpc.JNISupport;
 import com.nec.frovedis.Jmatrix.DTYPE;
 import com.nec.frovedis.Jmatrix.OffHeapArray;
+import com.nec.frovedis.Jmatrix.FlexibleOffHeapArray;
 import com.nec.frovedis.Jmatrix.configs;
 import com.nec.frovedis.matrix.TimeSpent;
 
@@ -65,6 +66,10 @@ public class jDFTransfer implements java.io.Serializable {
     return ret;
   }
 
+  // copy each batch in OffHeapArray and initiate data transfer using exrpc
+  //   -> pros: limited memory used for OffHeapArray
+  //   -> cons: too many exrpc calls would be involved, so very slow performance
+  // due to performance issue, this version is currently not used...
   public static void transfer_batch_data(ColumnarBatch batch,
                                          int[] colIds,
                                          Node w_node,
@@ -188,7 +193,8 @@ public class jDFTransfer implements java.io.Serializable {
           OffHeapArray charbuf = new OffHeapArray(flat_size, DTYPE.BYTE);
           for(int j = 0; j < k; ++j) {
             int size = buffer[j].length;
-            for(int c = 0; c < size; ++c) charbuf.putByte(cur + c, buffer[j][c]);
+            //for(int c = 0; c < size; ++c) charbuf.putByte(cur + c, buffer[j][c]);
+            charbuf.putBytes(cur, size, buffer[j], 0);
             szbuf.putInt(j, size);
             cur += size;
           }
@@ -211,105 +217,79 @@ public class jDFTransfer implements java.io.Serializable {
     } // end of for-loop (iterating columns)
   } 
 
-  public static OffHeapArray[]
-  copy_batch_data(ColumnarBatch batch,
+  public static void copy_batch_data(
+                  ColumnarBatch batch,
                   int[] colIds,
                   int[] offset,
                   short[] types,
-                  int ncol, int word_count,
+                  int ncol, 
+                  FlexibleOffHeapArray[] out,
                   TimeSpent t0,
-                  TimeSpent alloc_t,
                   TimeSpent copy_t)
     throws java.rmi.ServerException, IllegalArgumentException {
 
-    int ntargets = ncol + word_count;
-    OffHeapArray[] out = new OffHeapArray[ntargets];
     int k = batch.numRows();
     for (int i = 0; i < ncol; ++i) {
       int cid = colIds[i];
       ColumnVector tcol = batch.column(cid);
       boolean check_null = tcol.hasNull();
       int row_offset = offset[i];
+      FlexibleOffHeapArray buf = out[row_offset];
       switch(types[i]) {
         case DTYPE.INT: {
-          alloc_t.lap_start();
-          OffHeapArray buf = new OffHeapArray(k, DTYPE.INT);
-          alloc_t.lap_stop();
-
           copy_t.lap_start();
           if (check_null) {
-            for(int j = 0; j < k; ++j) buf.putInt(j, tcol.isNullAt(j) ? Integer.MAX_VALUE : tcol.getInt(j));
+            for(int j = 0; j < k; ++j) buf.putInt(tcol.isNullAt(j) ? Integer.MAX_VALUE : tcol.getInt(j));
           } else {
-            for(int j = 0; j < k; ++j) buf.putInt(j, tcol.getInt(j));
+            for(int j = 0; j < k; ++j) buf.putInt(tcol.getInt(j));
           }
-          out[row_offset] = buf;
           copy_t.lap_stop();
           t0.show("ColumnVector -> IntArray: ");
           break;
         }
         case DTYPE.BOOL: {
-          alloc_t.lap_start();
-          OffHeapArray buf = new OffHeapArray(k, DTYPE.INT);
-          alloc_t.lap_stop();
-
           copy_t.lap_start();
           if (check_null) {
             for(int j = 0; j < k; ++j) {
-              if (tcol.isNullAt(j)) buf.putInt(j, Integer.MAX_VALUE);
-              else                  buf.putInt(j, tcol.getBoolean(j) ? 1 : 0);
+              if (tcol.isNullAt(j)) buf.putInt(Integer.MAX_VALUE);
+              else                  buf.putInt(tcol.getBoolean(j) ? 1 : 0);
             }
           } else {
-            for(int j = 0; j < k; ++j) buf.putInt(j, tcol.getBoolean(j) ? 1 : 0);
+            for(int j = 0; j < k; ++j) buf.putInt(tcol.getBoolean(j) ? 1 : 0);
           }
-          out[row_offset] = buf;
           copy_t.lap_stop();
           t0.show("ColumnVector -> (Boolean) IntArray: ");
           break;
         }
         case DTYPE.LONG: {
-          alloc_t.lap_start();
-          OffHeapArray buf = new OffHeapArray(k, DTYPE.LONG);
-          alloc_t.lap_stop();
-
           copy_t.lap_start();
           if (check_null) {
-            for(int j = 0; j < k; ++j) buf.putLong(j, tcol.isNullAt(j) ? Long.MAX_VALUE : tcol.getLong(j));
+            for(int j = 0; j < k; ++j) buf.putLong(tcol.isNullAt(j) ? Long.MAX_VALUE : tcol.getLong(j));
           } else {
-            for(int j = 0; j < k; ++j) buf.putLong(j, tcol.getLong(j));
+            for(int j = 0; j < k; ++j) buf.putLong(tcol.getLong(j));
           }
-          out[row_offset] = buf;
           copy_t.lap_stop();
           t0.show("ColumnVector -> LongArray: ");
           break;
         }
         case DTYPE.FLOAT: {
-          alloc_t.lap_start();
-          OffHeapArray buf = new OffHeapArray(k, DTYPE.FLOAT);
-          alloc_t.lap_stop();
-
           copy_t.lap_start();
           if (check_null) {
-            for(int j = 0; j < k; ++j) buf.putFloat(j, tcol.isNullAt(j) ? Float.MAX_VALUE : tcol.getFloat(j));
+            for(int j = 0; j < k; ++j) buf.putFloat(tcol.isNullAt(j) ? Float.MAX_VALUE : tcol.getFloat(j));
           } else {
-            for(int j = 0; j < k; ++j) buf.putFloat(j, tcol.getFloat(j));
+            for(int j = 0; j < k; ++j) buf.putFloat(tcol.getFloat(j));
           }
-          out[row_offset] = buf;
           copy_t.lap_stop();
           t0.show("ColumnVector -> FloatArray: ");
           break;
         }
         case DTYPE.DOUBLE: {
-          alloc_t.lap_start();
-          OffHeapArray buf = new OffHeapArray(k, DTYPE.DOUBLE);
-          alloc_t.lap_stop();
-
           copy_t.lap_start();
           if (check_null) {
-            for(int j = 0; j < k; ++j) buf.putDouble(j, tcol.isNullAt(j) ? Double.MAX_VALUE : tcol.getDouble(j));
+            for(int j = 0; j < k; ++j) buf.putDouble(tcol.isNullAt(j) ? Double.MAX_VALUE : tcol.getDouble(j));
           } else {
-            for(int j = 0; j < k; ++j) buf.putDouble(j, tcol.getDouble(j));
+            for(int j = 0; j < k; ++j) buf.putDouble(tcol.getDouble(j));
           }
-          out[row_offset] = buf;
           copy_t.lap_stop();
           t0.show("ColumnVector -> DoubleArray: ");
           break;
@@ -318,40 +298,23 @@ public class jDFTransfer implements java.io.Serializable {
           throw new IllegalArgumentException("copy_batch_data: 'String' type is not supported!");
         } 
         case DTYPE.WORDS: {
+          FlexibleOffHeapArray szbuf = out[row_offset + 1];
           copy_t.lap_start();
-          byte[][] buffer = new byte[k][];
-          int flat_size = 0;
           if (check_null) {
             byte[] nulls = new byte[4];
             nulls[0] = 'N'; nulls[1] = 'U'; nulls[2] = 'L'; nulls[3] = 'L';
             for(int j = 0; j < k; ++j) {
-              buffer[j] = tcol.isNullAt(j) ? nulls : tcol.getBinary(j);
-              flat_size += buffer[j].length;
+              byte[] tmp = tcol.isNullAt(j) ? nulls : tcol.getBinary(j);
+              szbuf.putInt(tmp.length);
+              buf.putBytes(tmp);
             }
           } else {
             for(int j = 0; j < k; ++j) {
-              buffer[j] = tcol.getBinary(j);
-              flat_size += buffer[j].length;
+              byte[] tmp = tcol.getBinary(j);
+              szbuf.putInt(tmp.length);
+              buf.putBytes(tmp);
             }
           }
-          copy_t.lap_stop();
-
-          alloc_t.lap_start();
-          OffHeapArray szbuf = new OffHeapArray(k, DTYPE.INT);
-          OffHeapArray charbuf = new OffHeapArray(flat_size, DTYPE.BYTE);
-          alloc_t.lap_stop();
-
-          copy_t.lap_start();
-          int cur = 0;
-          for(int j = 0; j < k; ++j) {
-            int size = buffer[j].length;
-            for(int c = 0; c < size; ++c) charbuf.putByte(cur + c, buffer[j][c]);
-            szbuf.putInt(j, size);
-            cur += size;
-          }
-          int next_row_offset = row_offset + 1;
-          out[row_offset] = charbuf;
-          out[next_row_offset] = szbuf;
           copy_t.lap_stop();
           t0.show("ColumnVector -> flatten-byteArray: ");
           break;
@@ -359,6 +322,5 @@ public class jDFTransfer implements java.io.Serializable {
         default: throw new IllegalArgumentException("Unsupported type is encountered!\n");
       } // end of switch
     } // end of for-loop (iterating columns)
-    return out;
   }
 }

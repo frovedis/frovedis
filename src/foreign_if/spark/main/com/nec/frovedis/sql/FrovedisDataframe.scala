@@ -134,7 +134,6 @@ class FrovedisDataFrame extends java.io.Serializable {
       if (columnar != null) {
         this.owned_cols = columnar_targets
         columnar_load(sdf, columnar_targets, columnar) // TODO: send cols, types, columnar
-        DFMemoryManager.insert(code, this, columnar_targets.toIterator)
       }
       else { // columnar creation might fail, if sdf doesn't have ColumnarSupport
         irow_targets = irow_targets ++ columnar_targets
@@ -146,11 +145,10 @@ class FrovedisDataFrame extends java.io.Serializable {
       else                         this.owned_cols = irow_targets
       val sdf = df.select(irow_targets.map(x => sp_col(x)):_*)
       optimized_load(sdf)
-      DFMemoryManager.insert(code, this, irow_targets.toIterator)
     }
 
-    if (!base_ptr.isEmpty) { // TODO: correct order
-      val t2 = new TimeSpent(Level.DEBUG)
+    val t2 = new TimeSpent(Level.DEBUG)
+    if (!base_ptr.isEmpty) { // TODO: correct column order
       //println("*** cols hit ***")
       //base_col.foreach(println)
       copy_column_inplace(this.fdata, base_ptr.toArray, base_col.toArray)
@@ -161,6 +159,12 @@ class FrovedisDataFrame extends java.io.Serializable {
     this.mem_size = JNISupport.calcMemorySize(fs.master_node, this.fdata)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
+    t2.show("memory size calculation: ")
+
+    if (owned_cols != null) {
+      DFMemoryManager.insert(code, this, owned_cols.toIterator)
+      t2.show("DFMemoryManager registration: ")
+    }
     this.code = code
     this
   }
@@ -265,7 +269,6 @@ class FrovedisDataFrame extends java.io.Serializable {
                                                     cols, dvecs, ncol)
     var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-
     this.code = df.hashCode
     this
   }
@@ -319,8 +322,11 @@ class FrovedisDataFrame extends java.io.Serializable {
       this.cols = cols
       this.types = types
     } else {
-      copy_column_inplace(this.fdata, proxy, cols)
-      // TODO: release dftable associated with proxy
+      copy_column_inplace(this.fdata, proxy, cols) // this.fdata[cols] = proxy[cols]
+      val fs = FrovedisServer.getServerInstance()
+      JNISupport.releaseFrovedisDataframe(fs.master_node, proxy)
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
     }
     this.code = df.hashCode
     this
@@ -349,8 +355,11 @@ class FrovedisDataFrame extends java.io.Serializable {
       this.cols = cols
       this.types = types
     } else {
-      copy_column_inplace(this.fdata, proxy, cols)
-      // TODO: release dftable associated with proxy
+      copy_column_inplace(this.fdata, proxy, cols) // this.fdata[cols] = proxy[cols]
+      val fs = FrovedisServer.getServerInstance()
+      JNISupport.releaseFrovedisDataframe(fs.master_node, proxy)
+      val info = JNISupport.checkServerException()
+      if (info != "") throw new java.rmi.ServerException(info)
     }
     this.code = df.hashCode
     this
