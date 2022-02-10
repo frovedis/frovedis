@@ -189,6 +189,18 @@ void tolower(const std::vector<int>& chars,
              std::vector<int>& ret_chars);
 void toupper(const std::vector<int>& chars,
              std::vector<int>& ret_chars);
+void utf8_to_utf32(const std::vector<int>& chars,
+                   const std::vector<size_t>& starts,
+                   const std::vector<size_t>& lens,
+                   std::vector<int>& ret_chars,
+                   std::vector<size_t>& ret_starts,
+                   std::vector<size_t>& ret_lens);
+void utf32_to_utf8(const std::vector<int>& chars,
+                   const std::vector<size_t>& starts,
+                   const std::vector<size_t>& lens,
+                   std::vector<int>& ret_chars,
+                   std::vector<size_t>& ret_starts,
+                   std::vector<size_t>& ret_lens);
 
 // utility struct
 struct words {
@@ -258,7 +270,7 @@ struct words {
   }
   void reverse() { // destructive
     std::vector<int> ret_chars;
-    std::vector<size_t> ret_starts, ret_lens;
+    std::vector<size_t> ret_starts;
     frovedis::reverse(chars, starts, lens, ret_chars, ret_starts);
     chars.swap(ret_chars);
     starts.swap(ret_starts);
@@ -272,6 +284,24 @@ struct words {
     std::vector<int> ret_chars;
     frovedis::toupper(chars, ret_chars);
     chars.swap(ret_chars);
+  }
+  void utf8_to_utf32() { // destructive
+    std::vector<int> ret_chars;
+    std::vector<size_t> ret_starts, ret_lens;
+    frovedis::utf8_to_utf32(chars, starts, lens,
+                            ret_chars, ret_starts, ret_lens);
+    chars.swap(ret_chars);
+    starts.swap(ret_starts);
+    lens.swap(ret_lens);
+  }
+  void utf32_to_utf8() { // destructive
+    std::vector<int> ret_chars;
+    std::vector<size_t> ret_starts, ret_lens;
+    frovedis::utf32_to_utf8(chars, starts, lens,
+                            ret_chars, ret_starts, ret_lens);
+    chars.swap(ret_chars);
+    starts.swap(ret_starts);
+    lens.swap(ret_lens);
   }
 
   SERIALIZE(chars, starts, lens)
@@ -322,6 +352,8 @@ words horizontal_concat_words(std::vector<words>& vec_words);
 words reverse(const words& w);
 words tolower(const words& w);
 words toupper(const words& w);
+words utf8_to_utf32(const words& w);
+words utf32_to_utf8(const words& w);
 
 }
 #endif

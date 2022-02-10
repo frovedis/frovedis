@@ -2079,4 +2079,294 @@ words toupper(const words& ws) {
   return ret;
 }
 
+// https://atmarkit.itmedia.co.jp/ait/articles/1603/28/news035.html
+// https://qiita.com/benikabocha/items/e943deb299d0f816f161
+/*
+U+000000 - U+00007F 	0xxxxxxx
+U+000080 - U+0007FF 	110xxxxx　10xxxxxx
+U+000800 - U+00FFFF 	1110xxxx　10xxxxxx　10xxxxxx
+U+010000 - U+10FFFF 	11110xxx　10xxxxxx　10xxxxxx　10xxxxxx
+*/
+struct is_one_byte_utf8{
+  int operator()(int c) const {
+    return (c < 0x80);
+  }
+  SERIALIZE_NONE
+};
+struct is_two_byte_utf8{
+  int operator()(int c) const {
+    return (c >= 0xC2 && c < 0xE0);
+  }
+  SERIALIZE_NONE
+};
+struct is_three_byte_utf8{
+  int operator()(int c) const {
+    return (c >= 0xE0 && c < 0xF0);
+  }
+  SERIALIZE_NONE
+};
+struct is_four_byte_utf8{
+  int operator()(int c) const {
+    return (c >= 0xF0 && c < 0xF8);
+  }
+  SERIALIZE_NONE
+};
+
+void utf8_to_utf32(const std::vector<int>& chars,
+                   const std::vector<size_t>& starts,
+                   const std::vector<size_t>& lens,
+                   std::vector<int>& ret_chars,
+                   std::vector<size_t>& ret_starts,
+                   std::vector<size_t>& ret_lens) {
+  auto one_byte_start = find_condition(chars, is_one_byte_utf8());
+  auto one_byte_start_size = one_byte_start.size();
+  auto chars_size = chars.size();
+  if(one_byte_start_size == chars_size) {
+    ret_chars = chars;
+    ret_starts = starts;
+    ret_lens = lens;
+    return;
+  } else {
+    auto two_byte_start = find_condition(chars, is_two_byte_utf8());
+    auto three_byte_start = find_condition(chars, is_three_byte_utf8());
+    auto four_byte_start = find_condition(chars, is_four_byte_utf8());
+    auto two_byte_start_size = two_byte_start.size();
+    auto three_byte_start_size = three_byte_start.size();
+    auto four_byte_start_size = four_byte_start.size();
+    auto one_byte_startp = one_byte_start.data();
+    auto two_byte_startp = two_byte_start.data();
+    auto three_byte_startp = three_byte_start.data();
+    auto four_byte_startp = four_byte_start.data();
+    std::vector<size_t> is_start(chars_size);
+    auto is_startp = is_start.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < one_byte_start_size; i++) {
+      is_startp[one_byte_startp[i]] = 1;
+    }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < two_byte_start_size; i++) {
+      is_startp[two_byte_startp[i]] = 1;
+    }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < three_byte_start_size; i++) {
+      is_startp[three_byte_startp[i]] = 1;
+    }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < four_byte_start_size; i++) {
+      is_startp[four_byte_startp[i]] = 1;
+    }
+    std::vector<size_t> start_index(chars_size+1);
+    auto start_indexp = start_index.data();
+    prefix_sum(is_startp, start_indexp+1, chars_size);
+    auto ret_chars_size = start_indexp[chars_size];
+    ret_chars.resize(ret_chars_size);
+    auto ret_charsp = ret_chars.data();
+    auto charsp = chars.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < one_byte_start_size; i++) {
+      ret_charsp[start_indexp[one_byte_startp[i]]] =
+        charsp[one_byte_startp[i]];
+    }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < two_byte_start_size; i++) {
+      auto pos = two_byte_startp[i];
+      ret_charsp[start_indexp[pos]] =
+        ((charsp[pos] & 0x1F) << 6) | (charsp[pos+1] & 0x3F);
+    }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < three_byte_start_size; i++) {
+      auto pos = three_byte_startp[i];
+      ret_charsp[start_indexp[pos]] =
+        ((charsp[pos] & 0xF) << 12) | ((charsp[pos+1] & 0x3F) << 6) |
+        (charsp[pos+2] & 0x3F);
+    }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < four_byte_start_size; i++) {
+      auto pos = four_byte_startp[i];
+      ret_charsp[start_indexp[pos]] =
+        ((charsp[pos] & 0x7) << 18) | ((charsp[pos+1] & 0x3F) << 12) |
+        ((charsp[pos+2] & 0x3F) << 6) | (charsp[pos+3] & 0x3F);
+    }
+    auto lens_size = lens.size();
+    auto lensp = lens.data();
+    auto startsp = starts.data();
+    ret_starts.resize(lens_size);
+    auto ret_startsp = ret_starts.data();
+    ret_lens.resize(lens_size);
+    auto ret_lensp = ret_lens.data();
+    for(size_t i = 0; i < lens_size; i++) {
+      auto starts = startsp[i];
+      auto ret_starts = start_indexp[starts];
+      ret_startsp[i] = ret_starts;
+      ret_lensp[i] = start_indexp[starts + lensp[i]] - ret_starts;
+    }
+  }
+}
+
+struct is_one_byte_utf32{
+  int operator()(int c) const {
+    return (c < 0x80);
+  }
+  SERIALIZE_NONE
+};
+struct is_two_byte_utf32{
+  int operator()(int c) const {
+    return (c >= 0x80 && c < 0x800);
+  }
+  SERIALIZE_NONE
+};
+struct is_three_byte_utf32{
+  int operator()(int c) const {
+    return (c >= 0x800 && c < 0x10000);
+  }
+  SERIALIZE_NONE
+};
+struct is_four_byte_utf32{
+  int operator()(int c) const {
+    return (c >= 0x10000);
+  }
+  SERIALIZE_NONE
+};
+void utf32_to_utf8(const std::vector<int>& chars,
+                   const std::vector<size_t>& starts,
+                   const std::vector<size_t>& lens,
+                   std::vector<int>& ret_chars,
+                   std::vector<size_t>& ret_starts,
+                   std::vector<size_t>& ret_lens) {
+  auto one_byte = find_condition(chars, is_one_byte_utf32());
+  auto one_byte_size = one_byte.size();
+  auto chars_size = chars.size();
+  if(one_byte_size == chars_size) {
+    ret_chars = chars;
+    ret_starts = starts;
+    ret_lens = lens;
+    return;
+  } else {
+    auto two_byte = find_condition(chars, is_two_byte_utf32());
+    auto three_byte = find_condition(chars, is_three_byte_utf32());
+    auto four_byte = find_condition(chars, is_four_byte_utf32());
+    auto two_byte_size = two_byte.size();
+    auto three_byte_size = three_byte.size();
+    auto four_byte_size = four_byte.size();
+    auto one_bytep = one_byte.data();
+    auto two_bytep = two_byte.data();
+    auto three_bytep = three_byte.data();
+    auto four_bytep = four_byte.data();
+    std::vector<size_t> num_bytes(chars_size);
+    auto num_bytesp = num_bytes.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < one_byte_size; i++) {
+      num_bytesp[one_bytep[i]] = 1;
+    }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < two_byte_size; i++) {
+      num_bytesp[two_bytep[i]] = 2;
+    }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < three_byte_size; i++) {
+      num_bytesp[three_bytep[i]] = 3;
+    }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < four_byte_size; i++) {
+      num_bytesp[four_bytep[i]] = 4;
+    }
+    std::vector<size_t> start_index(chars_size+1);
+    auto start_indexp = start_index.data();
+    prefix_sum(num_bytesp, start_indexp+1, chars_size);
+    auto ret_chars_size = start_indexp[chars_size];
+    ret_chars.resize(ret_chars_size);
+    auto ret_charsp = ret_chars.data();
+    auto charsp = chars.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < one_byte_size; i++) {
+      ret_charsp[start_indexp[one_bytep[i]]] =
+        charsp[one_bytep[i]];
+    }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < two_byte_size; i++) {
+      auto pos = two_bytep[i];
+      auto start_indexp_pos = start_indexp[pos];
+      auto charsp_pos = charsp[pos];
+      ret_charsp[start_indexp_pos] = 0xC0 | (charsp_pos >> 6);
+      ret_charsp[start_indexp_pos + 1] = 0x80 | (charsp_pos & 0x3F);
+    }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < three_byte_size; i++) {
+      auto pos = three_bytep[i];
+      auto start_indexp_pos = start_indexp[pos];
+      auto charsp_pos = charsp[pos];
+      ret_charsp[start_indexp_pos] = 0xE0 | (charsp_pos >> 12);
+      ret_charsp[start_indexp_pos + 1] = 0x80 | ((charsp_pos >> 6) & 0x3F);
+      ret_charsp[start_indexp_pos + 2] = 0x80 | (charsp_pos & 0x3F);
+    }
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t i = 0; i < four_byte_size; i++) {
+      auto pos = four_bytep[i];
+      auto start_indexp_pos = start_indexp[pos];
+      auto charsp_pos = charsp[pos];
+      ret_charsp[start_indexp_pos] = 0xF0 | (charsp_pos >> 18);
+      ret_charsp[start_indexp_pos + 1] = 0x80 | ((charsp_pos >> 12) & 0x3F);
+      ret_charsp[start_indexp_pos + 2] = 0x80 | ((charsp_pos >> 6) & 0x3F);
+      ret_charsp[start_indexp_pos + 3] = 0x80 | (charsp_pos & 0x3F);
+    }
+    auto lens_size = lens.size();
+    auto lensp = lens.data();
+    auto startsp = starts.data();
+    ret_starts.resize(lens_size);
+    auto ret_startsp = ret_starts.data();
+    ret_lens.resize(lens_size);
+    auto ret_lensp = ret_lens.data();
+    for(size_t i = 0; i < lens_size; i++) {
+      auto starts = startsp[i];
+      auto ret_starts = start_indexp[starts];
+      ret_startsp[i] = ret_starts;
+      ret_lensp[i] = start_indexp[starts + lensp[i]] - ret_starts;
+    }
+  }
+}
+
+words utf8_to_utf32(const words& ws) {
+  words ret;
+  utf8_to_utf32(ws.chars, ws.starts, ws.lens, ret.chars, ret.starts, ret.lens);
+  return ret;
+}
+
+words utf32_to_utf8(const words& ws) {
+  words ret;
+  utf32_to_utf8(ws.chars, ws.starts, ws.lens, ret.chars, ret.starts, ret.lens);
+  return ret;
+}
+
 }

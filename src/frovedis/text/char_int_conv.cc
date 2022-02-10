@@ -19,8 +19,9 @@ void char_to_int(const char* s, size_t size, int* v) {
     v[i*4 + 3] = tmp >> 24;
   }
   auto off = isize * 4;
+  const unsigned char* us = reinterpret_cast<const unsigned char*>(s);
   for(size_t i = 0; i < rest; i++) {
-    v[off + i] = s[off + i];
+    v[off + i] = us[off + i];
   }
 }
 
@@ -51,8 +52,9 @@ void int_to_char(const int* v, size_t size, char* s) {
     is[i] = tmp;
   }
   auto off = isize * 4;
+  unsigned char* us = reinterpret_cast<unsigned char*>(s);
   for(size_t i = 0; i < rest; i++) {
-    s[off + i] = static_cast<char>(v[off + i]);
+    us[off + i] = static_cast<unsigned char>(v[off + i]);
   }
 }
 
