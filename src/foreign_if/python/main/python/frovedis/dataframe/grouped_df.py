@@ -275,7 +275,7 @@ class FrovedisGroupedDataframe(object):
         if axis is 1:
             raise ValueError("mad: Currently supported only for axis = 0!")
         if skipna is False:
-            raise ValueError("mad: Currently supported only for skipna = False!")
+            raise ValueError("mad: Currently supported only for skipna = True!")
         if level is not None:
             raise ValueError("mad: Currently supported only for level = None!")
         return self.agg("mad")
