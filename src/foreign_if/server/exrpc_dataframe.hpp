@@ -679,6 +679,14 @@ frovedis_gdf_aggr_with_ddof(exrpc_ptr_t& df_proxy,
                           double& ddof);
 
 dummy_dftable
+frovedis_gdf_aggr_with_mincount(exrpc_ptr_t& df_proxy,
+                                std::vector<std::string>& groupedCols,
+                                std::string& aggFunc,
+                                std::vector<std::string>& aggCols,
+                                std::vector<std::string>& aggAsCols,
+                                int& mincount);
+
+dummy_dftable
 frov_df_mode_cols(exrpc_ptr_t& df_proxy, 
                   std::vector<std::string>& cols,
                   bool& dropna);

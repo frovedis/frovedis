@@ -135,6 +135,7 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_max<float>);
   expose(frov_df_max<double>);
   expose(frovedis_gdf_aggr_with_ddof);
+  expose(frovedis_gdf_aggr_with_mincount);
   expose(frov_df_mode_cols);
   expose(frov_df_mode_rows);
   // -- for spark wrapper ---
