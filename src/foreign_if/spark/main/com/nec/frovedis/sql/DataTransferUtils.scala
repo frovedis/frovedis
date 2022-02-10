@@ -258,14 +258,17 @@ object sDFTransfer extends java.io.Serializable {
 
     // (2) prepare server side ranks for processing N parallel requests
     JNISupport.lockParallel()
+    var scale = ncol;
+    if (configs.rawsend_enabled) scale = (ncol + word_count) * 2
     val fw_nodes = JNISupport.getWorkerInfoMulti(fs.master_node,
-                                        block_sizes.map(_ * ncol), nproc)
+                                        block_sizes.map(_ * scale), nproc)
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     t_log.show("server process preparation: ")
                                                       
     // (3) data transfer
-    execute(rddData, fw_nodes, vptrs, offset, types, block_sizes, ncol, nproc)
+    transfer_rows_by_partition(rddData, fw_nodes, vptrs, offset, types, 
+                               block_sizes, ncol, nproc, word_count)
     t_log.show("[numpartition: " + npart + "] server side data transfer: ")
     JNISupport.unlockParallel()
 
@@ -277,22 +280,24 @@ object sDFTransfer extends java.io.Serializable {
     return fdata
   }
 
-  def execute(rddData: RDD[InternalRow],
+  def transfer_rows_by_partition(
+              rddData: RDD[InternalRow],
               fw_nodes: Array[Node],
               vptrs: Array[Long],
               offset: Array[Int],
               types: Array[Short],
               block_sizes: Array[Long],
-              ncol: Int, nproc: Int): Unit = {
+              ncol: Int, nproc: Int,
+              word_count: Int): Unit = {
     if (rddData.first.isInstanceOf[UnsafeRow]) {
       //val jRddData = rddData.map(x => x.asInstanceOf[UnsafeRow]).toJavaRDD
       //jDFTransfer.execute(jRddData, fw_nodes, vptrs, types, block_sizes, ncol, nproc)
       transfer_unsafe_row(rddData, fw_nodes, vptrs, offset, 
-                          types, block_sizes, ncol, nproc)
+                          types, block_sizes, ncol, nproc, word_count)
     } 
     else {
       transfer_internal_row(rddData, fw_nodes, vptrs, offset, 
-                            types, block_sizes, ncol, nproc)
+                            types, block_sizes, ncol, nproc, word_count)
     }
   }
 
@@ -357,10 +362,16 @@ object sDFTransfer extends java.io.Serializable {
             case DTYPE.LONG   => out(row_offset) = new FlexibleOffHeapArray(buf_size, DTYPE.LONG) 
             case DTYPE.FLOAT  => out(row_offset) = new FlexibleOffHeapArray(buf_size, DTYPE.FLOAT) 
             case DTYPE.DOUBLE => out(row_offset) = new FlexibleOffHeapArray(buf_size, DTYPE.DOUBLE) 
+            case DTYPE.STRING => {
+              throw new IllegalArgumentException(
+              "[transfer_columnar_by_batched_partition] 'String' type is not supported!")
+            }
             case DTYPE.WORDS  => { 
               out(row_offset) = new FlexibleOffHeapArray(buf_size * str_size, DTYPE.BYTE) 
               out(row_offset + 1) = new FlexibleOffHeapArray(buf_size, DTYPE.INT) 
             }
+            case _ => throw new IllegalArgumentException(
+                      "[transfer_columnar_by_batched_partition] Unsupported type: " + TMAPPER.id2string(types(i)))
           }          
         }
         t1.show("[partition: " + index + "] a. memory allocation: ")
@@ -412,6 +423,10 @@ object sDFTransfer extends java.io.Serializable {
                         configs.rawsend_enabled)
               t1.lap_stop()
             }
+            case DTYPE.STRING => {
+              throw new IllegalArgumentException(
+              "[transfer_columnar_by_batched_partition] 'String' type is not supported!")
+            }
             case DTYPE.WORDS => {
               val next_row_offset = row_offset + 1
               val sptr = vptrs(next_row_offset * nproc + destId)
@@ -426,7 +441,7 @@ object sDFTransfer extends java.io.Serializable {
               out(next_row_offset).freeMemory()
             }
             case _ => throw new IllegalArgumentException(
-                      "[columnar_load] Unsupported type: " + TMAPPER.id2string(types(i)))
+                      "[transfer_columnar_by_batched_partition] Unsupported type: " + TMAPPER.id2string(types(i)))
           }
           out(row_offset).freeMemory()
           val err = JNISupport.checkServerException()
@@ -500,7 +515,7 @@ object sDFTransfer extends java.io.Serializable {
                                                     sArr.size)
         }
         case _ => throw new IllegalArgumentException(
-                  "[optimized_load] Unsupported type: " + TMAPPER.id2string(dtype))
+                  "[load_rows] Unsupported type: " + TMAPPER.id2string(dtype))
     }
     val err = JNISupport.checkServerException()
     if (err != "") throw new java.rmi.ServerException(err)
@@ -514,7 +529,8 @@ object sDFTransfer extends java.io.Serializable {
               offset: Array[Int],
               types: Array[Short],
               block_sizes: Array[Long],
-              ncol: Int, nproc: Int): Long = {
+              ncol: Int, nproc: Int,
+              word_count: Int): Long = {
     val ret = rddData.mapPartitionsWithIndex({ case(index, x) =>
         val t0 = new TimeSpent(Level.TRACE)
         val mat = new Array[ArrayBuffer[Any]](ncol)
@@ -533,7 +549,7 @@ object sDFTransfer extends java.io.Serializable {
               case DTYPE.STRING => if(row.isNullAt(i)) "NULL" else row.getString(i)
               case DTYPE.WORDS  => if(row.isNullAt(i)) "NULL" else row.getString(i)
               case _ => throw new IllegalArgumentException(
-                        "[optimized_load] Unsupported type: " + TMAPPER.id2string(types(i)))
+                        "[load_rows] Unsupported type: " + TMAPPER.id2string(types(i)))
             }
             mat(i) += tmp
           }
@@ -602,80 +618,158 @@ object sDFTransfer extends java.io.Serializable {
               offset: Array[Int],
               types: Array[Short],
               block_sizes: Array[Long],
-              ncol: Int, nproc: Int): Long = {
+              ncol: Int, nproc: Int,
+              word_count: Int): Long = {
     val ret = rddData.mapPartitionsWithIndex({ case(index, x) =>
-        val t0 = new TimeSpent(Level.TRACE)
-        var k = 0
-        val obj = new ArrayBuffer[Array[Byte]]()
-        val off = new ArrayBuffer[Long]()
-        while(x.hasNext) {
-          val row = x.next.asInstanceOf[UnsafeRow]
-          obj += row.getBytes()       // row.getBaseObject()
-          off += row.getBaseOffset()
-          k += 1
-        }
-        t0.show("baseObject, baseOffset extraction: ")
 
         val (destId, myst) = GenericUtils.index2Dest(index, block_sizes)
         val localId = index - myst
         val w_node = fw_nodes(destId)
 
+        val n_targets = ncol + word_count
+        val out = new Array[FlexibleOffHeapArray](n_targets)
+        val buf_size = configs.get_default_buffer_size();
+        val str_size = configs.get_default_string_size();
+        val t1 = new TimeSpent(Level.DEBUG)
+
+        for (i <- 0 until ncol) {
+          val row_offset = offset(i)
+          types(i) match {
+            case DTYPE.INT | DTYPE.BOOL => {
+              out(row_offset) = new FlexibleOffHeapArray(buf_size, DTYPE.INT)
+            }
+            case DTYPE.LONG | DTYPE.DATETIME | DTYPE.TIMESTAMP => {
+              out(row_offset) = new FlexibleOffHeapArray(buf_size, DTYPE.LONG)
+            }
+            case DTYPE.FLOAT  => out(row_offset) = new FlexibleOffHeapArray(buf_size, DTYPE.FLOAT)
+            case DTYPE.DOUBLE => out(row_offset) = new FlexibleOffHeapArray(buf_size, DTYPE.DOUBLE)
+            case DTYPE.STRING => {
+              throw new IllegalArgumentException(
+              "[transfer_unsafe_row] 'String' type is not supported!")
+            }
+            case DTYPE.WORDS  => {
+              out(row_offset) = new FlexibleOffHeapArray(buf_size * str_size, DTYPE.BYTE)
+              out(row_offset + 1) = new FlexibleOffHeapArray(buf_size, DTYPE.INT)
+            }
+            case _ => throw new IllegalArgumentException(
+                      "[transfer_unsafe_row] Unsupported type: " + TMAPPER.id2string(types(i)))
+          }
+        }
+        t1.show("[partition: " + index + "] a. memory allocation: ")
+
+        val copy_t = new TimeSpent(Level.DEBUG)
+        val full_copy_t = new TimeSpent(Level.DEBUG)
+        var cond = x.hasNext
+        val nullstr: Array[Byte] = Array('N', 'U', 'L', 'L')
+
+        while(cond) {
+          val row = x.next.asInstanceOf[UnsafeRow]
+
+          copy_t.lap_start()
+          for (i <- 0 until ncol) {
+            val row_offset = offset(i)
+            val isnull = row.isNullAt(i)
+            types(i) match {
+              case DTYPE.INT | DTYPE.BOOL   => {
+                val x = if (isnull) Int.MaxValue else row.getInt(i)
+                out(row_offset).putInt(x)
+              }
+              case DTYPE.LONG | DTYPE.DATETIME | DTYPE.TIMESTAMP => {
+                val x = if (isnull) Long.MaxValue else row.getLong(i)
+                out(row_offset).putLong(x)
+              }
+              case DTYPE.FLOAT  => {
+                val x = if (isnull) Float.MaxValue else row.getFloat(i)
+                out(row_offset).putFloat(x)
+              }
+              case DTYPE.DOUBLE => {
+                val x = if (isnull) Double.MaxValue else row.getDouble(i)
+                out(row_offset).putDouble(x)
+              }
+              case DTYPE.STRING   => {
+                throw new IllegalArgumentException(
+                "[transfer_unsafe_row] 'String' type is not supported!")
+              }
+              case DTYPE.WORDS   => {
+                val x = if (isnull) nullstr else row.getBinary(i)
+                out(row_offset).putBytes(x)
+                out(row_offset + 1).putInt(x.size)
+              }
+              case _ => throw new IllegalArgumentException(
+                        "[transfer_unsafe_row] Unsupported type: " + TMAPPER.id2string(types(i)))
+            }
+          }
+          copy_t.lap_stop()
+
+          t1.lap_start()
+          cond = x.hasNext
+          t1.lap_stop()
+        }
+        copy_t.show_lap("[partition: " + index + "] b. copy to FlexibleOffHeapArray: ")
+        t1.show_lap("[partition: " + index + "] c. has next: ")
+        full_copy_t.show("[partition: " + index + "] (a + b + c + other): total batch-copy: ")
+
         for (i <- 0 until ncol) {
           val row_offset = offset(i)
           val vptr = vptrs(row_offset * nproc + destId)
+          val arr = out(row_offset).getFlattenMemory()
           types(i) match {
             case DTYPE.INT | DTYPE.BOOL => {
-              val iArr = new Array[Int](k)
-              for (j <- 0 until k) iArr(j) = jPlatform.getInt(obj(j), off(j), ncol, i)
-              t0.show("buffer to int-array: ")
-              JNISupport.loadFrovedisWorkerIntVector(w_node, vptr, localId, iArr, k)
+              t1.lap_start()
+              JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId,
+                        arr.get(), arr.get_active_length(), DTYPE.INT,
+                        configs.rawsend_enabled)
+              t1.lap_stop()
             }
             case DTYPE.LONG | DTYPE.DATETIME | DTYPE.TIMESTAMP => {
-              val lArr = new Array[Long](k)
-              for (j <- 0 until k) lArr(j) = jPlatform.getLong(obj(j), off(j), ncol, i)
-              t0.show("buffer to long-array: ")
-              JNISupport.loadFrovedisWorkerLongVector(w_node, vptr, localId, lArr, k)
+              t1.lap_start()
+              JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId,
+                        arr.get(), arr.get_active_length(), DTYPE.LONG,
+                        configs.rawsend_enabled)
+              t1.lap_stop()
             }
             case DTYPE.FLOAT => {
-              val fArr = new Array[Float](k)
-              for (j <- 0 until k) fArr(j) = jPlatform.getFloat(obj(j), off(j), ncol, i)
-              t0.show("buffer to float-array: ")
-              JNISupport.loadFrovedisWorkerFloatVector(w_node, vptr, localId, fArr, k)
+              t1.lap_start()
+              JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId,
+                        arr.get(), arr.get_active_length(), DTYPE.FLOAT,
+                        configs.rawsend_enabled)
+              t1.lap_stop()
             }
             case DTYPE.DOUBLE => {
-              val dArr = new Array[Double](k)
-              for (j <- 0 until k) dArr(j) = jPlatform.getDouble(obj(j), off(j), ncol, i)
-              t0.show("buffer to double-array: ")
-              JNISupport.loadFrovedisWorkerDoubleVector(w_node, vptr, localId, dArr, k)
+              t1.lap_start()
+              JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId,
+                        arr.get(), arr.get_active_length(), DTYPE.DOUBLE,
+                        configs.rawsend_enabled)
+              t1.lap_stop()
             }
-            case DTYPE.STRING => {
-              val sArr = new Array[String](k)
-              for (j <- 0 until k) sArr(j) = jPlatform.getString(obj(j), off(j), ncol, i)
-              t0.show("buffer to string-array: ")
-              JNISupport.loadFrovedisWorkerStringVector(w_node, vptr, localId, sArr, k)
+            case DTYPE.STRING   => {
+              throw new IllegalArgumentException(
+              "[transfer_unsafe_row] 'String' type is not supported!")
             }
             case DTYPE.WORDS => {
-              val szArr = new Array[Int](k)
-              for (j <- 0 until k) szArr(j) = jPlatform.getStringSize(obj(j), off(j), ncol, i)
-              val cArr = getStringsAsFlattenCharArray(obj, off, ncol, i, szArr)
-              t0.show("buffer to array of char-size pair (words): ")
-              val next_row_offset = row_offset + 1 // size is stored in next row of vptrs matrix
+              val next_row_offset = row_offset + 1
               val sptr = vptrs(next_row_offset * nproc + destId)
-              JNISupport.loadFrovedisWorkerCharSizePair(w_node, vptr, sptr, localId,
-                                                        cArr, szArr, cArr.size, k)
+              val arr2 = out(next_row_offset).getFlattenMemory()
+              t1.lap_start()
+              JNISupport.loadFrovedisWorkerByteSizePair2(
+                w_node, vptr, sptr, localId,
+                arr.get(), arr2.get(),
+                arr.get_active_length(), arr2.get_active_length(),
+                configs.rawsend_enabled)
+              t1.lap_stop()
+              out(next_row_offset).freeMemory()
             }
             case _ => throw new IllegalArgumentException(
-                      "[optimized_load] Unsupported type: " + TMAPPER.id2string(types(i)))
+                      "[transfer_unsafe_row] Unsupported type: " + TMAPPER.id2string(types(i)))
           }
+          out(row_offset).freeMemory()
           val err = JNISupport.checkServerException()
           if (err != "") throw new java.rmi.ServerException(err)
-          t0.show("spark-worker to frovedis-rank local data copy: ")
         }
+        t1.show_lap("[partition: " + index + "] spark-to-frovedis data transfer: ")
         Array(true).toIterator
     })
     ret.count // for action
   }
 
 }
-
-

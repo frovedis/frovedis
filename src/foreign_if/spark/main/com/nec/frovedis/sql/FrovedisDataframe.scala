@@ -278,6 +278,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   def optimized_load (df: DataFrame) : this.type = {
     release()
 
+    val t1 = new TimeSpent(Level.DEBUG)
     var orig_timezone = TimeZone.getDefault().getID
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
 
@@ -296,6 +297,7 @@ class FrovedisDataFrame extends java.io.Serializable {
             case _ => sp_col(x)
           })
       converted_df = df.select(new_columns:_*)
+      t1.show("[optimized_load] date/time conversion: ")
     }
 
     TimeZone.setDefault(TimeZone.getTimeZone(orig_timezone))
@@ -303,6 +305,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     var rddData: RDD[InternalRow] = null
     if (need_conversion) rddData = converted_df.queryExecution.toRdd
     else rddData = df.queryExecution.toRdd
+    t1.show("[optimized_load] toRdd: ")
 
     val name_type_pair = df.dtypes
     val cols = name_type_pair.map(_._1)
@@ -314,6 +317,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       offset(i) = i + word_count
       word_count += (if (types(i) == DTYPE.WORDS) 1 else 0)
     }
+    t1.show("[optimized_load] initialization: ")
     val proxy = sDFTransfer.load_rows(rddData, cols, types, 
                                       word_count, offset)
 
@@ -327,6 +331,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       JNISupport.releaseFrovedisDataframe(fs.master_node, proxy)
       val info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)
+      t1.show("[optimized_load] copy column: ")
     }
     this.code = df.hashCode
     this
@@ -335,6 +340,7 @@ class FrovedisDataFrame extends java.io.Serializable {
   def columnar_load (df: DataFrame, tcols: Array[String],
                      columnar: RDD[ColumnarBatch]): this.type = {
     release()
+    val t1 = new TimeSpent(Level.DEBUG)
     val dfcols = df.columns
     val name_type_map = df.dtypes.toMap
     val cols = tcols
@@ -348,6 +354,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       offset(i) = i + word_count
       word_count += (if (types(i) == DTYPE.WORDS) 1 else 0)
     }
+    t1.show("[columnar_load] initialization: ")
     val proxy = sDFTransfer.load_columnar(columnar, cols, colIds, types,
                                           word_count, offset)
     if (this.fdata == -1) { // empty case
@@ -360,6 +367,7 @@ class FrovedisDataFrame extends java.io.Serializable {
       JNISupport.releaseFrovedisDataframe(fs.master_node, proxy)
       val info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)
+      t1.show("[columnar_load] copy column: ")
     }
     this.code = df.hashCode
     this
