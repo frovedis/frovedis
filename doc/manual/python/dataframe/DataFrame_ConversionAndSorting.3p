@@ -26,7 +26,7 @@ DataFrame or a Series instance.
 .PD
 It creates a new Frovedis DataFrame after suitable conversion.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -53,7 +53,7 @@ print(type(fdf.DataFrame.asDF(pd_df)))
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -65,7 +65,7 @@ display\ type\ after\ conversion\ to\ frovedis\ dataframe
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -84,7 +84,7 @@ print(type(fdf.DataFrame.asDF(sdf1)))
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -140,7 +140,14 @@ boolean columns.
 It cast an entire Frovedis DataFrame or selected columns of Frovedis
 DataFrame to the specified dtype.
 .PP
-For example:
+The parameter: "errors" is simply kept in to make the interface uniform
+to the pandas DataFrame.astype().
+.PD 0
+.P
+.PD
+This is not used anywhere within the frovedis implementation.
+.PP
+For example,
 .IP
 .nf
 \f[C]
@@ -169,7 +176,7 @@ print(fd_df.astype({\[aq]Age\[aq]:\[aq]int32\[aq]}).dtypes)
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -187,7 +194,7 @@ dtype:\ object
 \f[]
 .fi
 .PP
-For example :
+For example,
 .IP
 .nf
 \f[C]
@@ -211,7 +218,7 @@ print(fd_df2.dtypes)
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -225,7 +232,7 @@ dtype:\ object
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -260,7 +267,7 @@ print(fd_df.astype({\[aq]isMale\[aq]:\[aq]bool\[aq]},\ check_bool_like_string\ =
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -319,7 +326,7 @@ False).
 It creates a deep copy of the Frovedis DataFrame object's indices and
 data.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -357,7 +364,7 @@ fd_df_copy.show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -471,7 +478,7 @@ new Frovedis DataFrame object.
 .PD
 It is used to remove missing values from the Frovedis DataFrame.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -498,7 +505,7 @@ fd_df.dropna().show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -514,7 +521,7 @@ index\ \ \ name\ \ \ \ toy\ \ \ \ \ \ \ \ \ \ \ \ \ born
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -540,7 +547,7 @@ fd_df.dropna(axis=1)
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -557,7 +564,7 @@ index\ \ \ name
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -583,7 +590,7 @@ fd_df.dropna(how=\[aq]all\[aq]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -599,7 +606,7 @@ index\ \ \ name\ \ \ \ \ \ \ \ \ \ \ \ toy\ \ \ \ \ \ \ \ \ \ \ \ \ born
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -625,7 +632,7 @@ fd_df.dropna(thresh=2).show()
 \f[]
 .fi
 .PP
-Output:
+Output
 .IP
 .nf
 \f[C]
@@ -644,7 +651,7 @@ index\ \ \ name\ \ \ \ \ \ \ \ \ \ \ \ toy\ \ \ \ \ \ \ \ \ \ \ \ \ born
 \f[B]NOTE: Since row 0 had 2 NaN values, so it was dropped, but other
 rows are not dropped.\f[]
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -670,7 +677,7 @@ fd_df.dropna(subset=[1,\ 2],\ axis\ =\ 1).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -687,7 +694,7 @@ index\ \ \ name\ \ \ \ \ \ \ \ \ \ \ \ toy
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -713,7 +720,7 @@ fd_df.show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -799,7 +806,14 @@ new Frovedis DataFrame object.
 It replaces NA/NaN values with the specified value provided in
 \[aq]value\[aq] parameter in the Frovedis DataFrame.
 .PP
-For example:
+The parameters: "method", "limit" and "downcast" are simply kept in to
+make the interface uniform to the pandas DataFrame.fillna().
+.PD 0
+.P
+.PD
+This is not used anywhere within the frovedis implementation.
+.PP
+For example,
 .IP
 .nf
 \f[C]
@@ -823,7 +837,7 @@ fd_df.fillna(0).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -841,7 +855,7 @@ index\ \ \ A\ \ \ \ \ \ \ B\ \ \ \ \ \ \ C\ \ \ \ \ \ \ D
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -867,7 +881,7 @@ fd_df.show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -911,7 +925,7 @@ Everything else gets mapped to False values.
 Characters such as empty strings \[aq]\[aq] or numpy.inf are not
 considered NA values.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -941,7 +955,7 @@ fd_df.isna().show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -961,7 +975,7 @@ index\ \ \ Ename\ \ \ Age\ \ \ \ \ Country\ isMale
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -982,7 +996,7 @@ fd_df.isna().show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1022,7 +1036,7 @@ Everything else gets mapped to False values.
 Characters such as empty strings \[aq]\[aq] or numpy.inf are not
 considered NA values.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -1051,7 +1065,7 @@ fd_df.isnull().show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1071,7 +1085,7 @@ index\ \ \ Ename\ \ \ Age\ \ \ \ \ Country\ isMale
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -1092,7 +1106,7 @@ fd_df.isnull().show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1117,7 +1131,195 @@ corresponding to each of the Frovedis DataFrame value depending of
 whether it is a valid NaN (True i.e.
 1) value or not (False i.e.
 0).
-.SS 8. nsort(n, columns, keep=\[aq]first\[aq], is_desc=False)
+.SS 8. groupby(by = None, axis = 0, level = None, as_index = True, sort
+= True, group_keys = True, squeeze = False, observed = False, dropna =
+True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]by\f[]\f[]: It accepts a string object or an iterable to
+determine the groups on which groupby operation will be applied.
+Currently, gropuby operation will be applied along the index levels.
+It must be provided, otherwise it will raise an exception.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer as parameter.
+It is used to decide whether to perform groupby operation along the
+indices or by column labels.
+(Default: 0)
+.PD 0
+.P
+.PD
+\f[B]Currently, axis = 0 is supported by this method.\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]as_index\f[]\f[]: This is an unused parameter.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[I]\f[B]sort\f[]\f[]: This is an unused parameter.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[I]\f[B]group_keys\f[]\f[]: This is an unused parameter.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[I]\f[B]squeeze\f[]\f[]: This is an unused parameter.
+(Default: False)
+.PD 0
+.P
+.PD
+\f[I]\f[B]observed\f[]\f[]: This is an unused parameter.
+(Default: False)
+.PD 0
+.P
+.PD
+\f[I]\f[B]dropna\f[]\f[]: It accepts a boolean parameter.
+It is used to remove missing values (NaNs) from the frovedis DataFrame
+during groupby operation.
+Currently, it removes missing values along the index levels.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method can be used to group large amounts of data and compute
+operations on these groups.
+.PP
+The parameters: "level", "as_index", "sort", "group_keys", "squeeze" and
+"observed" is simply kept in to make the interface uniform to the pandas
+DataFrame.groupby().
+.PD 0
+.P
+.PD
+This is not used anywhere within the frovedis implementation.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:\ [\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:\ [27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:\ [\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:\ [\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ np.nan,\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ np.nan],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\ \ \ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ Kannuaj\ \ \ \ NULL\ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ Kanpur\ \ \ \ \ NULL\ \ \ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ groupby()\ demo
+fdf1.groupby(\[aq]Qualification\[aq])
+\f[]
+.fi
+.PP
+This will perform groupby operation on the dataframe over
+\f[B]\[aq]Qualification\[aq]\f[] column data.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ groupby()\ demo\ to\ perform\ aggregation\ on\ resultant\ grouped\ dataframe
+#\ Also,\ dropna\ =\ True\ by\ default
+fdf1.groupby(\[aq]Qualification\[aq],\ dropna\ =\ True).agg({\[aq]Score\[aq]:\ \[aq]count\[aq]})
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ count_Score
+B.Tech\ \ 3
+Phd\ \ \ \ \ 2
+\f[]
+.fi
+.PP
+Here, it excludes \f[B]NULL\f[] group since missing values were dropped
+during groupby().
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ groupby()\ demo\ to\ perform\ aggregation\ on\ resultant\ grouped\ dataframe
+#\ Also,\ dropna\ =\ False
+fdf1.groupby(\[aq]Qualification\[aq],\ dropna\ =\ False).agg({\[aq]Score\[aq]:\ \[aq]count\[aq]})
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification\ \ \ count_Score
+B.Tech\ \ 3
+Phd\ \ \ \ \ 2
+NULL\ \ \ \ 1
+\f[]
+.fi
+.PP
+Here, it includes \f[B]NULL\f[] as new group since missing values were
+not dropped during groupby().
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a FrovedisGroupedDataFrame instance.
+.SS 9. nsort(n, columns, keep=\[aq]first\[aq], is_desc=False)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -1168,7 +1370,7 @@ columns in ascending or descending order.
 The columns that are not specified are returned as well, but not used
 for ordering.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -1197,7 +1399,7 @@ fd_df.nsort(3,\ \[aq]population\[aq]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1235,7 +1437,7 @@ Anguilla\ \ 11300\ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -1263,7 +1465,7 @@ fd_df.nsort(3,\ \[aq]population\[aq],\ keep=\[aq]last\[aq]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1285,7 +1487,7 @@ Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ \ NR
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -1313,7 +1515,7 @@ fd_df.nsort(3,\ \[aq]population\[aq],\ keep=\[aq]all\[aq]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1335,7 +1537,7 @@ Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -1363,7 +1565,7 @@ fd_df.nsort(3,\ [\[aq]population\[aq],\ \[aq]GDP\[aq]]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1391,7 +1593,7 @@ Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ \ AI
 .PD
 It returns a Frovedis DataFrame object with \f[B]n\f[] rows ordered by
 the specified columns in ascending or descending order.
-.SS 9. nlargest(n, columns, keep = \[aq]first\[aq])
+.SS 10. nlargest(n, columns, keep = \[aq]first\[aq])
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -1439,7 +1641,7 @@ for ordering.
 This method is equivalent to DataFrame.sort_values(columns, ascending =
 False).head(n), but it is more efficient.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -1468,7 +1670,7 @@ fd_df.nlargest(3,\ \[aq]population\[aq]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1490,7 +1692,7 @@ Malta\ \ \ \ \ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 12011\ \ \ MT
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -1518,7 +1720,7 @@ fd_df.nlargest(3,\ \[aq]population\[aq],\ keep=\[aq]last\[aq]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1540,7 +1742,7 @@ Brunei\ \ \-\ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 12128\ \ \ BN
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -1568,7 +1770,7 @@ fdf.nlargest(3,\ \[aq]population\[aq],\ keep=\[aq]all\[aq]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1592,7 +1794,7 @@ Brunei\ \ \ \ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 12128\ \ \ BN
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -1620,7 +1822,7 @@ fd_df.nlargest(3,\ [\[aq]population\[aq],\ \[aq]GDP\[aq]]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1648,7 +1850,7 @@ Brunei\ \ \ \ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 12128\ \ \ BN
 .PD
 It returns a Frovedis DataFrame object with \f[B]n\f[] rows ordered by
 the specified columns in descending order.
-.SS 10. nsmallest(n, columns, keep = \[aq]first\[aq])
+.SS 11. nsmallest(n, columns, keep = \[aq]first\[aq])
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -1699,7 +1901,7 @@ for ordering.
 This method is equivalent to DataFrame.sort_values(columns,
 ascending=True).head(n), but it is more efficient.
 .PP
-For example:
+For example
 .IP
 .nf
 \f[C]
@@ -1727,7 +1929,7 @@ fd_df.nsmallest(3,\ \[aq]population\[aq]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1749,7 +1951,7 @@ Anguilla\ \ \ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -1777,7 +1979,7 @@ fd_df.nsmallest(3,\ \[aq]population\[aq],\ keep=\[aq]last\[aq]).show()
 \f[]
 .fi
 .PP
-Output:
+Output
 .IP
 .nf
 \f[C]
@@ -1799,7 +2001,7 @@ Nauru\ \ \ \ \ \ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ \ \ 182\ \ \ \ \ NR
 \f[]
 .fi
 .PP
-For example:
+For example
 .IP
 .nf
 \f[C]
@@ -1828,7 +2030,7 @@ fd_df.nsmallest(3,\ \[aq]population\[aq],\ keep=\[aq]all\[aq]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1850,7 +2052,7 @@ Anguilla\ \ \ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -1880,7 +2082,7 @@ fd_df.nsmallest(3,\ [\[aq]population\[aq],\ \[aq]GDP\[aq]])
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -1908,7 +2110,7 @@ Anguilla\ \ \ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
 .PD
 It returns a Frovedis DataFrame object with \f[B]n\f[] rows ordered by
 the specified columns in ascending order.
-.SS 11. sort(columns = None, axis = 0, ascending = True, inplace =
+.SS 12. sort(columns = None, axis = 0, ascending = True, inplace =
 False, kind = \[aq]radixsort\[aq], na_position = \[aq]last\[aq],
 **kwargs)
 .PP
@@ -1996,7 +2198,7 @@ Currently this is not supported.
 It is used to sort the values in the specified column(s) along axis = 0
 or axis = \[aq]index\[aq] in the Frovedis DataFrame.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2021,7 +2223,7 @@ fd_df.sort(\[aq]col1\[aq]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2043,7 +2245,7 @@ index\ \ \ col1\ \ \ \ col2\ \ \ \ col3\ \ \ \ col4
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2068,7 +2270,7 @@ fd_df.sort([\[aq]col1\[aq],\ \[aq]col2\[aq]]).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2095,7 +2297,7 @@ NOTE: In the above example, in case of multiple columns sorting,
 considered for sorting in case of duplicate entries present in
 \[aq]col1\[aq].
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2120,7 +2322,7 @@ fd_df.sort(\[aq]col1\[aq],\ ascending\ =\ False).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2147,7 +2349,7 @@ index\ \ \ col1\ \ \ \ col2\ \ \ \ col3\ \ \ \ col4
 .P
 .PD
 It returns a new Frovedis DataFrame with sorted values.
-.SS 12. sort_index(axis = 0, ascending = True, inplace = False, kind =
+.SS 13. sort_index(axis = 0, ascending = True, inplace = False, kind =
 \[aq]quicksort\[aq], na_position = \[aq]last\[aq])
 .PP
 \f[B]Parameters\f[]
@@ -2210,7 +2412,7 @@ of sorting techniques are ignored internally along with a warning.\f[]
 \f[B]NOTE: Currently Frovedis DataFrame doesn\[aq]t support
 MultiIndex\f[]
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2234,7 +2436,7 @@ fd_df.sort_index().show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2254,7 +2456,7 @@ index\ \ \ A
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2278,7 +2480,7 @@ fd_df.sort_index(ascending=False)
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2303,7 +2505,7 @@ index\ \ \ A
 .P
 .PD
 It returns a new Frovedis DataFrame sorted by the labels.
-.SS 13. sort_values(by, axis = 0, ascending = True, inplace = False,
+.SS 14. sort_values(by, axis = 0, ascending = True, inplace = False,
 kind = \[aq]radixsort\[aq], na_position = \[aq]last\[aq])
 .PP
 \f[B]Parameters\f[]
@@ -2377,7 +2579,7 @@ Currently it only supports na_position = \[aq]last\[aq].
 .PD
 To sort the DataFrame by the values along axis = 0 or \[aq]index\[aq].
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2405,7 +2607,7 @@ fd_df.sort_values(by=[\[aq]col1\[aq]]).show()\ #Sort\ by\ col1
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2427,7 +2629,7 @@ index\ \ \ col1\ \ \ \ col2\ \ \ \ col3\ \ \ \ col4
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2454,7 +2656,7 @@ fd_df.sort_values(by=[\[aq]col1\[aq],\ \[aq]col2\[aq]],\ ascending\ =\ [True,\ T
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2476,7 +2678,7 @@ index\ \ \ col1\ \ \ \ col2\ \ \ \ col3\ \ \ \ col4
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2504,7 +2706,7 @@ fd_df.sort_values(by=\[aq]col1\[aq],\ ascending=False).show()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2531,7 +2733,7 @@ index\ \ \ col1\ \ \ \ col2\ \ \ \ col3\ \ \ \ col4
 .P
 .PD
 It returns a new Frovedis DataFrame with sorted values.
-.SS 14. to_dict(orient = "dict", into = dict)
+.SS 15. to_dict(orient = "dict", into = dict)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -2564,7 +2766,7 @@ NOTE: Currently it only supports OrderedDict as return type.
 .PD
 It is used to convert the Frovedis DataFrame to a dictionary.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2588,7 +2790,7 @@ print(fd_df.to_dict())
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2600,7 +2802,7 @@ OrderedDict([(\[aq]col1\[aq],\ {\[aq]row1\[aq]:\ 1,\ \[aq]row2\[aq]:\ 2}),\ (\[a
 \f[]
 .fi
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2624,7 +2826,7 @@ print(fd_df.to_dict(orient\ =\ \[aq]list\[aq]))
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2642,7 +2844,7 @@ OrderedDict([(\[aq]index\[aq],\ array([\[aq]row1\[aq],\ \[aq]row2\[aq]],\ dtype=
 .PD
 It returns a dictionary representing the Frovedis DataFrame.
 The resulting transformation depends on the \[aq]orient\[aq] parameter.
-.SS 15. to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)
+.SS 16. to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -2667,7 +2869,7 @@ Currently only float32 and float64 types are supported.
 .PD
 This method converts a frovedis dataframe to FrovedisColmajorMatrix.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2689,7 +2891,7 @@ col_mat.debug_print()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2714,7 +2916,7 @@ node\ =\ 0,\ local_num_row\ =\ 4,\ local_num_col\ =\ 2,\ val\ =\ 10\ 12\ 13\ 15\
 .PD
 It returns a FrovedisColmajorMatrix instance after converting the
 original Frovedis DataFrame.
-.SS 16. to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32,
+.SS 17. to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32,
 need_info = False)
 .PP
 \f[B]Parameters\f[]
@@ -2759,7 +2961,7 @@ type \[aq]df_to_sparse_info\[aq].
 .PD
 It converts a Frovedis DataFrame object to FrovedisCRSMatrix instance.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2789,7 +2991,7 @@ print(mat_t)
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2824,7 +3026,7 @@ off\ :\ 0\ 3\ 6\ 9\ 12
 .PD
 It returns a FrovedisCRSMatrix instance after converting the original
 Frovedis DataFrame.
-.SS 17. to_frovedis_crs_matrix_using_info(info, dtype = np.float32)
+.SS 18. to_frovedis_crs_matrix_using_info(info, dtype = np.float32)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -2850,7 +3052,7 @@ Currently only float32 and float64 types are supported.
 It converts a frovedis dataframe to FrovedisCRSMatrix provided an info
 object of df_to_sparse_info class.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2872,7 +3074,7 @@ crs_mat2.debug_print()
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2902,7 +3104,7 @@ off\ :\ 0\ 3\ 6\ 9\ 12
 .P
 .PD
 It returns a FrovedisCRSMatrix after converting Frovedis DataFrame.
-.SS 18. to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)
+.SS 19. to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -2928,7 +3130,7 @@ Currently only float32 and float64 types are supported.
 This method is used to convert a Frovedis DataFrame into
 FrovedisRowmajorMatrix instance.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -2953,7 +3155,7 @@ print(type(row_mat))
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -2977,7 +3179,7 @@ node\ =\ 0,\ local_num_row\ =\ 4,\ local_num_col\ =\ 2,\ val\ =\ 10\ 10.23\ 12\ 
 .P
 .PD
 It returns a FrovedisRowmajorMatrix instance after suitable conversion.
-.SS 19. to_numpy(dtype = None, copy = False, na_value = None)
+.SS 20. to_numpy(dtype = None, copy = False, na_value = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -3008,7 +3210,14 @@ When it is None (not specified explicitly), it will be set as double
 .PD
 This method is used to convert a frovedis dataframe into a numpy array.
 .PP
-For example:
+The parameters: "copy" and "na_value" are simply kept in to make the
+interface uniform to the pandas DataFrame.to_numpy().
+.PD 0
+.P
+.PD
+This is not used anywhere within the frovedis implementation.
+.PP
+For example,
 .IP
 .nf
 \f[C]
@@ -3044,7 +3253,7 @@ print(fd_df.to_numpy())
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -3073,7 +3282,7 @@ index\ \ \ Ename\ \ \ Age\ \ \ \ \ Country\ isMale
 .PD
 It returns a numpy ndarray that represents a Frovedis DataFrame.
 It has shape (nRows , nCols).
-.SS 20. to_pandas_dataframe()
+.SS 21. to_pandas_dataframe()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -3082,7 +3291,7 @@ It has shape (nRows , nCols).
 It converts a Frovedis DataFrame instance into a pandas dataframe
 instance.
 .PP
-For example:
+For example,
 .IP
 .nf
 \f[C]
@@ -3118,7 +3327,7 @@ print(fd_df.to_pandas_dataframe())
 \f[]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -3133,8 +3342,7 @@ index\ \ \ Ename\ \ \ Age\ \ \ \ \ Country\ isMale
 
 <class\ \[aq]pandas.core.frame.DataFrame\[aq]>
 
-\ \ \ \ \ \ \ \ \ Ename\ \ Age\ \ Country\ \ isMale
-index
+index\ \ Ename\ \ Age\ \ Country\ \ isMale
 0\ \ \ \ \ \ Michael\ \ \ 29\ \ \ \ \ \ USA\ \ \ False
 1\ \ \ \ \ \ \ \ \ Andy\ \ \ 30\ \ England\ \ \ False
 2\ \ \ \ \ \ \ Tanaka\ \ \ 27\ \ \ \ Japan\ \ \ False
@@ -3148,3 +3356,7 @@ index
 .P
 .PD
 It returns a pandas dataframe instance after suitable conversion.
+.SH SEE ALSO
+.PP
+DataFrame_Introduction, DataFrame_ConversionAndSorting,
+DataFrame_SelectionAndCombinations, DataFrame_BinaryOperators

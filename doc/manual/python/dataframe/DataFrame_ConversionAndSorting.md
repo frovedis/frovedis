@@ -18,7 +18,7 @@ __Parameters__
 __Purpose__  
 It creates a new Frovedis DataFrame after suitable conversion.   
 
-For example:
+For example,  
 
 	# example to convert a pandas dataframe to frovedis dataframe object
     
@@ -41,7 +41,7 @@ For example:
     print("display type after conversion to frovedis dataframe")
 	print(type(fdf.DataFrame.asDF(pd_df)))
 
-Output,
+Output  
 
     display the pandas dataframe type
     <class 'pandas.core.frame.DataFrame'>
@@ -49,7 +49,7 @@ Output,
     display type after conversion to frovedis dataframe
 	<class 'frovedis.dataframe.df.DataFrame'>
 
-For example:      
+For example,  
     
     # example to convert a Series object to Frovedis DataFrame object
     
@@ -64,7 +64,7 @@ For example:
     print("display type after conversion to frovedis dataframe")5
 	print(type(fdf.DataFrame.asDF(sdf1)))
     
-Output,
+Output  
     
     display series type
     <class 'pandas.core.series.Series'>
@@ -87,7 +87,10 @@ __Parameters__
 __Purpose__  
 It cast an entire Frovedis DataFrame or selected columns of Frovedis DataFrame to the specified dtype.  
 
-For example:
+The parameter: "errors" is simply kept in to make the interface uniform to the pandas DataFrame.astype().  
+This is not used anywhere within the frovedis implementation.  
+
+For example,  
 
     # example of using astype on a particular column
     
@@ -112,7 +115,7 @@ For example:
     # display the datatype of object after conversion of 'Age' column
 	print(fd_df.astype({'Age':'int32'}).dtypes)
     
-Output,
+Output  
 
 	Ename      object
 	Age         int64
@@ -126,7 +129,7 @@ Output,
 	isMale      int32
 	dtype: object
 
-For example : 
+For example,  
 
 	# example of using astype on object as a whole
     
@@ -146,7 +149,7 @@ For example :
     # display dataframe after conversion
 	print(fd_df2.dtypes)
     
-Output,
+Output  
 
 	col1    int64
 	col2    int64
@@ -156,7 +159,7 @@ Output,
 	col2    int32
 	dtype: object
 
-For example:
+For example,  
 
     # example with parameter 'check_bool_like_string'
     
@@ -187,7 +190,7 @@ For example:
     # display the datatype
     print(fd_df.astype({'isMale':'bool'}, check_bool_like_string = True).dtypes)
     
-Output,
+Output  
 
 	index   Ename   Age     Country isMale
     0       Michael 29      USA     F
@@ -227,7 +230,7 @@ __Parameters__
 __Purpose__  
 It creates a deep copy of the Frovedis DataFrame object’s indices and data.  
 
-For example:
+For example,  
 
 	# example to create a deep copy and changes on copy doesn't affect original object
     
@@ -261,7 +264,7 @@ For example:
     print('displaying copied dataframe object')
 	fd_df_copy.show()
     
-Output,
+Output  
 
     displaying original dataframe object
 	index   Ename   Age     Country isMale
@@ -318,7 +321,7 @@ For example, if you are dropping rows, then these would be a list of columns. (D
 __Purpose__  
 It is used to remove missing values from the Frovedis DataFrame.  
 
-For example:
+For example,  
 
 	# example of using dropna with default values
     
@@ -341,7 +344,7 @@ For example:
 	print("After dropping nan values")
 	fd_df.dropna().show()
     
-Output,
+Output  
 
 	Before dropping nan values
 	index   name            toy             born
@@ -353,7 +356,7 @@ Output,
 	index   name    toy             born
 	1       Batman  Batmobile       1940-04-25
 
-For example:
+For example,  
 
     # example of using dropna along axis = 1
     
@@ -375,7 +378,7 @@ For example:
 	# drop the columns where at least one nan value is present
 	fd_df.dropna(axis=1)
     
-Output,
+Output  
 	
 	Before dropping nan values
 	index   name            toy             born
@@ -388,7 +391,7 @@ Output,
 	1       Batman
 	2       Catwoman
 
-For example:
+For example,  
 
 	# example of using dropna with parameter 'how' = 'all'
     
@@ -410,7 +413,7 @@ For example:
     # drop the rows where all elements are missing.
 	fd_df.dropna(how='all').show()
     
-Output,
+Output  
 
 	Before dropping nan values
 	index   name            toy             born
@@ -422,7 +425,7 @@ Output,
 	1       Batman          Batmobile       1940-04-25
 	2       Catwoman        Bullwhip        NULL
 
-For example:
+For example,  
 
     # example of using drop with parameter 'thresh'
     
@@ -444,7 +447,7 @@ For example:
 	# to keep only rows with at least 2 non-NA values.
 	fd_df.dropna(thresh=2).show()
 
-Output:
+Output  
 
 	Before dropping nan values
 	index   name            toy             born
@@ -458,7 +461,7 @@ Output:
 
 **NOTE: Since row 0 had 2 NaN values, so it was dropped, but other rows are not dropped.**
     
-For example:
+For example,  
 
     # example of using dropna with parameter 'subset'
     
@@ -480,7 +483,7 @@ For example:
 	# to drop missing values only from specified columns
 	fd_df.dropna(subset=[1, 2], axis = 1).show()
     
-Output,
+Output  
     
     Before dropping nan values
 	index   name            toy             born
@@ -493,7 +496,7 @@ Output,
     1       Batman          Batmobile
     2       Catwoman        Bullwhip
 
-For example:
+For example,  
 
     # example of using dropna with parameter 'inplace' = True
     
@@ -515,7 +518,7 @@ For example:
 	fd_df.dropna(inplace=True)
 	fd_df.show()
     
-Output,
+Output  
 	
 	Before dropping nan values
 	index   name            toy     born
@@ -546,7 +549,10 @@ When it is None (not specified explicitly), it must be NaN value or numeric, non
 __Purpose__  
 It replaces NA/NaN values with the specified value provided in 'value' parameter in the Frovedis DataFrame.  
 
-For example:
+The parameters: "method", "limit" and "downcast" are simply kept in to make the interface uniform to the pandas DataFrame.fillna().  
+This is not used anywhere within the frovedis implementation.  
+
+For example,  
 
 	# example of using fillna to replace NaN with 0 and other default parameters
     
@@ -566,7 +572,7 @@ For example:
     # replace all NaN elements with 0s.
 	fd_df.fillna(0).show()
     
-Output,
+Output  
 
 	index   A       B       C       D
 	0       NULL    2       NULL    0
@@ -580,7 +586,7 @@ Output,
 	2       0       0       0       5
 	3       0       3       0       4
 
-For example:
+For example,  
 
 	# example to use fillna with negative value and inplace = True
     
@@ -602,7 +608,7 @@ For example:
     # display after modifying the original object
     fd_df.show()
     
-Output,
+Output  
 
 	index   A       B       C       D
 	0       NULL    2       NULL    0
@@ -628,7 +634,7 @@ This method is used to detect missing values in the Frovedis DataFrame.
 
 It returns a boolean same-sized object indicating if the values are NA. NA values, such as None or numpy.NaN, gets mapped to True values. Everything else gets mapped to False values. Characters such as empty strings '' or numpy.inf are not considered NA values.  
 
-For example:
+For example,  
 
 	# example of using isna() on a pandas DataFrame converted to Frovedis DataFrame
     
@@ -654,7 +660,7 @@ For example:
 	# to display fields which are only NA
 	fd_df.isna().show()
     
-Output,
+Output  
 
 	index   Ename   Age     Country isMale
 	0       Michael 29      USA     0
@@ -670,7 +676,7 @@ Output,
 	3       0       0       1       0
 	4       0       0       0       0
 
-For example:
+For example,  
 
     # example of using isna() on a Series object converted to Frovedis DataFrame object
     
@@ -687,7 +693,7 @@ For example:
     # display na values mapped to corresponding dataframe
 	fd_df.isna().show()
     
-Output,
+Output  
 
 	index   0
 	0       5
@@ -710,7 +716,7 @@ This method is used to detect missing values in the Frovedis DataFrame. It is an
 
 It returns a boolean same-sized object indicating if the values are NA. NA values, such as None or numpy.NaN, gets mapped to True values. Everything else gets mapped to False values. Characters such as empty strings '' or numpy.inf are not considered NA values.  
 
-For example:
+For example,  
 
 	# example to use isnull
     
@@ -735,7 +741,7 @@ For example:
     # displya na values mapped to corresponding dataframe
 	fd_df.isnull().show()
     
-Output,
+Output  
 
 	index   Ename   Age     Country isMale
 	0       Michael 29      USA     0
@@ -751,7 +757,7 @@ Output,
 	3       0       0       1       0
 	4       0       0       0       0
 
-For example:
+For example,  
 	
 	# example to use isnull on a frovedis dataframe converted from Series object
     
@@ -768,7 +774,7 @@ For example:
     # display na values mapped to corresponding dataframe
 	fd_df.isnull().show()
     
-Output,
+Output  
 
 	index   0
 	0       5
@@ -783,7 +789,107 @@ Output,
 __Return Value__  
 It returns a Frovedis DataFrame having boolean values (0, 1) corresponding to each of the Frovedis DataFrame value depending of whether it is a valid NaN (True i.e. 1) value or not (False i.e. 0).  
 
-### 8. nsort(n, columns, keep='first', is_desc=False)  
+### 8. groupby(by = None, axis = 0, level = None, as_index = True, sort = True, group_keys = True, squeeze = False, observed = False, dropna = True)  
+
+__Parameters__  
+**_by_**: It accepts a string object or an iterable to determine the groups on which groupby operation will 
+be applied. Currently, gropuby operation will be applied along the index levels. It must be provided, otherwise 
+it will raise an exception. (Default: None)  
+**_axis_**: It accepts an integer as parameter. It is used to decide whether to perform groupby operation along 
+the indices or by column labels. (Default: 0)  
+**Currently, axis = 0 is supported by this method.**  
+**_level_**: This is an unused parameter. (Default: None)  
+_**as\_index**_: This is an unused parameter. (Default: True)  
+_**sort**_: This is an unused parameter. (Default: True)  
+_**group\_keys**_: This is an unused parameter. (Default: True)  
+_**squeeze**_: This is an unused parameter. (Default: False)  
+_**observed**_: This is an unused parameter. (Default: False)  
+_**dropna**_: It accepts a boolean parameter. It is used to remove missing values (NaNs) from the frovedis 
+DataFrame during groupby operation. Currently, it removes missing values along the index levels. (Default: True)  
+
+__Purpose__  
+This method can be used to group large amounts of data and compute operations on these groups.  
+
+The parameters: "level", "as_index", "sort", "group_keys", "squeeze" and "observed" is simply kept in to make the interface uniform to the pandas DataFrame.groupby().  
+This is not used anywhere within the frovedis implementation.  
+
+For example,  
+
+    import pandas as pd
+    import numpy as np
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    peopleDF = {
+                'Name': ['Jai', 'Anuj', 'Jai', 'Princi', 'Gaurav', 'Anuj', 'Princi', 'Abhi'],
+                'Age': [27, 24, 22, 32, 33, 36, 27, 32],
+                'City': ['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad', 
+                         'Kanpur', 'Kanpur', 'Kanpur'],
+                'Qualification': ['B.Tech', 'Phd', 'B.Tech', np.nan, 'Phd', 'B.Tech', 'Phd', np.nan],
+                'Score': [23, 34, 35, 45, np.nan, 50, 52, np.nan]
+               }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(peopleDF)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+        
+Output  
+
+    index   Name    Age   City       Qualification  Score
+    0       Jai     27    Nagpur     B.Tech         23
+    1       Anuj    24    Kanpur     Phd            34
+    2       Jai     22    Allahabad  B.Tech         35
+    3       Princi  32    Kannuaj    NULL           45
+    4       Gaurav  33    Allahabad  Phd            NULL
+    5       Anuj    36    Kanpur     B.Tech         50
+    6       Princi  27    Kanpur     Phd            52
+    7       Abhi    32    Kanpur     NULL           NULL
+
+For example,  
+
+    # groupby() demo
+    fdf1.groupby('Qualification')
+    
+This will perform groupby operation on the dataframe over **'Qualification'** column data.  
+
+For example,  
+
+    # groupby() demo to perform aggregation on resultant grouped dataframe
+    # Also, dropna = True by default
+    fdf1.groupby('Qualification', dropna = True).agg({'Score': 'count'})
+
+Output  
+
+    Qualification   count_Score
+    B.Tech  3
+    Phd     2
+    
+Here, it excludes **NULL** group since missing values were dropped during groupby().  
+
+For example,  
+
+    # groupby() demo to perform aggregation on resultant grouped dataframe
+    # Also, dropna = False
+    fdf1.groupby('Qualification', dropna = False).agg({'Score': 'count'})
+
+Output  
+
+    Qualification   count_Score
+    B.Tech  3
+    Phd     2
+    NULL    1
+    
+Here, it includes **NULL** as new group since missing values were not dropped during groupby().  
+
+__Return Value__  
+It returns a FrovedisGroupedDataFrame instance.  
+
+### 9. nsort(n, columns, keep='first', is_desc=False)  
 
 __Parameters__  
 **_n_**: It accepts a positive integer parameter which represents the number of rows to return.  
@@ -799,7 +905,7 @@ __Purpose__
 It is used to return the top **n** rows ordered by the specified columns in ascending or descending order.
 The columns that are not specified are returned as well, but not used for ordering.  
 
-For example:
+For example,  
 
 	# example to use nsort with default parameters with n = 3 and columns = 'population'
     
@@ -824,7 +930,7 @@ For example:
 	# to display n largest rows according to given column
 	fd_df.nsort(3, 'population').show()
     
-Output,
+Output  
 
 	index           population      GDP     alpha-2
 	Italy           59000000        1937894 IT
@@ -858,7 +964,7 @@ Output,
     Tuvalu    11300        38      TV
     Anguilla  11300        311     AI
 
-For example:  
+For example,  
 	
     # example to show the behavior of nsort with keep = 'last'
     
@@ -882,7 +988,7 @@ For example:
     
     fd_df.nsort(3, 'population', keep='last').show()
     
-Output,
+Output  
 
 	index      population    GDP      alpha-2
 	Italy      59000000      1937894  IT
@@ -900,7 +1006,7 @@ Output,
     Tuvalu     11300         38       TV
     Nauru      11300         182      NR
 
-For example:  
+For example,  
 
     # example to show the behavior of nsort with keep = 'all'
     
@@ -924,7 +1030,7 @@ For example:
 
 	fd_df.nsort(3, 'population', keep='all').show()
     
-Output,
+Output  
 
 	index      population    GDP      alpha-2
 	Italy      59000000      1937894  IT
@@ -942,7 +1048,7 @@ Output,
     Tuvalu     11300         38      TV
     Anguilla   11300         311     AI
 
-For example:  
+For example,  
 
     # example to show use of list of columns with nsort
     
@@ -966,7 +1072,7 @@ For example:
 
 	fd_df.nsort(3, ['population', 'GDP']).show()
     
-Output,
+Output  
 
 	index      population    GDP      alpha-2
 	Italy      59000000      1937894  IT
@@ -988,7 +1094,7 @@ __Return Value__
 It returns a Frovedis DataFrame object with **n** rows ordered by the specified columns in ascending or descending order.  
 
 
-### 9. nlargest(n, columns, keep = 'first')  
+### 10. nlargest(n, columns, keep = 'first')  
 
 __Parameters__  
 **_n_**: It accepts an integer parameter which represents the number of rows to return.  
@@ -1004,7 +1110,7 @@ The columns that are not specified are returned as well, but not used for orderi
 
 This method is equivalent to DataFrame.sort_values(columns, ascending = False).head(n), but it is more efficient.  
 
-For example:
+For example,  
 
 	# example to use nlargest with default parameters with n = 3 and columns = 'population'
     
@@ -1029,7 +1135,7 @@ For example:
 	# to display n largest rows according to given column
 	fd_df.nlargest(3, 'population').show()
     
-Output,
+Output  
 
 	index           population      GDP     alpha-2
 	Italy           59000000        1937894 IT
@@ -1047,7 +1153,7 @@ Output,
 	Italy           59000000        1937894 IT
 	Malta           434000          12011   MT
 
-For example:  
+For example,  
 	
     # example to show the behavior of nlargest with keep = 'last'
     
@@ -1071,7 +1177,7 @@ For example:
     
     fd_df.nlargest(3, 'population', keep='last').show()
     
-Output,
+Output  
 
 	index           population      GDP     alpha-2
 	Italy           59000000        1937894 IT
@@ -1089,7 +1195,7 @@ Output,
 	Italy           59000000        1937894 IT
 	Brunei  -       434000          12128   BN
 
-For example:  
+For example,  
 
     # example to show the behavior of nlargest with keep = 'all'
     
@@ -1113,7 +1219,7 @@ For example:
 
 	fdf.nlargest(3, 'population', keep='all').show()
     
-Output,
+Output  
 
 	index           population      GDP     alpha-2
 	Italy           59000000        1937894 IT
@@ -1133,7 +1239,7 @@ Output,
 	Maldives        434000          4520    MV
 	Brunei          434000          12128   BN
 
-For example:  
+For example,  
 
     # example to show use of list of columns with nlargest
     
@@ -1157,7 +1263,7 @@ For example:
 
 	fd_df.nlargest(3, ['population', 'GDP']).show()
     
-Output,
+Output  
 
 	index           population      GDP     alpha-2
 	Italy           59000000        1937894 IT
@@ -1179,7 +1285,7 @@ __Return Value__
 It returns a Frovedis DataFrame object with **n** rows ordered by the specified columns in descending order.  
 
 
-### 10. nsmallest(n, columns, keep = 'first')  
+### 11. nsmallest(n, columns, keep = 'first')  
 
 __Parameters__  
 **_n_**: It accepts an integer type argument that represents the number of rows to return.  
@@ -1196,7 +1302,7 @@ It returns the first n rows with the smallest values in columns, in ascending or
 
 This method is equivalent to DataFrame.sort_values(columns, ascending=True).head(n), but it is more efficient.
 
-For example: 
+For example  
 
 	# example to use nsmallest with default values on columns = 'population'
     
@@ -1220,7 +1326,7 @@ For example:
     
 	fd_df.nsmallest(3, 'population').show()
     
-Output,
+Output  
 
 	index           population      GDP     alpha-2
 	Italy           59000000        1937894 IT
@@ -1238,7 +1344,7 @@ Output,
 	Tuvalu          11300           38      TV
 	Anguilla        11300           311     AI
 
-For example: 
+For example,  
 
 	# example to use nsmallest with keep = 'last' parameter
     
@@ -1262,7 +1368,7 @@ For example:
 
 	fd_df.nsmallest(3, 'population', keep='last').show()
 	
-Output: 
+Output  
 
 	index           population      GDP     alpha-2
 	Italy           59000000        1937894 IT
@@ -1280,7 +1386,7 @@ Output:
 	Tuvalu          11300           38      TV
 	Nauru           11300           182     NR
 
-For example: 
+For example  
 
 	# example to use nsmallest with keep = 'all' parameter
     
@@ -1305,7 +1411,7 @@ For example:
 
 	fd_df.nsmallest(3, 'population', keep='all').show()
     
-Output,
+Output  
 
 	index           population      GDP     alpha-2
 	Italy           59000000        1937894 IT
@@ -1323,7 +1429,7 @@ Output,
 	Tuvalu          11300           38      TV
 	Anguilla        11300           311     AI
 
-For example: 
+For example,  
 
 	# example to use nsmallest on a list of columns names
     
@@ -1349,7 +1455,7 @@ For example:
 	# display smallest 3 row from population and then GDP columns
     fd_df.nsmallest(3, ['population', 'GDP'])
     
-Output,
+Output  
 
 	index           population      GDP     alpha-2
 	Italy           59000000        1937894 IT
@@ -1371,7 +1477,7 @@ __Return Value__
 It returns a Frovedis DataFrame object with **n** rows ordered by the specified columns in ascending order.  
 
 
-### 11. sort(columns = None, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last', \*\*kwargs)  
+### 12. sort(columns = None, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last', \*\*kwargs)  
 
 __Parameters__  
 **_columns_**: It accepts the name or list of names on which sorting will be applied. (Default: None)  
@@ -1394,7 +1500,7 @@ If axis is 0 or 'index', sorting is performed along the row. Currently axis = 0 
 __Purpose__  
 It is used to sort the values in the specified column(s) along axis = 0 or axis = 'index' in the Frovedis DataFrame.  
 
-For example:  
+For example,  
 
     # example to sort a column with other default parameters
     
@@ -1415,7 +1521,7 @@ For example:
     # Sort by 'col1' and display
     fd_df.sort('col1').show()
     
-Output,
+Output  
 
     index   col1    col2    col3    col4
     0       A       2       0       a
@@ -1433,7 +1539,7 @@ Output,
     4       D       7       2       e
     3       NULL    8       4       D
 
-For example:  
+For example,  
 
     # example to sort a list of columns
     
@@ -1454,7 +1560,7 @@ For example:
     # Sort by multiple columns and display
     fd_df.sort(['col1', 'col2']).show()
     
-Output,
+Output  
 
     index   col1    col2    col3    col4
     0       A       2       0       a
@@ -1473,7 +1579,7 @@ Output,
     3       NULL    8       4       D
 NOTE: In the above example, in case of multiple columns sorting, 'col1' will be sorted first and the 'col2' will only be considered for sorting in case of duplicate entries present in 'col1'.  
 
-For example:  
+For example,  
 
     # example to sort in descending order
 
@@ -1494,7 +1600,7 @@ For example:
     # Sort in descending order and display
     fd_df.sort('col1', ascending = False).show()
     
-Output,
+Output  
 
     index   col1    col2    col3    col4
     0       A       2       0       a
@@ -1516,7 +1622,7 @@ __Return Value__
 It returns a new Frovedis DataFrame with sorted values.  
 
 
-### 12. sort_index(axis = 0, ascending = True, inplace = False, kind = 'quicksort', na\_position = 'last')  
+### 13. sort_index(axis = 0, ascending = True, inplace = False, kind = 'quicksort', na\_position = 'last')  
 
 __Parameters__  
 **_axis_**: It accepts an interger or a string object as parameter. It is the axis along which the sorting will be performed. (Default: 0)  
@@ -1537,7 +1643,7 @@ It is used to sort Frovedis DataFrame according to index values. It creates a ne
 
 **NOTE: Currently Frovedis DataFrame doesn't support MultiIndex**  
 
-For example:
+For example,  
 
 	# example to sort index using default values
     
@@ -1557,7 +1663,7 @@ For example:
 	# to display sorted dataframe by index
 	fd_df.sort_index().show()
     
-Output,
+Output  
 
 	index   A
 	100     1
@@ -1573,7 +1679,7 @@ Output,
 	150     5
 	234     3
 
-For example:
+For example,  
     
     # example to sort_index in decending order
     
@@ -1593,7 +1699,7 @@ For example:
 	# To sort in descending order, use ascending=False
 	fd_df.sort_index(ascending=False)
     
-Output,
+Output  
 
 	index   A
 	100     1
@@ -1613,7 +1719,7 @@ __Return Value__
 It returns a new Frovedis DataFrame sorted by the labels.  
 
 
-### 13. sort_values(by, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last')  
+### 14. sort_values(by, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last')  
 
 __Parameters__  
 **_by_**: It accepts the name or list of names on which sorting will be applied.  
@@ -1641,7 +1747,7 @@ When na\_position = 'last', it puts NaNs at the end. Currently it only supports 
 __Purpose__  
 To sort the DataFrame by the values along axis = 0 or 'index'.  
  
-For example:
+For example,  
 
 	# example of using sort_values on a column label
     
@@ -1665,7 +1771,7 @@ For example:
 	# sorting 'col1' by values on frovedis dataframe
 	fd_df.sort_values(by=['col1']).show() #Sort by col1
 
-Output,
+Output  
 
 	index   col1    col2    col3    col4
 	0       A       2       0       a
@@ -1683,7 +1789,7 @@ Output,
 	4       D       7       2       e
 	3       NULL    8       4       D
 
-For example:
+For example,  
     
     # example of using sort_values with parameters 'by' and 'ascending' as list
     
@@ -1706,7 +1812,7 @@ For example:
 	# Sorting multiple columns
 	fd_df.sort_values(by=['col1', 'col2'], ascending = [True, True]).show()
     
-Output,
+Output  
 
 	index   col1    col2    col3    col4
 	0       A       2       0       a
@@ -1724,7 +1830,7 @@ Output,
 	4       D       7       2       e
 	3       NULL    8       4       D
 
-For example:
+For example,  
     
     # example with parameter ascending = False
     
@@ -1748,7 +1854,7 @@ For example:
 	# Sort in descending order
 	fd_df.sort_values(by='col1', ascending=False).show()
     
-Output,
+Output  
 
 	index   col1    col2    col3    col4
 	0       A       2       0       a
@@ -1770,7 +1876,7 @@ __Return Value__
 It returns a new Frovedis DataFrame with sorted values.  
 
 
-### 14. to_dict(orient = "dict", into = dict)  
+### 15. to_dict(orient = "dict", into = dict)  
 
 __Parameters__  
 **_orient_**: It accepts a string object as parameter. It is used to determine the type of the values of the dictionary. (Default: 'dict')  
@@ -1782,7 +1888,7 @@ NOTE: Currently it only supports OrderedDict as return type.
 __Purpose__  
 It is used to convert the Frovedis DataFrame to a dictionary.  
 
-For example:
+For example,  
 	
     # example of using to_dict with default values
     
@@ -1802,7 +1908,7 @@ For example:
 	# to display converted object using to_dict
 	print(fd_df.to_dict())
     
-Output,
+Output  
 
 	index   col1    col2
 	row1    1       0.5
@@ -1810,7 +1916,7 @@ Output,
 
 	OrderedDict([('col1', {'row1': 1, 'row2': 2}), ('col2', {'row1': 0.5, 'row2': 0.75})])
     
-For example:
+For example,  
 	
     # example of using to_dict with orient = 'list'
     
@@ -1830,7 +1936,7 @@ For example:
 	# to display converted object using to_dict
 	print(fd_df.to_dict(orient = 'list'))
     
-Output,
+Output  
 
 	index   col1    col2
 	row1    1       0.5
@@ -1842,7 +1948,7 @@ __Return Value__
 It returns a dictionary representing the Frovedis DataFrame. The resulting transformation depends on the 'orient' parameter.  
 
 
-### 15. to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)  
+### 16. to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)  
 
 __Parameters__  
 **_t\_cols_**: It accepts a list of string type argument where each of the member of the list is the name of the column labels.  
@@ -1852,7 +1958,7 @@ Currently only float32 and float64 types are supported. (Default: np.float32)
 __Purpose__  
 This method converts a frovedis dataframe to FrovedisColmajorMatrix.  
  
-For example:
+For example,  
 
 	# example to use to_frovedis_colmajor_matrix
     
@@ -1870,7 +1976,7 @@ For example:
     # display col_mat
     col_mat.debug_print()
     
-Output,
+Output  
 
 	index   one     two     three   four
 	0       10      10.23   F       0
@@ -1889,7 +1995,7 @@ __Return Value__
 It returns a FrovedisColmajorMatrix instance after converting the original Frovedis DataFrame.  
 
 
-### 16. to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32, need_info = False)  
+### 17. to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32, need_info = False)  
 
 __Parameters__  
 **_t\_cols_**: It accepts a list of string type argument where each of the member of the list is the name of the column labels.  
@@ -1901,7 +2007,7 @@ Currently only float32 and float64 types are supported. (Default: np.float32)
 __Purpose__  
 It converts a Frovedis DataFrame object to FrovedisCRSMatrix instance.  
 
-For example:
+For example,  
 
 	# example to use to_frovedis_crs_matrix
     
@@ -1927,7 +2033,7 @@ For example:
     # display matrix
     print(mat_t)
     
-Output,
+Output  
 
 	index   one     two     three   four
 	0       10      10.23   F       0
@@ -1956,7 +2062,7 @@ __Return Value__
 It returns a FrovedisCRSMatrix instance after converting the original Frovedis DataFrame.  
 
 
-### 17. to_frovedis_crs_matrix_using_info(info, dtype = np.float32)  
+### 18. to_frovedis_crs_matrix_using_info(info, dtype = np.float32)  
 
 __Parameters__  
 **_info_**: It accepts an instance of 'df_to_sparse_info' type.  
@@ -1966,7 +2072,7 @@ Currently only float32 and float64 types are supported. (Default: np.float32)
 __Purpose__  
 It converts a frovedis dataframe to FrovedisCRSMatrix provided an info object of df_to_sparse_info class.  
   
-For example:  
+For example,  
 	
     # example to use to_frovedis_crs_matrix_using_info
     
@@ -1984,7 +2090,7 @@ For example:
     print(type(crs_mat2))
 	crs_mat2.debug_print()
     
-Output,
+Output  
 
 	index   one     two     three   four
     0       10      10.23   F       0
@@ -2009,7 +2115,7 @@ __Return Value__
 It returns a FrovedisCRSMatrix after converting Frovedis DataFrame.  
 
 
-### 18. to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)  
+### 19. to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)  
 
 __Parameters__  
 **_t\_cols_**: It accepts a list of string type argument where each of the member of the list is the name of the column labels.  
@@ -2019,7 +2125,7 @@ Currently only float32 and float64 types are supported. (Default: np.float32)
 __Purpose__  
 This method is used to convert a Frovedis DataFrame into FrovedisRowmajorMatrix instance.  
 
-For example:  
+For example,  
 
 	# example to convert frovedis dataframe into frovedis row major matrix
     
@@ -2040,7 +2146,7 @@ For example:
 	# display type of row_mat
     print(type(row_mat))
     
-Output,
+Output  
 
 	index   one     two     three   four
 	0       10      10.23   F       0
@@ -2059,7 +2165,7 @@ __Return Value__
 It returns a FrovedisRowmajorMatrix instance after suitable conversion.  
 
 
-### 19. to_numpy(dtype = None, copy = False, na_value = None)  
+### 20. to_numpy(dtype = None, copy = False, na_value = None)  
 
 __Parameters__  
 **_dtype_** : It accepts the dtype parameter which decides the datatype of numpy ndarray. (Default: None)  
@@ -2070,7 +2176,10 @@ When it is None (not specified explicitly), it will be set as double (float64).
 __Purpose__  
 This method is used to convert a frovedis dataframe into a numpy array.  
 
-For example:  
+The parameters: "copy" and "na_value" are simply kept in to make the interface uniform to the pandas DataFrame.to_numpy().  
+This is not used anywhere within the frovedis implementation.  
+
+For example,  
 
 	# example to convert a frovedis dataframe into numpy
     
@@ -2102,7 +2211,7 @@ For example:
     # below will display a numpy array type
 	print(fd_df.to_numpy())
     
-Output,  
+Output  
 
 	<class 'frovedis.dataframe.df.DataFrame'>
 
@@ -2125,12 +2234,12 @@ __Return Value__
 It returns a numpy ndarray that represents a Frovedis DataFrame. It has shape (nRows , nCols).  
 
 
-### 20. to_pandas_dataframe()  
+### 21. to_pandas_dataframe()  
 
 __Purpose__  
 It converts a Frovedis DataFrame instance into a pandas dataframe instance.  
 
-For example:  
+For example,  
 
 	# example to convert frovedis dataframe to pandas dataframe
     
@@ -2162,26 +2271,29 @@ For example:
     # below will display a Pandas dataframe after conversion
 	print(fd_df.to_pandas_dataframe())
     
-Output,  
+Output  
  
-	<class 'frovedis.dataframe.df.DataFrame'>
+    <class 'frovedis.dataframe.df.DataFrame'>
 
-	index   Ename   Age     Country isMale
-	0       Michael 29      USA     0
-	1       Andy    30      England 0
-	2       Tanaka  27      Japan   0
-	3       Raul    19      France  0
-	4       Yuta    31      Japan   1   
+    index   Ename   Age     Country isMale
+    0       Michael 29      USA     0
+    1       Andy    30      England 0
+    2       Tanaka  27      Japan   0
+    3       Raul    19      France  0
+    4       Yuta    31      Japan   1   
 
-	<class 'pandas.core.frame.DataFrame'>
+    <class 'pandas.core.frame.DataFrame'>
 
-			 Ename  Age  Country  isMale
-	index
-	0      Michael   29      USA   False
-	1         Andy   30  England   False
-	2       Tanaka   27    Japan   False
-	3         Raul   19   France   False
-	4         Yuta   31    Japan    True  
+    index  Ename  Age  Country  isMale
+    0      Michael   29      USA   False
+    1         Andy   30  England   False
+    2       Tanaka   27    Japan   False
+    3         Raul   19   France   False
+    4         Yuta   31    Japan    True  
 
 __Return Value__  
 It returns a pandas dataframe instance after suitable conversion.  
+
+# SEE ALSO  
+
+DataFrame_Introduction, DataFrame_ConversionAndSorting, DataFrame_SelectionAndCombinations, DataFrame_BinaryOperators  
