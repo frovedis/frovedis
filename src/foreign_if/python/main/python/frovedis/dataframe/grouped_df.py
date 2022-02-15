@@ -13,7 +13,8 @@ from ..exrpc.server import FrovedisServer, set_association, \
 from ..matrix.dtype import DTYPE, get_string_array_pointer
 from .frovedisColumn import FrovedisColumn
 from .df import DataFrame
-from .dfutil import check_string_or_array_like
+from .dfutil import check_string_or_array_like, check_stat_error
+import numbers
 
 class FrovedisGroupedDataframe(object):
     """
@@ -160,19 +161,16 @@ class FrovedisGroupedDataframe(object):
         """ size """
         return self.agg("size")
 
-    def var(self, ddof=1.0):
-        """ var """
-        if not isinstance(ddof, (float, int)):
+    def __agg_func_with_ddof(self, func, ddof):
+        """ aggregator functions supporting ddof: var, std, sem etc. """
+        if not isinstance(ddof, numbers.Number):
             raise ValueError("var: parameter 'ddof' must be a number!")
-
-        if ddof == 1.0:
-            return self.agg("var")
-
+        func_with_int_ddof = ["std", "sem"]  #TODO: confirm behavior with latest pandas
+        ddof_ = int(ddof) if func in func_with_int_ddof else ddof
         agg_col = self.__get_numeric_columns()
-        agg_col_as = [ "var_" + e for e in agg_col ]
+        agg_col_as = [func + "_" + e for e in agg_col]
         sz1 = len(self.__cols)
         sz2 = len(agg_col)
-        agg_func = "var"
         g_cols_arr = get_string_array_pointer(self.__cols)
         a_col_arr = get_string_array_pointer(agg_col)
         a_col_as_arr = get_string_array_pointer(agg_col_as)
@@ -180,9 +178,9 @@ class FrovedisGroupedDataframe(object):
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.gdf_aggr_with_ddof(host, port, self.__fdata,
                                             g_cols_arr, sz1,
-                                            agg_func.encode("ascii"),
+                                            func.encode("ascii"),
                                             a_col_arr, a_col_as_arr, sz2,
-                                            ddof)
+                                            ddof_)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -192,83 +190,25 @@ class FrovedisGroupedDataframe(object):
         ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
         if len(self.__cols) > 1:
             ret.add_index("index")
+            ret.set_multi_index_targets(self.__cols)
         else:
             ret.set_index(keys=self.__cols, drop=True, inplace=True)
+
+        single = pd.Index(agg_col)
+        ret.set_multi_level_column(single)
         return ret
+
+    def var(self, ddof=1.0):
+        """ var """
+        return self.__agg_func_with_ddof("var", ddof)
 
     def sem(self, ddof=1.0):
         """ sem """
-        if not isinstance(ddof, (float,int)):
-            raise ValueError("sem: parameter 'ddof' must be a number!")
-
-        if ddof == 1.0:
-            return self.agg("sem")
-
-        agg_col = self.__get_numeric_columns()
-        agg_col_as = [ "sem_" + e for e in agg_col ]
-        sz1 = len(self.__cols)
-        sz2 = len(agg_col)
-        agg_func = "sem"
-        g_cols_arr = get_string_array_pointer(self.__cols)
-        a_col_arr = get_string_array_pointer(agg_col)
-        a_col_as_arr = get_string_array_pointer(agg_col_as)
-
-        (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.gdf_aggr_with_ddof(host, port, self.__fdata,
-                                            g_cols_arr, sz1,
-                                            agg_func.encode("ascii"),
-                                            a_col_arr,
-                                            a_col_as_arr, sz2,
-                                            int(ddof))
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-        ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
-        if len(self.__cols) > 1:
-            ret.add_index("index")
-        else:
-            ret.set_index(keys=self.__cols, drop=True, inplace=True)
-        return ret
+        return self.__agg_func_with_ddof("sem", ddof)
 
     def std(self, ddof=1.0):
         """ std """
-        if not isinstance(ddof, (float,int)):
-            raise ValueError("std: parameter 'ddof' must be a number!")
-
-        if ddof == 1.0:
-            return self.agg("std")
-
-        agg_col = self.__get_numeric_columns()
-        agg_col_as = [ "std_" + e for e in agg_col ]
-        sz1 = len(self.__cols)
-        sz2 = len(agg_col)
-        agg_func = "std"
-        g_cols_arr = get_string_array_pointer(self.__cols)
-        a_col_arr = get_string_array_pointer(agg_col)
-        a_col_as_arr = get_string_array_pointer(agg_col_as)
-
-        (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.gdf_aggr_with_ddof(host, port, self.__fdata,
-                                            g_cols_arr, sz1,
-                                            agg_func.encode("ascii"),
-                                            a_col_arr,
-                                            a_col_as_arr, sz2,
-                                            int(ddof))
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-        ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
-        if len(self.__cols) > 1:
-            ret.add_index("index")
-        else:
-            ret.set_index(keys=self.__cols, drop=True, inplace=True)
-        return ret
+        return self.__agg_func_with_ddof("std", ddof)
 
     def mad(self, axis=0, skipna=True, level=None):
         """ mad """
@@ -371,7 +311,12 @@ class FrovedisGroupedDataframe(object):
             ret.set_index(keys=self.__cols, drop=True, inplace=True)
 
         multi = pd.MultiIndex.from_tuples(list(zip(agg_col, agg_func)))
-        ret.set_multi_level_column(multi)
+        no_of_func = multi.levels[1].size
+        if no_of_func == 1:
+            single = pd.Index(agg_col)
+            ret.set_multi_level_column(single)
+        else:
+            ret.set_multi_level_column(multi)
         return ret
 
     def __get_numeric_columns(self):

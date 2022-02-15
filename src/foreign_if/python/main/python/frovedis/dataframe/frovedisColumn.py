@@ -273,9 +273,15 @@ class FrovedisColumn(object):
         if len(self.df) != len(other.df):
             raise ValueError("cov: input series with unequal no. of elements.")
 
-        param = check_stat_error(min_periods_=min_periods, ddof_=ddof)
         c1 = self.df.columns[0]
         c2 = other.df.columns[0]
+        c1_dt = self.df.get_dtype(c1) 
+        c2_dt = other.df.get_dtype(c2) 
+        if c1_dt == "str" or c2_dt == "str":
+            raise TypeError("cov: is not supported for 'string' type")
+        param = check_stat_error("cov", False, \
+                                 min_periods_=min_periods, ddof_=ddof)
+
         (host, port) = FrovedisServer.getServerInstance()
         ret = rpclib.series_covariance(host, port, \
                                        self.df.get(), c1.encode('ascii'), \

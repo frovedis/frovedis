@@ -88,12 +88,14 @@ dftable* get_dftable_pointer(exrpc_ptr_t& df_proxy) {
   return dftblp;
 }
 
+// TODO: improve vectorization
 void treat_str_nan_as_null(std::vector<std::string>& vec) {
   auto vsz = vec.size();
   auto vptr = vec.data();
   std::string nullstr = "NULL";
   for(size_t i = 0; i < vsz; ++i) {
-    if (vptr[i] == "nan" || vptr[i] == "None") vptr[i] = nullstr;
+    if (vptr[i] == "nan" || vptr[i] == "None" || 
+        vptr[i] == "<NA>") vptr[i] = nullstr;
   }
 }
 

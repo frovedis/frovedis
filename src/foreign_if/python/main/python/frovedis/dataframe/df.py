@@ -468,7 +468,7 @@ class DataFrame(object):
             elif vtype == 'float64' or vtype == 'double':
                 dt = DTYPE.DOUBLE
                 dvec[idx] = FrovedisDoubleDvector(val)
-            elif vtype == 'str' or vtype == 'str_':
+            elif vtype == 'str' or vtype == 'str_' or 'string':
                 dt = DTYPE.STRING
                 dvec[idx] = FrovedisStringDvector(val)
             elif vtype == 'bool' or vtype == 'bool_':
@@ -1472,7 +1472,7 @@ class DataFrame(object):
                 res[col].replace(to_replace={0: False, 1: True}, inplace=True)
             # NULL treatment for string columns
             elif (self.__dict__[col].dtype == DTYPE.STRING):
-                res[col].replace(to_replace={"NULL": np.nan}, inplace=True)
+                res[col].replace(to_replace={"NULL": None}, inplace=True)
 
         if self.is_series:
             res = res[self.columns[0]]
@@ -3125,17 +3125,15 @@ class DataFrame(object):
 
     @check_association
     def sum(self, axis=None, skipna=None, level=None,
-             numeric_only=None, min_count=0, **kwargs):
+            numeric_only=None, min_count=0, **kwargs):
         """
         returns the sum of the values over the requested axis.
         """
-        param  = check_stat_error( axis_ = axis, skipna_ = skipna, \
-                                   level_ = level, \
-                                   numeric_only_= numeric_only, \
-                                   min_count_ = min_count)
-        if param.numeric_only_ == False:
-            if DTYPE.STRING in self.__types:
-                raise TypeError("sum: Currently supported only for numeric columns!")
+        param = check_stat_error("sum", DTYPE.STRING in self.__types, \
+                                 axis_ = axis, skipna_ = skipna, \
+                                 level_ = level, \
+                                 numeric_only_= numeric_only, \
+                                 min_count_ = min_count)
         cols, types = self.__get_numeric_columns()
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
@@ -3165,16 +3163,14 @@ class DataFrame(object):
 
     @check_association
     def min(self, axis=None, skipna=None, level=None,
-             numeric_only=None, **kwargs):
+            numeric_only=None, **kwargs):
         """
         returns the min of the values over the requested axis.
         """
-        param  = check_stat_error( axis_ = axis, skipna_ = skipna, \
-                                   level_ = level, \
-                                   numeric_only_= numeric_only)
-        if param.numeric_only_ == False:
-            if DTYPE.STRING in self.__types:
-                raise TypeError("min: Currently supported only for numeric columns!")
+        param = check_stat_error("min", DTYPE.STRING in self.__types, \
+                                 axis_ = axis, skipna_ = skipna, \
+                                 level_ = level, \
+                                 numeric_only_= numeric_only)
         cols, types = self.__get_numeric_columns()
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
@@ -3204,16 +3200,14 @@ class DataFrame(object):
 
     @check_association
     def max(self, axis=None, skipna=None, level=None,
-             numeric_only=None, **kwargs):
+            numeric_only=None, **kwargs):
         """
         returns the max of the values over the requested axis.
         """
-        param  = check_stat_error( axis_ = axis, skipna_ = skipna, \
-                                   level_ = level, \
-                                   numeric_only_= numeric_only)
-        if param.numeric_only_ == False:
-            if DTYPE.STRING in self.__types:
-                raise TypeError("max: Currently supported only for numeric columns!")
+        param = check_stat_error("max", DTYPE.STRING in self.__types, \
+                                 axis_ = axis, skipna_ = skipna, \
+                                 level_ = level, \
+                                 numeric_only_= numeric_only)
         cols, types = self.__get_numeric_columns()
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
@@ -3247,7 +3241,9 @@ class DataFrame(object):
         """
         returns the mean of the values over the requested axis.
         """
-        param = check_stat_error(axis_=axis, skipna_=skipna, level_=level)
+        param = check_stat_error("mean", DTYPE.STRING in self.__types, \
+                                 numeric_only_= numeric_only, \
+                                 axis_=axis, skipna_=skipna, level_=level)
         cols, types = self.__get_numeric_columns()
 
         ncol = len(cols)
@@ -3275,7 +3271,9 @@ class DataFrame(object):
         """
         returns the variance of the values over the requested axis.
         """
-        param = check_stat_error(axis_=axis, skipna_=skipna, \
+        param = check_stat_error("var", DTYPE.STRING in self.__types, \
+                                 axis_=axis, skipna_=skipna, \
+                                 numeric_only_= numeric_only, \
                                  level_=level, ddof_=ddof)
         cols, types = self.__get_numeric_columns()
 
@@ -3305,7 +3303,9 @@ class DataFrame(object):
         returns the mean absolute deviation of the values over the
         requested axis.
         """
-        param = check_stat_error(axis_=axis, skipna_=skipna, level_=level)
+        param = check_stat_error("mad", DTYPE.STRING in self.__types, \
+                                 numeric_only_= numeric_only, \
+                                 axis_=axis, skipna_=skipna, level_=level)
         cols, types = self.__get_numeric_columns()
 
         ncol = len(cols)
@@ -3329,11 +3329,13 @@ class DataFrame(object):
 
     @check_association
     def std(self, axis=None, skipna=None, level=None, ddof=1,
-             numeric_only=None, **kwargs):
+            numeric_only=None, **kwargs):
         """
         returns the standard deviatioon of the values over the requested axis.
         """
-        param = check_stat_error(axis_=axis, skipna_=skipna, \
+        param = check_stat_error("std", DTYPE.STRING in self.__types, \
+                                 numeric_only_= numeric_only, \
+                                 axis_=axis, skipna_=skipna, \
                                  level_=level, ddof_=ddof)
         cols, types = self.__get_numeric_columns()
 
@@ -3361,45 +3363,35 @@ class DataFrame(object):
         """
         Calculate the mode of elements along the specified axis
         """
-        if axis not in (0, 1):
-            raise ValueError("Frovedis currently supports mode only for axis:0,1 !")
-
-        if numeric_only:
+        param = check_stat_error("mode", DTYPE.STRING in self.__types, \
+                                 numeric_only_= numeric_only, \
+                                 axis_=axis, skipna_=dropna)
+        if param.numeric_only_:
             cols = self.__get_numeric_columns()[0]
+            if param.axis_ == 1:
+                is_string = False
         else:
             cols = self.columns
+            if param.axis_ == 1:
+                types = self.__get_column_types(cols)
+                non_numeric_count = 0
+                for i in range(len(types)):
+                    non_numeric_count += types[i] == DTYPE.STRING
+                is_string = non_numeric_count != 0
+
+                if is_string and non_numeric_count != len(types):
+                    raise ValueError("mode: Cannot calculate mode for both numeric"
+                                     " and string columns, with axis=1!")
         ncols = len(cols)
-        
-        if axis == 1:
-            is_numeric_col_present = False
-            is_string_col_present = False
-
-            col_types = self.__get_column_types(cols)
-            for i in range(len(col_types)):
-                if col_types[i] == DTYPE.STRING:
-                    is_string_col_present = True
-
-                if col_types[i] in ( DTYPE.INT, DTYPE.DOUBLE, DTYPE.FLOAT,\
-                                    DTYPE.LONG, DTYPE.ULONG, DTYPE.BOOL):
-                    is_numeric_col_present = True
-
-            if is_string_col_present and is_numeric_col_present:
-                raise ValueError("mode: Cannot calculate mode for both numeric"
-                                " and string columns, with axis=1!")
-            elif is_string_col_present and (not is_numeric_col_present):
-                is_string = True
-            else:
-                is_string = False
-
         cols_arr = get_string_array_pointer(cols)
         (host, port) = FrovedisServer.getServerInstance()
 
-        if axis == 0:
+        if param.axis_ == 0:
             dummy_df = rpclib.df_mode_cols(host, port, self.get(),
-                                        cols_arr, ncols, dropna)
+                                           cols_arr, ncols, param.skipna_)
         else:
             dummy_df = rpclib.df_mode_rows(host, port, self.get(),
-                                        cols_arr, ncols, is_string, dropna)
+                                           cols_arr, ncols, is_string, param.skipna_)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -3426,7 +3418,9 @@ class DataFrame(object):
         """
         returns the standard error of mean of the values over the requested axis.
         """
-        param = check_stat_error(axis_=axis, skipna_=skipna, \
+        param = check_stat_error("sem", DTYPE.STRING in self.__types, \
+                                 numeric_only_= numeric_only, \
+                                 axis_=axis, skipna_=skipna, \
                                  level_=level, ddof_=ddof)
         cols, types = self.__get_numeric_columns()
 
@@ -3451,11 +3445,13 @@ class DataFrame(object):
 
     @check_association
     def median(self, axis=None, skipna=None, level=None,
-             numeric_only=None, **kwargs):
+               numeric_only=None, **kwargs):
         """
         returns the median of the values over the requested axis.
         """
-        param = check_stat_error(axis_=axis, skipna_=skipna, level_=level)
+        param = check_stat_error("median", DTYPE.STRING in self.__types, \
+                                 numeric_only_= numeric_only, \
+                                 axis_=axis, skipna_=skipna, level_=level)
         cols, types = self.__get_numeric_columns()
 
         ncol = len(cols)
@@ -3492,7 +3488,8 @@ class DataFrame(object):
             s2 = other.__dict__[other.columns[0]] # FrovedisColumn
             return s1.cov(s2, min_periods, ddof)
 
-        param = check_stat_error(min_periods_=min_periods, \
+        param = check_stat_error("cov", DTYPE.STRING in self.__types, \
+                                 min_periods_=min_periods, \
                                  ddof_=ddof, low_memory_=low_memory)
         cols, types = self.__get_numeric_columns()
 
@@ -3562,9 +3559,9 @@ class DataFrame(object):
 
         if (multi.size != tsize):
             raise ValueError("set_multi_level_column: size mismatch")
-        if (not isinstance(multi, pd.MultiIndex)):
+        if (not isinstance(multi, (pd.Index, pd.MultiIndex))):
             raise TypeError(\
-            "set_multi_level_column: input is not an instance of MultiIndex")
+            "set_multi_level_column: input is not an instance of Index")
         self.__multi_cols = multi
         return self
 

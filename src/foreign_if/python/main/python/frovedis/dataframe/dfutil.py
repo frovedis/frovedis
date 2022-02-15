@@ -207,12 +207,14 @@ class stat_param(object): # place holder for parameters
         #attributes would be set run-time
         pass
 
-def check_stat_error(**kwargs):
+def check_stat_error(func, has_string_column, **kwargs):
     """
     checks the given parameters for the statistical functions
     like sum, mean, var , ddof etc.
     Returns list containing(if present in input kwargs : axis, skipna, ddof
     """
+    non_numeric_supporter = ["first", "last", "mode"] # add future aggregator supporting non-numerics
+
     ret = stat_param() 
     if "level_" in kwargs.keys():
         level_ = kwargs["level_"]
@@ -279,8 +281,15 @@ def check_stat_error(**kwargs):
             "numeric_only='%s' is not supported currently!\n" % \
             str(numeric_only_))
         if numeric_only_ is None:
-            ret.numeric_only_ = False
+            if func in non_numeric_supporter:
+                ret.numeric_only_ = False
+            else:
+                ret.numeric_only_ = True
         else:
             ret.numeric_only_ = numeric_only_
+
+        if ret.numeric_only_ == False: # try all columns
+            if has_string_column and func not in non_numeric_supporter:
+                raise TypeError(func + ": Currently supported only for numeric columns!")
 
     return ret
