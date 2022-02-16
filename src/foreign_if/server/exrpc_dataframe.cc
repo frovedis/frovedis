@@ -429,7 +429,9 @@ get_aggr(const std::string& funcname,
   else if (funcname == "var")   ret = var_as(col,as_col);
   else if (funcname == "sem")   ret = sem_as(col,as_col);
   else if (funcname == "std")   ret = std_as(col,as_col);
-  else if (funcname == "mad")   ret = mad_as(col,as_col); // TODO: define in library
+  else if (funcname == "mad")   ret = mad_as(col,as_col); 
+  else if (funcname == "first")   ret = first_as(col,as_col); 
+  else if (funcname == "last")   ret = last_as(col,as_col); 
   else REPORT_ERROR(USER_ERROR,"Unsupported aggregation function is requested!\n");
   return ret;
 }
@@ -558,14 +560,13 @@ frovedis_gdf_aggr_with_mincount(exrpc_ptr_t& df_proxy,
 
   dftable ret;
   std::vector<std::shared_ptr<dfaggregator>> agg;
-  if (mincount == -1) {
+  if (mincount <= 0) {
     agg.resize(size);
     for(size_t i = 0; i < size; ++i) {
       agg[i] = get_aggr(aggFunc, aggCols[i], aggAsCols[i]);
     }
     ret = gdf.select(groupedCols, agg);
   } else {
-    require(mincount > 0, "expected a positive mincount value!\n");
     agg.resize(size * 2);
     std::string tmp = "__temp__", cnt = "__count__";
     for(size_t i = 0; i < size; ++i) {

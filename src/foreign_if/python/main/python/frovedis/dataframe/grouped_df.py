@@ -245,6 +245,78 @@ class FrovedisGroupedDataframe(object):
                     args[col] = funcs
         return self.__agg_with_dict(args)
 
+    def __first_last_helper(self, numeric_only, min_count, agg_func):
+        if numeric_only == False:
+            agg_col = [x for x in self.__p_cols if x not in self.__cols]
+        #Use numeric columns only
+        elif numeric_only == True:
+            agg_col = self.__get_numeric_columns()
+
+        agg_col_as = [ agg_func + "_" + e for e in agg_col ]
+        sz1 = len(self.__cols)
+        sz2 = len(agg_col)
+        g_cols_arr = get_string_array_pointer(self.__cols)
+        a_col_arr = get_string_array_pointer(agg_col)
+        a_col_as_arr = get_string_array_pointer(agg_col_as)
+        
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.gdf_aggr_with_mincount(host, port, self.__fdata,
+                                                 g_cols_arr, sz1,
+                                                 agg_func.encode("ascii"),
+                                                 a_col_arr,
+                                                 a_col_as_arr, sz2,
+                                                 min_count) 
+        return dummy_df
+
+    def __first_last_mincount(self, agg_func, numeric_only=False, min_count=-1):
+        """ first & last implementation """
+        if not isinstance(min_count, (int)):
+            raise ValueError(agg_func + \
+                             ": parameter 'min_count' must be a number!")
+        #Use all columns or fail
+        if numeric_only == False:
+            dummy_df = self.__first_last_helper(numeric_only, 
+                                                min_count, 
+                                                agg_func)
+        #Use numeric columns only
+        elif numeric_only == True:
+            dummy_df = self.__first_last_helper(numeric_only, 
+                                                min_count, 
+                                                agg_func)
+        #Try to use all columns
+        #In case of failure with non-numeric columns handle exception 
+        # and use only numeric columns
+        elif numeric_only == None:
+            dummy_df = self.__first_last_helper(False, min_count, agg_func)
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                dummy_df = self.__first_last_helper(True, min_count, agg_func)
+        else:
+            raise \
+            ValueError(agg_func + \
+                       ": parameter 'numeric_only'must be a boolean or None!")
+
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
+        if len(self.__cols) > 1:
+            ret.add_index("index")
+        else:
+            ret.set_index(keys=self.__cols, drop=True, inplace=True)
+        return ret
+
+    def first(self, numeric_only=False, min_count=-1):
+        """ first """
+        return self.__first_last_mincount("first", numeric_only, min_count)
+
+    def last(self, numeric_only=False, min_count=-1):
+        """ last """
+        return self.__first_last_mincount("last", numeric_only, min_count)
+
     def __agg_with_dict(self, func):
         """
         __agg_with_dict

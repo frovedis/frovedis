@@ -307,6 +307,14 @@ gdf_aggr_with_ddof.argtypes = [c_char_p, c_int, c_long,   # host, port, proxy
                               c_double]                   # ddof
 gdf_aggr_with_ddof.restype = py_object
 
+gdf_aggr_with_mincount = LIB.gdf_aggr_with_mincount
+gdf_aggr_with_mincount.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                                  POINTER(c_char_p), c_ulong,  # columns, sz1
+                                  c_char_p, POINTER(c_char_p), # agg_func, agg_cols
+                                  POINTER(c_char_p), c_ulong,  # agg_cols_as, sz2
+                                  c_int]                       # min_count
+gdf_aggr_with_mincount.restype = py_object
+
 merge_frovedis_dataframe = LIB.join_frovedis_dataframe
 merge_frovedis_dataframe.argtypes = [c_char_p, c_int, c_long, c_long, c_long,
                                      c_char_p, c_char_p]
