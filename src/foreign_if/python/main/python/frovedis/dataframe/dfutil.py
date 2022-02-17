@@ -1,5 +1,6 @@
 """ dfutil: module containing utility programs for dataframe """
 
+import numbers
 import numpy as np
 from collections import Iterable
 from ..matrix.dtype import DTYPE, TypeUtil, get_result_type
@@ -213,7 +214,7 @@ def check_stat_error(func, has_string_column, **kwargs):
     like sum, mean, var , ddof etc.
     Returns list containing(if present in input kwargs : axis, skipna, ddof
     """
-    non_numeric_supporter = ["first", "last", "mode"] # add future aggregator supporting non-numerics
+    non_numeric_supporter = ["first", "last", "mode", "count", "size"] # add future aggregator supporting non-numerics
 
     ret = stat_param() 
     if "level_" in kwargs.keys():
@@ -262,10 +263,10 @@ def check_stat_error(func, has_string_column, **kwargs):
         min_count_ = kwargs["min_count_"]
         if min_count_ == None:
             min_count_ = 1
-        elif not isinstance(min_count_, int):
+        elif not isinstance(min_count_, numbers.Number):
             raise ValueError(\
                   "min_count='%s' is not supported currently!\n" % str(min_count_))
-        ret.min_count_ = min_count_
+        ret.min_count_ = int(min_count_)
 
     if "low_memory_" in kwargs.keys():
         low_memory_ = kwargs["low_memory_"]

@@ -468,7 +468,7 @@ class DataFrame(object):
             elif vtype == 'float64' or vtype == 'double':
                 dt = DTYPE.DOUBLE
                 dvec[idx] = FrovedisDoubleDvector(val)
-            elif vtype == 'str' or vtype == 'str_' or 'string':
+            elif vtype == 'str' or vtype == 'str_' or vtype == 'string':
                 dt = DTYPE.STRING
                 dvec[idx] = FrovedisStringDvector(val)
             elif vtype == 'bool' or vtype == 'bool_':

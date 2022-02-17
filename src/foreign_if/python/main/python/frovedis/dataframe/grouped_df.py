@@ -108,59 +108,96 @@ class FrovedisGroupedDataframe(object):
             ret.set_index(keys=self.__cols, drop=True, inplace=True)
         return ret
 
-    def agg(self, func, *args, **kwargs):
-        """
-        agg
-        """
-        return self.aggregate(func, args, kwargs)
+    @check_association
+    def __agg_func_with_mincount(self, func, numeric_only=None, min_count=-1):
+        cols, types = self.__get_non_group_targets()
+        param = check_stat_error(func, DTYPE.STRING in types, \
+                                 numeric_only_= numeric_only, \
+                                 min_count_ = min_count)
+
+        agg_col = self.__get_numeric_columns() if param.numeric_only_ else cols
+        agg_col_as = [func + "_" + e for e in agg_col]
+        sz1 = len(self.__cols)
+        sz2 = len(agg_col)
+        g_cols_arr = get_string_array_pointer(self.__cols)
+        a_col_arr = get_string_array_pointer(agg_col)
+        a_col_as_arr = get_string_array_pointer(agg_col_as)
+        
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.gdf_aggr_with_mincount(host, port, self.__fdata,
+                                                 g_cols_arr, sz1,
+                                                 func.encode("ascii"),
+                                                 a_col_arr,
+                                                 a_col_as_arr, sz2,
+                                                 param.min_count_) 
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
+        if len(self.__cols) > 1:
+            ret.add_index("index")
+            ret.set_multi_index_targets(self.__cols)
+        else:
+            ret.set_index(keys=self.__cols, drop=True, inplace=True)
+
+        single = pd.Index(agg_col)
+        ret.set_multi_level_column(single)
+        return ret
+
+    def min(self, numeric_only=None, min_count=-1):
+        """ min """
+        return self.__agg_func_with_mincount("min",
+               numeric_only = numeric_only, min_count = min_count)
+
+    def max(self, numeric_only=None, min_count=-1):
+        """ max """
+        return self.__agg_func_with_mincount("max",
+               numeric_only = numeric_only, min_count = min_count)
+
+    def mean(self, numeric_only=None, min_count=-1):
+        """ mean """
+        return self.__agg_func_with_mincount("mean",
+               numeric_only = numeric_only, min_count = min_count)
+
+    def sum(self, numeric_only=None, min_count=0):
+        """ sum """
+        return self.__agg_func_with_mincount("sum",
+               numeric_only = numeric_only, min_count = min_count)
+
+    def count(self, numeric_only=None, min_count=-1):
+        """ count """
+        return self.__agg_func_with_mincount("count",
+               numeric_only = numeric_only, min_count = min_count)
+
+    def size(self, numeric_only=None, min_count=-1):
+        """ size """
+        return self.__agg_func_with_mincount("size",
+               numeric_only = numeric_only, min_count = min_count)
+
+    def mad(self, axis=0, skipna=True, level=None, min_count=-1):
+        """ mad """
+        if axis is 1:
+            raise ValueError("mad: Currently supported only for axis = 0!")
+        if skipna is False:
+            raise ValueError("mad: Currently supported only for skipna = True!")
+        if level is not None:
+            raise ValueError("mad: Currently supported only for level = None!")
+        return self.__agg_func_with_mincount("mad", min_count = min_count)
+
+    def first(self, numeric_only=False, min_count=-1):
+        """ first """
+        return self.__agg_func_with_mincount("first", 
+               numeric_only = numeric_only, min_count = min_count)
+
+    def last(self, numeric_only=False, min_count=-1):
+        """ last """
+        return self.__agg_func_with_mincount("last",
+               numeric_only = numeric_only, min_count = min_count)
 
     @check_association
-    def aggregate(self, func, *args, **kwargs):
-        """
-        aggregate
-        """
-        if self.__fdata is not None:
-            if isinstance(func, str):
-                return self.__agg_with_list([func])
-            if isinstance(func, list):
-                return self.__agg_with_list(func)
-            if isinstance(func, dict):
-                return self.__agg_with_dict(func)
-            raise TypeError("Unsupported input type for aggregation")
-        raise ValueError("Operation on invalid frovedis grouped dataframe!")
-
-    def min(self, numeric_only=True, min_count=-1):
-        """ min """
-        if numeric_only is False:
-            raise ValueError("min: Currently supported only for numeric columns!")
-        return self.agg("min")
-
-    def max(self, numeric_only=True, min_count=-1):
-        """ max """
-        if numeric_only is False:
-            raise ValueError("max: Currently supported only for numeric columns!")
-        return self.agg("max")
-
-    def mean(self, numeric_only=True):
-        """ mean """
-        if numeric_only is False:
-            raise ValueError("mean: Currently supported only for numeric columns!")
-        return self.agg("mean")
-
-    def sum(self, numeric_only=True, min_count=0):
-        """ sum """
-        if numeric_only is False:
-            raise ValueError("sum: Currently supported only for numeric columns!")
-        return self.agg("sum")
-
-    def count(self, numeric_only=True):
-        """ count """
-        return self.agg("count")
-
-    def size(self, numeric_only=True):
-        """ size """
-        return self.agg("size")
-
     def __agg_func_with_ddof(self, func, ddof):
         """ aggregator functions supporting ddof: var, std, sem etc. """
         if not isinstance(ddof, numbers.Number):
@@ -210,15 +247,26 @@ class FrovedisGroupedDataframe(object):
         """ std """
         return self.__agg_func_with_ddof("std", ddof)
 
-    def mad(self, axis=0, skipna=True, level=None):
-        """ mad """
-        if axis is 1:
-            raise ValueError("mad: Currently supported only for axis = 0!")
-        if skipna is False:
-            raise ValueError("mad: Currently supported only for skipna = True!")
-        if level is not None:
-            raise ValueError("mad: Currently supported only for level = None!")
-        return self.agg("mad")
+    def agg(self, func, *args, **kwargs):
+        """
+        agg
+        """
+        return self.aggregate(func, args, kwargs)
+
+    @check_association
+    def aggregate(self, func, *args, **kwargs):
+        """
+        aggregate
+        """
+        if self.__fdata is not None:
+            if isinstance(func, str):
+                return self.__agg_with_list([func])
+            if isinstance(func, list):
+                return self.__agg_with_list(func)
+            if isinstance(func, dict):
+                return self.__agg_with_dict(func)
+            raise TypeError("Unsupported input type for aggregation")
+        raise ValueError("Operation on invalid frovedis grouped dataframe!")
 
     def __agg_with_list(self, func):
         """
@@ -244,78 +292,6 @@ class FrovedisGroupedDataframe(object):
                 for col in n_num_cols:
                     args[col] = funcs
         return self.__agg_with_dict(args)
-
-    def __first_last_helper(self, numeric_only, min_count, agg_func):
-        if numeric_only == False:
-            agg_col = [x for x in self.__p_cols if x not in self.__cols]
-        #Use numeric columns only
-        elif numeric_only == True:
-            agg_col = self.__get_numeric_columns()
-
-        agg_col_as = [ agg_func + "_" + e for e in agg_col ]
-        sz1 = len(self.__cols)
-        sz2 = len(agg_col)
-        g_cols_arr = get_string_array_pointer(self.__cols)
-        a_col_arr = get_string_array_pointer(agg_col)
-        a_col_as_arr = get_string_array_pointer(agg_col_as)
-        
-        (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.gdf_aggr_with_mincount(host, port, self.__fdata,
-                                                 g_cols_arr, sz1,
-                                                 agg_func.encode("ascii"),
-                                                 a_col_arr,
-                                                 a_col_as_arr, sz2,
-                                                 min_count) 
-        return dummy_df
-
-    def __first_last_mincount(self, agg_func, numeric_only=False, min_count=-1):
-        """ first & last implementation """
-        if not isinstance(min_count, (int)):
-            raise ValueError(agg_func + \
-                             ": parameter 'min_count' must be a number!")
-        #Use all columns or fail
-        if numeric_only == False:
-            dummy_df = self.__first_last_helper(numeric_only, 
-                                                min_count, 
-                                                agg_func)
-        #Use numeric columns only
-        elif numeric_only == True:
-            dummy_df = self.__first_last_helper(numeric_only, 
-                                                min_count, 
-                                                agg_func)
-        #Try to use all columns
-        #In case of failure with non-numeric columns handle exception 
-        # and use only numeric columns
-        elif numeric_only == None:
-            dummy_df = self.__first_last_helper(False, min_count, agg_func)
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                dummy_df = self.__first_last_helper(True, min_count, agg_func)
-        else:
-            raise \
-            ValueError(agg_func + \
-                       ": parameter 'numeric_only'must be a boolean or None!")
-
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-        ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
-        if len(self.__cols) > 1:
-            ret.add_index("index")
-        else:
-            ret.set_index(keys=self.__cols, drop=True, inplace=True)
-        return ret
-
-    def first(self, numeric_only=False, min_count=-1):
-        """ first """
-        return self.__first_last_mincount("first", numeric_only, min_count)
-
-    def last(self, numeric_only=False, min_count=-1):
-        """ last """
-        return self.__first_last_mincount("last", numeric_only, min_count)
 
     def __agg_with_dict(self, func):
         """
@@ -420,6 +396,14 @@ class FrovedisGroupedDataframe(object):
             if self.__dict__[col].dtype in non_numeric_types:
                 cols.append(col)
         return cols
+
+    def __get_non_group_targets(self):
+        """
+        __get_non_group_targets
+        """
+        cols  = [x for x in self.__p_cols if x not in self.__cols]
+        types = [self.__dict__[x].dtype for x in cols]
+        return cols, types
 
     def get(self):
         """
