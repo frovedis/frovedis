@@ -5,6 +5,9 @@ import numpy as np
 from collections import Iterable
 from ..matrix.dtype import DTYPE, TypeUtil, get_result_type
 
+# add future aggregator supporting non-numerics
+non_numeric_supporter = ["first", "last", "mode", "count", "size"]
+ 
 def infer_column_type_from_first_notna(df, col, is_index=False):
     if is_index: #infers type of index assuming it contains all non-na
         dtype = type(df.index.values[0]).__name__
@@ -214,7 +217,6 @@ def check_stat_error(func, has_string_column, **kwargs):
     like sum, mean, var , ddof etc.
     Returns list containing(if present in input kwargs : axis, skipna, ddof
     """
-    non_numeric_supporter = ["first", "last", "mode", "count", "size"] # add future aggregator supporting non-numerics
 
     ret = stat_param() 
     if "level_" in kwargs.keys():

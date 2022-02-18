@@ -13,7 +13,8 @@ from ..exrpc.server import FrovedisServer, set_association, \
 from ..matrix.dtype import DTYPE, get_string_array_pointer
 from .frovedisColumn import FrovedisColumn
 from .df import DataFrame
-from .dfutil import check_string_or_array_like, check_stat_error
+from .dfutil import check_string_or_array_like, check_stat_error, \
+                    non_numeric_supporter
 import numbers
 
 class FrovedisGroupedDataframe(object):
@@ -275,22 +276,17 @@ class FrovedisGroupedDataframe(object):
         num_cols = self.__get_numeric_columns()
         args = {}
         funcs = []
-        if len(func) == 1 and "size" in func:
-            if len(self.__cols) > 0:
-                args[self.__cols[0]] = ["size"]
-            else:
-                raise TypeError("Column not provided to GroupBy.")
-        else:
-            for col in num_cols:
-                args[col] = func
-            if 'count' in func:
-                funcs.append("count")
-            if 'size' in func:
-                funcs.append("size")
-            if len(funcs) > 0:
-                n_num_cols = self.__get_non_numeric_columns()
-                for col in n_num_cols:
-                    args[col] = funcs
+        for col in num_cols:
+            args[col] = func
+
+        for f in func:
+            if f in non_numeric_supporter:
+                funcs.append(f)
+
+        if len(funcs) > 0:
+            n_num_cols = self.__get_non_numeric_columns()
+            for col in n_num_cols:
+                args[col] = funcs
         return self.__agg_with_dict(args)
 
     def __agg_with_dict(self, func):
@@ -315,7 +311,7 @@ class FrovedisGroupedDataframe(object):
                 aggfuncs = params
             if isinstance(aggfuncs, dict):
                 for new_col, f in aggfuncs.items():
-                    if tid == DTYPE.STRING and f != 'count' and f != 'size':
+                    if tid == DTYPE.STRING and f not in non_numeric_supporter:
                         raise ValueError("Currently Frovedis doesn't support"
                                          " aggregator %s to be applied on"
                                          " string-typed column %s" %(f, col))
@@ -358,12 +354,8 @@ class FrovedisGroupedDataframe(object):
         else:
             ret.set_index(keys=self.__cols, drop=True, inplace=True)
 
-        multi = pd.MultiIndex.from_tuples(list(zip(agg_col, agg_func)))
-        no_of_func = multi.levels[1].size
-        if no_of_func == 1:
-            single = pd.Index(agg_col)
-            ret.set_multi_level_column(single)
-        else:
+        if len(agg_col) > 0:
+            multi = pd.MultiIndex.from_tuples(list(zip(agg_col, agg_func)))
             ret.set_multi_level_column(multi)
         return ret
 
