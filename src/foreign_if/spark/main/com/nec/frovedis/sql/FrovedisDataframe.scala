@@ -319,7 +319,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     }
     t1.show("[optimized_load] initialization: ")
     val proxy = sDFTransfer.load_rows(rddData, cols, types, 
-                                      word_count, offset)
+                                      word_count, offset, t1)
 
     if (this.fdata == -1) { // empty case
       this.fdata = proxy
@@ -356,7 +356,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     }
     t1.show("[columnar_load] initialization: ")
     val proxy = sDFTransfer.load_columnar(columnar, cols, colIds, types,
-                                          word_count, offset)
+                                          word_count, offset, t1)
     if (this.fdata == -1) { // empty case
       this.fdata = proxy
       this.cols = cols

@@ -224,11 +224,11 @@ public class jDFTransfer implements java.io.Serializable {
                   short[] types,
                   int ncol, 
                   FlexibleOffHeapArray[] out,
-                  TimeSpent t0,
                   TimeSpent copy_t)
     throws java.rmi.ServerException, IllegalArgumentException {
 
     int k = batch.numRows();
+    byte[] nullstr = new byte[] {'N', 'U', 'L', 'L'};
     for (int i = 0; i < ncol; ++i) {
       int cid = colIds[i];
       ColumnVector tcol = batch.column(cid);
@@ -244,7 +244,6 @@ public class jDFTransfer implements java.io.Serializable {
             for(int j = 0; j < k; ++j) buf.putInt(tcol.getInt(j));
           }
           copy_t.lap_stop();
-          t0.show("ColumnVector -> IntArray: ");
           break;
         }
         case DTYPE.BOOL: {
@@ -258,7 +257,6 @@ public class jDFTransfer implements java.io.Serializable {
             for(int j = 0; j < k; ++j) buf.putInt(tcol.getBoolean(j) ? 1 : 0);
           }
           copy_t.lap_stop();
-          t0.show("ColumnVector -> (Boolean) IntArray: ");
           break;
         }
         case DTYPE.LONG: {
@@ -269,7 +267,6 @@ public class jDFTransfer implements java.io.Serializable {
             for(int j = 0; j < k; ++j) buf.putLong(tcol.getLong(j));
           }
           copy_t.lap_stop();
-          t0.show("ColumnVector -> LongArray: ");
           break;
         }
         case DTYPE.FLOAT: {
@@ -280,7 +277,6 @@ public class jDFTransfer implements java.io.Serializable {
             for(int j = 0; j < k; ++j) buf.putFloat(tcol.getFloat(j));
           }
           copy_t.lap_stop();
-          t0.show("ColumnVector -> FloatArray: ");
           break;
         }
         case DTYPE.DOUBLE: {
@@ -291,7 +287,6 @@ public class jDFTransfer implements java.io.Serializable {
             for(int j = 0; j < k; ++j) buf.putDouble(tcol.getDouble(j));
           }
           copy_t.lap_stop();
-          t0.show("ColumnVector -> DoubleArray: ");
           break;
         }
         case DTYPE.STRING: { 
@@ -301,10 +296,8 @@ public class jDFTransfer implements java.io.Serializable {
           FlexibleOffHeapArray szbuf = out[row_offset + 1];
           copy_t.lap_start();
           if (check_null) {
-            byte[] nulls = new byte[4];
-            nulls[0] = 'N'; nulls[1] = 'U'; nulls[2] = 'L'; nulls[3] = 'L';
             for(int j = 0; j < k; ++j) {
-              byte[] tmp = tcol.isNullAt(j) ? nulls : tcol.getBinary(j);
+              byte[] tmp = tcol.isNullAt(j) ? nullstr : tcol.getBinary(j);
               szbuf.putInt(tmp.length);
               buf.putBytes(tmp);
             }
@@ -316,7 +309,6 @@ public class jDFTransfer implements java.io.Serializable {
             }
           }
           copy_t.lap_stop();
-          t0.show("ColumnVector -> flatten-byteArray: ");
           break;
         }
         default: throw new IllegalArgumentException("Unsupported type is encountered!\n");

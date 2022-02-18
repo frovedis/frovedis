@@ -121,4 +121,22 @@ public class jPlatform implements java.io.Serializable {
     }
   }
 
+  public static byte[] getBinary(byte[] baseObject,
+                                 long baseOffset,
+                                 int numFields,
+                                 int ordinal) {
+    assertIndexIsValid(ordinal, numFields);
+    if (isNullAt(baseObject, baseOffset, numFields, ordinal)) {
+      byte[] ret = new byte[] {'N', 'U', 'L', 'L'};
+      return ret;
+    }
+    else {
+      long offsetAndSize = getLong(baseObject, baseOffset, numFields, ordinal);
+      int offset = (int) (offsetAndSize >> 32);
+      int size = (int) offsetAndSize;
+      byte[] ret = new byte[size];
+      for (int i = 0; i < size; ++i) ret[i] = baseObject[offset + i];
+      return ret;
+    }
+  }
 }

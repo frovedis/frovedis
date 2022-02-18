@@ -79,7 +79,7 @@ bin/com/nec/frovedis/io/FrovedisIO.class: main/com/nec/frovedis/io/iohandler.sca
 bin/com/nec/frovedis/Jmatrix/OffHeapArray.class: main/com/nec/frovedis/Jmatrix/OffHeapArray.java bin/com/nec/frovedis/Jmatrix/DTYPE.class bin/com/nec/frovedis/Jexrpc/FrovedisServer.class 
 	${JAVA_HOME}/bin/javac -XDignore.symbol.file -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jmatrix/OffHeapArray.java
 
-bin/com/nec/frovedis/Jmatrix/FlexibleOffHeapArray.class: main/com/nec/frovedis/Jmatrix/FlexibleOffHeapArray.java bin/com/nec/frovedis/Jmatrix/OffHeapArray.class
+bin/com/nec/frovedis/Jmatrix/FlexibleOffHeapArray.class: main/com/nec/frovedis/Jmatrix/FlexibleOffHeapArray.java bin/com/nec/frovedis/Jmatrix/OffHeapArray.class bin/com/nec/frovedis/matrix/GenericUtils.class
 	${JAVA_HOME}/bin/javac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jmatrix/FlexibleOffHeapArray.java
 
 bin/com/nec/frovedis/matrix/GenericUtils.class: main/com/nec/frovedis/matrix/GenericUtils.scala

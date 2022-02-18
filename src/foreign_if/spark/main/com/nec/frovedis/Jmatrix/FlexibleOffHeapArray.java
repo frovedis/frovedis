@@ -1,6 +1,8 @@
 package com.nec.frovedis.Jmatrix;
 
 import java.util.ArrayList;
+import com.nec.frovedis.Jmatrix.configs;
+import com.nec.frovedis.matrix.FrovedisLogger;
 
 public class FlexibleOffHeapArray {
     private ArrayList<OffHeapArray> bufs;
@@ -30,13 +32,16 @@ public class FlexibleOffHeapArray {
       return size * bufs.size(); 
     }
 
+    public long get ()  { 
+      return getFlattenMemory().get(); 
+    }
+
     public OffHeapArray getFlattenMemory () {
       freeFlattenMemory(); // to free previously flattened memory, if any
 
       int tot = bufs.size(); 
       if (tot == 1) {
         flatten_array = active_buf;
-        flatten_array.set_active_length(curpos);
         flatten_movable = false;
       }
       else {
@@ -98,6 +103,13 @@ public class FlexibleOffHeapArray {
     }
 
     private void allocateNext() {
+      if (bufs.size() == 1) { // warning on first call...
+        int cur_size = configs.get_default_buffer_size() / 1024 / 1024;
+        FrovedisLogger.warn(
+          "smaller buffer size (" + cur_size + " MB) is detected!\n" +
+          "Use com.nec.frovedis.Jmatrix.configs.set_default_buffer_size() to " +
+          "increase current buffer size for faster data copy.\n");
+      }
       active_buf = new OffHeapArray(size, dtype);
       bufs.add(active_buf);
       curpos = 0;
