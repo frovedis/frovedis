@@ -51,6 +51,17 @@ allocate_local_vectors(std::vector<size_t>& sizes,
   return ret;
 }
 
+std::vector<size_t>
+merge_vchar_as_vint_and_set_dvector(std::vector<int>& lvec,
+                                    exrpc_ptr_t p_vecs_ptr) {
+  auto& p_char_vecs = *reinterpret_cast<std::vector<std::vector<char>>*>(p_vecs_ptr);
+  auto size = p_char_vecs.size();
+  std::vector<std::vector<int>> vints(size);
+  for(size_t i = 0; i < size; ++i) vints[i] = vchar_to_int(p_char_vecs[i]);
+  lvec = merge_vectors(vints);
+  return {lvec.size()}; // map_partitions needs to return vector
+}
+
 exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs, 
                                   std::vector<exrpc_ptr_t>& size_ptrs) {
   auto sizesp = new dvector<int>(make_dvector_allocate<int>());
@@ -60,9 +71,9 @@ exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs,
   sizesp->set_sizes(sizes_ss);
   sizesp->align_block(); 
 
-  auto datap = new dvector<char>(make_dvector_allocate<char>());
+  auto datap = new dvector<int>(make_dvector_allocate<int>());
   auto each_data_eps =  make_node_local_scatter(data_ptrs);
-  auto data_ss = datap->map_partitions(merge_and_set_dvector_impl<char>, 
+  auto data_ss = datap->map_partitions(merge_vchar_as_vint_and_set_dvector, 
                                        each_data_eps).gather();
   datap->set_sizes(data_ss);
   auto dist = sizesp->viewas_node_local()
@@ -73,13 +84,13 @@ exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs,
 
   auto retp = new node_local<words>(make_node_local_allocate<words>());
   datap->viewas_node_local().mapv(
-       +[](std::vector<char>& data, std::vector<int>& sizes, words& w) {
+       +[](std::vector<int>& data, std::vector<int>& sizes, words& w) {
            auto size = sizes.size();
            if (size == 0) return;
            std::vector<size_t> starts(size); starts[0] = 0;
            auto length = vector_astype<size_t>(sizes);
            prefix_sum(length.data(), starts.data() + 1, size - 1);
-           w.chars = vchar_to_int(data);
+           w.chars.swap(data);
            w.lens.swap(length);
            w.starts.swap(starts);
        }, sizesp->viewas_node_local(), *retp);

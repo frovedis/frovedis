@@ -451,7 +451,7 @@ object WordsNodeLocal extends java.io.Serializable {
 
     // pair: chars and sizes
     val mempair = JNISupport.allocateLocalVectorPair(fs.master_node, 
-                                                     block_sizes, nproc) // (Int, Int)
+                                                     block_sizes, nproc) // (Char, Int)
     var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     val dptrs = mempair.map(x => x.first())

@@ -6,7 +6,6 @@ using namespace frovedis;
 extern "C" {
 
 // Typed Dvectors
-
 JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLocalVector
   (JNIEnv *env, jclass thisCls, jobject master_node, 
    jlongArray block_sizes, jint nproc, jshort dtype) {
@@ -33,22 +32,8 @@ JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLoc
   return to_jlongArray(env, proxies);
 }
 
-JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLocalVectors2
-  (JNIEnv *env, jclass thisCls, jobject master_node,
-   jlongArray block_sizes, jint nproc,
-   jshortArray dtypes, jlong ncol) {
-  auto fm_node = java_node_to_frovedis_node(env, master_node);
-  auto blocksz = to_sizet_vector(env, block_sizes, nproc);
-  auto dt = to_short_vector(env, dtypes, ncol);
-  std::vector<exrpc_ptr_t> proxies; // (ncol + no-of-words) x nproc
-  try {
-    proxies = exrpc_async(fm_node, allocate_local_vectors, blocksz, dt).get();
-  }
-  catch(std::exception& e) { set_status(true,e.what()); }
-  return to_jlongArray(env, proxies);
-}
-
-JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLocalVectorPair // (char, int)
+// for WordsNodeLocal (char, int)
+JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLocalVectorPair
   (JNIEnv *env, jclass thisCls, jobject master_node,
    jlongArray block_sizes, jint nproc) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
@@ -60,6 +45,22 @@ JNIEXPORT jobjectArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateL
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_jMemPairArray(env, proxies);
+}
+
+// for dataframe column vectors
+JNIEXPORT jlongArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_allocateLocalVectors
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlongArray block_sizes, jint nproc,
+   jshortArray dtypes, jlong ncol) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto blocksz = to_sizet_vector(env, block_sizes, nproc);
+  auto dtps = to_short_vector(env, dtypes, ncol);
+  std::vector<exrpc_ptr_t> proxies; // (ncol + no-of-words) x nproc
+  try {
+    proxies = exrpc_async(fm_node, allocate_local_vectors, blocksz, dtps).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return to_jlongArray(env, proxies);
 }
 
 // --- mainly for debugging purpose ---

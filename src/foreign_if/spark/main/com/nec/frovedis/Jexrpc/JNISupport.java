@@ -762,19 +762,26 @@ public class JNISupport {
   public static native DummyGesvdResult gesvd(Node master_node, short mtype,
                                               long mptr, 
                                               boolean wantU, boolean wantV);
-  // Dvector and DataFrame
+  // Typed Dvector
   public static native long[] allocateLocalVector(Node master_node, 
                                                   long[] block_sizes, int nproc, 
                                                   short dtype);
-  public static native long[] allocateLocalVectors2(Node master_node, 
-                                                    long[] block_sizes, int nproc,
-                                                    short[] dtypes, long ncol);
+  // WordsNodeLocal (Char, Int)
   public static native MemPair[] allocateLocalVectorPair(Node master_node, 
                                                          long[] block_sizes, int nproc); 
+
+  // column dvectors of dataframe (output shape: (ncol + word_count) x nproc)
+  public static native long[] allocateLocalVectors(Node master_node, 
+                                                   long[] block_sizes, int nproc,
+                                                   short[] dtypes, long ncol);
+
+  // for data loading (exrpc transfer) from OffHeapArray
   public static native void loadFrovedisWorkerTypedVector(Node t_node, long vptr,
                                                           long index, long datap,
                                                           long size, short dtype,
                                                           boolean rawsend);
+
+  // for data loading (exrpc transfer) from java arrays
   public static native void loadFrovedisWorkerIntVector(Node t_node, long vptr,
                                                         long index, int data[],
                                                         long size);
@@ -800,18 +807,23 @@ public class JNISupport {
                                                         long index, char data[],
                                                         int sizes[], long flat_size,
                                                         long actual_size);
+  // for RDD[String] => WordsNodeLocal
   public static native void loadFrovedisWorkerCharSizePair(Node t_node, 
                                                            long dptr, long sptr, 
                                                            long index, 
                                                            char data[], int sizes[], 
                                                            long flat_size,
                                                            long actual_size);
+
+  // for DataFrame String-typed column => java array => WordsNodeLocal
   public static native void loadFrovedisWorkerByteSizePair(Node t_node, 
                                                            long dptr, long sptr, 
                                                            long index, 
                                                            byte data[], int sizes[], 
                                                            long flat_size,
                                                            long actual_size);
+
+  // for DataFrame String-typed column => OffHeapArray => WordsNodeLocal
   public static native void loadFrovedisWorkerByteSizePair2(Node t_node, 
                                                             long dptr, long sptr, 
                                                             long index, 
@@ -819,6 +831,7 @@ public class JNISupport {
                                                             long flat_size,
                                                             long actual_size,
                                                             boolean rawsend);
+
   public static native long createNodeLocalOfWords(Node master_node, 
                                                    long[] dptrs, long[] sptrs,
                                                    int nproc);

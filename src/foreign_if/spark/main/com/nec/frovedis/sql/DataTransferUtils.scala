@@ -201,8 +201,8 @@ object sDFTransfer extends java.io.Serializable {
     var npart = columnar.getNumPartitions
     if (configs.transfer_by_batch) npart = columnar.count.toInt
     val block_sizes = GenericUtils.get_block_sizes(npart, nproc)
-    val vptrs = JNISupport.allocateLocalVectors2(fs.master_node, block_sizes,
-                                                 nproc, types, ncol) // vptrs: (ncol + no-of-words) x nproc
+    val vptrs = JNISupport.allocateLocalVectors(fs.master_node, block_sizes,
+                                                nproc, types, ncol) // vptrs: (ncol + no-of-words) x nproc
     var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     t_log.show("server memory allocation: ")
@@ -250,8 +250,8 @@ object sDFTransfer extends java.io.Serializable {
     val nproc = fs.worker_size
     val npart = rddData.getNumPartitions
     val block_sizes = GenericUtils.get_block_sizes(npart, nproc)
-    val vptrs = JNISupport.allocateLocalVectors2(fs.master_node, block_sizes,
-                                                 nproc, types, ncol) // vptrs: (ncol + no-of-words) x nproc
+    val vptrs = JNISupport.allocateLocalVectors(fs.master_node, block_sizes,
+                                                nproc, types, ncol) // vptrs: (ncol + no-of-words) x nproc
     var info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     t_log.show("server memory allocation: ")
