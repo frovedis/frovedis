@@ -1253,6 +1253,9 @@ struct datetime_truncate_helper {
     } else if(type == datetime_type::quarter) {
       for(size_t i = 0; i < size; i++)
         retp[i] = datetime_truncate_quarter(dp[i]);
+    } else if(type == datetime_type::weekofyear) {
+      for(size_t i = 0; i < size; i++)
+        retp[i] = datetime_truncate_weekofyear(dp[i]);
     } else throw std::runtime_error("unsupported datetime_type");
     return ret;
   }
