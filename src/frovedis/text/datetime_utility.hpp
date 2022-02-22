@@ -339,6 +339,17 @@ inline datetime_t datetime_truncate_quarter(datetime_t t) {
   return makedatetime(y, (m-1)/3 * 3 + 1, 1, 0, 0, 0, 0);
 }
 
+inline datetime_t datetime_truncate_weekofyear(datetime_t t) {
+  int y, m, d, H, M, S, ns;
+  datetime_to_ymdHMSns(t, y, m, d, H, M, S, ns);
+  int thisdayofweek = ymd_to_dayofweek(y, m, d);
+  if(thisdayofweek > 1) {
+    return datetime_sub_day(makedatetime(y,m,d), thisdayofweek - 2);
+  } else {
+    return datetime_sub_day(makedatetime(y,m,d), 6);
+  }
+}
+
 /*
   same specification as Spark:
   If timestamp1 and timestamp2 are on the same day of month,
