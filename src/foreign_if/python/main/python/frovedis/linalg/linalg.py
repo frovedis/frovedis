@@ -16,6 +16,7 @@ def check_if_vec(a):
     isRowvec = False
     isNmat = False
     if not isinstance(a, FrovedisBlockcyclicMatrix):
+        a = np.asarray(a)
         if a.ndim == 1:
             isRowvec = True
         else:
@@ -89,7 +90,10 @@ def handle_scal_output(y, cv, out, isMatrix, toFlatten=False):
         if isMatrix:
             return y.to_numpy_matrix()
         else:
-            return y.to_numpy_array().flatten()
+            if toFlatten:
+                return y.to_numpy_array().flatten()
+            else:
+                return y.to_numpy_array()
 
 def handle_dot_output(x1, x2, y, cv1, cv2, out, isMatrix, toFlatten=False):
     """handle_dot_output"""
