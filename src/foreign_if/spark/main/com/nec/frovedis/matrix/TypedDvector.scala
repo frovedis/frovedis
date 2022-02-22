@@ -142,7 +142,8 @@ object TransferData extends java.io.Serializable {
     if (err != "") throw new java.rmi.ServerException(err)
     t0.show("spark-worker to frovedis-rank local data copy: ")
   }
-  def execute[T: ClassTag](data: RDD[T], dtype: Short): Long = {
+  def execute[T: ClassTag](data: RDD[T], dtype: Short, 
+                           do_align: Boolean): Long = {
     val part_sizes = data.mapPartitions({ 
       case(x) => 
         val t0 = new TimeSpent(Level.TRACE)
@@ -150,10 +151,11 @@ object TransferData extends java.io.Serializable {
         t0.show("partition sizes extraction: ")
         ret 
     }).persist
-    return execute(data, part_sizes, dtype)
+    return execute(data, part_sizes, dtype, do_align)
   }
+  def execute[T: ClassTag](data: RDD[T], dtype: Short): Long = execute(data, dtype, true) 
   def execute[T: ClassTag](data: RDD[T], part_sizes: RDD[Int],
-                           dtype: Short): Long = {
+                           dtype: Short, do_align: Boolean): Long = {
     val t_log = new TimeSpent(Level.DEBUG)
 
     // (1) allocate
@@ -227,21 +229,28 @@ object TransferData extends java.io.Serializable {
 
     // (4) merge chunks and create dvector
     //val ret_p = JNISupport.createFrovedisDvectorWithSizesVerification(
-    //              fs.master_node, vptrs, sizes, nproc, dtype)
+    //              fs.master_node, vptrs, sizes, nproc, dtype, do_align)
     val ret_p = JNISupport.createFrovedisDvector(
-                  fs.master_node, vptrs, nproc, dtype)
+                  fs.master_node, vptrs, nproc, dtype, do_align)
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     t_log.show("create dvector: ")
 
     return ret_p
   }
+  def execute[T: ClassTag](data: RDD[T], part_sizes: RDD[Int],
+                           dtype: Short): Long = execute(data, part_sizes, dtype, true)
 }
 
 object IntDvector extends java.io.Serializable {
-  def get(data: RDD[Int]) = TransferData.execute(data, DTYPE.INT)
+  def get(data: RDD[Int], do_align: Boolean) = TransferData.execute(data, DTYPE.INT, do_align)
+  def get(data: RDD[Int], part_sizes: RDD[Int], 
+          do_align: Boolean): Long = {
+    return TransferData.execute(data, part_sizes, DTYPE.INT, do_align)
+  }
+  def get(data: RDD[Int]) = TransferData.execute(data, DTYPE.INT, true)
   def get(data: RDD[Int], part_sizes: RDD[Int]): Long = {
-    TransferData.execute(data, part_sizes, DTYPE.INT)
+    return TransferData.execute(data, part_sizes, DTYPE.INT, true)
   }
   private def setEachPartition(nid: Int,
                                wnode: Node,
@@ -272,9 +281,14 @@ object IntDvector extends java.io.Serializable {
 }
 
 object LongDvector extends java.io.Serializable {
-  def get(data: RDD[Long]) = TransferData.execute(data, DTYPE.LONG)
+  def get(data: RDD[Long], do_align: Boolean) = TransferData.execute(data, DTYPE.LONG, do_align)
+  def get(data: RDD[Long], part_sizes: RDD[Int],
+          do_align: Boolean): Long = {
+    return TransferData.execute(data, part_sizes, DTYPE.LONG, do_align)
+  }
+  def get(data: RDD[Long]) = TransferData.execute(data, DTYPE.LONG, true)
   def get(data: RDD[Long], part_sizes: RDD[Int]): Long = {
-    return TransferData.execute(data, part_sizes, DTYPE.LONG)
+    return TransferData.execute(data, part_sizes, DTYPE.LONG, true)
   }
   private def setEachPartition(nid: Int,
                                wnode: Node,
@@ -305,9 +319,14 @@ object LongDvector extends java.io.Serializable {
 }
 
 object FloatDvector extends java.io.Serializable {
-  def get(data: RDD[Float]) = TransferData.execute(data, DTYPE.FLOAT)
+  def get(data: RDD[Float], do_align: Boolean) = TransferData.execute(data, DTYPE.FLOAT, do_align)
+  def get(data: RDD[Float], part_sizes: RDD[Int], 
+          do_align: Boolean): Long = {
+    return TransferData.execute(data, part_sizes, DTYPE.FLOAT, do_align)
+  }
+  def get(data: RDD[Float]) = TransferData.execute(data, DTYPE.FLOAT, true)
   def get(data: RDD[Float], part_sizes: RDD[Int]): Long = {
-    return TransferData.execute(data, part_sizes, DTYPE.FLOAT)
+    return TransferData.execute(data, part_sizes, DTYPE.FLOAT, true)
   }
   private def setEachPartition(nid: Int,
                                wnode: Node,
@@ -338,9 +357,14 @@ object FloatDvector extends java.io.Serializable {
 }
 
 object DoubleDvector extends java.io.Serializable {
-  def get(data: RDD[Double]) = TransferData.execute(data, DTYPE.DOUBLE)
+  def get(data: RDD[Double], do_align: Boolean) = TransferData.execute(data, DTYPE.DOUBLE, do_align)
+  def get(data: RDD[Double], part_sizes: RDD[Int],
+          do_align: Boolean): Long = {
+    return TransferData.execute(data, part_sizes, DTYPE.DOUBLE, do_align)
+  }
+  def get(data: RDD[Double]) = TransferData.execute(data, DTYPE.DOUBLE, true)
   def get(data: RDD[Double], part_sizes: RDD[Int]): Long = {
-    return TransferData.execute(data, part_sizes, DTYPE.DOUBLE)
+    return TransferData.execute(data, part_sizes, DTYPE.DOUBLE, true)
   }
   private def setEachPartition(nid: Int,
                                wnode: Node,
@@ -371,9 +395,14 @@ object DoubleDvector extends java.io.Serializable {
 }
 
 object StringDvector extends java.io.Serializable { 
-  def get(data: RDD[String]) = TransferData.execute(data, DTYPE.STRING)
+  def get(data: RDD[String], do_align: Boolean) = TransferData.execute(data, DTYPE.STRING, do_align)
+  def get(data: RDD[String], part_sizes: RDD[Int], 
+          do_align: Boolean): Long = {
+    return TransferData.execute(data, part_sizes, DTYPE.STRING, do_align)
+  }
+  def get(data: RDD[String]) = TransferData.execute(data, DTYPE.STRING, true)
   def get(data: RDD[String], part_sizes: RDD[Int]): Long = {
-    return TransferData.execute(data, part_sizes, DTYPE.STRING)
+    return TransferData.execute(data, part_sizes, DTYPE.STRING, true)
   }
   private def setEachPartition(nid: Int,
                                wnode: Node,
@@ -430,7 +459,7 @@ object WordsNodeLocal extends java.io.Serializable {
     if (err != "") throw new java.rmi.ServerException(err)
     t0.show("spark-worker to frovedis-rank local data copy: ")
   }
-  def get(data: RDD[String]): Long = {
+  def get(data: RDD[String], do_align: Boolean): Long = {
     val part_sizes = data.mapPartitions({ 
       case(x) => 
         val t0 = new TimeSpent(Level.TRACE)
@@ -438,9 +467,11 @@ object WordsNodeLocal extends java.io.Serializable {
         t0.show("partition sizes extraction: ")
         ret 
     }).persist
-    return get(data, part_sizes) 
+    return get(data, part_sizes, do_align) 
   }
-  def get(data: RDD[String], part_sizes: RDD[Int]): Long = {
+  def get(data: RDD[String]): Long = get(data, true)
+  def get(data: RDD[String], part_sizes: RDD[Int], 
+          do_align: Boolean): Long = {
     val t_log = new TimeSpent(Level.DEBUG)
 
     // (1) allocate
@@ -491,12 +522,13 @@ object WordsNodeLocal extends java.io.Serializable {
     t_log.show("server side pair (chars, size) data transfer: ")
     JNISupport.unlockParallel()
 
-    val proxy = JNISupport.createNodeLocalOfWords(fs.master_node, dptrs, sptrs, nproc)
+    val proxy = JNISupport.createNodeLocalOfWords(fs.master_node, dptrs, sptrs, nproc, do_align)
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     t_log.show("node_local<words> creation: ")
     return proxy
   }
+  def get(data: RDD[String], part_sizes: RDD[Int]): Long = get(data, part_sizes, true)
   private def setEachPartition(nid: Int,
                                wnode: Node,
                                dptr: Long): Iterator[String] = {
@@ -526,22 +558,25 @@ object WordsNodeLocal extends java.io.Serializable {
 }
 
 object BoolDvector extends java.io.Serializable {
-  def get(data: RDD[Boolean]): Long = {
+  def get(data: RDD[Boolean], do_align: Boolean): Long = {
     //return TransferData.execute(data, DTYPE.BOOL)
     val t0 = new TimeSpent(Level.DEBUG)
     val iData: RDD[Int] = data.map(x => if(x) 1 else 0).persist
     iData.count // for above action to take place
     t0.show("RDD[Boolean] -> RDD[Int] conversion: ")
-    return TransferData.execute(iData, DTYPE.INT)
+    return TransferData.execute(iData, DTYPE.INT, do_align)
   }
-  def get(data: RDD[Boolean], part_sizes: RDD[Int]): Long = {
+  def get(data: RDD[Boolean]): Long = get(data, true)
+  def get(data: RDD[Boolean], part_sizes: RDD[Int], 
+          do_align: Boolean): Long = {
     //return TransferData.execute(data, part_sizes, DTYPE.BOOL)
     val t0 = new TimeSpent(Level.DEBUG)
     val iData: RDD[Int] = data.map(x => if(x) 1 else 0).persist
     iData.count // for above action to take place
     t0.show("RDD[Boolean] -> RDD[Int] conversion: ")
-    return TransferData.execute(iData, part_sizes, DTYPE.INT)
+    return TransferData.execute(iData, part_sizes, DTYPE.INT, do_align)
   }
+  def get(data: RDD[Boolean], part_sizes: RDD[Int]): Long = get(data, part_sizes, true)
   private def setEachPartition(nid: Int,
                                wnode: Node,
                                dptr: Long): Iterator[Boolean] = {

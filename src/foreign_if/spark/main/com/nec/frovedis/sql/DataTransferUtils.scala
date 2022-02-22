@@ -113,48 +113,48 @@ object DFMemoryManager extends java.io.Serializable {
 // for loading each target column as dvector one-by-one
 object Dvec extends java.io.Serializable {
   def get(rddData: RDD[InternalRow], dtype: Short, i: Int,
-          part_sizes: RDD[Int]): Long = {
+          part_sizes: RDD[Int], do_align: Boolean): Long = {
     val t0 = new TimeSpent(Level.DEBUG)
     return dtype match {
         case DTYPE.BOOL => {
            val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Int.MaxValue else y.getInt(i)))
-           val ret = IntDvector.get(data, part_sizes)
+           val ret = IntDvector.get(data, part_sizes, do_align)
            t0.show("get intDvector: ")
            ret
         }
         case DTYPE.INT => {
            val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Int.MaxValue else y.getInt(i)))
-           val ret = IntDvector.get(data, part_sizes)
+           val ret = IntDvector.get(data, part_sizes, do_align)
            t0.show("get intDvector: ")
            ret
         }
         case DTYPE.LONG | DTYPE.DATETIME | DTYPE.TIMESTAMP => {
            val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Long.MaxValue else y.getLong(i)))
-           val ret = LongDvector.get(data, part_sizes)
+           val ret = LongDvector.get(data, part_sizes, do_align)
            t0.show("get longDvector: ")
            ret
         }
         case DTYPE.FLOAT => {
            val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Float.MaxValue else y.getFloat(i)))
-           val ret = FloatDvector.get(data, part_sizes)
+           val ret = FloatDvector.get(data, part_sizes, do_align)
            t0.show("get floatDvector: ")
            ret
         }
         case DTYPE.DOUBLE => {
            val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Double.MaxValue else y.getDouble(i)))
-           val ret = DoubleDvector.get(data, part_sizes)
+           val ret = DoubleDvector.get(data, part_sizes, do_align)
            t0.show("get doubleDvector: ")
            ret
         }
         case DTYPE.STRING => {
            val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) "NULL" else y.getString(i)))
-           val ret = StringDvector.get(data, part_sizes)
+           val ret = StringDvector.get(data, part_sizes, do_align)
            t0.show("get stringDvector: ")
            ret
         }
         case DTYPE.WORDS => { // use instead of StringDvector for better performance
            val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) "NULL" else y.getString(i)))
-           val ret = WordsNodeLocal.get(data, part_sizes)
+           val ret = WordsNodeLocal.get(data, part_sizes, do_align)
            t0.show("get wordsNodeLocal: ")
            ret
         }
@@ -230,7 +230,8 @@ object sDFTransfer extends java.io.Serializable {
     JNISupport.unlockParallel()
 
     val fdata = JNISupport.createFrovedisDataframe2(fs.master_node, cols, types,
-                                                    ncol, vptrs, vptrs.size)
+                                                    ncol, vptrs, vptrs.size, 
+                                                    offset, offset.size)
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     t_log.show("dataframe creation: ")
@@ -273,7 +274,8 @@ object sDFTransfer extends java.io.Serializable {
     JNISupport.unlockParallel()
 
     val fdata = JNISupport.createFrovedisDataframe2(fs.master_node, cols, types,
-                                                    ncol, vptrs, vptrs.size)
+                                                    ncol, vptrs, vptrs.size,
+                                                    offset, offset.size)
     info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     t_log.show("dataframe creation: ")

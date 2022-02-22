@@ -397,16 +397,17 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadFrovedisWorke
 
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createNodeLocalOfWords
   (JNIEnv *env, jclass thisCls, jobject master_node, 
-   jlongArray dptrs, jlongArray sptrs, jint nproc) {
+   jlongArray dptrs, jlongArray sptrs, jint nproc, jboolean align) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto dptrs_ = to_exrpc_vector(env, dptrs, nproc);
   auto sptrs_ = to_exrpc_vector(env, sptrs, nproc);
+  bool do_align = (bool) align; // whether to align dvector created from spark-side partitioned data
   exrpc_ptr_t proxy = 0;
   try {
     // merges local chunks stored in dptrs_ and sptrs_ to create dvectors,
     // then creates node_local<words> using the created dvectors.
-    proxy = exrpc_async(fm_node, make_node_local_words, dptrs_, sptrs_).get(); 
+    proxy = exrpc_async(fm_node, make_node_local_words, dptrs_, sptrs_, do_align).get(); 
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) proxy;
@@ -414,25 +415,27 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createNodeLocalO
 
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDvector
   (JNIEnv *env, jclass thisCls, jobject master_node,
-   jlongArray proxies, jint nproc, jshort dtype) {
+   jlongArray proxies, jint nproc,
+   jshort dtype, jboolean align) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto p_vec = to_exrpc_vector(env, proxies, nproc);
   std::vector<size_t> s_vec; bool verify_sizes = false;
+  bool do_align = (bool) align; // whether to align dvector created from spark-side partitioned data
   exrpc_ptr_t dvecp = 0;
   try{
     switch(dtype) {
        case BOOL:   
-       case INT:    dvecp = exrpc_async(fm_node,merge_and_set_dvector<int>,
-                                      p_vec, s_vec, verify_sizes).get(); break;
-       case LONG:   dvecp = exrpc_async(fm_node,merge_and_set_dvector<long>,
-                                      p_vec, s_vec, verify_sizes).get(); break;
-       case FLOAT:  dvecp = exrpc_async(fm_node,merge_and_set_dvector<float>,
-                                      p_vec, s_vec, verify_sizes).get(); break;
-       case DOUBLE: dvecp = exrpc_async(fm_node,merge_and_set_dvector<double>,
-                                      p_vec, s_vec, verify_sizes).get(); break;
-       case STRING: dvecp = exrpc_async(fm_node,merge_and_set_dvector<std::string>,
-                                      p_vec, s_vec, verify_sizes).get(); break;
+       case INT:    dvecp = exrpc_async(fm_node,merge_and_get_dvector<int>,
+                                      p_vec, s_vec, verify_sizes, do_align).get(); break;
+       case LONG:   dvecp = exrpc_async(fm_node,merge_and_get_dvector<long>,
+                                      p_vec, s_vec, verify_sizes, do_align).get(); break;
+       case FLOAT:  dvecp = exrpc_async(fm_node,merge_and_get_dvector<float>,
+                                      p_vec, s_vec, verify_sizes, do_align).get(); break;
+       case DOUBLE: dvecp = exrpc_async(fm_node,merge_and_get_dvector<double>,
+                                      p_vec, s_vec, verify_sizes, do_align).get(); break;
+       case STRING: dvecp = exrpc_async(fm_node,merge_and_get_dvector<std::string>,
+                                      p_vec, s_vec, verify_sizes, do_align).get(); break;
        default:     REPORT_ERROR(USER_ERROR, 
                     "Unsupported datatype is encountered in dvector creation!\n");
     }
@@ -443,25 +446,27 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDv
 
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDvectorWithSizesVerification
   (JNIEnv *env, jclass thisCls, jobject master_node,
-   jlongArray proxies, jlongArray sizes, jint nproc, jshort dtype) {
+   jlongArray proxies, jlongArray sizes, jint nproc, 
+   jshort dtype, jboolean align) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto p_vec = to_exrpc_vector(env, proxies, nproc);
   auto s_vec = to_sizet_vector(env, sizes, nproc); bool verify_sizes = true;
+  bool do_align = (bool) align; // whether to align dvector created from spark-side partitioned data
   exrpc_ptr_t dvecp = 0;
   try{
     switch(dtype) {
        case BOOL:
-       case INT:    dvecp = exrpc_async(fm_node,merge_and_set_dvector<int>,
-                                      p_vec, s_vec, verify_sizes).get(); break;
-       case LONG:   dvecp = exrpc_async(fm_node,merge_and_set_dvector<long>,
-                                      p_vec, s_vec, verify_sizes).get(); break;
-       case FLOAT:  dvecp = exrpc_async(fm_node,merge_and_set_dvector<float>,
-                                      p_vec, s_vec, verify_sizes).get(); break;
-       case DOUBLE: dvecp = exrpc_async(fm_node,merge_and_set_dvector<double>,
-                                      p_vec, s_vec, verify_sizes).get(); break;
-       case STRING: dvecp = exrpc_async(fm_node,merge_and_set_dvector<std::string>,
-                                      p_vec, s_vec, verify_sizes).get(); break;
+       case INT:    dvecp = exrpc_async(fm_node,merge_and_get_dvector<int>,
+                                      p_vec, s_vec, verify_sizes, do_align).get(); break;
+       case LONG:   dvecp = exrpc_async(fm_node,merge_and_get_dvector<long>,
+                                      p_vec, s_vec, verify_sizes, do_align).get(); break;
+       case FLOAT:  dvecp = exrpc_async(fm_node,merge_and_get_dvector<float>,
+                                      p_vec, s_vec, verify_sizes, do_align).get(); break;
+       case DOUBLE: dvecp = exrpc_async(fm_node,merge_and_get_dvector<double>,
+                                      p_vec, s_vec, verify_sizes, do_align).get(); break;
+       case STRING: dvecp = exrpc_async(fm_node,merge_and_get_dvector<std::string>,
+                                      p_vec, s_vec, verify_sizes, do_align).get(); break;
        default:     REPORT_ERROR(USER_ERROR, 
                     "Unsupported datatype is encountered in dvector creation!\n");
     }

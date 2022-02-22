@@ -20,8 +20,14 @@
 using namespace frovedis;
 
 // defined in expose_dvector.cc
-exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs, 
-                                  std::vector<exrpc_ptr_t>& size_ptrs);
+node_local<words> 
+make_node_local_words_impl(std::vector<exrpc_ptr_t>& data_ptrs, 
+                           std::vector<exrpc_ptr_t>& size_ptrs,
+                           bool& do_align);
+exrpc_ptr_t 
+make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs, 
+                      std::vector<exrpc_ptr_t>& size_ptrs,
+                      bool& do_align);
 std::vector<exrpc_ptr_t> get_node_local_word_pointers(exrpc_ptr_t& words_nl_ptr);
 std::vector<std::string> get_string_vector_from_words(exrpc_ptr_t& wordsptr);
 
@@ -274,33 +280,38 @@ merge_vectors(const std::vector<std::vector<T>>& vec) {
 }
 
 template <class T>
-std::vector<size_t> 
-merge_and_set_dvector_impl(std::vector<T>& lvec,
-                           exrpc_ptr_t p_vecs_ptr) {
+std::vector<T> 
+merge_exrpc_vectors(exrpc_ptr_t p_vecs_ptr) {
   auto& p_vecs = *reinterpret_cast<std::vector<std::vector<T>>*>(p_vecs_ptr);
-  lvec = merge_vectors(p_vecs);
-  return {lvec.size()}; // map_partitions needs to return vector
+  return merge_vectors(p_vecs);
+}
+
+template <class T>
+dvector<T> 
+merge_and_get_dvector_impl(std::vector<exrpc_ptr_t>& dvec_eps,
+                           bool& do_align) {
+  auto each_eps = make_node_local_scatter(dvec_eps);
+  auto dvec = each_eps.map(merge_exrpc_vectors<T>).template moveto_dvector<T>();
+  if (do_align) dvec.align_block(); 
+  return dvec;
 }
 
 // returns a memptr pointing to the head of created dvector
 template <class T>
-exrpc_ptr_t merge_and_set_dvector(std::vector<exrpc_ptr_t>& dvec_eps,
-                                  std::vector<size_t>& sizes,
-                                  bool& verify_sizes) {
-  auto vecp = new dvector<T>(make_dvector_allocate<T>());
-  if(!vecp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed!\n");
-  auto each_eps =  make_node_local_scatter(dvec_eps);
-  auto ss = vecp->map_partitions(merge_and_set_dvector_impl<T>, 
-                                 each_eps).gather();
-  //show("created sizes: ", ss);
-  //show("expected sizes: ", sizes);
+exrpc_ptr_t merge_and_get_dvector(std::vector<exrpc_ptr_t>& dvec_eps,
+                                  std::vector<size_t>& sizes, // used only when verify_sizes = True
+                                  bool& verify_sizes,
+                                  bool& do_align) {
+  auto dvec = merge_and_get_dvector_impl<T>(dvec_eps, do_align);
   if (verify_sizes) {
+    auto ss = dvec.sizes();
+    //show("created sizes: ", ss);
+    //show("expected sizes: ", sizes);
     require(ss == sizes, 
-    "merge_and_set_dvector: sizes of created dvector doesn't match with specified sizes!\n");
+    "merge_and_get_dvector: sizes of created dvector doesn't match with specified sizes!\n");
   }
-  vecp->set_sizes(ss);
-  vecp->align_block(); 
-  return reinterpret_cast<exrpc_ptr_t>(vecp);
+  auto dvecp = new dvector<T>(std::move(dvec));
+  return reinterpret_cast<exrpc_ptr_t>(dvecp);
 }
 
 template <class T>

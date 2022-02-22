@@ -263,7 +263,8 @@ class FrovedisDataFrame extends java.io.Serializable {
     val ncol = cols.size
     val dvecs = new Array[Long](ncol)    
     val part_sizes = rddData.mapPartitions(x => Array(x.size).toIterator).persist
-    for (i <- 0 until ncol) dvecs(i) = Dvec.get(rddData, types(i), i, part_sizes)
+    val do_align = false // will take care by append_column
+    for (i <- 0 until ncol) dvecs(i) = Dvec.get(rddData, types(i), i, part_sizes, do_align)
     val fs = FrovedisServer.getServerInstance()
     this.fdata = JNISupport.createFrovedisDataframe(fs.master_node, types, 
                                                     cols, dvecs, ncol)

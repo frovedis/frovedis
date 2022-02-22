@@ -41,16 +41,18 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDa
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_createFrovedisDataframe2
   (JNIEnv *env, jclass thisCls, jobject master_node, 
    jobjectArray cols, jshortArray dtypes, jlong ncol,
-   jlongArray local_vec_proxies, jlong size) {
+   jlongArray local_vec_proxies, jlong size,
+   jintArray offset, jlong offset_size) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto dt = to_short_vector(env, dtypes, ncol);
   auto col_names = to_string_vector(env, cols, ncol);
   auto vecptrs = to_exrpc_vector(env, local_vec_proxies, size);
+  auto row_offset = to_int_vector(env, offset, offset_size);
   exrpc_ptr_t df_proxy = 0;
   try {
     df_proxy = exrpc_async(fm_node, create_dataframe_from_local_vectors, 
-                           dt, col_names, vecptrs).get();
+                           dt, col_names, vecptrs, row_offset).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) df_proxy;

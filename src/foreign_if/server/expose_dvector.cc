@@ -51,49 +51,51 @@ allocate_local_vectors(std::vector<size_t>& sizes,
   return ret;
 }
 
-std::vector<size_t>
-merge_vchar_as_vint_and_set_dvector(std::vector<int>& lvec,
-                                    exrpc_ptr_t p_vecs_ptr) {
+std::vector<int>
+merge_exrpc_vchar_as_vint(exrpc_ptr_t p_vecs_ptr) {
   auto& p_char_vecs = *reinterpret_cast<std::vector<std::vector<char>>*>(p_vecs_ptr);
   auto size = p_char_vecs.size();
   std::vector<std::vector<int>> vints(size);
   for(size_t i = 0; i < size; ++i) vints[i] = vchar_to_int(p_char_vecs[i]);
-  lvec = merge_vectors(vints);
-  return {lvec.size()}; // map_partitions needs to return vector
+  return merge_vectors(vints);
 }
 
-exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs, 
-                                  std::vector<exrpc_ptr_t>& size_ptrs) {
-  auto sizesp = new dvector<int>(make_dvector_allocate<int>());
-  auto each_size_eps =  make_node_local_scatter(size_ptrs);
-  auto sizes_ss = sizesp->map_partitions(merge_and_set_dvector_impl<int>, 
-                                         each_size_eps).gather();
-  sizesp->set_sizes(sizes_ss);
-  sizesp->align_block(); 
+node_local<words> 
+make_node_local_words_impl(std::vector<exrpc_ptr_t>& data_ptrs, 
+                           std::vector<exrpc_ptr_t>& size_ptrs,
+                           bool& do_align) {
+  auto sizes = merge_and_get_dvector_impl<int>(size_ptrs, do_align); 
 
-  auto datap = new dvector<int>(make_dvector_allocate<int>());
-  auto each_data_eps =  make_node_local_scatter(data_ptrs);
-  auto data_ss = datap->map_partitions(merge_vchar_as_vint_and_set_dvector, 
-                                       each_data_eps).gather();
-  datap->set_sizes(data_ss);
-  auto dist = sizesp->viewas_node_local()
-                    .map(+[](const std::vector<int>& sizes) {
+  auto each_data_eps = make_node_local_scatter(data_ptrs);
+  auto data = each_data_eps.map(merge_exrpc_vchar_as_vint).moveto_dvector<int>();
+  if (do_align) {
+    auto dist = sizes.viewas_node_local()
+                     .map(+[](const std::vector<int>& sizes) {
                           return static_cast<size_t>(vector_sum(sizes));
                      }).gather();
-  datap->align_as(dist); // to ensure data and sizes distributions are in-sync
+    data.align_as(dist); // to ensure data and sizes distributions are in-sync
+  }
 
-  auto retp = new node_local<words>(make_node_local_allocate<words>());
-  datap->viewas_node_local().mapv(
-       +[](std::vector<int>& data, std::vector<int>& sizes, words& w) {
+  return data.viewas_node_local().map(
+       +[](std::vector<int>& data, std::vector<int>& sizes) {
+           words w;
            auto size = sizes.size();
-           if (size == 0) return;
+           if (size == 0) return w;
            std::vector<size_t> starts(size); starts[0] = 0;
            auto length = vector_astype<size_t>(sizes);
            prefix_sum(length.data(), starts.data() + 1, size - 1);
            w.chars.swap(data);
            w.lens.swap(length);
            w.starts.swap(starts);
-       }, sizesp->viewas_node_local(), *retp);
+           return w;
+       }, sizes.viewas_node_local());
+}
+
+exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs, 
+                                  std::vector<exrpc_ptr_t>& size_ptrs,
+                                  bool& do_align) {
+  auto ret = make_node_local_words_impl(data_ptrs, size_ptrs, do_align);
+  auto retp = new node_local<words>(std::move(ret));
   return reinterpret_cast<exrpc_ptr_t>(retp);
 }
 
@@ -155,22 +157,22 @@ void expose_frovedis_dvector_functions() {
   expose(show_dvector<DT1>);
   expose(release_dvector<DT1>);
   // --- frovedis typed dvector for dataframes ---
-  // for spark (allocate_local_vector, load_local_vector, merge_and_set_dvector)
+  // for spark (allocate_local_vector, load_local_vector, merge_and_get_dvector)
   expose((allocate_local_vector<std::vector<int>>));
   expose((load_local_vector<std::vector<int>>));
-  expose(merge_and_set_dvector<int>);
+  expose(merge_and_get_dvector<int>);
   expose((allocate_local_vector<std::vector<long>>));
   expose((load_local_vector<std::vector<long>>));
-  expose(merge_and_set_dvector<long>);
+  expose(merge_and_get_dvector<long>);
   expose((allocate_local_vector<std::vector<float>>));
   expose((load_local_vector<std::vector<float>>));
-  expose(merge_and_set_dvector<float>);
+  expose(merge_and_get_dvector<float>);
   expose((allocate_local_vector<std::vector<double>>));
   expose((load_local_vector<std::vector<double>>));
-  expose(merge_and_set_dvector<double>);
+  expose(merge_and_get_dvector<double>);
   expose((allocate_local_vector<std::vector<std::string>>));
   expose((load_local_vector<std::vector<std::string>>));
-  expose(merge_and_set_dvector<std::string>);
+  expose(merge_and_get_dvector<std::string>);
   expose(allocate_local_vectors);
   // for handling strings as words (chars, sizes pair)
   expose((allocate_local_vector_pair<std::vector<char>, std::vector<int>>));

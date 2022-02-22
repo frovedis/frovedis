@@ -167,65 +167,58 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
 exrpc_ptr_t create_dataframe_from_local_vectors (
             std::vector<short>& types,
             std::vector<std::string>& cols,
-            std::vector<exrpc_ptr_t>& local_vec_proxies) {
+            std::vector<exrpc_ptr_t>& local_vec_proxies,
+            std::vector<int>& offset) {
   auto nproc = get_nodesize();
   std::vector<exrpc_ptr_t> proxies(nproc); auto pp = proxies.data();
   std::vector<exrpc_ptr_t> word_sizep(nproc); auto sp = word_sizep.data();
-  std::vector<size_t> sizes; bool verify_size = false; // not used (dummy)
+  auto proxy_matptr = local_vec_proxies.data();
+  bool do_align = true; // seems to be required as of now for performance
+  //bool do_align = false; // not required during dvector creation, would be taken care by append_column()
 
   auto dftblp = new dftable();
   if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
-  size_t words_count = 0;
   short wid = WORDS;
 
   for(size_t i = 0; i < cols.size(); ++i) {
-    auto row_offset = i + words_count;
-    words_count += (types[i] == wid);
+    auto row_offset = offset[i];
     //std::cout << "merging partitions for " << i << "th column with offset: " << row_offset << std::endl;
 
     if (types[i] == wid) { // special handling
-      auto vp1 = local_vec_proxies.data() + row_offset * nproc;       // proxy of char-data-vectors
-      auto vp2 = local_vec_proxies.data() + (row_offset + 1) * nproc; // proxy of int-size-vectors
+      auto vp1 = proxy_matptr + row_offset * nproc;       // proxy of char-data-vectors
+      auto vp2 = proxy_matptr + (row_offset + 1) * nproc; // proxy of int-size-vectors
       for (size_t j = 0; j < nproc; ++j) { 
         pp[j] = vp1[j];
         sp[j] = vp2[j];
       }
-      auto words_proxy = make_node_local_words(proxies, word_sizep); 
-      auto v7 = reinterpret_cast<node_local<words>*>(words_proxy);
-      dftblp->append_dic_string_column(cols[i], (*v7), true);
-      delete v7;
+      auto dv = make_node_local_words_impl(proxies, word_sizep, do_align);
+      dftblp->append_dic_string_column(cols[i], dv, true);
     } else {
-      auto vp = local_vec_proxies.data() + row_offset * nproc;
+      auto vp = proxy_matptr + row_offset * nproc;
       for (size_t j = 0; j < nproc; ++j) pp[j] = vp[j];
       switch(types[i]) {
         case BOOL:
-        case INT:    { auto dvec = merge_and_set_dvector<int>(proxies, sizes, verify_size);
-                       auto v1 = reinterpret_cast<dvector<int>*>(dvec);
-                       dftblp->append_column(cols[i],std::move(*v1),true);
-                       delete v1; break; }
-        case LONG:   { auto dvec = merge_and_set_dvector<long>(proxies, sizes, verify_size);
-                       auto v2 = reinterpret_cast<dvector<long>*>(dvec);
-                       dftblp->append_column(cols[i],std::move(*v2),true);
-                       delete v2; break; }
-        case FLOAT:  { auto dvec = merge_and_set_dvector<float>(proxies, sizes, verify_size);
-                       auto v3 = reinterpret_cast<dvector<float>*>(dvec);
-                       dftblp->append_column(cols[i],std::move(*v3),true);
-                       delete v3; break; }
-        case DOUBLE: { auto dvec = merge_and_set_dvector<double>(proxies, sizes, verify_size);
-                       auto v4 = reinterpret_cast<dvector<double>*>(dvec);
-                       dftblp->append_column(cols[i],std::move(*v4),true);
-                       delete v4; break; }
-        case STRING: { auto dvec = merge_and_set_dvector<std::string>(proxies, sizes, verify_size);
-                       auto v5 = reinterpret_cast<dvector<std::string>*>(dvec);
-                       dftblp->append_column(cols[i],std::move(*v5),true);
-                       delete v5; break; }
+        case INT:    { auto dv = merge_and_get_dvector_impl<int>(proxies, do_align);
+                       dftblp->append_column(cols[i], std::move(dv), true);
+                       break; }
+        case LONG:   { auto dv = merge_and_get_dvector_impl<long>(proxies, do_align);
+                       dftblp->append_column(cols[i], std::move(dv), true);
+                       break; }
+        case FLOAT:  { auto dv = merge_and_get_dvector_impl<float>(proxies, do_align);
+                       dftblp->append_column(cols[i], std::move(dv), true);
+                       break; }
+        case DOUBLE: { auto dv = merge_and_get_dvector_impl<double>(proxies, do_align);
+                       dftblp->append_column(cols[i], std::move(dv), true);
+                       break; }
+        case STRING: { auto dv = merge_and_get_dvector_impl<std::string>(proxies, do_align);
+                       dftblp->append_column(cols[i], std::move(dv), true);
+                       break; }
         case TIMESTAMP:
-        case DATETIME: { auto dvec = merge_and_set_dvector<datetime_t>(proxies, sizes, verify_size);
-                       auto v6 = reinterpret_cast<dvector<datetime_t>*>(dvec);
-                       dftblp->append_datetime_column(cols[i], std::move(*v6), true);
-                       delete v6; break; }
-        default:     auto msg = "Unsupported datatype in dataframe creation: " + std::to_string(types[i]);
-                     REPORT_ERROR(USER_ERROR,msg);
+        case DATETIME: {auto dv = merge_and_get_dvector_impl<datetime_t>(proxies, do_align);
+                        dftblp->append_datetime_column(cols[i], std::move(dv), true);
+                        break; }
+        default:  auto msg = "Unsupported datatype in dataframe creation: " + std::to_string(types[i]);
+                  REPORT_ERROR(USER_ERROR,msg);
       }
     }
   }
@@ -1191,10 +1184,6 @@ frov_df_astype(exrpc_ptr_t& df_proxy,
       //std::cout << "col: " << c 
       //          << "; type: " << dftblp->column(c)->dtype() 
       //          << "; to-type: " << t << "\n";
-      if (cc->dtype() == "dic_string") { // FUTURE TODO: might need to remove this check
-        require(t == "boolean", 
-        "type_cast: casting a string-typed column is supported only for bool!\n");
-      }
       dftblp->rename(c, c + "__temp");
       dftblp->type_cast(c + "__temp", c, t, check_bool_like_string);
       dftblp->drop(c + "__temp"); 

@@ -119,7 +119,8 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
 exrpc_ptr_t create_dataframe_from_local_vectors (
             std::vector<short>& types,
             std::vector<std::string>& cols,
-            std::vector<exrpc_ptr_t>& local_vec_proxies);
+            std::vector<exrpc_ptr_t>& local_vec_proxies,
+            std::vector<int>& offset);
 
 void show_dataframe(exrpc_ptr_t& df_proxy); 
 

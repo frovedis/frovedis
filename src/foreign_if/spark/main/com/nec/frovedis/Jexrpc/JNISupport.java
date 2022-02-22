@@ -834,12 +834,14 @@ public class JNISupport {
 
   public static native long createNodeLocalOfWords(Node master_node, 
                                                    long[] dptrs, long[] sptrs,
-                                                   int nproc);
+                                                   int nproc, boolean align);
   public static native long createFrovedisDvector(Node master_node, long proxies[],
-                                                  int nproc, short dtype);
+                                                  int nproc, short dtype,
+                                                  boolean align);
   public static native long createFrovedisDvectorWithSizesVerification(
                                                   Node master_node, long proxies[],
-                                                  long sizes[], int nproc, short dtype);
+                                                  long sizes[], int nproc, short dtype,
+                                                  boolean align);
   public static native double[] getUniqueDvectorElements(Node master_node,
                                                          long dptr);
   public static native long getZeroBasedEncodedDvector(Node master_node, 
@@ -878,7 +880,8 @@ public class JNISupport {
                                                      String cols_names[],
                                                      short dtypes[],
                                                      long ncol,
-                                                     long vptrs[], long ptrsz);
+                                                     long vptrs[], long ptrsz,
+                                                     int offset[], long offsetsz);
   public static native long calcMemorySize(Node master_node, long data);
   public static native void releaseFrovedisDataframe(Node master_node, long data);
   public static native DummyDftable copyColumn(Node master_node, long dptr,
