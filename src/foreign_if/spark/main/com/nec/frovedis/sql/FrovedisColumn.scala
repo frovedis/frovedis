@@ -98,6 +98,27 @@ object OPTYPE extends java.io.Serializable {
   val CAST:      Short = 100
   val SUBSTR:    Short = 101
   val ISNAN:     Short = 102
+  // --- date ---
+  val GETYEAR:   Short = 201
+  val GETMONTH:   Short = 202
+  val GETDAYOFMONTH:   Short = 203
+  val GETHOUR: Short = 204
+  val GETMINUTE: Short = 205
+  val GETSECOND: Short = 206
+  val GETQUARTER: Short = 207
+  val GETDAYOFWEEK: Short = 208
+  val GETDAYOFYEAR: Short = 209
+  val GETWEEKOFYEAR: Short = 210
+  val ADDDATE: Short = 211
+  val ADDMONTHS: Short = 212
+  val SUBDATE: Short = 213
+  val DATEDIFF: Short = 214
+  val MONTHSBETWEEN: Short = 215
+  val NEXTDAY: Short = 216
+  val TRUNCMONTH: Short = 217
+  val TRUNCYEAR: Short = 218
+  val TRUNCWEEK: Short = 219
+  val TRUNCQUARTER: Short = 220
 }
 
 class FrovedisColumn extends java.io.Serializable {
@@ -230,6 +251,13 @@ class FrovedisColumn extends java.io.Serializable {
   }
 
   private def get_name(left: String, right: String, opt: Short): String = {
+    val int_to_day = Map(1 -> "Sunday",
+                        2 -> "Monday",
+                        3 -> "Tuesday",
+                        4 -> "Wednesday",
+                        5 -> "Thursday",
+                        6 -> "Friday",
+                        7 -> "Saturday")
     return opt match {
       // --- conditional ---
       case OPTYPE.EQ => "(" + left + " = " + right + ")"
@@ -247,6 +275,28 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.ISNULL => "(" + left + " IS NULL)"
       case OPTYPE.ISNOTNULL => "(" + left + " IS NOT NULL)"
       case OPTYPE.ISNAN => "isnan(" + left + ")"
+      // --- date ---
+      case OPTYPE.GETYEAR => "year(" + left + ")"
+      case OPTYPE.GETMONTH => "month(" + left + ")"
+      case OPTYPE.GETDAYOFMONTH => "dayofmonth(" + left + ")"
+      case OPTYPE.GETHOUR => "hour(" + left + ")"
+      case OPTYPE.GETMINUTE => "minute(" + left + ")"
+      case OPTYPE.GETSECOND => "second(" + left + ")"
+      case OPTYPE.GETQUARTER => "quarter(" + left + ")"
+      case OPTYPE.GETDAYOFWEEK => "dayofweek(" + left + ")"
+      case OPTYPE.GETDAYOFYEAR => "dayofyear(" + left + ")"
+      case OPTYPE.GETWEEKOFYEAR => "weekofyear(" + left + ")"
+      case OPTYPE.ADDDATE => "date_add(" + left + ", " + right + ")" 
+      case OPTYPE.ADDMONTHS => "add_months(" + left + ", " + right + ")" 
+      case OPTYPE.SUBDATE => "date_sub(" + left + ", " + right + ")"
+      case OPTYPE.DATEDIFF => "datediff(" + left + ", " + right + ")" 
+      case OPTYPE.MONTHSBETWEEN => "months_between(" + left + ", " + right + ")" 
+      case OPTYPE.NEXTDAY => "next_day(" + left + ", " + int_to_day(right.toInt) + ")"
+      case OPTYPE.TRUNCMONTH => "trunc(" + left + ", Month)"
+      case OPTYPE.TRUNCYEAR => "trunc(" + left + ", Year)"
+      case OPTYPE.TRUNCWEEK => "trunc(" + left + ", Week)"
+      case OPTYPE.TRUNCQUARTER => "trunc(" + left + ", Quarter)"
+
       case OPTYPE.CAST => "CAST(" + left + " AS " + TMAPPER.castedName(right) + ")"
       case OPTYPE.IF   => "CASE WHEN " + left + " THEN " + right + " END"
       case OPTYPE.ELIF => {
@@ -370,6 +420,50 @@ class FrovedisColumn extends java.io.Serializable {
   def isNull    = new FrovedisColumn(this, dummy, OPTYPE.ISNULL, true)
   def isNotNull = new FrovedisColumn(this, dummy, OPTYPE.ISNOTNULL, true)
   def isNaN     = new FrovedisColumn(this, dummy, OPTYPE.ISNAN, true)
+  
+  def year       = new FrovedisColumn(this, dummy, OPTYPE.GETYEAR, false)
+  def month      = new FrovedisColumn(this, dummy, OPTYPE.GETMONTH, false)
+  def dayofmonth = new FrovedisColumn(this, dummy, OPTYPE.GETDAYOFMONTH, false)
+  def hour      = new FrovedisColumn(this, dummy, OPTYPE.GETHOUR, false)
+  def minute    = new FrovedisColumn(this, dummy, OPTYPE.GETMINUTE, false)
+  def second    = new FrovedisColumn(this, dummy, OPTYPE.GETSECOND, false)
+  def quarter     = new FrovedisColumn(this, dummy, OPTYPE.GETQUARTER, false)
+  def dayofweek   = new FrovedisColumn(this, dummy, OPTYPE.GETDAYOFWEEK, false)
+  def dayofyear   = new FrovedisColumn(this, dummy, OPTYPE.GETDAYOFYEAR, false)
+  def weekofyear  = new FrovedisColumn(this, dummy, OPTYPE.GETWEEKOFYEAR, false)
+  def date_add  (right: Any) = new FrovedisColumn(this, right, OPTYPE.ADDDATE)
+  def add_months  (right: Any) = new FrovedisColumn(this, right, OPTYPE.ADDMONTHS) 
+  def date_sub  (right: Any) = new FrovedisColumn(this, right, OPTYPE.SUBDATE)
+  def datediff  (right: FrovedisColumn) = new FrovedisColumn(this, right, OPTYPE.DATEDIFF) 
+  def months_between  (right: Any) = new FrovedisColumn(this, right, OPTYPE.MONTHSBETWEEN)
+  def next_day  (right: String) = {
+    val day_to_int = Map("sunday" -> 1, "sun" -> 1,
+                        "monday" -> 2, "mon" -> 2,
+                        "tuesday" -> 3, "tue" -> 3,
+                        "wednesday" -> 4, "wed" -> 4,
+                        "thursday" -> 5, "thu" -> 5,
+                        "friday" -> 6, "fri" -> 6,
+                        "saturday" -> 7, "sat" -> 7)
+    if (!day_to_int.contains(right.toLowerCase()))
+      throw new IllegalArgumentException("next_day: Invalid value for day provided : " + right + " !\n")
+    new FrovedisColumn(this, day_to_int(right.toLowerCase()), OPTYPE.NEXTDAY)
+  }  
+  def trunc(format: String) : FrovedisColumn = {
+    var res: FrovedisColumn = null
+    res = format.toLowerCase() match {
+      case "year" | "yyyy" | "yy"  =>
+        new FrovedisColumn(this, dummy, OPTYPE.TRUNCYEAR, false)
+      case "month" | "mon" | "mm"  =>
+        new FrovedisColumn(this, dummy, OPTYPE.TRUNCMONTH, false)
+      case "week"  =>
+        new FrovedisColumn(this, dummy, OPTYPE.TRUNCWEEK, false)
+      case "quarter"  =>
+        new FrovedisColumn(this, dummy, OPTYPE.TRUNCQUARTER, false)
+      case _ =>
+        throw new IllegalArgumentException("trunc: Invalid value for format provided : " + format + " !\n")
+    }
+    return res
+  }
 
   // TODO: support other mathematical operators like abs() etc.
   def + (right: Any)  = new FrovedisColumn(this, right, OPTYPE.ADD)
@@ -512,6 +606,24 @@ object functions extends java.io.Serializable {
 
   def isnull(e: FrovedisColumn) = e.isNull
   def isnan(e: FrovedisColumn)  = e.isNaN
+
+  def year(e: FrovedisColumn)  = e.year
+  def month(e: FrovedisColumn)  = e.month
+  def dayofmonth(e: FrovedisColumn)  = e.dayofmonth
+  def hour(e: FrovedisColumn)  = e.hour
+  def minute(e: FrovedisColumn)  = e.minute
+  def second(e: FrovedisColumn)  = e.second
+  def quarter(e: FrovedisColumn)  = e.quarter
+  def dayofweek(e: FrovedisColumn)  = e.dayofweek
+  def dayofyear(e: FrovedisColumn)  = e.dayofyear
+  def weekofyear(e: FrovedisColumn)  = e.weekofyear
+  def date_add(e: FrovedisColumn, right: Any)  = e.date_add(right)
+  def add_months(e: FrovedisColumn, right: Any)  = e.add_months(right)
+  def date_sub(e: FrovedisColumn, right: Any)  = e.date_sub(right)
+  def datediff(e: FrovedisColumn, right: FrovedisColumn)  = e.datediff(right)
+  def months_between(e: FrovedisColumn, right: Any)  = e.months_between(right)
+  def next_day(e: FrovedisColumn, right: String)  = e.next_day(right)
+  def trunc(e: FrovedisColumn, format: String) = e.trunc(format)
 
   // --- alias aggregate functions ---
   def mean(col: String)                = avg(col)
