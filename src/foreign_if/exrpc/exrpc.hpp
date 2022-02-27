@@ -5,6 +5,8 @@
 //#define USE_IP_EXRPC 
 #define NO_PROGRAM_OPTION // sometimes VE compiler does not like it
 
+#define USE_VE_DMA // try to use DMA in exrpc_rawsend/recv
+
 /* tentative: at client side do not throw exception; just print error.
    later make it throw in client language like python and scala */
 //#define CLIENT_DONOT_THROW_EXCEPTION_AND_PRINT
@@ -102,6 +104,23 @@ struct exrpc_header {
   exrpc_count_t arg_count;
   SERIALIZE(type, funcname, arg_count)
 };
+
+#ifdef USE_VE_DMA
+enum exrpc_ve_dma_msg {
+  is_ve,
+  is_ve_yes,
+  is_ve_no,
+  use_tcpip,
+  try_dma,
+  dma_ok,
+  dma_ng,
+  use_dma,
+  start_dma,
+  finish_dma,
+};
+
+#define DMA_SIZE 64 // in MB
+#endif
 
 int send_exrpcreq(exrpc_type, exrpc_node&, const std::string&, const std::string&);
 void mywrite(int fd, const char* write_data, size_t to_write);
@@ -208,6 +227,25 @@ struct hash<frovedis::exrpc_node> {
     return seed;
   }
 };
+
+#ifdef USE_VE_DMA
+template <>
+struct hash<std::pair<frovedis::exrpc_node, int>> {
+  size_t operator()(const std::pair<frovedis::exrpc_node, int> &ni) const {
+    auto n = ni.first;
+    size_t seed = 0;
+    auto hostname_hash = hash<std::string>()(n.hostname);
+    auto rpcport_hash = hash<int>()(n.rpcport);
+    auto id_hash = hash<int>()(ni.second);
+
+    seed ^= hostname_hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= rpcport_hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= id_hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    return seed;
+  }
+};
+#endif
+
 }
 
 #endif

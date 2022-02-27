@@ -12,6 +12,15 @@
 #include <errno.h>
 #include <algorithm>
 #include <string.h>
+#if defined(USE_VE_DMA) && defined(__ve__)
+#include <vedma.h>
+#include <vhshm.h>
+#endif
+#ifdef USE_VE_DMA
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <signal.h>
+#endif
 
 #ifndef NO_PROGRAM_OPTION
 #include <boost/program_options.hpp>
@@ -383,6 +392,128 @@ void inform_no_exposed_function(int fd, const std::string& funcname) {
   mywrite(fd, what.c_str(), send_data_size);
 }
 
+#ifdef USE_VE_DMA
+
+#ifdef __ve__
+static bool ve_dma_initialized = false;
+void* dma_buf;
+uint64_t vehva_ve;
+#endif
+std::unordered_map<int, uint64_t> shm_map;
+
+bool initialize_dma() {
+#ifdef __ve__
+  size_t shm_size = DMA_SIZE * 1024 * 1024;
+  if(!ve_dma_initialized) {
+    if (ve_dma_init() != 0) {
+      RLOG(DEBUG) << "failed in ve_dma_init: " +
+        std::string(strerror(errno)) << std::endl;
+      return false;
+    }
+    size_t align_size = 64 * 1024 * 1024;
+    if(posix_memalign(&dma_buf, align_size, shm_size) != 0) {
+      RLOG(DEBUG) << "failed in posix_memalign: " +
+        std::string(strerror(errno)) << std::endl;
+      return false;
+    }
+    vehva_ve = ve_register_mem_to_dmaatb(dma_buf, shm_size);
+    if (vehva_ve == (uint64_t)-1) {
+      RLOG(DEBUG) << "failed in ve_register_mem_to_dmaatb: " +
+        std::string(strerror(errno)) << std::endl;
+      return false;
+    }    
+    ve_dma_initialized = true;
+  }
+  return true;
+#else
+  RLOG(DEBUG) << "initialize_dma on x86" << std::endl;
+  return false;
+#endif
+}
+
+bool try_dma_helper(int shmid, uint64_t& shm_vehva) {
+#ifdef __ve__
+  auto it = shm_map.find(shmid);
+  if(it != shm_map.end()) {
+    shm_vehva = it->second;
+    return true;
+  } else {
+    shm_vehva = NULL;
+    void* p = vh_shmat(shmid, NULL, 0, (void **)&shm_vehva);
+    if (p == (void*)-1) {
+      RLOG(DEBUG) << "failed in vh_shmat: " +
+        std::string(strerror(errno)) << std::endl;
+      return false;
+    }
+    if(initialize_dma()) {
+      shm_map.insert(std::make_pair(shmid, shm_vehva));
+      return true;
+    } else {
+      return false;
+    }
+  }
+#else
+  RLOG(DEBUG) << "try_dma_helper on x86" << std::endl;
+  return false;
+#endif
+}
+
+void read_dma_helper(int sockfd, uint64_t shm_vehva, char* addr, size_t size) {
+#ifdef __ve__
+  size_t shm_size = DMA_SIZE * 1024 * 1024;
+  size_t num_block = size / shm_size;
+  size_t rest = size - shm_size * num_block;
+  for(size_t i = 0; i < num_block; i++) {
+    int reply;
+    myread(sockfd, reinterpret_cast<char*>(&reply), sizeof(reply)); // start_dma
+    ve_dma_post_wait(vehva_ve, shm_vehva, shm_size);
+    int msg = exrpc_ve_dma_msg::finish_dma;
+    mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+    memcpy(addr, dma_buf, shm_size);
+    addr += shm_size;
+  }
+  size_t rest2 = rest;
+  if(rest % 4 != 0) rest2 += (4 - (rest % 4));
+  int reply;
+  myread(sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+  ve_dma_post_wait(vehva_ve, shm_vehva, rest2);
+  memcpy(addr, dma_buf, rest);
+  int msg = exrpc_ve_dma_msg::finish_dma;
+  mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+#else
+  throw std::runtime_error("read_dma_helper on x86");
+#endif
+}
+
+void write_dma_helper(int sockfd, uint64_t shm_vehva, char* addr, size_t size) {
+#ifdef __ve__
+  size_t shm_size = DMA_SIZE * 1024 * 1024;
+  size_t num_block = size / shm_size;
+  size_t rest = size - shm_size * num_block;
+  for(size_t i = 0; i < num_block; i++) {
+    memcpy(dma_buf, addr, shm_size);
+    addr += shm_size;
+    int reply;
+    myread(sockfd, reinterpret_cast<char*>(&reply), sizeof(reply)); // start_dma
+    ve_dma_post_wait(shm_vehva, vehva_ve, shm_size);
+    int msg = exrpc_ve_dma_msg::finish_dma;
+    mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+  }
+  memcpy(dma_buf, addr, rest);
+  size_t rest2 = rest;
+  if(rest % 4 != 0) rest2 += (4 - (rest % 4));
+  int reply;
+  myread(sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+  ve_dma_post_wait(shm_vehva, vehva_ve, rest2);
+  int msg = exrpc_ve_dma_msg::finish_dma;
+  mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+#else
+  throw std::runtime_error("read_dma_helper on x86");
+#endif
+}
+
+#endif
+
 bool handle_exrpc_process(int new_sockfd) {
   uint32_t hdr_size_nw;
   myread(new_sockfd, reinterpret_cast<char*>(&hdr_size_nw),
@@ -497,16 +628,110 @@ bool handle_exrpc_process(int new_sockfd) {
       return true;
     }
   } else if(hdr.type == exrpc_type::exrpc_rawsend_type) {
+#ifdef USE_VE_DMA
+    exrpc_ptr_t writeptr;
+    myread(new_sockfd, reinterpret_cast<char*>(&writeptr), sizeof(exrpc_ptr_t));
+    char* writeaddr = reinterpret_cast<char*>(writeptr);
+    size_t size = hdr.arg_count;
+    int msg;
+    myread(new_sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+    if(msg == exrpc_ve_dma_msg::is_ve) {
+#ifdef __ve__
+      int reply = exrpc_ve_dma_msg::is_ve_yes;
+#else
+      int reply = exrpc_ve_dma_msg::is_ve_no;
+#endif
+      mywrite(new_sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+      myread(new_sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+    }
+    if(msg == exrpc_ve_dma_msg::try_dma) {
+      int shmid;
+      myread(new_sockfd, reinterpret_cast<char*>(&shmid), sizeof(shmid));
+      uint64_t shm_vehva;
+      if(try_dma_helper(shmid, shm_vehva)) {
+        int reply = exrpc_ve_dma_msg::dma_ok;
+        mywrite(new_sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+        read_dma_helper(new_sockfd, shm_vehva, writeaddr, size);
+      } else {
+        int reply = exrpc_ve_dma_msg::dma_ng;
+        mywrite(new_sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+        myread(new_sockfd, writeaddr, size);
+        char ack = 1;
+        mywrite(new_sockfd, &ack, 1);
+      }
+    } else if(msg == exrpc_ve_dma_msg::use_dma) {
+      int shmid;
+      myread(new_sockfd, reinterpret_cast<char*>(&shmid), sizeof(shmid));
+      auto it = shm_map.find(shmid);
+      if(it == shm_map.end()) {
+        throw std::runtime_error("internal error in exrpc_rawsend");
+      }
+      uint64_t shm_vehva = it->second;
+      read_dma_helper(new_sockfd, shm_vehva, writeaddr, size);
+    } else { // use_tcpip
+      myread(new_sockfd, writeaddr, size);
+      char ack = 1;
+      mywrite(new_sockfd, &ack, 1);
+    }
+    return true;
+#else
     exrpc_ptr_t writeptr;
     myread(new_sockfd, reinterpret_cast<char*>(&writeptr), sizeof(exrpc_ptr_t));
     myread(new_sockfd, reinterpret_cast<char*>(writeptr), hdr.arg_count);
+    char ack = 1;
+    mywrite(new_sockfd, &ack, 1);
     return true;
+#endif
   } else if(hdr.type == exrpc_type::exrpc_rawrecv_type) {
+#ifdef USE_VE_DMA
+    exrpc_ptr_t readptr;
+    myread(new_sockfd, reinterpret_cast<char*>(&readptr), sizeof(exrpc_ptr_t));
+    char* readaddr = reinterpret_cast<char*>(readptr);
+    size_t size = hdr.arg_count;
+    int msg;
+    myread(new_sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+    if(msg == exrpc_ve_dma_msg::is_ve) {
+#ifdef __ve__
+      int reply = exrpc_ve_dma_msg::is_ve_yes;
+#else
+      int reply = exrpc_ve_dma_msg::is_ve_no;
+#endif
+      mywrite(new_sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+      myread(new_sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+    }
+    if(msg == exrpc_ve_dma_msg::try_dma) {
+      int shmid;
+      myread(new_sockfd, reinterpret_cast<char*>(&shmid), sizeof(shmid));
+      uint64_t shm_vehva;
+      if(try_dma_helper(shmid, shm_vehva)) {
+        int reply = exrpc_ve_dma_msg::dma_ok;
+        mywrite(new_sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+        write_dma_helper(new_sockfd, shm_vehva, readaddr, size);
+      } else {
+        int reply = exrpc_ve_dma_msg::dma_ng;
+        mywrite(new_sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+        mywrite(new_sockfd, readaddr, size);
+      }
+    } else if(msg == exrpc_ve_dma_msg::use_dma) {
+      int shmid;
+      myread(new_sockfd, reinterpret_cast<char*>(&shmid), sizeof(shmid));
+      auto it = shm_map.find(shmid);
+      if(it == shm_map.end()) {
+        throw std::runtime_error("internal error in exrpc_rawrecv");
+      }
+      uint64_t shm_vehva = it->second;
+      write_dma_helper(new_sockfd, shm_vehva, readaddr, size);
+    } else { // use_tcpip
+      mywrite(new_sockfd, readaddr, size);
+    }
+    return true;
+#else
     // hdr.arg_count is reused as server->client size (not client->server size)
     exrpc_ptr_t readptr;
     myread(new_sockfd, reinterpret_cast<char*>(&readptr), sizeof(exrpc_ptr_t));
     mywrite(new_sockfd, reinterpret_cast<char*>(readptr), hdr.arg_count);
     return true;
+#endif
   } else {
     // TODO: close pooled socket of workers?
     return false;
@@ -785,6 +1010,443 @@ void wait_parallel_exrpc_multi(exrpc_node& n,
   exrpc_oneway_noexcept(n, wait_parallel_exrpc_multi_server, info, num_rpc);
 }
 
+#ifdef USE_VE_DMA
+static std::string client_hostname;
+static pthread_mutex_t client_hostname_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static std::unordered_map<std::pair<exrpc_node, int>, bool> dma_usable_list;
+static pthread_mutex_t dma_usable_list_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static std::vector<int> shm_to_cleanup;
+static std::vector<std::string> keyfile_to_cleanup;
+static bool need_cleanup = false;
+
+static std::vector<std::pair<key_t, void*>> dma_buf_list;
+static pthread_mutex_t dma_buf_list_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static int current_shmid = 1;
+static const int proj_id = 1; // any value is OK except 0
+
+enum exrpc_server_type {
+  ve,
+  x86,
+  unknown
+};
+
+static exrpc_server_type server_type = exrpc_server_type::unknown;
+static pthread_mutex_t server_type_lock = PTHREAD_MUTEX_INITIALIZER;
+
+void shm_cleanup() {
+  pthread_mutex_lock(&dma_buf_list_lock);
+  for(size_t i = 0; i < shm_to_cleanup.size(); i++) {
+    if(shmctl(shm_to_cleanup[i], IPC_RMID, NULL) == -1) {
+      LOG(DEBUG) << std::string("error in shmctl: ") +
+        std::string(strerror(errno)) << std::endl;
+    }
+  }
+  for(size_t i = 0; i < keyfile_to_cleanup.size(); i++) {
+    if(unlink(keyfile_to_cleanup[i].c_str()) == -1) {
+      LOG(DEBUG) << std::string("error in unlink: ") +
+        std::string(strerror(errno)) << std::endl;
+    }
+  }
+  pthread_mutex_unlock(&dma_buf_list_lock);
+}
+
+static struct sigaction old_sa_term;
+static struct sigaction old_sa_int;
+static struct sigaction old_sa_abrt;
+
+static void termsigaction(int sig, siginfo_t *si, void *uc) {
+  shm_cleanup();
+  if (old_sa_term.sa_flags & SA_SIGINFO) {
+    if(old_sa_term.sa_sigaction) (*old_sa_term.sa_sigaction)(sig, si, uc);
+  } else  {
+    if(old_sa_term.sa_handler) (*old_sa_term.sa_handler)(sig);
+  }
+  exit(sig);
+}
+
+static void intsigaction(int sig, siginfo_t *si, void *uc) {
+  shm_cleanup();
+  if (old_sa_int.sa_flags & SA_SIGINFO) {
+    if(old_sa_int.sa_sigaction) (*old_sa_int.sa_sigaction)(sig, si, uc);
+  } else {
+    if(old_sa_int.sa_handler) (*old_sa_int.sa_handler)(sig);
+  }
+  exit(sig);
+}
+
+static void abrtsigaction(int sig, siginfo_t *si, void *uc) {
+  shm_cleanup();
+  if (old_sa_abrt.sa_flags & SA_SIGINFO) {
+    if(old_sa_abrt.sa_sigaction) (*old_sa_abrt.sa_sigaction)(sig, si, uc);
+  } else  {
+    if(old_sa_abrt.sa_handler) (*old_sa_abrt.sa_handler)(sig);
+  }
+  exit(sig);
+}
+
+bool shm_cleanup_signal() {
+  struct sigaction sa;
+  memset(&sa, 0, sizeof(struct sigaction));
+  void finalizefrovedis(int code);
+  sa.sa_sigaction = termsigaction;
+  if(sigaction(SIGTERM, &sa, &old_sa_term) != 0) {
+    LOG(DEBUG) << std::string("error of sigaction: ") +
+      strerror(errno) << std::endl;
+    return false;
+  } 
+  sa.sa_sigaction = intsigaction;
+  if(sigaction(SIGINT, &sa, &old_sa_int) != 0) {
+    LOG(DEBUG) << std::string("error of sigaction: ") +
+      strerror(errno) << std::endl;
+    return false;
+  } 
+  sa.sa_sigaction = abrtsigaction;
+  if(sigaction(SIGABRT, &sa, &old_sa_abrt) != 0) {
+    LOG(DEBUG) << std::string("error of sigaction: ") +
+      strerror(errno) << std::endl;
+    return false;
+  } 
+  return true;
+}
+
+bool get_shm(int& shm_id, void*& addr) {
+  pthread_mutex_lock(&dma_buf_list_lock);
+  if(need_cleanup == false) {
+    need_cleanup = true;
+    if(atexit(shm_cleanup) != 0) {
+      LOG(DEBUG) << std::string("error in atexit: ") +
+        std::string(strerror(errno)) << std::endl;
+      pthread_mutex_unlock(&dma_buf_list_lock);
+      return false;
+    }
+    if(shm_cleanup_signal() == false) {
+      pthread_mutex_unlock(&dma_buf_list_lock);
+      return false;
+    }
+  }
+  auto dma_buf_list_size = dma_buf_list.size();
+  pthread_mutex_unlock(&dma_buf_list_lock);
+  if(dma_buf_list_size == 0) {
+    pthread_mutex_lock(&dma_buf_list_lock);
+    auto pidstr = std::to_string(getpid());
+    auto tmpdir = getenv("FROVEDIS_TMPDIR");
+    if(tmpdir != NULL) {
+      frovedis_tmpdir =
+        std::string(tmpdir) + "/frovedis_client" + "_" + pidstr;
+    } else {
+      frovedis_tmpdir =
+        std::string("/var/tmp/frovedis_client") + "_" + pidstr;
+    }
+    auto shm_name = frovedis_tmpdir + "_" + std::to_string(current_shmid);
+    current_shmid++;
+    keyfile_to_cleanup.push_back(shm_name);
+    pthread_mutex_unlock(&dma_buf_list_lock);
+    int fd = ::open(shm_name.c_str(), O_RDWR | O_CREAT,
+                    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    if(fd == -1) {
+      LOG(DEBUG) << std::string("error in open: ") +
+        std::string(strerror(errno)) << std::endl;
+      return false;
+    }
+    ::close(fd); // open is just for creating accessible file for creating key
+    auto ipc_key = ftok(shm_name.c_str(), proj_id);
+    if(ipc_key == -1) {
+      LOG(DEBUG) << std::string("error in ftok: ") +
+        std::string(strerror(errno))  << std::endl;
+      return false;
+    }
+    size_t shm_size = DMA_SIZE * 1024 * 1024;
+    shm_id = shmget(ipc_key, shm_size,
+                    IPC_CREAT | IPC_EXCL | SHM_HUGETLB | 0600);
+    if(shm_id == -1) {
+      LOG(DEBUG) << std::string("error in shmget: ") +
+        std::string(strerror(errno)) << std::endl;
+      return false;
+    }
+    pthread_mutex_lock(&dma_buf_list_lock);
+    shm_to_cleanup.push_back(shm_id);
+    pthread_mutex_unlock(&dma_buf_list_lock);
+    addr = shmat(shm_id, NULL, 0);
+    if(addr == (void*)(-1)) {
+      LOG(DEBUG) << std::string("error in shmat: ") +
+        std::string(strerror(errno)) << std::endl;
+      if(shmctl(shm_id, IPC_RMID, NULL) == -1) {
+        LOG(DEBUG) << std::string("error in shmctl: ") +
+          std::string(strerror(errno)) << std::endl;
+      }
+      return false;
+    }
+    return true;
+  } else {
+    pthread_mutex_lock(&dma_buf_list_lock);
+    auto back = dma_buf_list.back();
+    dma_buf_list.pop_back();
+    shm_id = back.first;
+    addr = back.second;
+    pthread_mutex_unlock(&dma_buf_list_lock);
+    return true;
+  }
+}
+
+void return_shm(key_t& ipc_key, void*& addr) {
+  pthread_mutex_lock(&dma_buf_list_lock);
+  dma_buf_list.push_back(std::make_pair(ipc_key, addr));
+  pthread_mutex_unlock(&dma_buf_list_lock);
+}
+
+void exrpc_rawsend_tcpip_helper(int sockfd, char* src, exrpc_count_t size,
+                                bool need_msg) {
+  if(need_msg) {
+    int msg = exrpc_ve_dma_msg::use_tcpip;
+    mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+  }
+  mywrite(sockfd, src, size);
+  char ack;
+  myread(sockfd, &ack, 1);
+}
+
+void exrpc_rawsend_dma_helper(int sockfd, char* src, int shmid, void* addr,
+                              exrpc_count_t size, bool need_msg) {
+  if(need_msg) {
+    int msg = exrpc_ve_dma_msg::use_dma;
+    mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+    mywrite(sockfd, reinterpret_cast<char*>(&shmid), sizeof(shmid));
+  }
+  size_t shm_size = DMA_SIZE * 1024 * 1024;
+  size_t num_block = size / shm_size;
+  size_t rest = size - shm_size * num_block;
+  for(size_t i = 0; i < num_block; i++) {
+    memcpy(addr, (void*)src, shm_size);
+    int msg = exrpc_ve_dma_msg::start_dma;
+    mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+    int reply;
+    myread(sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));//finish_dma
+    src += shm_size;
+  }
+  memcpy(addr, (void*)src, rest);
+  int msg = exrpc_ve_dma_msg::start_dma;
+  mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+  int reply;
+  myread(sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+  return_shm(shmid, addr);
+}
+
+void exrpc_rawsend(exrpc_node& n, char* src,
+                   exrpc_ptr_t dst, exrpc_count_t size) {
+  int sockfd = handle_exrpc_connect_pooled(n.hostname, n.rpcport);
+  exrpc_header hdr;
+  hdr.type = exrpc_type::exrpc_rawsend_type;
+  hdr.funcname = std::string();
+  hdr.arg_count = size;
+
+  my_portable_ostream result;
+  my_portable_oarchive outar(result);
+  outar & hdr;
+  PORTABLE_OSTREAM_TO_STRING(result, serialized_hdr);
+  uint32_t hdr_size = serialized_hdr.size();
+  uint32_t hdr_size_nw = htonl(hdr_size);
+  mywrite(sockfd, reinterpret_cast<char*>(&hdr_size_nw), sizeof(hdr_size_nw));
+  mywrite(sockfd, serialized_hdr.c_str(), hdr_size);
+  mywrite(sockfd, reinterpret_cast<char*>(&dst), sizeof(dst));
+
+  if(client_hostname == "") {
+    pthread_mutex_lock(&client_hostname_lock);
+    client_hostname = get_server_name();
+    pthread_mutex_unlock(&client_hostname_lock);
+  }
+  pthread_mutex_lock(&server_type_lock);
+  auto local_server_type = server_type;
+  pthread_mutex_unlock(&server_type_lock);
+  if(local_server_type == exrpc_server_type::unknown) {
+    int msg = exrpc_ve_dma_msg::is_ve;
+    mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+    int reply;
+    myread(sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+    pthread_mutex_lock(&server_type_lock);
+    if(reply == exrpc_ve_dma_msg::is_ve_yes)
+      server_type = local_server_type = exrpc_server_type::ve;
+    else
+      server_type = local_server_type = exrpc_server_type::x86;
+    pthread_mutex_unlock(&server_type_lock);
+  }
+  if(n.hostname == client_hostname &&
+     local_server_type == exrpc_server_type::ve) {
+    int shm_id;
+    void* addr;
+    if(get_shm(shm_id, addr)) {
+      pthread_mutex_lock(&dma_usable_list_lock);
+      auto it = dma_usable_list.find(std::make_pair(n, shm_id));
+      auto end = dma_usable_list.end();
+      pthread_mutex_unlock(&dma_usable_list_lock);
+      if(it == end) {
+        int msg = exrpc_ve_dma_msg::try_dma;
+        mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+        mywrite(sockfd, reinterpret_cast<char*>(&shm_id), sizeof(shm_id));
+        int reply;
+        myread(sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+        if(reply == exrpc_ve_dma_msg::dma_ok) {
+          pthread_mutex_lock(&dma_usable_list_lock);
+          dma_usable_list.insert
+            (std::make_pair(std::make_pair(n, shm_id), true));
+          pthread_mutex_unlock(&dma_usable_list_lock);
+          exrpc_rawsend_dma_helper(sockfd, src, shm_id, addr, size, false);
+        } else { // dma_ng
+          pthread_mutex_lock(&dma_usable_list_lock);
+          dma_usable_list.insert
+            (std::make_pair(std::make_pair(n, shm_id), false));
+          pthread_mutex_unlock(&dma_usable_list_lock);
+          return_shm(shm_id, addr);
+          exrpc_rawsend_tcpip_helper(sockfd, src, size, false);
+        }
+      } else if(it->second == true) {
+        exrpc_rawsend_dma_helper(sockfd, src, shm_id, addr, size, true);
+      } else { // it->second == false
+        return_shm(shm_id, addr);
+        exrpc_rawsend_tcpip_helper(sockfd, src, size, true);
+      }
+    } else {
+      exrpc_rawsend_tcpip_helper(sockfd, src, size, true);
+    }
+  } else {
+    exrpc_rawsend_tcpip_helper(sockfd, src, size, true);
+  }
+
+  auto it = send_connection_lock.find(sockfd);
+  if(it == send_connection_lock.end()) {
+    throw std::runtime_error("internal error in exrpc_rawsend");
+  } else {
+    pthread_mutex_unlock(it->second);
+  }
+}
+
+void exrpc_rawrecv_tcpip_helper(int sockfd, char* dst, exrpc_count_t size,
+                                bool need_msg) {
+  if(need_msg) {
+    int msg = exrpc_ve_dma_msg::use_tcpip;
+    mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+  }
+  myread(sockfd, dst, size);
+}
+
+void exrpc_rawrecv_dma_helper(int sockfd, char* dst, int shmid, void* addr,
+                              exrpc_count_t size, bool need_msg) {
+  if(need_msg) {
+    int msg = exrpc_ve_dma_msg::use_dma;
+    mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+    mywrite(sockfd, reinterpret_cast<char*>(&shmid), sizeof(shmid));
+  }
+  size_t shm_size = DMA_SIZE * 1024 * 1024;
+  size_t num_block = size / shm_size;
+  size_t rest = size - shm_size * num_block;
+  for(size_t i = 0; i < num_block; i++) {
+    int msg = exrpc_ve_dma_msg::start_dma;
+    mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+    int reply;
+    myread(sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));//finish_dma
+    memcpy((void*)dst, addr, shm_size);
+    dst += shm_size;
+  }
+  int msg = exrpc_ve_dma_msg::start_dma;
+  mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+  int reply;
+  myread(sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+  memcpy((void*)dst, addr, rest);
+  return_shm(shmid, addr);
+}
+
+void exrpc_rawrecv(exrpc_node& n, char* dst,
+                   exrpc_ptr_t src, exrpc_count_t size) {
+  int sockfd = handle_exrpc_connect_pooled(n.hostname, n.rpcport);
+  exrpc_header hdr;
+  hdr.type = exrpc_type::exrpc_rawrecv_type;
+  hdr.funcname = std::string();
+  hdr.arg_count = size;
+  
+  my_portable_ostream result;
+  my_portable_oarchive outar(result);
+  outar & hdr;
+  PORTABLE_OSTREAM_TO_STRING(result, serialized_hdr);
+  uint32_t hdr_size = serialized_hdr.size();
+  uint32_t hdr_size_nw = htonl(hdr_size);
+  mywrite(sockfd, reinterpret_cast<char*>(&hdr_size_nw), sizeof(hdr_size_nw));
+  mywrite(sockfd, serialized_hdr.c_str(), hdr_size);
+  mywrite(sockfd, reinterpret_cast<char*>(&src), sizeof(src));
+
+  if(client_hostname == "") {
+    pthread_mutex_lock(&client_hostname_lock);
+    client_hostname = get_server_name();
+    pthread_mutex_unlock(&client_hostname_lock);
+  }
+  pthread_mutex_lock(&server_type_lock);
+  auto local_server_type = server_type;
+  pthread_mutex_unlock(&server_type_lock);
+  if(local_server_type == exrpc_server_type::unknown) {
+    int msg = exrpc_ve_dma_msg::is_ve;
+    mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+    int reply;
+    myread(sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+    pthread_mutex_lock(&server_type_lock);
+    if(reply == exrpc_ve_dma_msg::is_ve_yes)
+      server_type = local_server_type = exrpc_server_type::ve;
+    else
+      server_type = local_server_type = exrpc_server_type::x86;
+    pthread_mutex_unlock(&server_type_lock);
+  }
+  if(n.hostname == client_hostname &&
+     local_server_type == exrpc_server_type::ve) {
+    int shm_id;
+    void* addr;
+    if(get_shm(shm_id, addr)) {
+      pthread_mutex_lock(&dma_usable_list_lock);
+      auto it = dma_usable_list.find(std::make_pair(n, shm_id));
+      auto end = dma_usable_list.end();
+      pthread_mutex_unlock(&dma_usable_list_lock);
+      if(it == end) {
+        int msg = exrpc_ve_dma_msg::try_dma;
+        mywrite(sockfd, reinterpret_cast<char*>(&msg), sizeof(msg));
+        mywrite(sockfd, reinterpret_cast<char*>(&shm_id), sizeof(shm_id));
+        int reply;
+        myread(sockfd, reinterpret_cast<char*>(&reply), sizeof(reply));
+        if(reply == exrpc_ve_dma_msg::dma_ok) {
+          pthread_mutex_lock(&dma_usable_list_lock);
+          dma_usable_list.insert
+            (std::make_pair(std::make_pair(n, shm_id), true));
+          pthread_mutex_unlock(&dma_usable_list_lock);
+          exrpc_rawrecv_dma_helper(sockfd, dst, shm_id, addr, size, false);
+        } else { // dma_ng
+          pthread_mutex_lock(&dma_usable_list_lock);
+          dma_usable_list.insert
+            (std::make_pair(std::make_pair(n, shm_id), false));
+          pthread_mutex_unlock(&dma_usable_list_lock);
+          return_shm(shm_id, addr);
+          exrpc_rawrecv_tcpip_helper(sockfd, dst, size, false);
+        }
+      } else if(it->second == true) {
+        exrpc_rawrecv_dma_helper(sockfd, dst, shm_id, addr, size, true);
+      } else { // it->second == false
+        return_shm(shm_id, addr);
+        exrpc_rawrecv_tcpip_helper(sockfd, dst, size, true);
+      }
+    } else {
+      exrpc_rawrecv_tcpip_helper(sockfd, dst, size, true);
+    }
+  } else {
+    exrpc_rawrecv_tcpip_helper(sockfd, dst, size, true);
+  }
+
+  auto it = send_connection_lock.find(sockfd);
+  if(it == send_connection_lock.end()) {
+    throw std::runtime_error("internal error in exrpc_rawrecv");
+  } else {
+    pthread_mutex_unlock(it->second);
+  }
+}
+
+#else
+
 void exrpc_rawsend(exrpc_node& n, char* src,
                    exrpc_ptr_t dst, exrpc_count_t size) {
   int sockfd = handle_exrpc_connect_pooled(n.hostname, n.rpcport);
@@ -803,6 +1465,8 @@ void exrpc_rawsend(exrpc_node& n, char* src,
   mywrite(sockfd, serialized_hdr.c_str(), hdr_size);
   mywrite(sockfd, reinterpret_cast<char*>(&dst), sizeof(dst));
   mywrite(sockfd, src, size);
+  char ack;
+  myread(sockfd, &ack, 1);
   auto it = send_connection_lock.find(sockfd);
   if(it == send_connection_lock.end()) {
     throw std::runtime_error("internal error in exrpc_rawsend");
@@ -836,5 +1500,6 @@ void exrpc_rawrecv(exrpc_node& n, char* dst,
     pthread_mutex_unlock(it->second);
   }
 }
+#endif
 
 }
