@@ -2186,6 +2186,28 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
     case FDIV:      opt = new std::shared_ptr<dffunction>(fdiv_col_as(left, right, cname)); break;
     case MOD:       opt = new std::shared_ptr<dffunction>(mod_col_as(left, right, cname)); break;
     case POW:       opt = new std::shared_ptr<dffunction>(pow_col_as(left, right, cname)); break;
+    // -- date --
+    case GETYEAR:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::year, cname)); break;
+    case GETMONTH:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::month, cname)); break;
+    case GETDAYOFMONTH:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::day, cname)); break;
+    case GETHOUR:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::hour, cname)); break;
+    case GETMINUTE:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::minute, cname)); break;
+    case GETSECOND:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::second, cname)); break;
+    case GETQUARTER:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::quarter, cname)); break;
+    case GETDAYOFWEEK:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::dayofweek, cname)); break;
+    case GETDAYOFYEAR:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::dayofyear, cname)); break;
+    case GETWEEKOFYEAR:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::weekofyear, cname)); break;
+    case ADDDATE: opt = new std::shared_ptr<dffunction>(datetime_add_col_as(left, right, datetime_type::day, cname)); break;
+    case ADDMONTHS: opt = new std::shared_ptr<dffunction>(datetime_add_col_as(left, right, datetime_type::month, cname)); break;
+    case SUBDATE: opt = new std::shared_ptr<dffunction>(datetime_sub_col_as(left, right, datetime_type::day, cname)); break;
+    case DATEDIFF: opt = new std::shared_ptr<dffunction>(datetime_diff_col_as(left, right, datetime_type::day, cname)); break;
+    case MONTHSBETWEEN: opt = new std::shared_ptr<dffunction>(datetime_months_between_col_as(left, right, cname)); break;
+    case NEXTDAY: opt = new std::shared_ptr<dffunction>(datetime_next_day_col_as(left, right, cname)); break;
+    case TRUNCMONTH: opt = new std::shared_ptr<dffunction>(datetime_truncate_col_as(left, datetime_type::month, cname)); break;
+    case TRUNCYEAR: opt = new std::shared_ptr<dffunction>(datetime_truncate_col_as(left, datetime_type::year, cname)); break;
+    case TRUNCWEEK: opt = new std::shared_ptr<dffunction>(datetime_truncate_col_as(left, datetime_type::weekofyear, cname)); break;
+    case TRUNCQUARTER: opt = new std::shared_ptr<dffunction>(datetime_truncate_col_as(left, datetime_type::quarter, cname)); break;
+
     default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction/dfoperator is requested!\n");
   }
   return reinterpret_cast<exrpc_ptr_t> (opt);
@@ -2486,3 +2508,18 @@ long calc_memory_size(exrpc_ptr_t& df_proxy) {
   return size;
 }
 
+dummy_dftable
+frov_df_first_element(exrpc_ptr_t& df_proxy, std::string& col) {
+  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto dfp = new dftable(df.aggregate({first(col)}));
+  dfp->prepend_rowid<size_t>("index");
+  return to_dummy_dftable(dfp);
+}
+
+dummy_dftable
+frov_df_last_element(exrpc_ptr_t& df_proxy, std::string& col) {
+  auto& df = *reinterpret_cast<dftable*>(df_proxy);
+  auto dfp = new dftable(df.aggregate({last(col)}));
+  dfp->prepend_rowid<size_t>("index");
+  return to_dummy_dftable(dfp);
+}

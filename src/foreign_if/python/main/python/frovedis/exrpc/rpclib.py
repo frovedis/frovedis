@@ -399,6 +399,16 @@ df_sum.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
                     c_int, c_bool]               # min_cunt, with_index
 df_sum.restype = py_object
 
+df_first = LIB.df_first
+df_first.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                    c_char_p]                    # col_name
+df_first.restype = py_object
+
+df_last = LIB.df_last
+df_last.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
+                    c_char_p]                    # col_name
+df_last.restype = py_object
+
 df_min = LIB.df_min
 df_min.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
                     POINTER(c_char_p),           # cols_arr,

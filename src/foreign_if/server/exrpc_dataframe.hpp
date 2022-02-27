@@ -240,6 +240,12 @@ exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
       case FDIV: opt = new std::shared_ptr<dffunction>(fdiv_im_as(left, right, cname)); break;
       case MOD:  opt = new std::shared_ptr<dffunction>(mod_im_as (left, right, cname)); break;
       case POW:  opt = new std::shared_ptr<dffunction>(pow_im_as (left, right, cname)); break;
+      // --- date ---
+      case ADDDATE: opt = new std::shared_ptr<dffunction>(datetime_add_im_as(left, right, datetime_type::day, cname)); break;
+      case ADDMONTHS: opt = new std::shared_ptr<dffunction>(datetime_add_im_as(left, right, datetime_type::month, cname)); break;
+      case SUBDATE: opt = new std::shared_ptr<dffunction>(datetime_sub_im_as(left, right, datetime_type::day, cname)); break;
+      case NEXTDAY: opt = new std::shared_ptr<dffunction>(datetime_next_day_im_as(left, right, cname)); break;
+      
       default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
     }
   } else {
@@ -259,6 +265,8 @@ exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
       case FDIV: opt = new std::shared_ptr<dffunction>(fdiv_im_as(right, left, cname)); break;
       case MOD:  opt = new std::shared_ptr<dffunction>(mod_im_as (right, left, cname)); break;
       case POW:  opt = new std::shared_ptr<dffunction>(pow_im_as (right, left, cname)); break;
+      
+
       default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
     }
   }
@@ -1112,5 +1120,10 @@ frov_df_min(exrpc_ptr_t& df_proxy,
   auto retp = new dftable(std::move(ret));
   return to_dummy_dftable(retp);
 }
+
+dummy_dftable
+frov_df_first_element(exrpc_ptr_t&, std::string&);
+dummy_dftable
+frov_df_last_element(exrpc_ptr_t&, std::string&);
 
 #endif

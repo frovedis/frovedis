@@ -124,6 +124,8 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_sum<unsigned long>);
   expose(frov_df_sum<float>);
   expose(frov_df_sum<double>);
+  expose(frov_df_first_element);
+  expose(frov_df_last_element);
   expose(frov_df_min<int>);
   expose(frov_df_min<long>);
   expose(frov_df_min<unsigned long>);

@@ -1240,31 +1240,6 @@ class DataFrame(object):
             result_dict = dict(zip(numeric_cols, ret))
             return [result_dict.get(col, np.nan) for col in columns]
 
-    def __get_non_numeric_columns(self, cols=None, include_bool=True):
-        """
-        Returns non numeric columns
-        """
-        if cols is not None:
-            cols = check_string_or_array_like(cols, \
-                         "__get_non_numeric_columns")
-            types = self.__get_column_types(cols)
-        else:
-            cols = self.__cols
-            types = self.__types
-
-        if include_bool:
-            non_numeric_types = [DTYPE.STRING]
-        else:
-            non_numeric_types = [DTYPE.STRING, DTYPE.BOOL]
-
-        non_numeric_cols = []
-        non_numeric_col_types = []
-        for i in range(0, len(cols)):
-            if types[i] in non_numeric_types:
-                non_numeric_cols.append(cols[i])
-                non_numeric_col_types.append(types[i])
-        return non_numeric_cols, non_numeric_col_types
-
     def __get_numeric_columns(self, cols=None, include_bool=True):
         """
         __get_numeric_columns
@@ -3160,6 +3135,45 @@ class DataFrame(object):
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         return ret
 
+    @check_association
+    def first_element(self, col_name):
+        """
+        Returns the first element/row from column/dataframe
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_first(host, port, \
+                                   self.get(), \
+                                   col_name.encode('ascii'))
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        ret = DataFrame()
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.num_row = dummy_df["nrow"]
+        ret.index = FrovedisColumn(names[0], types[0]) #setting index
+        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        return ret
+
+    @check_association
+    def last_element(self, col_name):
+        """
+        Returns the last element/row from column/dataframe
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_last(host, port, \
+                                  self.get(), \
+                                  col_name.encode('ascii'))
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        ret = DataFrame()
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.num_row = dummy_df["nrow"]
+        ret.index = FrovedisColumn(names[0], types[0]) #setting index
+        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        return ret
 
     @check_association
     def min(self, axis=None, skipna=None, level=None,
@@ -3549,7 +3563,7 @@ class DataFrame(object):
 
     def set_multi_level_column(self, multi):
         """
-        sets column name to be MultiIndex, used in to_pandas() 
+        sets column name to be MultiIndex, used in to_pandas()
         """
         if self.__multi_index is None:
             tsize = len(self.__cols)
@@ -3567,7 +3581,7 @@ class DataFrame(object):
 
     def set_multi_index_targets(self, cols):
         """
-        sets target columns to be set as MultiIndex index in to_pandas() 
+        sets target columns to be set as MultiIndex index in to_pandas()
         """
         self.__multi_index = cols
         return self

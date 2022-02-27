@@ -640,6 +640,38 @@ extern "C" {
     return to_py_dummy_df(ret);
   }
 
+  PyObject* df_first(const char* host, int port, long proxy,
+                     const char* col) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_first_element, 
+                        df_proxy, std::string(col)).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* df_last(const char* host, int port, long proxy,
+                    const char* col) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_last_element, 
+                        df_proxy, std::string(col)).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
   PyObject* df_min(const char* host, int port, long proxy,
                     const char** cols, short* types, ulong size,
                     int axis, short res_type, 
