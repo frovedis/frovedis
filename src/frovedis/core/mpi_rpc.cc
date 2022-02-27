@@ -392,6 +392,7 @@ void send_bcast_rpcreq_oneway(rpc_type type, intptr_t function_addr,
 
 static struct sigaction old_sa_term;
 static struct sigaction old_sa_int;
+static struct sigaction old_sa_abrt;
 
 //https://stackoverflow.com/questions/52650215/calling-default-signal-handler-directly-from-new-one 
 static void termsigaction(int sig, siginfo_t *si, void *uc) {
@@ -413,6 +414,18 @@ static void intsigaction(int sig, siginfo_t *si, void *uc) {
     if(old_sa_int.sa_sigaction) (*old_sa_int.sa_sigaction)(sig, si, uc);
   } else {
     if(old_sa_int.sa_handler) (*old_sa_int.sa_handler)(sig);
+  }
+  MPI_Finalize();
+  exit(sig);
+}
+
+static void abrtsigaction(int sig, siginfo_t *si, void *uc) {
+  if(directory_exists(frovedis_tmpdir))
+    remove_directory(frovedis_tmpdir);
+  if (old_sa_abrt.sa_flags & SA_SIGINFO) {
+    if(old_sa_abrt.sa_sigaction) (*old_sa_abrt.sa_sigaction)(sig, si, uc);
+  } else  {
+    if(old_sa_abrt.sa_handler) (*old_sa_abrt.sa_handler)(sig);
   }
   MPI_Finalize();
   exit(sig);
@@ -468,7 +481,12 @@ void initfrovedis(int argc, char* argv[]) {
     MPI_Finalize();
     exit(1);
   } 
-
+  sa.sa_sigaction = abrtsigaction;
+  if(sigaction(SIGABRT, &sa, &old_sa_abrt) != 0) {
+    cerr << string("error of sigaction: ") + strerror(errno) << endl;
+    MPI_Finalize();
+    exit(1);
+  } 
 
   if(frovedis_self_rank != 0) {
     handle_req();
