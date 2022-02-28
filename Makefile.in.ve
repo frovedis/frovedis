@@ -17,7 +17,7 @@ CXXFLAGS_COMMON := -O4 -fno-defer-inline-template-instantiation -finline-functio
 LINK :=	nfort -cxxlib -static
 MPI_LINK = $(shell mpinc++ -static -show | cut -d" " -f 2-)
 
-LIBS_COMMON := -L${NLC_LIB} -lparpack -lscalapack -llapack -lcblas -lblas_sequential -lasl_sequential -L${BOOST_LIB} -lboost_program_options -lboost_serialization -lboost_system ${MPI_LINK} 
+LIBS_COMMON := -L${NLC_LIB} -lparpack -lscalapack -llapack -lcblas -lblas_sequential -lasl_sequential -lveio -L${BOOST_LIB} -lboost_program_options -lboost_serialization -lboost_system ${MPI_LINK} 
 
 TO_CLEAN := *.o *~
 
