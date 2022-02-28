@@ -355,6 +355,10 @@ one_null_column() {
   return std::make_shared<typed_dfcolumn<T>>(std::move(val),std::move(nulls));
 }
 
+template <>
+std::shared_ptr<typed_dfcolumn<datetime>>
+one_null_column();
+
 std::shared_ptr<dfaggregator>
 sum(const std::string& col);
 

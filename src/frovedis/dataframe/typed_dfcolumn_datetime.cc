@@ -532,6 +532,14 @@ datetime_t typed_dfcolumn<datetime>::last(bool ignore_nulls) {
   return typed_dfcolumn<datetime_t>::last(ignore_nulls);
 }
 
+datetime_t typed_dfcolumn<datetime>::max() {
+  return typed_dfcolumn<datetime_t>::max();
+}
+
+datetime_t typed_dfcolumn<datetime>::min() {
+  return typed_dfcolumn<datetime_t>::min();
+}
+
 void typed_dfcolumn<datetime>::debug_print() {
   std::cout << "dtype: " << dtype() << std::endl;
   std::cout << "values: ";

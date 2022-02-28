@@ -366,6 +366,17 @@ whole_column_aggregate(dftable_base& table) {
   return std::make_shared<typed_dfcolumn<double>>(make_dvector_scatter(v));
 }
 
+template <>
+std::shared_ptr<typed_dfcolumn<datetime>>
+one_null_column() {
+  auto max = std::numeric_limits<datetime_t>::max();
+  std::vector<datetime_t> v = {max};
+  std::vector<size_t> nullsv = {0};
+  auto val = make_dvector_scatter(v).moveto_node_local();
+  auto nulls = make_dvector_scatter(nullsv).moveto_node_local();
+  return std::make_shared<typed_dfcolumn<datetime>>(std::move(val),std::move(nulls));
+}
+
 std::shared_ptr<dfcolumn>
 dfaggregator_max::
 whole_column_aggregate(dftable_base& table) {
@@ -420,6 +431,15 @@ whole_column_aggregate(dftable_base& table) {
     std::vector<unsigned int> v = {r};
     return
       std::make_shared<typed_dfcolumn<unsigned int>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "datetime") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(colp);
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
+    if(colp2->is_all_null()) return one_null_column<datetime>();
+    datetime_t r = colp2->max();
+    std::vector<datetime_t> v = {r};
+    return
+      std::make_shared<typed_dfcolumn<datetime>>(make_dvector_scatter(v));
   } else throw std::runtime_error("unsupported type: " + colp->dtype());
 }
 
@@ -477,6 +497,15 @@ whole_column_aggregate(dftable_base& table) {
     std::vector<unsigned int> v = {r};
     return
       std::make_shared<typed_dfcolumn<unsigned int>>(make_dvector_scatter(v));
+  } else if(colp->dtype() == "datetime") {
+    auto colp2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(colp);
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
+    if(colp2->is_all_null()) return one_null_column<datetime>();
+    datetime_t r = colp2->min();
+    std::vector<datetime_t> v = {r};
+    return
+      std::make_shared<typed_dfcolumn<datetime>>(make_dvector_scatter(v));
   } else throw std::runtime_error("unsupported type: " + colp->dtype());
 }
 

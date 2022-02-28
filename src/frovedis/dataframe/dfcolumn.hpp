@@ -2350,6 +2350,8 @@ public:
   }
   datetime_t first(bool ignore_nulls = false);
   datetime_t last(bool ignore_nulls = false);
+  datetime_t max();
+  datetime_t min();
   virtual std::shared_ptr<dfcolumn>
   datetime_extract(datetime_type kind);
   virtual std::shared_ptr<dfcolumn>
