@@ -403,7 +403,9 @@ static void termsigaction(int sig, siginfo_t *si, void *uc) {
   } else  {
     if(old_sa_term.sa_handler) (*old_sa_term.sa_handler)(sig);
   }
-  MPI_Finalize();
+  // not to call MPI_Finalize seems to be better
+  // since it is the same behaviour of receiving signal
+  //MPI_Finalize();
   exit(sig);
 }
 
@@ -415,7 +417,7 @@ static void intsigaction(int sig, siginfo_t *si, void *uc) {
   } else {
     if(old_sa_int.sa_handler) (*old_sa_int.sa_handler)(sig);
   }
-  MPI_Finalize();
+  //MPI_Finalize();
   exit(sig);
 }
 
@@ -427,7 +429,7 @@ static void abrtsigaction(int sig, siginfo_t *si, void *uc) {
   } else  {
     if(old_sa_abrt.sa_handler) (*old_sa_abrt.sa_handler)(sig);
   }
-  MPI_Finalize();
+  //MPI_Finalize();
   exit(sig);
 }
 
@@ -487,7 +489,6 @@ void initfrovedis(int argc, char* argv[]) {
     MPI_Finalize();
     exit(1);
   } 
-
   if(frovedis_self_rank != 0) {
     handle_req();
   }
