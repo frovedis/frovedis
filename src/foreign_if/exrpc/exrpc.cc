@@ -1021,7 +1021,7 @@ static std::vector<int> shm_to_cleanup;
 static std::vector<std::string> keyfile_to_cleanup;
 static bool need_cleanup = false;
 
-static std::vector<std::pair<key_t, void*>> dma_buf_list;
+static std::vector<std::pair<int, void*>> dma_buf_list;
 static pthread_mutex_t dma_buf_list_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int current_shmid = 1;
@@ -1112,7 +1112,7 @@ bool shm_cleanup_signal() {
   return true;
 }
 
-bool get_shm(int& shm_id, void*& addr) {
+bool get_shm(const exrpc_node& n, int& shm_id, void*& addr) {
   pthread_mutex_lock(&dma_buf_list_lock);
   if(need_cleanup == false) {
     need_cleanup = true;
@@ -1128,9 +1128,7 @@ bool get_shm(int& shm_id, void*& addr) {
     }
   }
   auto dma_buf_list_size = dma_buf_list.size();
-  pthread_mutex_unlock(&dma_buf_list_lock);
   if(dma_buf_list_size == 0) {
-    pthread_mutex_lock(&dma_buf_list_lock);
     auto pidstr = std::to_string(getpid());
     auto tmpdir = getenv("FROVEDIS_TMPDIR");
     if(tmpdir != NULL) {
@@ -1181,19 +1179,34 @@ bool get_shm(int& shm_id, void*& addr) {
     }
     return true;
   } else {
-    pthread_mutex_lock(&dma_buf_list_lock);
-    auto back = dma_buf_list.back();
-    dma_buf_list.pop_back();
-    shm_id = back.first;
-    addr = back.second;
+    pthread_mutex_lock(&dma_usable_list_lock);
+    size_t i = 0;
+    for(; dma_buf_list.size(); i++) {
+      auto it = dma_usable_list.find
+        (std::make_pair(n, dma_buf_list[i].first));
+      if(it != dma_usable_list.end() && it->second == true) {
+        break;
+      }
+    }
+    if(i < dma_buf_list.size()) {
+      shm_id = dma_buf_list[i].first;
+      addr = dma_buf_list[i].second;
+      dma_buf_list.erase(dma_buf_list.begin() + i);
+    } else {
+      auto back = dma_buf_list.back();
+      dma_buf_list.pop_back();
+      shm_id = back.first;
+      addr = back.second;
+    }
+    pthread_mutex_unlock(&dma_usable_list_lock);
     pthread_mutex_unlock(&dma_buf_list_lock);
     return true;
   }
 }
 
-void return_shm(key_t& ipc_key, void*& addr) {
+void return_shm(int& shm_id, void*& addr) {
   pthread_mutex_lock(&dma_buf_list_lock);
-  dma_buf_list.push_back(std::make_pair(ipc_key, addr));
+  dma_buf_list.push_back(std::make_pair(shm_id, addr));
   pthread_mutex_unlock(&dma_buf_list_lock);
 }
 
@@ -1276,7 +1289,7 @@ void exrpc_rawsend(exrpc_node& n, char* src,
      local_server_type == exrpc_server_type::ve) {
     int shm_id;
     void* addr;
-    if(get_shm(shm_id, addr)) {
+    if(get_shm(n, shm_id, addr)) {
       pthread_mutex_lock(&dma_usable_list_lock);
       auto it = dma_usable_list.find(std::make_pair(n, shm_id));
       auto end = dma_usable_list.end();
@@ -1399,7 +1412,7 @@ void exrpc_rawrecv(exrpc_node& n, char* dst,
      local_server_type == exrpc_server_type::ve) {
     int shm_id;
     void* addr;
-    if(get_shm(shm_id, addr)) {
+    if(get_shm(n, shm_id, addr)) {
       pthread_mutex_lock(&dma_usable_list_lock);
       auto it = dma_usable_list.find(std::make_pair(n, shm_id));
       auto end = dma_usable_list.end();
