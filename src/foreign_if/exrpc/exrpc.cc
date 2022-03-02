@@ -1181,7 +1181,7 @@ bool get_shm(const exrpc_node& n, int& shm_id, void*& addr) {
   } else {
     pthread_mutex_lock(&dma_usable_list_lock);
     size_t i = 0;
-    for(; dma_buf_list.size(); i++) {
+    for(; i < dma_buf_list.size(); i++) {
       auto it = dma_usable_list.find
         (std::make_pair(n, dma_buf_list[i].first));
       if(it != dma_usable_list.end() && it->second == true) {
