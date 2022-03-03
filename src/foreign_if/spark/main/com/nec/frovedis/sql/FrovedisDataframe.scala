@@ -735,9 +735,9 @@ class FrovedisDataFrame extends java.io.Serializable {
     if(fdata == -1)  throw new IllegalArgumentException("Invalid Frovedis Dataframe!\n")
     val size = cols.size
     var ret_lb = ListBuffer[RDD[_]]()
-    var need_conversion = false
-
     val fs = FrovedisServer.getServerInstance()
+    val ns_to_s = 1000L * 1000L * 1000L
+    val ts_offset = TimeZone.getDefault().getRawOffset() * 1000L * 1000L // offset in nanoseconds
     for (i <- 0 until size) {
       val tid = types(i)
       val cname = cols(i)
@@ -752,13 +752,8 @@ class FrovedisDataFrame extends java.io.Serializable {
         case DTYPE.STRING => StringDvector.to_RDD(cptr)
         case DTYPE.WORDS => StringDvector.to_RDD(cptr) // cptr is dvector<string> even for WORDS
         case DTYPE.BOOL => IntDvector.to_RDD(cptr)
-        case DTYPE.DATETIME => {
-          need_conversion = true
-          LongDvector.to_RDD(cptr)
-        }
-        case DTYPE.TIMESTAMP => {
-          need_conversion = true
-          LongDvector.to_RDD(cptr)
+        case DTYPE.DATETIME | DTYPE.TIMESTAMP => {
+          LongDvector.to_RDD(cptr).map(x => (x - ts_offset) / ns_to_s)
         }
         case _  => throw new IllegalArgumentException("to_spark_DF: Invalid " +
                                                     "datatype encountered: %s !\n"
@@ -806,16 +801,15 @@ class FrovedisDataFrame extends java.io.Serializable {
     val resRdd = combine_rows_as_partitions(ret.toSeq)
     var res_df = spark.createDataFrame(resRdd, StructType(df_schema.toArray))
 
+    val need_conversion = types.contains(DTYPE.DATETIME) || types.contains(DTYPE.TIMESTAMP)
     if (need_conversion) {
       val dtypes_map = this.dtypes_as_map
       val new_columns =
         res_df.columns
               .map(x => dtypes_map(x) match {
-                case DTYPE.DATETIME =>
-                  to_date(from_unixtime( sp_col(x) * Math.pow(10, -9) )).as(x)
-                case DTYPE.TIMESTAMP =>
-                  to_timestamp(from_unixtime( sp_col(x) * Math.pow(10, -9))).as(x)
-                case _ => sp_col(x)
+                case DTYPE.DATETIME  => to_date(to_timestamp(sp_col(x))).as(x)
+                case DTYPE.TIMESTAMP => to_timestamp(sp_col(x)).as(x)
+                case _               => sp_col(x)
               })
       res_df = res_df.select(new_columns:_*)
     }
