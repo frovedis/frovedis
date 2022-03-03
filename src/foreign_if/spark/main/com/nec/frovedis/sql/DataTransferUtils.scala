@@ -23,6 +23,7 @@ import org.apache.spark.sql.DataFrame
 import scala.collection.mutable.{Map => mMap}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
+import java.util.TimeZone
 
 object DFMemoryManager extends java.io.Serializable { 
   val df_pool = new ListBuffer[FrovedisDataFrame]()
@@ -128,10 +129,24 @@ object Dvec extends java.io.Serializable {
            t0.show("get intDvector: ")
            ret
         }
-        case DTYPE.LONG | DTYPE.DATETIME | DTYPE.TIMESTAMP => {
+        case DTYPE.LONG => {
            val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Long.MaxValue else y.getLong(i)))
            val ret = LongDvector.get(data, part_sizes, do_align)
            t0.show("get longDvector: ")
+           ret
+        }
+        case DTYPE.DATETIME => { // getLong() -> numdays (numdays * 24L * 3600 * 1000 * 1000 * 1000 -> GMT nanoseconds)
+           val multiplier = 24L * 3600 * 1000 * 1000 * 1000
+           val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Long.MaxValue else y.getLong(i) * multiplier))
+           val ret = LongDvector.get(data, part_sizes, do_align)
+           t0.show("get longDvector (DateType): ")
+           ret
+        }
+        case DTYPE.TIMESTAMP => { // getLong() -> microseconds ((microseconds + ts_offset) * 1000L -> GMT nanoseconds)
+           val ts_offset = TimeZone.getDefault().getRawOffset() * 1000L // offset in microseconds
+           val data = rddData.mapPartitions(x => x.map(y => if(y.isNullAt(i)) Long.MaxValue else (y.getLong(i) + ts_offset) * 1000L))
+           val ret = LongDvector.get(data, part_sizes, do_align)
+           t0.show("get longDvector (TimeStamp): ")
            ret
         }
         case DTYPE.FLOAT => {
@@ -166,7 +181,7 @@ object Dvec extends java.io.Serializable {
 // for loading entire dataframe at a time in optimized way
 object sDFTransfer extends java.io.Serializable {
 
-  def get_columnar(df: DataFrame): RDD[ColumnarBatch] = {
+  def execute_plan(df:DataFrame): SparkPlan = {
     val qe = new QueryExecution(df.sparkSession, df.queryExecution.logical) {
       override protected def preparations: Seq[Rule[SparkPlan]] = {
         Seq(
@@ -176,14 +191,24 @@ object sDFTransfer extends java.io.Serializable {
         )
       }
     }
+    return qe.executedPlan
+  }
+
+  def get_columnar(df: DataFrame): RDD[ColumnarBatch] = {
+    val plan = execute_plan(df)
     var ret: RDD[ColumnarBatch] = null
     try {
-      ret = qe.executedPlan.executeColumnar()
+      ret = plan.executeColumnar()
     } catch { // IllegalStateException etc...
       case e1: IllegalStateException => {ret = null} 
       case other: Throwable => {ret = null}
     }
     return ret
+  }
+
+  def toInternalRow(df: DataFrame): RDD[InternalRow] = {
+    val plan = execute_plan(df)
+    return plan.execute
   }
 
   def load_columnar(columnar: RDD[ColumnarBatch],
@@ -628,18 +653,23 @@ object sDFTransfer extends java.io.Serializable {
         val mat = new Array[ArrayBuffer[Any]](ncol)
         for(i <- 0 until ncol) mat(i) = new ArrayBuffer[Any]()
         var k: Int = 0
+        val ts_offset = TimeZone.getDefault().getRawOffset() * 1000L // offset in microseconds
+        val multiplier = 24L * 3600 * 1000 * 1000 * 1000
         while(x.hasNext) {
           val row: InternalRow = x.next
           for (i <- 0 until ncol) {
             val tmp = types(i) match {
-              case DTYPE.INT    => if(row.isNullAt(i)) Int.MaxValue else row.getInt(i)
-              case DTYPE.BOOL   => if(row.isNullAt(i)) Int.MaxValue else row.getInt(i)
-              case DTYPE.LONG | DTYPE.DATETIME | DTYPE.TIMESTAMP  =>
-                                   if(row.isNullAt(i)) Long.MaxValue else row.getLong(i)
-              case DTYPE.FLOAT  => if(row.isNullAt(i)) Float.MaxValue else row.getFloat(i)
-              case DTYPE.DOUBLE => if(row.isNullAt(i)) Double.MaxValue else row.getDouble(i)
-              case DTYPE.STRING => if(row.isNullAt(i)) "NULL" else row.getString(i)
-              case DTYPE.WORDS  => if(row.isNullAt(i)) "NULL" else row.getString(i)
+              case DTYPE.INT       => if(row.isNullAt(i)) Int.MaxValue else row.getInt(i)
+              case DTYPE.BOOL      => if(row.isNullAt(i)) Int.MaxValue else row.getInt(i)
+              case DTYPE.LONG      => if(row.isNullAt(i)) Long.MaxValue else row.getLong(i)
+              // getLong() -> numdays (numdays * 24L * 3600 * 1000 * 1000 * 1000 -> GMT nanoseconds)
+              case DTYPE.DATETIME  => if(row.isNullAt(i)) Long.MaxValue else row.getLong(i) * multiplier
+              // getLong() -> microseconds ((microseconds + ts_offset) * 1000L -> GMT nanoseconds)
+              case DTYPE.TIMESTAMP => if(row.isNullAt(i)) Long.MaxValue else (row.getLong(i) + ts_offset) * 1000L
+              case DTYPE.FLOAT     => if(row.isNullAt(i)) Float.MaxValue else row.getFloat(i)
+              case DTYPE.DOUBLE    => if(row.isNullAt(i)) Double.MaxValue else row.getDouble(i)
+              case DTYPE.STRING    => if(row.isNullAt(i)) "NULL" else row.getString(i)
+              case DTYPE.WORDS     => if(row.isNullAt(i)) "NULL" else row.getString(i)
               case _ => throw new IllegalArgumentException(
                         "[load_rows] Unsupported type: " + TMAPPER.id2string(types(i)))
             }
@@ -703,6 +733,62 @@ object sDFTransfer extends java.io.Serializable {
     return ret
   }
 
+  /*
+   * TODO: to improve
+  private def transfer_unsafe_row2(
+              rddData: RDD[InternalRow], // actually UnsafeRow
+              fw_nodes: Array[Node],
+              vptrs: Array[Long],
+              offset: Array[Int],
+              types: Array[Short],
+              block_sizes: Array[Long],
+              ncol: Int, nproc: Int,
+              word_count: Int): Long = {
+    val ret = rddData.mapPartitionsWithIndex({ case(index, x) =>
+        val (destId, myst) = GenericUtils.index2Dest(index, block_sizes)
+        val localId = index - myst
+        val w_node = fw_nodes(destId)
+
+        val copy_t = new TimeSpent(Level.DEBUG)
+        val next_t = new TimeSpent(Level.DEBUG)
+
+        val str_size = configs.get_default_string_size()
+        val buf_size = configs.get_default_buffer_size()
+        val obj = new FlexibleOffHeapArray(buf_size * ncol * 8, DTYPE.BYTE)
+        val row_sizes = new FlexibleOffHeapArray(buf_size, DTYPE.INT)
+
+        next_t.lap_start()
+        var cond = x.hasNext
+        next_t.lap_stop()
+        while(cond) {
+          copy_t.lap_start()
+          val row = x.next.asInstanceOf[UnsafeRow]
+          val binary = row.getBytes()
+          obj.putBytes(binary)
+          row_sizes.putInt(binary.size)
+          copy_t.lap_stop()
+
+          next_t.lap_start()
+          cond = x.hasNext
+          next_t.lap_stop()
+        }
+        copy_t.show_lap("[partition: " + index + "] a. baseObject, baseOffset copy: ")
+        next_t.show_lap("[partition: " + index + "] b. hasNext: ")
+
+        val load_t = new TimeSpent(Level.DEBUG)
+        val nrow = row_sizes.get_active_length()
+        JNISupport.loadByteRows(w_node, vptrs, destId, localId, types, offset,
+                                obj.get(), row_sizes.get(), nrow,
+                                str_size, configs.rawsend_enabled)
+        obj.freeMemory()
+        row_sizes.freeMemory()
+        load_t.show_lap("[partition: " + index + "] c. load-byte-rows: ")
+        Array(true).toIterator
+    })
+    ret.count // for action
+  }
+  */
+
   private def transfer_unsafe_row(
               rddData: RDD[InternalRow], // actually UnsafeRow
               fw_nodes: Array[Node],
@@ -745,6 +831,8 @@ object sDFTransfer extends java.io.Serializable {
         copy_t.show_lap("[partition: " + index + "] a. baseObject, baseOffset copy: ")
         next_t.show_lap("[partition: " + index + "] b. hasNext: ")
 
+        val ts_offset = TimeZone.getDefault().getRawOffset() * 1000L // offset in microseconds
+        val multiplier = 24L * 3600 * 1000 * 1000 * 1000
         for (i <- 0 until ncol) {
           val row_offset = offset(i)
           val vptr = vptrs(row_offset * nproc + destId)
@@ -766,13 +854,53 @@ object sDFTransfer extends java.io.Serializable {
 
               buf.freeMemory()
             }
-            case DTYPE.LONG | DTYPE.DATETIME | DTYPE.TIMESTAMP => {
+            case DTYPE.LONG => {
               alloc_t.lap_start()
               val buf = new FlexibleOffHeapArray(k, DTYPE.LONG)
               alloc_t.lap_stop()
 
               copy_t.lap_start()
               for (j <- 0 until k) buf.putLong(jPlatform.getLong(obj(j), off(j), ncol, i))
+              copy_t.lap_stop()
+
+              send_t.lap_start()
+              JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId,
+                buf.get(), buf.get_active_length(), DTYPE.LONG, 
+                configs.rawsend_enabled)
+              send_t.lap_stop()
+
+              buf.freeMemory()
+            }
+            case DTYPE.DATETIME => {
+              alloc_t.lap_start()
+              val buf = new FlexibleOffHeapArray(k, DTYPE.LONG)
+              alloc_t.lap_stop()
+
+              copy_t.lap_start()
+              for (j <- 0 until k) {
+                val numdays = jPlatform.getLong(obj(j), off(j), ncol, i) // numdays
+                buf.putLong(numdays * multiplier) // (numdays * 24L * 3600 * 1000 * 1000 * 1000 -> GMT nanoseconds)
+              }
+              copy_t.lap_stop()
+
+              send_t.lap_start()
+              JNISupport.loadFrovedisWorkerTypedVector(w_node, vptr, localId,
+                buf.get(), buf.get_active_length(), DTYPE.LONG, 
+                configs.rawsend_enabled)
+              send_t.lap_stop()
+
+              buf.freeMemory()
+            }
+            case DTYPE.TIMESTAMP => {
+              alloc_t.lap_start()
+              val buf = new FlexibleOffHeapArray(k, DTYPE.LONG)
+              alloc_t.lap_stop()
+
+              copy_t.lap_start()
+              for (j <- 0 until k) {
+                val ts = jPlatform.getLong(obj(j), off(j), ncol, i) + ts_offset // GMT microseconds
+                buf.putLong(ts * 1000L) // GMT nanoseconds
+              }
               copy_t.lap_stop()
 
               send_t.lap_start()
