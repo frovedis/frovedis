@@ -738,6 +738,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     val fs = FrovedisServer.getServerInstance()
     val ns_to_s = 1000L * 1000L * 1000L
     val ts_offset = TimeZone.getDefault().getRawOffset() * 1000L * 1000L // offset in nanoseconds
+    var need_conversion = false
     for (i <- 0 until size) {
       val tid = types(i)
       val cname = cols(i)
@@ -753,6 +754,7 @@ class FrovedisDataFrame extends java.io.Serializable {
         case DTYPE.WORDS => StringDvector.to_RDD(cptr) // cptr is dvector<string> even for WORDS
         case DTYPE.BOOL => IntDvector.to_RDD(cptr)
         case DTYPE.DATETIME | DTYPE.TIMESTAMP => {
+          need_conversion = true
           LongDvector.to_RDD(cptr).map(x => (x - ts_offset) / ns_to_s)
         }
         case _  => throw new IllegalArgumentException("to_spark_DF: Invalid " +
@@ -801,7 +803,6 @@ class FrovedisDataFrame extends java.io.Serializable {
     val resRdd = combine_rows_as_partitions(ret.toSeq)
     var res_df = spark.createDataFrame(resRdd, StructType(df_schema.toArray))
 
-    val need_conversion = types.contains(DTYPE.DATETIME) || types.contains(DTYPE.TIMESTAMP)
     if (need_conversion) {
       val dtypes_map = this.dtypes_as_map
       val new_columns =

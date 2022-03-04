@@ -12,13 +12,12 @@ object TMAPPER extends java.io.Serializable {
                              "StringType" -> "dic_string", 
                              "BooleanType" -> "boolean",
                              "DateType" -> "datetime",
-                             "TimestampType" -> "timestamp")
+                             "TimestampType" -> "datetime")
 
   val castedName = Map("int" -> "INT", "long" -> "BIGINT",
                        "float" -> "FLOAT", "double" -> "DOUBLE",
                        "dic_string" -> "STRING", "string" -> "STRING",
-                       "boolean" -> "BOOLEAN", "datetime" -> "DATETIME",
-                       "timestamp" -> "TIMESTAMP")
+                       "boolean" -> "BOOLEAN", "datetime" -> "DATETIME")
 
   val id2field = Map(DTYPE.INT -> IntegerType,   DTYPE.LONG -> LongType,
                      DTYPE.FLOAT -> FloatType,   DTYPE.DOUBLE -> DoubleType,
@@ -177,15 +176,20 @@ class FrovedisColumn extends java.io.Serializable {
       if (unary contains opt) { // right2 is dummy
         im_op = false
         rev_op = false
-      }
-      else {
+      } else {
         im_op = true
         rev_op = true
       }
     }
-    else { // either both scalar (immed-column)  or both column
-      im_op = false
-      rev_op = false
+    else { // either both scalar (immed-column) or both column
+      val right_as_string = Array(OPTYPE.CAST, OPTYPE.LIKE, OPTYPE.NLIKE) // TODO: check for date-specific methods
+      if (right_as_string contains opt) { // left is immed column
+        im_op = true
+        rev_op = false
+      } else {
+        im_op = false
+        rev_op = false
+      }
     }
 
     val fs = FrovedisServer.getServerInstance()
@@ -212,7 +216,6 @@ class FrovedisColumn extends java.io.Serializable {
       var rightp = right2.proxy
       this.proxy = JNISupport.getOptDFfunc(fs.master_node, leftp, rightp,
                                            opt, col_name)
-
     }
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
