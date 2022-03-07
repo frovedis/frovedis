@@ -1,12 +1,12 @@
 % FrovedisGroupedDataframe  
   
-# NAME
-  
+# NAME  
+
 FrovedisGroupedDataframe - A python class for handling grouped dataframes. These are returned by groupby calls.  
 
 # SYNOPSIS  
 
-    frovedis.dataframe.grouped_df.FrovedisGroupedDataframe(df=None)  
+    frovedis.dataframe.grouped_df.FrovedisGroupedDataframe(df = None)  
 
 # DESCRIPTION  
 
@@ -24,7 +24,7 @@ into frovedis compatible dataframe internally and the python client side call is
 respective frovedis side call to get the job done at frovedis server.  
 
 ## Detailed description  
-  
+
 ### 1. FrovedisGroupedDataframe(df = None)  
 
 __Parameters__  
@@ -83,7 +83,7 @@ For example,
 __Return Value__  
 It returns nothing.  
   
-## Public Member Functions
+## Public Member Functions  
   
 FrovedisGroupedDataFrame provides a lot of utilities to perform various operations.  
 
@@ -91,14 +91,15 @@ FrovedisGroupedDataFrame provides a lot of utilities to perform various operatio
 
 1. **agg()** - it agggregates using one or more operations over the specified axis. It is an alias for aggregate().  
 2. **aggregate()** - it agggregates using one or more operations over the specified axis. The alias agg() can be used instead.  
-3. **min()** - it computes minimum of group values.  
+3. **count()** - it computes count of group, excluding missing values.  
 4. **max()** - it computes maximum of group values.  
 5. **mean()** - it computes mean of groups, excluding missing values.  
-6. **sum()** - it computes sum of group values.  
-7. **count()** - it computes count of group, excluding missing values.  
+6. **min()** - it computes minimum of group values.  
+7. **sem()** - it computes standard error of the mean of groups, excluding missing values.  
 8. **size()** - it computes group sizes.  
-9. **var()** - it computes variance of groups, excluding missing values.  
-10. **sem()** - it computes standard error of the mean of groups, excluding missing values.  
+9. **sum()** - it computes sum of group values.  
+10. **var()** - it computes variance of groups, excluding missing values.  
 
-# SEE ALSO
-- **[Using aggregate functions on GroupedDataframe](https://github.com/frovedis/frovedis/tree/master/doc/manual/python/dataframe/Grouped_DataFrame_AggregateFunctions.md)**
+# SEE ALSO  
+- **[Using aggregate functions on FrovedisGroupedDataFrame](./Grouped_Dataframe_AggregateFunctions.md)**  
+- **[Introduction to frovedis DataFrame](./DataFrame_Introduction.md)**  

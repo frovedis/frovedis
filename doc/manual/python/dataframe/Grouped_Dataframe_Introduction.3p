@@ -8,7 +8,7 @@ These are returned by groupby calls.
 .IP
 .nf
 \f[C]
-frovedis.dataframe.grouped_df.FrovedisGroupedDataframe(df=None)\ \ 
+frovedis.dataframe.grouped_df.FrovedisGroupedDataframe(df\ =\ None)\ \ 
 \f[]
 .fi
 .SH DESCRIPTION
@@ -157,7 +157,8 @@ The alias agg() can be used instead.
 .P
 .PD
 .IP " 3." 4
-\f[B]min()\f[] \- it computes minimum of group values.
+\f[B]count()\f[] \- it computes count of group, excluding missing
+values.
 .PD 0
 .P
 .PD
@@ -172,13 +173,13 @@ The alias agg() can be used instead.
 .P
 .PD
 .IP " 6." 4
-\f[B]sum()\f[] \- it computes sum of group values.
+\f[B]min()\f[] \- it computes minimum of group values.
 .PD 0
 .P
 .PD
 .IP " 7." 4
-\f[B]count()\f[] \- it computes count of group, excluding missing
-values.
+\f[B]sem()\f[] \- it computes standard error of the mean of groups,
+excluding missing values.
 .PD 0
 .P
 .PD
@@ -188,15 +189,20 @@ values.
 .P
 .PD
 .IP " 9." 4
-\f[B]var()\f[] \- it computes variance of groups, excluding missing
-values.
+\f[B]sum()\f[] \- it computes sum of group values.
 .PD 0
 .P
 .PD
 .IP "10." 4
-\f[B]sem()\f[] \- it computes standard error of the mean of groups,
-excluding missing values.
+\f[B]var()\f[] \- it computes variance of groups, excluding missing
+values.
 .SH SEE ALSO
 .IP \[bu] 2
 \f[B]Using aggregate functions on
-GroupedDataframe (https://github.com/frovedis/frovedis/tree/master/doc/manual/python/dataframe/Grouped_DataFrame_AggregateFunctions.md)\f[]
+FrovedisGroupedDataFrame (./Grouped_Dataframe_AggregateFunctions.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]Introduction to frovedis
+DataFrame (./DataFrame_Introduction.md)\f[]
