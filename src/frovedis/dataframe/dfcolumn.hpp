@@ -2175,8 +2175,6 @@ public:
   virtual size_t calc_spill_size();
 };
 
-struct datetime {}; // for tag
-
 template <>
 class typed_dfcolumn<datetime> : public typed_dfcolumn<datetime_t> {
 public:

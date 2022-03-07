@@ -4703,7 +4703,7 @@ typed_dfcolumn<T>::type_cast(const std::string& to_type,
     auto words = as_words();
     ret = std::make_shared<typed_dfcolumn<raw_string>>
       (std::move(words), std::move(newnulls));
-  } else if(to_type == "datetime") { // do we need this?
+  } else if(to_type == "datetime") {
     auto newval = val.map(do_static_cast<T,datetime_t>, nulls);
     ret = std::make_shared<typed_dfcolumn<datetime>>
       (std::move(newval), std::move(newnulls));

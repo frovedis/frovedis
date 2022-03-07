@@ -641,9 +641,15 @@ typed_dfcolumn<datetime>::union_columns
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_eq(std::shared_ptr<dfcolumn>& right) {
-  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
-  if(!static_cast<bool>(right2))
-    throw std::runtime_error("filter_eq: column types are different");
+  std::shared_ptr<typed_dfcolumn<datetime>> right2 = NULL;
+  auto dt = right->dtype();
+  if(dt == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  } else if(dt == "string" || dt == "dic_string" || dt == "raw_string") {
+    auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(tmp);
+  }
+  else throw std::runtime_error("datetime == " + dt + ": invalid operation!");
   auto filtered_idx = val.map(filter_eq_helper<datetime_t, datetime_t>,
                               right2->val);
   if(contain_nulls)
@@ -653,9 +659,15 @@ typed_dfcolumn<datetime>::filter_eq(std::shared_ptr<dfcolumn>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_eq_immed(std::shared_ptr<dfscalar>& right) {
-  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
-  if(!static_cast<bool>(right2))
-    throw std::runtime_error("filter_eq_immed: types are different");
+  std::shared_ptr<typed_dfscalar<datetime_t>> right2 = NULL;
+  auto dt = right->dtype();
+  if(dt == "datetime" || dt == "long") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  } else if(dt == "string") {
+    auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(tmp);
+  }
+  else throw std::runtime_error("datetime == " + dt + ": invalid operation!");
   auto filtered_idx = val.map(filter_eq_immed_helper<datetime_t, datetime_t>,
                               broadcast(right2->val));
   if(contain_nulls)
@@ -665,9 +677,15 @@ typed_dfcolumn<datetime>::filter_eq_immed(std::shared_ptr<dfscalar>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_neq(std::shared_ptr<dfcolumn>& right) {
-  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
-  if(!static_cast<bool>(right2)) 
-    throw std::runtime_error("filter_neq: column types are different");
+  std::shared_ptr<typed_dfcolumn<datetime>> right2 = NULL;
+  auto dt = right->dtype();
+  if(dt == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  } else if(dt == "string" || dt == "dic_string" || dt == "raw_string") {
+    auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(tmp);
+  }
+  else throw std::runtime_error("datetime != " + dt + ": invalid operation!");
   auto filtered_idx = val.map(filter_neq_helper<datetime_t, datetime_t>,
                               right2->val);
   if(right2->contain_nulls)
@@ -679,9 +697,15 @@ typed_dfcolumn<datetime>::filter_neq(std::shared_ptr<dfcolumn>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_neq_immed(std::shared_ptr<dfscalar>& right) {
-  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
-  if(!static_cast<bool>(right2))
-    throw std::runtime_error("filter_neq_immed: types are different");
+  std::shared_ptr<typed_dfscalar<datetime_t>> right2 = NULL;
+  auto dt = right->dtype();
+  if(dt == "datetime" || dt == "long") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  } else if(dt == "string") {
+    auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(tmp);
+  }
+  else throw std::runtime_error("datetime != " + dt + ": invalid operation!");
   auto filtered_idx = val.map(filter_neq_immed_helper<datetime_t, datetime_t>,
                               broadcast(right2->val));
   if(contain_nulls)
@@ -691,9 +715,15 @@ typed_dfcolumn<datetime>::filter_neq_immed(std::shared_ptr<dfscalar>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_lt(std::shared_ptr<dfcolumn>& right) {
-  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
-  if(!static_cast<bool>(right2))
-    throw std::runtime_error("filter_lt: column types are different");
+  std::shared_ptr<typed_dfcolumn<datetime>> right2 = NULL;
+  auto dt = right->dtype();
+  if(dt == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  } else if(dt == "string" || dt == "dic_string" || dt == "raw_string") {
+    auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(tmp);
+  }
+  else throw std::runtime_error("datetime < " + dt + ": invalid operation!");
   auto filtered_idx = val.map(filter_lt_helper<datetime_t, datetime_t>,
                               right2->val);
   if(right2->contain_nulls)
@@ -705,9 +735,15 @@ typed_dfcolumn<datetime>::filter_lt(std::shared_ptr<dfcolumn>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_lt_immed(std::shared_ptr<dfscalar>& right) {
-  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
-  if(!static_cast<bool>(right2))
-    throw std::runtime_error("filter_lt_immed: types are different");
+  std::shared_ptr<typed_dfscalar<datetime_t>> right2 = NULL;
+  auto dt = right->dtype();
+  if(dt == "datetime" || dt == "long") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  } else if(dt == "string") {
+    auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(tmp);
+  }
+  else throw std::runtime_error("datetime < " + dt + ": invalid operation!");
   auto filtered_idx = val.map(filter_lt_immed_helper<datetime_t, datetime_t>,
                               broadcast(right2->val));
   if(contain_nulls)
@@ -717,9 +753,15 @@ typed_dfcolumn<datetime>::filter_lt_immed(std::shared_ptr<dfscalar>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_le(std::shared_ptr<dfcolumn>& right) {
-  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
-  if(!static_cast<bool>(right2))
-    throw std::runtime_error("filter_le: column types are different");
+  std::shared_ptr<typed_dfcolumn<datetime>> right2 = NULL;
+  auto dt = right->dtype();
+  if(dt == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  } else if(dt == "string" || dt == "dic_string" || dt == "raw_string") {
+    auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(tmp);
+  }
+  else throw std::runtime_error("datetime <= " + dt + ": invalid operation!");
   auto filtered_idx = val.map(filter_le_helper<datetime_t, datetime_t>,
                               right2->val);
   if(right2->contain_nulls)
@@ -731,9 +773,15 @@ typed_dfcolumn<datetime>::filter_le(std::shared_ptr<dfcolumn>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_le_immed(std::shared_ptr<dfscalar>& right) {
-  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
-  if(!static_cast<bool>(right2))
-    throw std::runtime_error("filter_le_immed: types are different");
+  std::shared_ptr<typed_dfscalar<datetime_t>> right2 = NULL;
+  auto dt = right->dtype();
+  if(dt == "datetime" || dt == "long") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  } else if(dt == "string") {
+    auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(tmp);
+  }
+  else throw std::runtime_error("datetime <= " + dt + ": invalid operation!");
   auto filtered_idx = val.map(filter_le_immed_helper<datetime_t, datetime_t>,
                               broadcast(right2->val));
   if(contain_nulls)
@@ -743,9 +791,15 @@ typed_dfcolumn<datetime>::filter_le_immed(std::shared_ptr<dfscalar>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_gt(std::shared_ptr<dfcolumn>& right) {
-  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
-  if(!static_cast<bool>(right2))
-    throw std::runtime_error("filter_gt: column types are different");
+  std::shared_ptr<typed_dfcolumn<datetime>> right2 = NULL;
+  auto dt = right->dtype();
+  if(dt == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  } else if(dt == "string" || dt == "dic_string" || dt == "raw_string") {
+    auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(tmp);
+  }
+  else throw std::runtime_error("datetime > " + dt + ": invalid operation!");
   auto filtered_idx = val.map(filter_gt_helper<datetime_t, datetime_t>,
                               right2->val);
   if(right2->contain_nulls)
@@ -757,9 +811,15 @@ typed_dfcolumn<datetime>::filter_gt(std::shared_ptr<dfcolumn>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_gt_immed(std::shared_ptr<dfscalar>& right) {
-  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
-  if(!static_cast<bool>(right2))
-    throw std::runtime_error("filter_gt_immed: types are different");
+  std::shared_ptr<typed_dfscalar<datetime_t>> right2 = NULL;
+  auto dt = right->dtype();
+  if(dt == "datetime" || dt == "long") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  } else if(dt == "string") {
+    auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(tmp);
+  }
+  else throw std::runtime_error("datetime > " + dt + ": invalid operation!");
   auto filtered_idx = val.map(filter_gt_immed_helper<datetime_t, datetime_t>,
                               broadcast(right2->val));
   if(contain_nulls)
@@ -769,9 +829,15 @@ typed_dfcolumn<datetime>::filter_gt_immed(std::shared_ptr<dfscalar>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_ge(std::shared_ptr<dfcolumn>& right) {
-  auto right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
-  if(!static_cast<bool>(right2))
-    throw std::runtime_error("filter_ge: column types are different");
+  std::shared_ptr<typed_dfcolumn<datetime>> right2 = NULL;
+  auto dt = right->dtype();
+  if(dt == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  } else if(dt == "string" || dt == "dic_string" || dt == "raw_string") {
+    auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(tmp);
+  }
+  else throw std::runtime_error("datetime >= " + dt + ": invalid operation!");
   auto filtered_idx = val.map(filter_ge_helper<datetime_t, datetime_t>,
                               right2->val);
   if(right2->contain_nulls)
@@ -783,9 +849,15 @@ typed_dfcolumn<datetime>::filter_ge(std::shared_ptr<dfcolumn>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_ge_immed(std::shared_ptr<dfscalar>& right) {
-  auto right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
-  if(!static_cast<bool>(right2))
-    throw std::runtime_error("filter_ge_immed: types are different");
+  std::shared_ptr<typed_dfscalar<datetime_t>> right2 = NULL;
+  auto dt = right->dtype();
+  if(dt == "datetime" || dt == "long") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  } else if(dt == "string") {
+    auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(tmp);
+  }
+  else throw std::runtime_error("datetime >= " + dt + ": invalid operation!");
   auto filtered_idx = val.map(filter_ge_immed_helper<datetime_t, datetime_t>,
                               broadcast(right2->val));
   if(contain_nulls)

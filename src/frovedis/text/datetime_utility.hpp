@@ -26,6 +26,8 @@ enum datetime_type {
 
 std::string datetime_type_to_string(datetime_type type);
 
+std::string datetime_to_string(datetime_t& src, const std::string& format);
+
 /* Following utility functions should be in header as inline,
    because they are used in loop */
 

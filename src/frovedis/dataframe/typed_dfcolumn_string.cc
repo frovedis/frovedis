@@ -1764,6 +1764,18 @@ typed_dfcolumn<std::string>::type_cast(const std::string& to_type,
     auto newval = as_words();
     ret = std::make_shared<typed_dfcolumn<raw_string>>
       (std::move(newval), std::move(newnulls));
+  } else if(to_type == "datetime") { // default format: "%Y-%m-%d"
+    std::string fmt = "%Y-%m-%d";
+    // create safe NULL string
+    auto nullstr_size = fmt.size();
+    if(fmt.find("%Y") != std::string::npos) nullstr_size += 2;
+    if(fmt.find("%b") != std::string::npos) nullstr_size += 1;
+    std::string nullstr(nullstr_size, '0');
+    auto newval = as_words(6,"%Y-%m-%d",false,nullstr).
+      map(+[](const words& ws, const std::string& fmt)
+          {return parsedatetime(ws, fmt);}, broadcast(fmt));
+    ret = std::make_shared<typed_dfcolumn<datetime>>
+      (std::move(newval), std::move(newnulls));
   } else if(to_type.find("datetime:") == 0) {
     auto fmt = to_type.substr(9);
     // create safe NULL string

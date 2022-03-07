@@ -240,6 +240,12 @@ parse_words(node_local<words>& ws,
                      nl_nullstr, nulls, nl_skip_head);
     t.show("parse_words, words_to_number: ");
     return make_shared<typed_dfcolumn<unsigned long>>(move(nl), move(nulls));
+  } else if(type == "datetime") { // default format: "%Y-%m-%d"
+    std::string fmt = "%Y-%m-%d";
+    auto nl = ws.map(words_to_datetime, line_starts, nl_col,
+                     nl_nullstr, nulls, nl_skip_head, broadcast(fmt));
+    t.show("parse_words, words_to_datetime: ");
+    return make_shared<typed_dfcolumn<datetime>>(move(nl), move(nulls));
   } else if (type.find("datetime:") == 0) {
     auto fmt = type.substr(9);
     auto nl = ws.map(words_to_datetime, line_starts, nl_col,
