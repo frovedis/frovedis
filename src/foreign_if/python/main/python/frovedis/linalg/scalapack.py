@@ -163,6 +163,8 @@ def sgetri(lu, piv, lwork=0, overwrite_lu=0):
 
 def getrs(lu, piv, b, trans=0, overwrite_b=0, dtype=np.float64):
     """getrs"""
+    lu, _, _ = handle_scalapack_input(lu, overwrite_a=0, # a is pre-computed lu
+                   dtype=dtype) # lu itself can be numpy array
     (input_b, to_convert, isMatrix) = \
         handle_scalapack_input(b, overwrite_b, dtype=dtype)
     if trans == 0:
@@ -314,9 +316,9 @@ def sgesv(a, b, overwrite_a=0, overwrite_b=0):
 def gels(a, b, trans='N', lwork=0, overwrite_a=0,
          overwrite_b=0, dtype=np.float64):
     """gels"""
-    (input_a, to_convert_a, isMatrix) = \
+    (input_a, to_convert_a, isMatrix1) = \
         handle_scalapack_input(a, overwrite_a, dtype=dtype)
-    (input_b, to_convert_b, isMatrix) = \
+    (input_b, to_convert_b, isMatrix2) = \
         handle_scalapack_input(b, overwrite_b, dtype=dtype)
     if trans == 'N':
         is_trans = False
@@ -327,9 +329,9 @@ def gels(a, b, trans='N', lwork=0, overwrite_a=0,
     #    input_b will be overwritten with solution
     stat = SCALAPACK.gels(input_a, input_b, is_trans)
     lqr, _ = handle_scalapack_output(input_a, to_convert_a, \
-                a, overwrite_a, stat, isMatrix)
+                a, overwrite_a, stat, isMatrix1)
     x, _ = handle_scalapack_output(input_b, to_convert_b, b, \
-                overwrite_b, stat, isMatrix)
+                overwrite_b, stat, isMatrix2)
     return (lqr, x, stat)
 
 def dgels(a, b, trans='N', lwork=0, overwrite_a=0, overwrite_b=0):
