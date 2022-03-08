@@ -628,16 +628,6 @@ void remove_null(vector<size_t>& starts,
   lens.swap(ret_lens);
 }
 
-struct words_substr_helper {
-  words_substr_helper(){}
-  words_substr_helper(int c) : c(c) {}
-  int operator()(size_t a) const {return a < c;}
-  int c;
-  SERIALIZE(c)
-};
-
-// all substr functions returns null string if the values are invalid
-// instead of throwing exception to make the behavior similar to SQL/Spark
 // index is 0-based, while dataframe functions are 1-based
 void substr(size_t* starts, size_t* lens, size_t num_words,
             int pos, int num) {
@@ -646,61 +636,28 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
     return;
   }
   if(pos >= 0) {
-    auto fail = find_condition(lens, num_words, words_substr_helper(pos+num));
     for(size_t i = 0; i < num_words; i++) {
-      starts[i] += pos;
-      lens[i] = num;
-    }
-    auto failp = fail.data();
-    auto fail_size = fail.size();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-    for(size_t i = 0; i < fail_size; i++) { // invalid
-      lens[failp[i]] = 0;
+      auto newstarts = starts[i] + pos;
+      auto newend = newstarts + num;
+      auto end = starts[i] + lens[i];
+      if(newstarts > end) newstarts = end;
+      if(newend > end) newend = end;
+      starts[i] = newstarts;
+      lens[i] = newend - newstarts;
     }
   } else {
-    if(pos+num > 0) {
-      for(size_t i = 0; i < num_words; i++) lens[i] = 0;
-      return;
-    }
-    auto fail = find_condition(lens, num_words, words_substr_helper(-pos));
     for(size_t i = 0; i < num_words; i++) {
-      starts[i] = starts[i] + lens[i] + pos;
-      lens[i] = num;
-    }
-    auto failp = fail.data();
-    auto fail_size = fail.size();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-    for(size_t i = 0; i < fail_size; i++) { // invalid
-      lens[failp[i]] = 0;
+      auto end = starts[i] + lens[i];
+      auto newstarts = end + pos;
+      auto newend = newstarts + num;
+      if(newstarts < starts[i]) newstarts = starts[i];
+      if(newend < starts[i]) newend = starts[i];
+      else if(newend > end) newend = end;
+      starts[i] = newstarts;
+      lens[i] = newend - newstarts;
     }
   }
 }
-
-struct words_substr_helper_posv1 {
-  words_substr_helper_posv1(){}
-  words_substr_helper_posv1(int num) :num(num) {}
-  int operator()(size_t len, int pos) const {
-    if(pos >= 0) return len < pos+num;
-    else return len < -pos;
-  }
-  int num;
-  SERIALIZE(num)
-};
-
-struct words_substr_helper_posv2 {
-  words_substr_helper_posv2(){}
-  words_substr_helper_posv2(int num) :num(num) {}
-  int operator()(int pos) const {
-    if(pos >= 0) return false;
-    else return -pos < num;
-  }
-  int num;
-  SERIALIZE(num)
-};
 
 void substr(size_t* starts, size_t* lens, size_t num_words,
             const int* pos, int num) {
@@ -708,54 +665,25 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
     for(size_t i = 0; i < num_words; i++) lens[i] = 0;
     return;
   }
-  auto fail = find_condition_pair(lens, pos, num_words,
-                                  words_substr_helper_posv1(num));
-  auto fail2 = find_condition(pos, num_words, words_substr_helper_posv2(num));
   for(size_t i = 0; i < num_words; i++) {
+    auto end = starts[i] + lens[i];
+    size_t newstarts, newend;
     if(pos[i] >= 0) {
-      starts[i] += pos[i];
-      lens[i] = num;
+      newstarts = starts[i] + pos[i];
+      newend = newstarts + num;
+      if(newstarts > end) newstarts = end;
+      if(newend > end) newend = end;
     } else {
-      starts[i] = starts[i] + lens[i] + pos[i];
-      lens[i] = num;
+      newstarts = end + pos[i];
+      newend = newstarts + num;
+      if(newstarts < starts[i]) newstarts = starts[i];
+      if(newend < starts[i]) newend = starts[i];
+      else if(newend > end) newend = end;
     }
-  }
-  auto failp = fail.data();
-  auto fail_size = fail.size();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-  for(size_t i = 0; i < fail_size; i++) {
-    lens[failp[i]] = 0;
-  }
-  auto fail2p = fail2.data();
-  auto fail2_size = fail2.size();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-  for(size_t i = 0; i < fail2_size; i++) {
-    lens[fail2p[i]] = 0;
+    starts[i] = newstarts;
+    lens[i] = newend - newstarts;
   }
 }
-
-struct words_substr_helper_numv1 {
-  words_substr_helper_numv1(){}
-  words_substr_helper_numv1(int pos) : pos(pos) {}
-  int operator()(size_t len, int num) const {
-    return pos + num > len;
-  }
-  int pos;
-  SERIALIZE(pos)
-};
-
-struct words_substr_helper_numv2 {
-  words_substr_helper_numv2(int pos) : pos(pos) {}
-  int operator()(int num) const {
-    return num > -pos;
-  }
-  int pos;
-  SERIALIZE(pos)
-};
 
 void substr(size_t* starts, size_t* lens, size_t num_words,
             int pos, const int* num) {
@@ -763,19 +691,14 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
   auto failnump = failnum.data();
   auto failnum_size = failnum.size();
   if(pos >= 0) {
-    auto fail = find_condition_pair(lens, num, num_words,
-                                    words_substr_helper_numv1(pos));
     for(size_t i = 0; i < num_words; i++) {
-      starts[i] += pos;
-      lens[i] = num[i];
-    }
-    auto failp = fail.data();
-    auto fail_size = fail.size();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-    for(size_t i = 0; i < fail_size; i++) {
-      lens[failp[i]] = 0;
+      auto newstarts = starts[i] + pos;
+      auto newend = newstarts + num[i];
+      auto end = starts[i] + lens[i];
+      if(newstarts > end) newstarts = end;
+      if(newend > end) newend = end;
+      starts[i] = newstarts;
+      lens[i] = newend - newstarts;
     }
 #pragma _NEC ivdep
 #pragma _NEC vovertake
@@ -784,27 +707,15 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
       lens[failnump[i]] = 0;
     }
   } else {
-    auto fail = find_condition(num, num_words, words_substr_helper_numv2(pos));
-    auto fail2 = find_condition(lens, num_words, words_substr_helper(-pos));
     for(size_t i = 0; i < num_words; i++) {
-      starts[i] = starts[i] + lens[i] + pos;
-      lens[i] = num[i];
-    }
-    auto failp = fail.data();
-    auto fail_size = fail.size();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-    for(size_t i = 0; i < fail_size; i++) {
-      lens[failp[i]] = 0;
-    }
-    auto fail2p = fail2.data();
-    auto fail2_size = fail2.size();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-    for(size_t i = 0; i < fail2_size; i++) {
-      lens[fail2p[i]] = 0;
+      auto end = starts[i] + lens[i];
+      auto newstarts = end + pos;
+      auto newend = newstarts + num[i];
+      if(newstarts < starts[i]) newstarts = starts[i];
+      if(newend < starts[i]) newend = starts[i];
+      else if(newend > end) newend = end;
+      starts[i] = newstarts;
+      lens[i] = newend - newstarts;
     }
 #pragma _NEC ivdep
 #pragma _NEC vovertake
@@ -815,53 +726,26 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
   }
 }
 
-struct words_substr_helper_posnumv1 {
-  words_substr_helper_posnumv1(){}
-  int operator()(size_t len, int posnum) const {
-    return posnum > int(len);
-  }
-  SERIALIZE_NONE
-};
-
-struct words_substr_helper_posnumv2 {
-  words_substr_helper_posnumv2(){}
-  int operator()(size_t len, int pos) const {
-    return -pos > int(len);
-  }
-  SERIALIZE_NONE
-};
-
-struct words_substr_helper_posnumv3 {
-  words_substr_helper_posnumv3(){}
-  int operator()(int pos, int num) const {
-    if(pos >= 0) return false;
-    else return -pos < num;
-  }
-  SERIALIZE_NONE
-};
-
 void substr(size_t* starts, size_t* lens, size_t num_words,
             const int* pos, const int* num) {
   auto fail = find_condition(num, num_words, is_lt<int>(0));
-  std::vector<int> posnum(num_words);
-  auto posnump = posnum.data();
-  for(size_t i = 0; i < num_words; i++) posnump[i] = pos[i] + num[i];
-  // if pos is negative, this should be OK
-  auto fail2 = find_condition_pair(lens, posnump, num_words,
-                                   words_substr_helper_posnumv1());
-  // if pos is positive, this should be OK
-  auto fail3 = find_condition_pair(lens, pos, num_words,
-                                   words_substr_helper_posnumv2());
-  auto fail4 = find_condition_pair(pos, num, num_words,
-                                   words_substr_helper_posnumv3());
   for(size_t i = 0; i < num_words; i++) {
+    auto end = starts[i] + lens[i];
+    size_t newstarts, newend;
     if(pos[i] >= 0) {
-      starts[i] += pos[i];
-      lens[i] = num[i];
+      newstarts = starts[i] + pos[i];
+      newend = newstarts + num[i];
+      if(newstarts > end) newstarts = end;
+      if(newend > end) newend = end;
     } else {
-      starts[i] = starts[i] + lens[i] + pos[i];
-      lens[i] = num[i];
+      newstarts = end + pos[i];
+      newend = newstarts + num[i];
+      if(newstarts < starts[i]) newstarts = starts[i];
+      if(newend < starts[i]) newend = starts[i];
+      else if(newend > end) newend = end;
     }
+    starts[i] = newstarts;
+    lens[i] = newend - newstarts;
   }
   auto failp = fail.data();
   auto fail_size = fail.size();
@@ -870,92 +754,46 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
 #pragma _NEC vob
   for(size_t i = 0; i < fail_size; i++) {
     lens[failp[i]] = 0;
-  }
-  auto fail2p = fail2.data();
-  auto fail2_size = fail2.size();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-  for(size_t i = 0; i < fail2_size; i++) {
-    lens[fail2p[i]] = 0;
-  }
-  auto fail3p = fail3.data();
-  auto fail3_size = fail3.size();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-  for(size_t i = 0; i < fail3_size; i++) {
-    lens[fail3p[i]] = 0;
-  }
-  auto fail4p = fail4.data();
-  auto fail4_size = fail4.size();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-  for(size_t i = 0; i < fail4_size; i++) {
-    lens[fail4p[i]] = 0;
   }
 }
 
 void substr(size_t* starts, size_t* lens, size_t num_words,
             int pos) {
   if(pos >= 0) {
-    auto fail = find_condition(lens, num_words, words_substr_helper(pos));
     for(size_t i = 0; i < num_words; i++) {
-      starts[i] += pos;
-      lens[i] -= pos;
-    }
-    auto failp = fail.data();
-    auto fail_size = fail.size();
-    for(size_t i = 0; i < fail_size; i++) { // invalid
-      lens[failp[i]] = 0;
+      auto newstarts = starts[i] + pos;
+      auto end = starts[i] + lens[i];
+      if(newstarts > end) newstarts = end;
+      starts[i] = newstarts;
+      lens[i] = end - newstarts;
     }
   } else {
-    auto fail = find_condition(lens, num_words, words_substr_helper(-pos));
     for(size_t i = 0; i < num_words; i++) {
-      starts[i] = starts[i] + lens[i] + pos;
-      lens[i] = -pos;
-    }
-    auto failp = fail.data();
-    auto fail_size = fail.size();
-    for(size_t i = 0; i < fail_size; i++) { // invalid
-      lens[failp[i]] = 0;
+      auto end = starts[i] + lens[i];
+      auto newstarts = end + pos;
+      if(newstarts < starts[i]) newstarts = starts[i];
+      starts[i] = newstarts;
+      lens[i] = end - newstarts;
     }
   }
 }
 
-struct words_substr_helper_posvonly {
-  words_substr_helper_posvonly(){}
-  int operator()(size_t len, int pos) const {
-    if(pos >= 0) return len < pos;
-    else return len < -pos;
-  }
-  SERIALIZE_NONE
-};
-
-
 void substr(size_t* starts, size_t* lens, size_t num_words,
             const int* pos) {
-  auto fail = find_condition_pair(lens, pos, num_words,
-                                  words_substr_helper_posvonly());
   for(size_t i = 0; i < num_words; i++) {
+    size_t newstarts, end;
     if(pos[i] >= 0) {
-      starts[i] += pos[i];
-      lens[i] -= pos[i];
+      newstarts = starts[i] + pos[i];
+      end = starts[i] + lens[i];
+      if(newstarts > end) newstarts = end;
     } else {
-      starts[i] = starts[i] + lens[i] + pos[i];
-      lens[i] = -pos[i];
+      end = starts[i] + lens[i];
+      newstarts = end + pos[i];
+      if(newstarts < starts[i]) newstarts = starts[i];
     }
+    starts[i] = newstarts;
+    lens[i] = end - newstarts;
   }
-  auto failp = fail.data();
-  auto fail_size = fail.size();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-  for(size_t i = 0; i < fail_size; i++) {
-    lens[failp[i]] = 0;
-  }
-
 }
 
 void substr(std::vector<size_t>& starts,
