@@ -2,12 +2,35 @@
   
 # NAME
   
-DataFrame Conversion and Sorting Functions - functions related to conversion of datatypes and sorting are illustrated here.  
+DataFrame Conversion and Sorting Functions - this manual is related to conversion of datatypes and sorting which are being illustrated here.  
   
 ## SYNOPSIS  
     
     frovedis.dataframe.df.DataFrame(df = None, is_series = False)  
   
+## Public Member Functions  
+    1. asDF(df)
+    2. astype(dtype, copy = True, errors = 'raise', check_bool_like_string = False)
+    3. copy(deep = True)
+    4. dropna(axis = 0, how = 'any', thresh = None, subset = None, inplace = False)
+    5. fillna(value = None, method = None, axis = None, inplace = False, limit = None, downcast = None)
+    6. isna()
+    7. isnull()
+    8. nlargest(n, columns, keep = 'first')
+    9. nsmallest(n, columns, keep = 'first')
+    10. nsort(n, columns, keep = 'first', is_desc = False)
+    11. sort(columns = None, axis = 0, ascending = True, inplace = False, kind = 'radixsort', 
+             na\_position = 'last', \*\*kwargs)
+    12. sort_index(axis = 0, ascending = True, inplace = False, kind = 'quicksort', na\_position = 'last')
+    13. sort_values(by, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last')
+    14. to_dict(orient = "dict", into = dict)
+    15. to_numpy(dtype = None, copy = False, na_value = None)
+    16. to_pandas()
+    17. to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)
+    18. to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)
+    19. to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32, need_info = False)
+    20. to_frovedis_crs_matrix_using_info(info, dtype = np.float32)
+
 ## Detailed Description  
   
 ### 1. asDF(df)  
@@ -74,7 +97,6 @@ Output
 
 __Return Value__  
 It returns a Frovedis DataFrame object after suitable conversion 
-
 
 ### 2. astype(dtype, copy = True, errors = 'raise', check_bool_like_string = False)  
 
@@ -178,13 +200,13 @@ For example,
 	# converting to frovedis dataframe
 	fd_df = fdf.DataFrame(pd_df)
     
-    #display the dataframes
+    # display the dataframes
     fd_df.show()
     
     # display the datatype
 	print(fd_df.dtypes)
     
-    #display the dataframes
+    # display the dataframes
     fd_df.astype({'isMale':'bool'}, check_bool_like_string = True).show()
     
     # display the datatype
@@ -220,8 +242,7 @@ Output
 
 __Return Value__  
 It returns a new DataFrame object with dtype converted as specified.  
-  
-  
+
 ### 3. copy(deep = True)  
 
 __Parameters__  
@@ -302,7 +323,6 @@ Output
 
 __Return Value__  
 It returns a deep copy of the DataFrame object of the same type.  
-
 
 ### 4. dropna(axis = 0, how = 'any', thresh = None, subset = None, inplace = False)  
 
@@ -533,7 +553,6 @@ __Return Value__
 1. If inplace = False, it returns a new Frovedis DataFrame with NA entries dropped.  
 2. If inplace = True, it returns None.  
 
-
 ### 5. fillna(value = None, method = None, axis = None, inplace = False, limit = None, downcast = None)  
  
 __Parameters__  
@@ -626,7 +645,6 @@ __Return Value__
 1. It returns a Frovedis DataFrame object with missing values replaced when 'inplace' parameter is False.  
 2. It returns None when 'inplace' parameter is set to True.  
 
-
 ### 6. isna()  
 
 __Purpose__  
@@ -708,7 +726,6 @@ Output
 __Return Value__  
 It returns a new Frovedis DataFrame having all boolean values (0, 1) corresponding to each of the Frovedis DataFrame values depending on  whether it is a valid NaN (True i.e. 1) value or not (False i.e. 0).  
 
-
 ### 7. isnull()  
 
 __Purpose__  
@@ -789,320 +806,15 @@ Output
 __Return Value__  
 It returns a Frovedis DataFrame having boolean values (0, 1) corresponding to each of the Frovedis DataFrame value depending of whether it is a valid NaN (True i.e. 1) value or not (False i.e. 0).  
 
-### 8. groupby(by = None, axis = 0, level = None, as_index = True, sort = True, group_keys = True, squeeze = False, observed = False, dropna = True)  
-
-__Parameters__  
-**_by_**: It accepts a string object or an iterable to determine the groups on which groupby operation will 
-be applied. Currently, gropuby operation will be applied along the index levels. It must be provided, otherwise 
-it will raise an exception. (Default: None)  
-**_axis_**: It accepts an integer as parameter. It is used to decide whether to perform groupby operation along 
-the indices or by column labels. (Default: 0)  
-**Currently, axis = 0 is supported by this method.**  
-**_level_**: This is an unused parameter. (Default: None)  
-_**as\_index**_: This is an unused parameter. (Default: True)  
-_**sort**_: This is an unused parameter. (Default: True)  
-_**group\_keys**_: This is an unused parameter. (Default: True)  
-_**squeeze**_: This is an unused parameter. (Default: False)  
-_**observed**_: This is an unused parameter. (Default: False)  
-_**dropna**_: It accepts a boolean parameter. It is used to remove missing values (NaNs) from the frovedis 
-DataFrame during groupby operation. Currently, it removes missing values along the index levels. (Default: True)  
-
-__Purpose__  
-This method can be used to group large amounts of data and compute operations on these groups.  
-
-The parameters: "level", "as_index", "sort", "group_keys", "squeeze" and "observed" is simply kept in to make the interface uniform to the pandas DataFrame.groupby().  
-This is not used anywhere within the frovedis implementation.  
-
-For example,  
-
-    import pandas as pd
-    import numpy as np
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    peopleDF = {
-                'Name': ['Jai', 'Anuj', 'Jai', 'Princi', 'Gaurav', 'Anuj', 'Princi', 'Abhi'],
-                'Age': [27, 24, 22, 32, 33, 36, 27, 32],
-                'City': ['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad', 
-                         'Kanpur', 'Kanpur', 'Kanpur'],
-                'Qualification': ['B.Tech', 'Phd', 'B.Tech', np.nan, 'Phd', 'B.Tech', 'Phd', np.nan],
-                'Score': [23, 34, 35, 45, np.nan, 50, 52, np.nan]
-               }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(peopleDF)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-        
-Output  
-
-    index   Name    Age   City       Qualification  Score
-    0       Jai     27    Nagpur     B.Tech         23
-    1       Anuj    24    Kanpur     Phd            34
-    2       Jai     22    Allahabad  B.Tech         35
-    3       Princi  32    Kannuaj    NULL           45
-    4       Gaurav  33    Allahabad  Phd            NULL
-    5       Anuj    36    Kanpur     B.Tech         50
-    6       Princi  27    Kanpur     Phd            52
-    7       Abhi    32    Kanpur     NULL           NULL
-
-For example,  
-
-    # groupby() demo
-    fdf1.groupby('Qualification')
-    
-This will perform groupby operation on the dataframe over **'Qualification'** column data.  
-
-For example,  
-
-    # groupby() demo to perform aggregation on resultant grouped dataframe
-    # Also, dropna = True by default
-    fdf1.groupby('Qualification', dropna = True).agg({'Score': 'count'})
-
-Output  
-
-    Qualification   count_Score
-    B.Tech  3
-    Phd     2
-    
-Here, it excludes **NULL** group since missing values were dropped during groupby().  
-
-For example,  
-
-    # groupby() demo to perform aggregation on resultant grouped dataframe
-    # Also, dropna = False
-    fdf1.groupby('Qualification', dropna = False).agg({'Score': 'count'})
-
-Output  
-
-    Qualification   count_Score
-    B.Tech  3
-    Phd     2
-    NULL    1
-    
-Here, it includes **NULL** as new group since missing values were not dropped during groupby().  
-
-__Return Value__  
-It returns a FrovedisGroupedDataFrame instance.  
-
-### 9. nsort(n, columns, keep='first', is_desc=False)  
-
-__Parameters__  
-**_n_**: It accepts a positive integer parameter which represents the number of rows to return.  
-**_columns_**: It accepts a string type or list of strings type parameter which represents the column label(s) to order by.  
-**_keep_**: It accepts a string object parameter. This parameter is used when there are duplicate values. (Default: 'first')  
-	1. **'first'** : it prioritizes the first occurrence(s)  
-	2. **'last'** : it prioritizes the last occurrence(s)  
-	3. **'all'**  : it is used to not drop any duplicates, even when it means selecting more than **n** items.
-
-**_is\_desc_**: It accepts a boolean value as parameter. This parameter decides the order to sort the data. When this parameter is explicitly passed as True, it sorts the data into descending order. (Default: False)  
-
-__Purpose__  
-It is used to return the top **n** rows ordered by the specified columns in ascending or descending order.
-The columns that are not specified are returned as well, but not used for ordering.  
-
-For example,  
-
-	# example to use nsort with default parameters with n = 3 and columns = 'population'
-    
-    import pandas as pd
-	import frovedis.dataframe as fdf
-    
-	# In the following example, we will use nlargest() to select the three rows having the largest values in column “population”.
-	pd_df = pd.DataFrame({'population': [59000000, 65000000, 434000, 434000, 
-										434000, 337000, 11300, 11300, 11300],
-						'GDP': [1937894, 2583560 , 12011, 4520, 12128,
-								17036, 182, 38, 311],
-						'alpha-2': ["IT", "FR", "MT", "MV", "BN",
-									"IS", "NR", "TV", "AI"]},
-						index=["Italy", "France", "Malta",
-								"Maldives", "Brunei", "Iceland",
-								"Nauru", "Tuvalu", "Anguilla"])
-	fd_df = fdf.DataFrame(pd_df)
-    
-	# to display frovedis dataframe
-	fd_df.show()
-    
-	# to display n largest rows according to given column
-	fd_df.nsort(3, 'population').show()
-    
-Output  
-
-	index           population      GDP     alpha-2
-	Italy           59000000        1937894 IT
-	France          65000000        2583560 FR
-	Malta           434000          12011   MT
-	Maldives        434000          4520    MV
-	Brunei          434000          12128   BN
-	Iceland         337000          17036   IS
-	Nauru           11300           182     NR
-	Tuvalu          11300           38      TV
-	Anguilla        11300           311     AI
-
-	index           population      GDP     alpha-2
-	France          65000000        2583560 FR
-	Italy           59000000        1937894 IT
-	Malta           434000          12011   MT
-
-    index     population   GDP     alpha-2
-    Italy     59000000     1937894 IT
-    France    65000000     2583560 FR
-    Malta     434000       12011   MT
-    Maldives  434000       4520    MV
-    Brunei    434000       12128   BN
-    Iceland   337000       17036   IS
-    Nauru     11300        182     NR
-    Tuvalu    11300        38      TV
-    Anguilla  11300        311     AI
-
-    index     population   GDP     alpha-2
-    Nauru     11300        182     NR
-    Tuvalu    11300        38      TV
-    Anguilla  11300        311     AI
-
-For example,  
-	
-    # example to show the behavior of nsort with keep = 'last'
-    
-    import pandas as pd
-	import frovedis.dataframe as fdf
-    
-	# When using keep='last', it will show the row only having last occurrence of the duplicate :
-	pd_df = pd.DataFrame({'population': [59000000, 65000000, 434000, 434000, 
-										434000, 337000, 11300, 11300, 11300],
-						'GDP': [1937894, 2583560 , 12011, 4520, 12128,
-								17036, 182, 38, 311],
-						'alpha-2': ["IT", "FR", "MT", "MV", "BN",
-									"IS", "NR", "TV", "AI"]},
-						index=["Italy", "France", "Malta",
-								"Maldives", "Brunei", "Iceland",
-								"Nauru", "Tuvalu", "Anguilla"])
-	fd_df = fdf.DataFrame(pd_df)
-    
-	# to display frovedis dataframe
-	fd_df.show()
-    
-    fd_df.nsort(3, 'population', keep='last').show()
-    
-Output  
-
-	index      population    GDP      alpha-2
-	Italy      59000000      1937894  IT
-	France     65000000      2583560  FR
-	Malta      434000        12011    MT
-	Maldives   434000        4520     MV
-	Brunei     434000        12128    BN
-	Iceland    337000        17036    IS
-	Nauru      11300         182      NR
-	Tuvalu     11300         38       TV
-	Anguilla   11300         311      AI
-    
-    index      population    GDP      alpha-2
-    Anguilla   11300         311      AI
-    Tuvalu     11300         38       TV
-    Nauru      11300         182      NR
-
-For example,  
-
-    # example to show the behavior of nsort with keep = 'all'
-    
-    import pandas as pd
-	import frovedis.dataframe as fdf
-    
-	# When using keep='all', all duplicate items are maintained:
-	pd_df = pd.DataFrame({'population': [59000000, 65000000, 434000, 434000, 
-										434000, 337000, 11300, 11300, 11300],
-						'GDP': [1937894, 2583560 , 12011, 4520, 12128,
-								17036, 182, 38, 311],
-						'alpha-2': ["IT", "FR", "MT", "MV", "BN",
-									"IS", "NR", "TV", "AI"]},
-						index=["Italy", "France", "Malta",
-								"Maldives", "Brunei", "Iceland",
-								"Nauru", "Tuvalu", "Anguilla"])
-	fd_df = fdf.DataFrame(pd_df)
-    
-	# to display frovedis dataframe
-	fd_df.show()
-
-	fd_df.nsort(3, 'population', keep='all').show()
-    
-Output  
-
-	index      population    GDP      alpha-2
-	Italy      59000000      1937894  IT
-	France     65000000      2583560  FR
-	Malta      434000        12011    MT
-	Maldives   434000        4520     MV
-	Brunei     434000        12128    BN
-	Iceland    337000        17036    IS
-	Nauru      11300         182      NR
-	Tuvalu     11300         38       TV
-	Anguilla   11300         311      AI
-    
-    index      population    GDP     alpha-2
-    Nauru      11300         182     NR
-    Tuvalu     11300         38      TV
-    Anguilla   11300         311     AI
-
-For example,  
-
-    # example to show use of list of columns with nsort
-    
-    import pandas as pd
-	import frovedis.dataframe as fdf
-    
-	# To order by the largest values in column “population” and then “GDP”
-	pd_df = pd.DataFrame({'population': [59000000, 65000000, 434000, 434000, 
-										434000, 337000, 11300, 11300, 11300],
-						'GDP': [1937894, 2583560 , 12011, 4520, 12128,
-								17036, 182, 38, 311],
-						'alpha-2': ["IT", "FR", "MT", "MV", "BN",
-									"IS", "NR", "TV", "AI"]},
-						index=["Italy", "France", "Malta",
-								"Maldives", "Brunei", "Iceland",
-								"Nauru", "Tuvalu", "Anguilla"])
-	fd_df = fdf.DataFrame(pd_df)
-    
-	# to display frovedis dataframe
-	fd_df.show()
-
-	fd_df.nsort(3, ['population', 'GDP']).show()
-    
-Output  
-
-	index      population    GDP      alpha-2
-	Italy      59000000      1937894  IT
-	France     65000000      2583560  FR
-	Malta      434000        12011    MT
-	Maldives   434000        4520     MV
-	Brunei     434000        12128    BN
-	Iceland    337000        17036    IS
-	Nauru      11300         182      NR
-	Tuvalu     11300         38       TV
-	Anguilla   11300         311      AI
-    
-    index      population    GDP      alpha-2
-    Tuvalu     11300         38       TV
-    Nauru      11300         182      NR
-    Anguilla   11300         311      AI
-
-__Return Value__  
-It returns a Frovedis DataFrame object with **n** rows ordered by the specified columns in ascending or descending order.  
-
-
-### 10. nlargest(n, columns, keep = 'first')  
+### 8. nlargest(n, columns, keep = 'first')  
 
 __Parameters__  
 **_n_**: It accepts an integer parameter which represents the number of rows to return.  
 **_columns_**: It accepts a string type or list of strings type parameter which represents the column label(s) to order by.  
 **_keep_**: It accepts a string object parameter. This parameter is used when there are duplicate values. (Default: 'first')  
-	1. **'first'** : it prioritizes the first occurrence(s)  
-	2. **'last'** : it prioritizes the last occurrence(s)  
-	3. **'all'**  : it is used to not drop any duplicates, even when it means selecting more than **n** items.
+- **'first'** : it prioritizes the first occurrence(s).  
+- **'last'** : it prioritizes the last occurrence(s).  
+- **'all'**  : it is used to not drop any duplicates, even when it means selecting more than **n** items.  
   
 __Purpose__  
 It is used to return the top **n** rows ordered by the specified columns in descending order.
@@ -1284,8 +996,7 @@ Output
 __Return Value__  
 It returns a Frovedis DataFrame object with **n** rows ordered by the specified columns in descending order.  
 
-
-### 11. nsmallest(n, columns, keep = 'first')  
+### 9. nsmallest(n, columns, keep = 'first')  
 
 __Parameters__  
 **_n_**: It accepts an integer type argument that represents the number of rows to return.  
@@ -1436,7 +1147,8 @@ For example,
     import pandas as pd
 	import frovedis.dataframe as fdf
     
-    # To order by the smallest values in column “population” and then “GDP”, we can specify multiple columns like in the next example.
+    # To order by the smallest values in column “population” and then “GDP”, 
+    # we can specify multiple columns like in the next example.
 	pd_df = pd.DataFrame({'population': [59000000, 65000000, 434000,
 									  434000, 434000, 337000, 11300,
 									  11300, 11300],
@@ -1476,8 +1188,212 @@ Output
 __Return Value__  
 It returns a Frovedis DataFrame object with **n** rows ordered by the specified columns in ascending order.  
 
+### 10. nsort(n, columns, keep = 'first', is_desc = False)  
 
-### 12. sort(columns = None, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last', \*\*kwargs)  
+__Parameters__  
+**_n_**: It accepts a positive integer parameter which represents the number of rows to return.  
+**_columns_**: It accepts a string type or list of strings type parameter which represents the column label(s) to order by.  
+**_keep_**: It accepts a string object parameter. This parameter is used when there are duplicate values. (Default: 'first')  
+- **'first'** : it prioritizes the first occurrence(s)  
+- **'last'** : it prioritizes the last occurrence(s)  
+- **'all'**  : it is used to not drop any duplicates, even when it means selecting more than **n** items.
+
+**_is\_desc_**: It accepts a boolean value as parameter. This parameter decides the order to sort the data. When this parameter is explicitly passed as True, it sorts the data into descending order. (Default: False)  
+
+__Purpose__  
+It is used to return the top **n** rows ordered by the specified columns in ascending or descending order.
+The columns that are not specified are returned as well, but not used for ordering.  
+
+For example,  
+
+	# example to use nsort with default parameters with n = 3 and columns = 'population'
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+	# In the following example, we will use nlargest() to select the three rows 
+    # having the largest values in column “population”.
+	pd_df = pd.DataFrame({'population': [59000000, 65000000, 434000, 434000, 
+										434000, 337000, 11300, 11300, 11300],
+						'GDP': [1937894, 2583560 , 12011, 4520, 12128,
+								17036, 182, 38, 311],
+						'alpha-2': ["IT", "FR", "MT", "MV", "BN",
+									"IS", "NR", "TV", "AI"]},
+						index=["Italy", "France", "Malta",
+								"Maldives", "Brunei", "Iceland",
+								"Nauru", "Tuvalu", "Anguilla"])
+	fd_df = fdf.DataFrame(pd_df)
+    
+	# to display frovedis dataframe
+	fd_df.show()
+    
+	# to display n largest rows according to given column
+	fd_df.nsort(3, 'population').show()
+    
+Output  
+
+	index           population      GDP     alpha-2
+	Italy           59000000        1937894 IT
+	France          65000000        2583560 FR
+	Malta           434000          12011   MT
+	Maldives        434000          4520    MV
+	Brunei          434000          12128   BN
+	Iceland         337000          17036   IS
+	Nauru           11300           182     NR
+	Tuvalu          11300           38      TV
+	Anguilla        11300           311     AI
+
+	index           population      GDP     alpha-2
+	France          65000000        2583560 FR
+	Italy           59000000        1937894 IT
+	Malta           434000          12011   MT
+
+    index     population   GDP     alpha-2
+    Italy     59000000     1937894 IT
+    France    65000000     2583560 FR
+    Malta     434000       12011   MT
+    Maldives  434000       4520    MV
+    Brunei    434000       12128   BN
+    Iceland   337000       17036   IS
+    Nauru     11300        182     NR
+    Tuvalu    11300        38      TV
+    Anguilla  11300        311     AI
+
+    index     population   GDP     alpha-2
+    Nauru     11300        182     NR
+    Tuvalu    11300        38      TV
+    Anguilla  11300        311     AI
+
+For example,  
+	
+    # example to show the behavior of nsort with keep = 'last'
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+	# When using keep='last', it will show the row only having last occurrence of the duplicate :
+	pd_df = pd.DataFrame({'population': [59000000, 65000000, 434000, 434000, 
+										434000, 337000, 11300, 11300, 11300],
+						'GDP': [1937894, 2583560 , 12011, 4520, 12128,
+								17036, 182, 38, 311],
+						'alpha-2': ["IT", "FR", "MT", "MV", "BN",
+									"IS", "NR", "TV", "AI"]},
+						index=["Italy", "France", "Malta",
+								"Maldives", "Brunei", "Iceland",
+								"Nauru", "Tuvalu", "Anguilla"])
+	fd_df = fdf.DataFrame(pd_df)
+    
+	# to display frovedis dataframe
+	fd_df.show()
+    
+    fd_df.nsort(3, 'population', keep='last').show()
+    
+Output  
+
+	index      population    GDP      alpha-2
+	Italy      59000000      1937894  IT
+	France     65000000      2583560  FR
+	Malta      434000        12011    MT
+	Maldives   434000        4520     MV
+	Brunei     434000        12128    BN
+	Iceland    337000        17036    IS
+	Nauru      11300         182      NR
+	Tuvalu     11300         38       TV
+	Anguilla   11300         311      AI
+    
+    index      population    GDP      alpha-2
+    Anguilla   11300         311      AI
+    Tuvalu     11300         38       TV
+    Nauru      11300         182      NR
+
+For example,  
+
+    # example to show the behavior of nsort with keep = 'all'
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+	# When using keep='all', all duplicate items are maintained:
+	pd_df = pd.DataFrame({'population': [59000000, 65000000, 434000, 434000, 
+										434000, 337000, 11300, 11300, 11300],
+						'GDP': [1937894, 2583560 , 12011, 4520, 12128,
+								17036, 182, 38, 311],
+						'alpha-2': ["IT", "FR", "MT", "MV", "BN",
+									"IS", "NR", "TV", "AI"]},
+						index=["Italy", "France", "Malta",
+								"Maldives", "Brunei", "Iceland",
+								"Nauru", "Tuvalu", "Anguilla"])
+	fd_df = fdf.DataFrame(pd_df)
+    
+	# to display frovedis dataframe
+	fd_df.show()
+
+	fd_df.nsort(3, 'population', keep='all').show()
+    
+Output  
+
+	index      population    GDP      alpha-2
+	Italy      59000000      1937894  IT
+	France     65000000      2583560  FR
+	Malta      434000        12011    MT
+	Maldives   434000        4520     MV
+	Brunei     434000        12128    BN
+	Iceland    337000        17036    IS
+	Nauru      11300         182      NR
+	Tuvalu     11300         38       TV
+	Anguilla   11300         311      AI
+    
+    index      population    GDP     alpha-2
+    Nauru      11300         182     NR
+    Tuvalu     11300         38      TV
+    Anguilla   11300         311     AI
+
+For example,  
+
+    # example to show use of list of columns with nsort
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+	# To order by the largest values in column “population” and then “GDP”
+	pd_df = pd.DataFrame({'population': [59000000, 65000000, 434000, 434000, 
+										434000, 337000, 11300, 11300, 11300],
+						'GDP': [1937894, 2583560 , 12011, 4520, 12128,
+								17036, 182, 38, 311],
+						'alpha-2': ["IT", "FR", "MT", "MV", "BN",
+									"IS", "NR", "TV", "AI"]},
+						index=["Italy", "France", "Malta",
+								"Maldives", "Brunei", "Iceland",
+								"Nauru", "Tuvalu", "Anguilla"])
+	fd_df = fdf.DataFrame(pd_df)
+    
+	# to display frovedis dataframe
+	fd_df.show()
+
+	fd_df.nsort(3, ['population', 'GDP']).show()
+    
+Output  
+
+	index      population    GDP      alpha-2
+	Italy      59000000      1937894  IT
+	France     65000000      2583560  FR
+	Malta      434000        12011    MT
+	Maldives   434000        4520     MV
+	Brunei     434000        12128    BN
+	Iceland    337000        17036    IS
+	Nauru      11300         182      NR
+	Tuvalu     11300         38       TV
+	Anguilla   11300         311      AI
+    
+    index      population    GDP      alpha-2
+    Tuvalu     11300         38       TV
+    Nauru      11300         182      NR
+    Anguilla   11300         311      AI
+
+__Return Value__  
+It returns a Frovedis DataFrame object with **n** rows ordered by the specified columns in ascending or descending order.  
+
+### 11. sort(columns = None, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last', \*\*kwargs)  
 
 __Parameters__  
 **_columns_**: It accepts the name or list of names on which sorting will be applied. (Default: None)  
@@ -1621,8 +1537,7 @@ Output
 __Return Value__   
 It returns a new Frovedis DataFrame with sorted values.  
 
-
-### 13. sort_index(axis = 0, ascending = True, inplace = False, kind = 'quicksort', na\_position = 'last')  
+### 12. sort_index(axis = 0, ascending = True, inplace = False, kind = 'quicksort', na\_position = 'last')  
 
 __Parameters__  
 **_axis_**: It accepts an interger or a string object as parameter. It is the axis along which the sorting will be performed. (Default: 0)  
@@ -1718,8 +1633,7 @@ Output
 __Return Value__  
 It returns a new Frovedis DataFrame sorted by the labels.  
 
-
-### 14. sort_values(by, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last')  
+### 13. sort_values(by, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last')  
 
 __Parameters__  
 **_by_**: It accepts the name or list of names on which sorting will be applied.  
@@ -1875,8 +1789,7 @@ Output
 __Return Value__  
 It returns a new Frovedis DataFrame with sorted values.  
 
-
-### 15. to_dict(orient = "dict", into = dict)  
+### 14. to_dict(orient = "dict", into = dict)  
 
 __Parameters__  
 **_orient_**: It accepts a string object as parameter. It is used to determine the type of the values of the dictionary. (Default: 'dict')  
@@ -1947,225 +1860,7 @@ Output
 __Return Value__  
 It returns a dictionary representing the Frovedis DataFrame. The resulting transformation depends on the 'orient' parameter.  
 
-
-### 16. to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)  
-
-__Parameters__  
-**_t\_cols_**: It accepts a list of string type argument where each of the member of the list is the name of the column labels.  
-**_dtype_**: It accepts a dtype type argument which is the type of the resultant values.  
-Currently only float32 and float64 types are supported. (Default: np.float32)  
-
-__Purpose__  
-This method converts a frovedis dataframe to FrovedisColmajorMatrix.  
- 
-For example,  
-
-	# example to use to_frovedis_colmajor_matrix
-    
-    import frovedis.dataframe as fdf
-    
-    # read_csv demo
-	df = fdf.read_csv("./input/numbers.csv", names=['one', 'two', 'three', 'four'])
-	df.show()
-
-	col_mat = df.to_frovedis_colmajor_matrix(['one', 'two']) # default dtype = np.float32
-	
-    # display type of col_mat
-	print(type(col_mat))
-    
-    # display col_mat
-    col_mat.debug_print()
-    
-Output  
-
-	index   one     two     three   four
-	0       10      10.23   F       0
-	1       12      12.2    F       0
-	2       13      34.8999 D       1
-	3       15      100.12  A       2
-
-	<class 'frovedis.matrix.dense.FrovedisColmajorMatrix'>
-    
-	matrix:
-	num_row = 4, num_col = 2
-	node 0
-	node = 0, local_num_row = 4, local_num_col = 2, val = 10 12 13 15 10.23 12.2 34.9 100.12
-
-__Return Value__  
-It returns a FrovedisColmajorMatrix instance after converting the original Frovedis DataFrame.  
-
-
-### 17. to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32, need_info = False)  
-
-__Parameters__  
-**_t\_cols_**: It accepts a list of string type argument where each of the member of the list is the name of the column labels.  
-**_cat\_cols_**: It accepts a list of strings as parameter where strings are the column names. It stands for categorical columns. It represents how the repetitive values are distributed in the specified column. It adds number of columns corresponding to number of distinct values in the specified column to the matrix. And values corresponding to the value of the specicified column is set to 1 and remaining values are set to 0.  
-**_dtype_**: It accepts a dtype type argument which is the type of the resultant values.  
-Currently only float32 and float64 types are supported. (Default: np.float32)  
-**_need\_info_**: It accepts a boolean value as parameter. When this is explicitly set to True, it returns an additional value of type 'df_to_sparse_info'. (Default: False)  
-
-__Purpose__  
-It converts a Frovedis DataFrame object to FrovedisCRSMatrix instance.  
-
-For example,  
-
-	# example to use to_frovedis_crs_matrix
-    
-    import frovedis.dataframe as fdf
-	import numpy as np
-	
-	# read_csv demo
-	df = fdf.read_csv("./input/numbers.csv", names = ['one', 'two', 'three', 'four'])
-	df.show()
-
-	crs_mat,info = df.to_frovedis_crs_matrix(['one', 'two', 'four'],
-											 ['three'], need_info = True) # default dtype = float32
-	
-    # display type of crs_mat
-    print(type(crs_mat))
-    
-    # display crs_mat on console
-    crs_mat.debug_print()
-    
-    # converting crs_mat to display it in better form
-    mat_t = crs_mat.to_scipy_matrix().todense()
-    
-    # display matrix
-    print(mat_t)
-    
-Output  
-
-	index   one     two     three   four
-	0       10      10.23   F       0
-	1       12      12.2    F       0
-	2       13      34.8999 D       1
-	3       15      100.12  A       2
-
-	Active Elements:  12
-    
-	<class 'frovedis.matrix.crs.FrovedisCRSMatrix'>
-	
-    matrix:
-	num_row = 4, num_col = 5
-	node 0
-	local_num_row = 4, local_num_col = 5
-	val : 10 10.23 1 12 12.2 1 13 34.9 1 15 100.12 1
-	idx : 0 1 2 0 1 2 0 1 3 0 1 4
-	off : 0 3 6 9 12
-    
-    [[ 10.    10.23   0.     0.     1.  ]
-     [ 12.    12.2    0.     0.     1.  ]
-     [ 13.    34.9    0.     1.     0.  ]
-     [ 15.   100.12   1.     0.     0.  ]]
-
-__Return Value__  
-It returns a FrovedisCRSMatrix instance after converting the original Frovedis DataFrame.  
-
-
-### 18. to_frovedis_crs_matrix_using_info(info, dtype = np.float32)  
-
-__Parameters__  
-**_info_**: It accepts an instance of 'df_to_sparse_info' type.  
-**_dtype_**: It accepts a dtype type argument which is the type of the resultant values.  
-Currently only float32 and float64 types are supported. (Default: np.float32)  
- 
-__Purpose__  
-It converts a frovedis dataframe to FrovedisCRSMatrix provided an info object of df_to_sparse_info class.  
-  
-For example,  
-	
-    # example to use to_frovedis_crs_matrix_using_info
-    
-    import frovedis.dataframe as fdf
-	
-	# read_csv demo
-	df = fdf.read_csv("./input/numbers.csv", names=['one', 'two', 'three', 'four'])
-	df.show()
-
-	crs_mat,info = df.to_frovedis_crs_matrix(['one', 'two', 'four'],
-											 ['four'], need_info=True) # default dtype = np.float32
-	print(type(info))
-
-	crs_mat2 = df.to_frovedis_crs_matrix_using_info(info)
-    print(type(crs_mat2))
-	crs_mat2.debug_print()
-    
-Output  
-
-	index   one     two     three   four
-    0       10      10.23   F       0
-    1       12      12.2    F       0
-    2       13      34.8999 D       1
-    3       15      100.12  A       2
-
-    <class 'frovedis.dataframe.info.df_to_sparse_info'>
-    
-    <class 'frovedis.matrix.crs.FrovedisCRSMatrix'>
-    
-    Active Elements:  12
-    matrix:
-    num_row = 4, num_col = 5
-    node 0
-    local_num_row = 4, local_num_col = 5
-    val : 10 10.23 1 12 12.2 1 13 34.9 1 15 100.12 1
-    idx : 0 1 2 0 1 2 0 1 3 0 1 4
-    off : 0 3 6 9 12
-
-__Return Value__  
-It returns a FrovedisCRSMatrix after converting Frovedis DataFrame.  
-
-
-### 19. to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)  
-
-__Parameters__  
-**_t\_cols_**: It accepts a list of string type argument where each of the member of the list is the name of the column labels.  
-**_dtype_**: It accepts a dtype type argument which is the type of the resultant values.  
-Currently only float32 and float64 types are supported. (Default: np.float32)  
-
-__Purpose__  
-This method is used to convert a Frovedis DataFrame into FrovedisRowmajorMatrix instance.  
-
-For example,  
-
-	# example to convert frovedis dataframe into frovedis row major matrix
-    
-    import frovedis.dataframe as fdf
-    import numpy as np
-
-	# read_csv demo to get values
-	df = fdf.read_csv("./input/numbers.csv", names = ['one', 'two', 'three', 'four'])
-	
-    # display frovedis dataframe
-    df.show()
-
-	row_mat = df.to_frovedis_rowmajor_matrix(['one', 'two'], dtype = np.float64)
-	
-    # display row_mat (row major matrix)
-    row_mat.debug_print()
-
-	# display type of row_mat
-    print(type(row_mat))
-    
-Output  
-
-	index   one     two     three   four
-	0       10      10.23   F       0
-	1       12      12.2    F       0
-	2       13      34.8999 D       1
-	3       15      100.12  A       2
-
-	<class 'frovedis.matrix.dense.FrovedisRowmajorMatrix'>
-    
-	matrix:
-	num_row = 4, num_col = 2
-	node 0
-	node = 0, local_num_row = 4, local_num_col = 2, val = 10 10.23 12 12.2 13 34.9 15 100.12
-
-__Return Value__  
-It returns a FrovedisRowmajorMatrix instance after suitable conversion.  
-
-
-### 20. to_numpy(dtype = None, copy = False, na_value = None)  
+### 15. to_numpy(dtype = None, copy = False, na_value = None)  
 
 __Parameters__  
 **_dtype_** : It accepts the dtype parameter which decides the datatype of numpy ndarray. (Default: None)  
@@ -2233,8 +1928,7 @@ Output
 __Return Value__  
 It returns a numpy ndarray that represents a Frovedis DataFrame. It has shape (nRows , nCols).  
 
-
-### 21. to_pandas_dataframe()  
+### 16. to_pandas()  
 
 __Purpose__  
 It converts a Frovedis DataFrame instance into a pandas dataframe instance.  
@@ -2265,11 +1959,11 @@ For example,
     # below will display a Frovedis dataframe
 	fd_df.show()
     
-    # below will display a Pandas dataframe type after conversion
-	print(type(fd_df.to_pandas_dataframe()))
+    # below will display a pandas dataframe type after conversion
+	print(type(fd_df.to_pandas()))
     
-    # below will display a Pandas dataframe after conversion
-	print(fd_df.to_pandas_dataframe())
+    # below will display a pandas dataframe after conversion
+	print(fd_df.to_pandas())
     
 Output  
  
@@ -2294,6 +1988,223 @@ Output
 __Return Value__  
 It returns a pandas dataframe instance after suitable conversion.  
 
+### 17. to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)  
+
+__Parameters__  
+**_t\_cols_**: It accepts a list of string type argument where each of the member of the list is the name of the column labels.  
+**_dtype_**: It accepts a dtype type argument which is the type of the resultant values.  
+Currently only float32 and float64 types are supported. (Default: np.float32)  
+
+__Purpose__  
+This method is used to convert a Frovedis DataFrame into FrovedisRowmajorMatrix instance.  
+
+For example,  
+
+	# example to convert frovedis dataframe into frovedis row major matrix
+    
+    import frovedis.dataframe as fdf
+    import numpy as np
+
+	# read_csv demo to get values
+	df = fdf.read_csv("./input/numbers.csv", names = ['one', 'two', 'three', 'four'])
+	
+    # display frovedis dataframe
+    df.show()
+
+	row_mat = df.to_frovedis_rowmajor_matrix(['one', 'two'], dtype = np.float64)
+	
+    # display row_mat (row major matrix)
+    row_mat.debug_print()
+
+	# display type of row_mat
+    print(type(row_mat))
+    
+Output  
+
+	index   one     two     three   four
+	0       10      10.23   F       0
+	1       12      12.2    F       0
+	2       13      34.8999 D       1
+	3       15      100.12  A       2
+
+	<class 'frovedis.matrix.dense.FrovedisRowmajorMatrix'>
+    
+	matrix:
+	num_row = 4, num_col = 2
+	node 0
+	node = 0, local_num_row = 4, local_num_col = 2, val = 10 10.23 12 12.2 13 34.9 15 100.12
+
+__Return Value__  
+It returns a FrovedisRowmajorMatrix instance after suitable conversion.  
+
+### 18. to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)  
+
+__Parameters__  
+**_t\_cols_**: It accepts a list of string type argument where each of the member of the list is the name of the column labels.  
+**_dtype_**: It accepts a dtype type argument which is the type of the resultant values.  
+Currently only float32 and float64 types are supported. (Default: np.float32)  
+
+__Purpose__  
+This method converts a frovedis dataframe to FrovedisColmajorMatrix.  
+ 
+For example,  
+
+	# example to use to_frovedis_colmajor_matrix
+    
+    import frovedis.dataframe as fdf
+    
+    # read_csv demo
+	df = fdf.read_csv("./input/numbers.csv", names=['one', 'two', 'three', 'four'])
+	df.show()
+
+	col_mat = df.to_frovedis_colmajor_matrix(['one', 'two']) # default dtype = np.float32
+	
+    # display type of col_mat
+	print(type(col_mat))
+    
+    # display col_mat
+    col_mat.debug_print()
+    
+Output  
+
+	index   one     two     three   four
+	0       10      10.23   F       0
+	1       12      12.2    F       0
+	2       13      34.8999 D       1
+	3       15      100.12  A       2
+
+	<class 'frovedis.matrix.dense.FrovedisColmajorMatrix'>
+    
+	matrix:
+	num_row = 4, num_col = 2
+	node 0
+	node = 0, local_num_row = 4, local_num_col = 2, val = 10 12 13 15 10.23 12.2 34.9 100.12
+
+__Return Value__  
+It returns a FrovedisColmajorMatrix instance after converting the original Frovedis DataFrame.  
+
+### 19. to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32, need_info = False)  
+
+__Parameters__  
+**_t\_cols_**: It accepts a list of string type argument where each of the member of the list is the name of the column labels.  
+**_cat\_cols_**: It accepts a list of strings as parameter where strings are the column names. It stands for categorical columns. It represents how the repetitive values are distributed in the specified column. It adds number of columns corresponding to number of distinct values in the specified column to the matrix. And values corresponding to the value of the specicified column is set to 1 and remaining values are set to 0.  
+**_dtype_**: It accepts a dtype type argument which is the type of the resultant values.  
+Currently only float32 and float64 types are supported. (Default: np.float32)  
+**_need\_info_**: It accepts a boolean value as parameter. When this is explicitly set to True, it returns an additional value of type 'df_to_sparse_info'. (Default: False)  
+
+__Purpose__  
+It converts a Frovedis DataFrame object to FrovedisCRSMatrix instance.  
+
+For example,  
+
+	# example to use to_frovedis_crs_matrix
+    
+    import frovedis.dataframe as fdf
+	import numpy as np
+	
+	# read_csv demo
+	df = fdf.read_csv("./input/numbers.csv", names = ['one', 'two', 'three', 'four'])
+	df.show()
+
+	crs_mat,info = df.to_frovedis_crs_matrix(['one', 'two', 'four'],
+											 ['three'], need_info = True) # default dtype = float32
+	
+    # display type of crs_mat
+    print(type(crs_mat))
+    
+    # display crs_mat on console
+    crs_mat.debug_print()
+    
+    # converting crs_mat to display it in better form
+    mat_t = crs_mat.to_scipy_matrix().todense()
+    
+    # display matrix
+    print(mat_t)
+    
+Output  
+
+	index   one     two     three   four
+	0       10      10.23   F       0
+	1       12      12.2    F       0
+	2       13      34.8999 D       1
+	3       15      100.12  A       2
+
+	Active Elements:  12
+    
+	<class 'frovedis.matrix.crs.FrovedisCRSMatrix'>
+	
+    matrix:
+	num_row = 4, num_col = 5
+	node 0
+	local_num_row = 4, local_num_col = 5
+	val : 10 10.23 1 12 12.2 1 13 34.9 1 15 100.12 1
+	idx : 0 1 2 0 1 2 0 1 3 0 1 4
+	off : 0 3 6 9 12
+    
+    [[ 10.    10.23   0.     0.     1.  ]
+     [ 12.    12.2    0.     0.     1.  ]
+     [ 13.    34.9    0.     1.     0.  ]
+     [ 15.   100.12   1.     0.     0.  ]]
+
+__Return Value__  
+It returns a FrovedisCRSMatrix instance after converting the original Frovedis DataFrame.  
+
+### 20. to_frovedis_crs_matrix_using_info(info, dtype = np.float32)  
+
+__Parameters__  
+**_info_**: It accepts an instance of 'df_to_sparse_info' type.  
+**_dtype_**: It accepts a dtype type argument which is the type of the resultant values.  
+Currently only float32 and float64 types are supported. (Default: np.float32)  
+ 
+__Purpose__  
+It converts a frovedis dataframe to FrovedisCRSMatrix provided an info object of df_to_sparse_info class.  
+  
+For example,  
+	
+    # example to use to_frovedis_crs_matrix_using_info
+    
+    import frovedis.dataframe as fdf
+	
+	# read_csv demo
+	df = fdf.read_csv("./input/numbers.csv", names=['one', 'two', 'three', 'four'])
+	df.show()
+
+	crs_mat,info = df.to_frovedis_crs_matrix(['one', 'two', 'four'],
+											 ['four'], need_info=True) # default dtype = np.float32
+	print(type(info))
+
+	crs_mat2 = df.to_frovedis_crs_matrix_using_info(info)
+    print(type(crs_mat2))
+	crs_mat2.debug_print()
+    
+Output  
+
+	index   one     two     three   four
+    0       10      10.23   F       0
+    1       12      12.2    F       0
+    2       13      34.8999 D       1
+    3       15      100.12  A       2
+
+    <class 'frovedis.dataframe.info.df_to_sparse_info'>
+    
+    <class 'frovedis.matrix.crs.FrovedisCRSMatrix'>
+    
+    Active Elements:  12
+    matrix:
+    num_row = 4, num_col = 5
+    node 0
+    local_num_row = 4, local_num_col = 5
+    val : 10 10.23 1 12 12.2 1 13 34.9 1 15 100.12 1
+    idx : 0 1 2 0 1 2 0 1 3 0 1 4
+    off : 0 3 6 9 12
+
+__Return Value__  
+It returns a FrovedisCRSMatrix after converting Frovedis DataFrame.  
+
 # SEE ALSO  
 
-DataFrame_Introduction, DataFrame_ConversionAndSorting, DataFrame_SelectionAndCombinations, DataFrame_BinaryOperators  
+- **[DataFrame - Introduction](./DataFrame_Introduction.md)**  
+- **[DataFrame - Selection and Combinations](./DataFrame_SelectionAndCombinations.md)**  
+- **[DataFrame - Function Application, Groupby](./DataFrame_FunctionApplicationGroupby.md)**  
+- **[DataFrame - Binary Operators](./DataFrame_BinaryOperators.md)**  
+- **[DataFrame - Aggregate Functions](./DataFrame_AggregateFunctions.md)**   

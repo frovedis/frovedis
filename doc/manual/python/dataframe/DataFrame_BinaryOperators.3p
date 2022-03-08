@@ -1,10 +1,10 @@
 .TH "DataFrame Binary Operator Functions" "" "" "" ""
 .SH NAME
 .PP
-DataFrame Binary Operator Functions \- methods for carrying out binary
-operations like add(), sub(), etc and related functions like radd(),
-rsub(), etc.
-for carrying out reverse binary operations are illustrated here.
+DataFrame Binary Operator Functions \- this manual contains methods for
+carrying out binary operations like add(), sub(), etc and related
+functions like radd(), rsub(), etc.
+for carrying out reverse binary operations.
 .SH SYNOPSIS
 .IP
 .nf
@@ -13,72 +13,27 @@ frovedis.dataframe.df.DataFrame(df\ =\ None,\ is_series\ =\ False)\ \
 \f[]
 .fi
 .SS Public Member Functions
-.PP
-add(other, axis = \[aq]columns\[aq], level = None, fill_value = None)
-.PD 0
-.P
-.PD
-radd(other, axis = \[aq]columns\[aq], level = None, fill_value = None)
-.PD 0
-.P
-.PD
-div(other, axis = \[aq]columns\[aq], level = None, fill_value = None)
-.PD 0
-.P
-.PD
-rdiv(other, axis = \[aq]columns\[aq], level = None, fill_value = None)
-.PD 0
-.P
-.PD
-floordiv(other, axis = \[aq]columns\[aq], level = None, fill_value =
-None)
-.PD 0
-.P
-.PD
-rfloordiv(other, axis = \[aq]columns\[aq], level = None, fill_value =
-None)
-.PD 0
-.P
-.PD
-mod(other, axis = \[aq]columns\[aq], level = None, fill_value = None)
-.PD 0
-.P
-.PD
-rmod(other, axis = \[aq]columns\[aq], level = None, fill_value = None)
-.PD 0
-.P
-.PD
-mul(other, axis = \[aq]columns\[aq], level = None, fill_value = None)
-.PD 0
-.P
-.PD
-rmul(other, axis = \[aq]columns\[aq], level = None, fill_value = None)
-.PD 0
-.P
-.PD
-pow(other, axis = \[aq]columns\[aq], level = None, fill_value = None)
-.PD 0
-.P
-.PD
-rpow(other, axis = \[aq]columns\[aq], level = None, fill_value = None)
-.PD 0
-.P
-.PD
-sub(other, axis = \[aq]columns\[aq], level = None, fill_value = None)
-.PD 0
-.P
-.PD
-rsub(other, axis = \[aq]columns\[aq], level = None, fill_value = None)
-.PD 0
-.P
-.PD
-truediv(other, axis = \[aq]columns\[aq], level = None, fill_value =
-None)
-.PD 0
-.P
-.PD
-rtruediv(other, axis = \[aq]columns\[aq], level = None, fill_value =
-None)
+.IP
+.nf
+\f[C]
+1.\ add(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+2.\ div(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+3.\ floordiv(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+4.\ mod(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+5.\ mul(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+6.\ pow(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+7.\ sub(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+8.\ truediv(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+9.\ radd(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+10.\ rdiv(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+11.\ rfloordiv(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+12.\ rmod(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+13.\ rmul(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+14.\ rpow(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+15.\ rsub(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+16.\ rtruediv(other,\ axis\ =\ \[aq]columns\[aq],\ level\ =\ None,\ fill_value\ =\ None)\ \ 
+\f[]
+.fi
 .SS Detailed Description
 .SS 1. add(other, axis = \[aq]columns\[aq], level = None, fill_value =
 None)
@@ -442,12 +397,8 @@ index\ \ \ points\ \ total
 .PP
 Here, only common columns in both dataframes are added, excluding the
 misiing values.
-Other column elements are
-.PD 0
-.P
-.PD
-added with the fill_value = 10 (exluding missing values) in resultant
-dataframe.
+Other column elements are added with the fill_value = 10 (exluding
+missing values) in resultant dataframe.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -455,341 +406,7 @@ dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 2. radd(other, axis = \[aq]columns\[aq], level = None, fill_value =
-None)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
-structure like the following:
-.PD 0
-.P
-.PD
-\- Number
-.PD 0
-.P
-.PD
-\- List.
-Currently, this method supports operation on only list of numeric
-values.
-.PD 0
-.P
-.PD
-\- A numpy ndarray.
-Currently, this method supports operation on only an array of numeric
-values.
-.PD 0
-.P
-.PD
-\- pandas DataFrame.
-It must not be an empty dataframe.
-.PD 0
-.P
-.PD
-\- pandas Series
-.PD 0
-.P
-.PD
-\- frovedis DataFrame.
-It must not be an empty dataframe.
-.PP
-Any of these is considered as the value to be added with the current
-dataframe.
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
-parameter.
-It is used to decide whether to perform reverse addition operation along
-the indices or by column labels.
-(Default: \[aq]columns\[aq])
-.PD 0
-.P
-.PD
-\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse addition operation
-on the columns.
-Currently, axis = 1 is supported in this method.
-.PP
-\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
-It fills existing missing (NaN) values, and any new element needed for
-successful dataframe alignment, with this value before computation.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is either None or not None and if data in both corresponding
-dataframe locations is missing, then the result will be missing
-(contains NaNs).
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It performs reverse addition operation between two dataframes or
-dataframe and scalar value.
-It is equivalent to \f[B]\[aq]other + dataframe\[aq]\f[].
-.PP
-Currently, it does not perform reverse addition of scalar using operator
-version.
-Only method version is supported.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ radd()\ demo\ with\ scalar\ value\ using\ method\ version
-fdf1.radd(10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 15\ \ \ \ \ \ 20
-1\ \ \ \ \ \ \ 16\ \ \ \ \ \ 21
-2\ \ \ \ \ \ \ 14\ \ \ \ \ \ 22
-\f[]
-.fi
-.PP
-Here, it adds the scalar to all columns in dataframe (axis = 1 by
-default).
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For examples,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ radd()\ demo\ on\ two\ dataframes\ using\ method\ version
-fdf1.radd(other\ =\ fdf2).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 7\ \ \ \ \ \ \ 17
-1\ \ \ \ \ \ \ 9\ \ \ \ \ \ \ 20
-2\ \ \ \ \ \ \ 12\ \ \ \ \ \ 23
-\f[]
-.fi
-.PP
-Here, only common columns in both dataframes are added.
-Column values in other datframe are replaced with NaN values in
-resultant dataframe (fill_value = None by default).
-.PP
-\f[B]When fill_value is not None,\f[]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ radd()\ demo\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
-fdf1.radd(other\ =\ fdf2,\ fill_value\ =\ 10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 7\ \ \ \ \ \ \ 17
-1\ \ \ \ \ \ \ 9\ \ \ \ \ \ \ 21
-2\ \ \ \ \ \ \ 12\ \ \ \ \ \ 20
-\f[]
-.fi
-.PP
-Here, only common columns in both dataframes are added excluding the
-missing values.
-The fill_value = 10 is added to both column values in the dataframe
-(excluding the missing values) and stored in new dataframe.
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame which contains the result of arithmetic
-operation.
-.SS 3. div(other, axis = \[aq]columns\[aq], level = None, fill_value =
+.SS 2. div(other, axis = \[aq]columns\[aq], level = None, fill_value =
 None)
 .PP
 \f[B]Parameters\f[]
@@ -869,10 +486,8 @@ dataframe locations is missing, then the result will be missing
 It performs floating division operation between two dataframes or
 dataframe and scalar value.
 It is equivalent to \f[B]\[aq]dataframe / other\[aq]\f[].
-.PD 0
-.P
-.PD
-It is an alias of truediv().
+.PP
+\f[B]It is an alias of truediv().\f[]
 .PP
 For example,
 .IP
@@ -1163,347 +778,7 @@ the missing values) in resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 4. rdiv(other, axis = \[aq]columns\[aq], level = None, fill_value =
-None)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
-structure like the following:
-.PD 0
-.P
-.PD
-\- Number
-.PD 0
-.P
-.PD
-\- List.
-Currently, this method supports operation on only list of numeric
-values.
-.PD 0
-.P
-.PD
-\- A numpy ndarray.
-Currently, this method supports operation on only an array of numeric
-values.
-.PD 0
-.P
-.PD
-\- pandas DataFrame.
-It must not be an empty dataframe.
-.PD 0
-.P
-.PD
-\- pandas Series
-.PD 0
-.P
-.PD
-\- frovedis DataFrame.
-It must not be an empty dataframe.
-.PP
-Any of these is considered as the value to be divided with the current
-dataframe.
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
-parameter.
-It is used to decide whether to perform reverse division operation along
-the indices or by column labels.
-(Default: \[aq]columns\[aq])
-.PD 0
-.P
-.PD
-\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse division operation
-on the columns.
-Currently, axis = 1 is supported in this method.
-.PP
-\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
-It fills existing missing (NaN) values, and any new element needed for
-successful dataframe alignment, with this value before computation.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is either None or not None and if data in both corresponding
-dataframe locations is missing, then the result will be missing
-(contains NaNs).
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It performs reverse floating division operation between two dataframes
-or dataframe and a scalar value.
-It is equivalent to \f[B]\[aq]other / dataframe\[aq]\f[].
-.PD 0
-.P
-.PD
-It is an alias of rtruediv().
-.PD 0
-.P
-.PD
-Currently, it does not perform reverse division of scalar using operator
-version.
-Only method version is supported.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rdiv()\ demo\ with\ scalar\ value\ using\ method\ version
-fdf1.rdiv(10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 1
-1\ \ \ \ \ \ \ 1.66666\ 0.90909
-2\ \ \ \ \ \ \ 2.5\ \ \ \ \ 0.833333
-\f[]
-.fi
-.PP
-Here, it uses the scalar to perform division on all column elements in
-dataframe (axis = 1 by default).
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rdiv()\ demo\ on\ two\ dataframes\ using\ method\ version
-fdf1.rdiv(other\ =\ fdf2).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 0.4\ \ \ \ \ 0.7
-1\ \ \ \ \ \ \ 0.5\ \ \ \ \ 0.818181
-2\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 0.916666
-\f[]
-.fi
-.PP
-Here, only common columns in both dataframes are divided.
-Other are replaced with NaN values in resultant dataframe (fill_value =
-None by default).
-.PP
-\f[B]When fill_value is not None,\f[]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rdiv()\ demo\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
-fdf1.rdiv(other\ =\ fdf2,\ fill_value\ =\ 10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 0.4\ \ \ \ \ 0.7
-1\ \ \ \ \ \ \ 0.5\ \ \ \ \ 0.90909
-2\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 1
-\f[]
-.fi
-.PP
-Here, only common columns in both dataframes are divided, excluding the
-missing values.
-The fill_value = 10 is used to divide over column values in other
-dataframe (excluding the missing values) and stored in new dataframe.
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame which contains the result of arithmetic
-operation.
-.SS 5. floordiv(other, axis = \[aq]columns\[aq], level = None,
+.SS 3. floordiv(other, axis = \[aq]columns\[aq], level = None,
 fill_value = None)
 .PP
 \f[B]Parameters\f[]
@@ -1869,12 +1144,8 @@ index\ \ \ points\ \ total
 .PP
 Here, only common columns in both dataframes are divided, excluding the
 missing values.
-Other column elements are
-.PD 0
-.P
-.PD
-divided with the fill_value = 10 (excluding the missing values) in
-resultant dataframe.
+Other column elements are divided with the fill_value = 10 (excluding
+the missing values) in resultant dataframe.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -1882,346 +1153,7 @@ resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 6. rfloordiv(other, axis = \[aq]columns\[aq], level = None,
-fill_value = None)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
-structure like the following:
-.PD 0
-.P
-.PD
-\- Number
-.PD 0
-.P
-.PD
-\- List.
-Currently, this method supports operation on only list of numeric
-values.
-.PD 0
-.P
-.PD
-\- A numpy ndarray.
-Currently, this method supports operation on only an array of numeric
-values.
-.PD 0
-.P
-.PD
-\- pandas DataFrame.
-It must not be an empty dataframe.
-.PD 0
-.P
-.PD
-\- pandas Series
-.PD 0
-.P
-.PD
-\- frovedis DataFrame.
-It must not be an empty dataframe.
-.PP
-Any of these is considered as the value to be divided with the current
-dataframe.
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
-parameter.
-It is used to decide whether to perform reverse division operation along
-the indices or by column labels.
-(Default: \[aq]columns\[aq])
-.PD 0
-.P
-.PD
-\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse division operation
-on the columns.
-Currently, axis = 1 is supported in this method.
-.PP
-\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
-It fills existing missing (NaN) values, and any new element needed for
-successful dataframe alignment, with this value before computation.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is either None or not None and if data in both corresponding
-dataframe locations is missing, then the result will be missing
-(contains NaNs).
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It performs reverse floating division operation between two dataframes
-or dataframe and scalar value.
-It is equivalent to \f[B]\[aq]other // dataframe\[aq]\f[].
-.PP
-Currently, it does not perform reverse division of scalar using operator
-version.
-Only method version is supported.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rfloordiv()\ demo\ with\ scalar\ value\ using\ method\ version
-fdf1.rfloordiv(10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 1
-1\ \ \ \ \ \ \ 1\ \ \ \ \ \ \ 0
-2\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 0
-\f[]
-.fi
-.PP
-Here, it uses the scalar to perform division on all column elements
-(axis = 1 by default).
-.PD 0
-.P
-.PD
-Also, resultant dataframe column elements will contain floor integer
-value.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rfloordiv()\ demo\ on\ two\ dataframes\ using\ method\ version
-fdf1.rfloordiv(other\ =\ fdf2).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 0
-1\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 0
-2\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 0
-\f[]
-.fi
-.PP
-Here, only common columns in both dataframes are divided.
-Other are replaced with NaN values in resultant dataframe (fill_value =
-None by default).
-.PP
-\f[B]When fill_value is not None,\f[]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rfloordiv()\ \ demo\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
-fdf1.rfloordiv(other\ =\ fdf2,\ fill_value\ =\ 10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 0
-1\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 0
-2\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 1
-\f[]
-.fi
-.PP
-Here, only common columns in both dataframes are divided, excluding the
-missing values.
-The fill_value = 10 is used to divide over column values in other
-dataframe (excluding the missing values) and stored in new dataframe.
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame which contains the result of arithmetic
-operation.
-.SS 7. mod(other, axis = \[aq]columns\[aq], level = None, fill_value =
+.SS 4. mod(other, axis = \[aq]columns\[aq], level = None, fill_value =
 None)
 .PP
 \f[B]Parameters\f[]
@@ -2592,342 +1524,7 @@ Modulo is performed on other column elements using the value 10
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 8. rmod(other, axis = \[aq]columns\[aq], level = None, fill_value =
-None)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
-structure like the following:
-.PD 0
-.P
-.PD
-\- Number
-.PD 0
-.P
-.PD
-\- List.
-Currently, this method supports operation on only list of numeric
-values.
-.PD 0
-.P
-.PD
-\- A numpy ndarray.
-Currently, this method supports operation on only an array of numeric
-values.
-.PD 0
-.P
-.PD
-\- pandas DataFrame.
-It must not be an empty dataframe.
-.PD 0
-.P
-.PD
-\- pandas Series
-.PD 0
-.P
-.PD
-\- frovedis DataFrame.
-It must not be an empty dataframe.
-.PP
-Any of these is considered as the value to perform modulo operation with
-the current dataframe.
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
-parameter.
-It is used to decide whether to perform reverse modulo operation along
-the indices or by column labels.
-(Default: \[aq]columns\[aq])
-.PD 0
-.P
-.PD
-\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse modulo operation on
-the columns.
-Currently, axis = 1 is supported in this method.
-.PP
-\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
-It fills existing missing (NaN) values, and any new element needed for
-successful dataframe alignment, with this value before computation.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is either None or not None and if data in both corresponding
-dataframe locations is missing, then the result will be missing
-(contains NaNs).
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It performs reverse modulo operation between two dataframes or dataframe
-and scalar value.
-It is equivalent to \f[B]\[aq]other % dataframe\[aq]\f[].
-.PP
-Currently, it does not perform reverse modulo of scalar using operator
-version.
-Only method version is supported.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ "total":\ [50,\ 40,\ 20]
-\ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rmod()\ demo\ with\ scalar\ value\ using\ method\ version
-fdf1.rmod(10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 0
-1\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 10
-2\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 10
-\f[]
-.fi
-.PP
-Here, it uses the scalar to perform modulo operation on all column
-elements (axis = 1 by default).
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
-\ \ \ \ \ \ \ \ }\ \ \ \ 
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rmod()\ demo\ on\ two\ dataframes\ using\ method\ version
-fdf1.rmod(other\ =\ fdf2).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
-2\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 11
-\f[]
-.fi
-.PP
-Here, modulo is performed on only common columns in both dataframes.
-Other are replaced with NaN values in resultant dataframe (fill_value =
-None by default).
-.PP
-\f[B]When fill_value is not None,\f[]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rmod()\ demo\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
-fdf1.rmod(other\ =\ fdf2,\ fill_value\ =\ 10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 10
-2\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 0
-\f[]
-.fi
-.PP
-Here, modulo is performed on only common columns in both dataframes,
-excluding the missing values.
-The fill_value = 10 is used to perform modulo over column values in
-other dataframe (excluding the missing values) and stored in new
-dataframe.
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame which contains the result of arithmetic
-operation.
-.SS 9. mul(other, axis = \[aq]columns\[aq], level = None, fill_value =
+.SS 5. mul(other, axis = \[aq]columns\[aq], level = None, fill_value =
 None)
 .PP
 \f[B]Parameters\f[]
@@ -3299,341 +1896,7 @@ missing values) in resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 10. rmul(other, axis = \[aq]columns\[aq], level = None, fill_value =
-None)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
-structure like the following:
-.PD 0
-.P
-.PD
-\- Number
-.PD 0
-.P
-.PD
-\- List.
-Currently, this method supports operation on only list of numeric
-values.
-.PD 0
-.P
-.PD
-\- A numpy ndarray.
-Currently, this method supports operation on only an array of numeric
-values.
-.PD 0
-.P
-.PD
-\- pandas DataFrame.
-It must not be an empty dataframe.
-.PD 0
-.P
-.PD
-\- pandas Series
-.PD 0
-.P
-.PD
-\- frovedis DataFrame.
-It must not be an empty dataframe.
-.PP
-Any of these is considered as the value to be multiplied with the
-current dataframe.
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
-parameter.
-It is used to decide whether to perform reverse multiplication operation
-along the indices or by column labels.
-(Default: \[aq]columns\[aq])
-.PD 0
-.P
-.PD
-\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse multiplication
-operation on the columns.
-Currently, axis = 1 is supported in this method.
-.PP
-\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
-It fills existing missing (NaN) values, and any new element needed for
-successful dataframe alignment, with this value before computation.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is either None or not None and if data in both corresponding
-dataframe locations is missing, then the result will be missing
-(contains NaNs).
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It performs reverse multiplication operation between two dataframes or
-dataframe and scalar value.
-It is equivalent to \f[B]\[aq]other * dataframe\[aq]\f[].
-.PP
-Currently, it does not perform reverse multiplication of scalar using
-operator version.
-Only method version is supported.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ \ }\ \ \ 
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rmul()\ demo\ with\ scalar\ value\ using\ method\ version
-fdf1.rmul(10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 50\ \ \ \ \ \ 100
-1\ \ \ \ \ \ \ 60\ \ \ \ \ \ 110
-2\ \ \ \ \ \ \ 40\ \ \ \ \ \ 120
-\f[]
-.fi
-.PP
-Here, it uses the scalar to perform multiplication on all column
-elements in dataframe (axis = 1 by default).
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
-\ \ \ \ \ \ \ \ }\ \ \ \ 
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rmul()\ demo\ on\ two\ dataframes\ using\ method\ version
-fdf1.rmul(other\ =\ fdf2).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 10\ \ \ \ \ \ 70
-1\ \ \ \ \ \ \ 18\ \ \ \ \ \ 99
-2\ \ \ \ \ \ \ 32\ \ \ \ \ \ 132
-\f[]
-.fi
-.PP
-Here, only common columns in both dataframes are multiplied.
-Other are replaced with NaN values in resultant dataframe (fill_value =
-None by default).
-.PP
-\f[B]When fill_value is not None,\f[]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rmul()\ demo\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
-fdf1.rmul(other\ =\ fdf2,\ fill_value\ =\ 10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 10\ \ \ \ \ \ 70
-1\ \ \ \ \ \ \ 18\ \ \ \ \ \ 110
-2\ \ \ \ \ \ \ 32\ \ \ \ \ \ 100
-\f[]
-.fi
-.PP
-Here, only common columns in both dataframes are multiplied, excluding
-the missing values.
-The fill_value = 10 is multiplied with column values in other dataframe
-(excluding the missing values) and stored in new dataframe.
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame which contains the result of arithmetic
-operation.
-.SS 11. pow(other, axis = \[aq]columns\[aq], level = None, fill_value =
+.SS 6. pow(other, axis = \[aq]columns\[aq], level = None, fill_value =
 None)
 .PP
 \f[B]Parameters\f[]
@@ -4004,343 +2267,7 @@ the value 10 (excluding the missing values) in resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 12. rpow(other, axis = \[aq]columns\[aq], level = None, fill_value =
-None)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
-structure like the following:
-.PD 0
-.P
-.PD
-\- Number
-.PD 0
-.P
-.PD
-\- List.
-Currently, this method supports operation on only list of numeric
-values.
-.PD 0
-.P
-.PD
-\- A numpy ndarray.
-Currently, this method supports operation on only an array of numeric
-values.
-.PD 0
-.P
-.PD
-\- pandas DataFrame.
-It must not be an empty dataframe.
-.PD 0
-.P
-.PD
-\- pandas Series
-.PD 0
-.P
-.PD
-\- frovedis DataFrame.
-It must not be an empty dataframe.
-.PP
-Any of these is considered as the value to perfomr exponential power
-operation with the current dataframe.
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
-parameter.
-It is used to decide whether to perform reverse exponential power
-operation along the indices or by column labels.
-(Default: \[aq]columns\[aq])
-.PD 0
-.P
-.PD
-\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse exponential power
-operation on the columns.
-Currently, axis = 1 is supported in this method.
-.PP
-\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
-It fills existing missing (NaN) values, and any new element needed for
-successful dataframe alignment, with this value before computation.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is either None or not None and if data in both corresponding
-dataframe locations is missing, then the result will be missing
-(contains NaNs).
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It performs reverse exponential power operation between two dataframes
-or dtaframe and scalar value.
-It is equivalent to \f[B]\[aq]other \f[] dataframe\[aq]**.
-.PP
-Currently, it does not perform reverse exponential power operation of
-scalar using operator version.
-Only method version is supported.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rpow()\ demo\ with\ scalar\ value\ using\ method\ version
-fdf1.rpow(2).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 32\ \ \ \ \ \ 1024
-1\ \ \ \ \ \ \ 64\ \ \ \ \ \ 2048
-2\ \ \ \ \ \ \ 16\ \ \ \ \ \ 4096
-\f[]
-.fi
-.PP
-Here, it uses the scalar to perform exponential power operation on all
-column elements in dataframe (axis = 1 by default).
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ \ {
-\ \ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
-\ \ \ \ \ \ \ \ }\ \ \ \ 
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rpow()\ demo\ on\ two\ dataframes\ using\ method\ version
-fdf1.rpow(other\ =\ fdf2).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 10\ \ \ \ \ \ 70
-1\ \ \ \ \ \ \ 18\ \ \ \ \ \ 99
-2\ \ \ \ \ \ \ 32\ \ \ \ \ \ 132
-\f[]
-.fi
-.PP
-Here, exponential power operation is performed on only common columns in
-both dataframes.
-Other are replaced with NaN values in resultant dataframe (fill_value =
-None by default).
-.PP
-\f[B]When fill_value is not None,\f[]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rpow()\ demo\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
-fdf1.rpow(other\ =\ fdf2,\ fill_value\ =\ 10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 32\ \ \ \ \ \ 2.82475e+08
-1\ \ \ \ \ \ \ 729\ \ \ \ \ 9.99999e+10
-2\ \ \ \ \ \ \ 4096\ \ \ \ 1.00000e+10
-\f[]
-.fi
-.PP
-Here, exponential power operation is performed on only common columns in
-both dataframes, excluding the missing values.
-The fill_value = 10 is used to perform exponential power operation on
-column values in other dataframe (excluding the missing values) and
-stored in new dataframe.
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame which contains the result of arithmetic
-operation.
-.SS 13. sub(other, axis = \[aq]columns\[aq], level = None, fill_value =
+.SS 7. sub(other, axis = \[aq]columns\[aq], level = None, fill_value =
 None)
 .PP
 \f[B]Parameters\f[]
@@ -4409,7 +2336,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+When it is either None or not, and if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -4710,342 +2637,8 @@ missing values) in resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 14. rsub(other, axis = \[aq]columns\[aq], level = None, fill_value =
-None)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
-structure like the following:
-.PD 0
-.P
-.PD
-\- Number
-.PD 0
-.P
-.PD
-\- List.
-Currently, this method supports operation on only list of numeric
-values.
-.PD 0
-.P
-.PD
-\- A numpy ndarray.
-Currently, this method supports operation on only an array of numeric
-values.
-.PD 0
-.P
-.PD
-\- pandas DataFrame.
-It must not be an empty dataframe.
-.PD 0
-.P
-.PD
-\- pandas Series
-.PD 0
-.P
-.PD
-\- frovedis DataFrame.
-It must not be an empty dataframe.
-.PP
-Any of these is considered as the value to be subtracted with the
-current dataframe.
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
-parameter.
-It is used to decide whether to perform reverse subtraction operation
-along the indices or by column labels.
-(Default: \[aq]columns\[aq])
-.PD 0
-.P
-.PD
-\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse subtraction
-operation on the columns.
-Currently, axis = 1 is supported in this method.
-.PP
-\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
-It fills existing missing (NaN) values, and any new element needed for
-successful dataframe alignment, with this value before computation.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is either None or not None and if data in both corresponding
-dataframe locations is missing, then the result will be missing
-(contains NaNs).
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It performs reverse subtraction operation between two dataframes or
-dataframe and scalar value.
-It is equivalent to \f[B]\[aq]other \- dataframe\[aq]\f[].
-.PP
-Currently, it does not perform reverse subtraction of scalar using
-operator version.
-Only method version is supported.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ \ {
-\ \ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rsub()\ with\ scalar\ value\ using\ method\ version
-fdf1.rsub(10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 0
-1\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ \-1
-2\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ \-2
-\f[]
-.fi
-.PP
-Here, it subtracts the scalar to all columns in dataframe (axis = 1 by
-default).
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ \ {
-\ \ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rsub()\ on\ two\ dataframes\ using\ method\ version
-fdf1.rsub(other\ =\ fdf2).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ \-3\ \ \ \ \ \ \-3
-1\ \ \ \ \ \ \ \-3\ \ \ \ \ \ \-2
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ \-1
-\f[]
-.fi
-.PP
-Here, only common columns in both dataframes are subtracted.
-Other are replaced with NaN values in resultant dataframe (fill_value =
-None by default).
-.PP
-\f[B]When fill_value is not None,\f[]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-data1\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
-\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(data1)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
-1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ a\ dictionary
-data2\ =\ {
-\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
-\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
-\ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf2\ =\ pd.DataFrame(data2)
-
-#\ create\ frovedis\ dataframe
-fdf2\ =\ fdf.DataFrame(pdf2)
-
-#\ display\ the\ frovedis\ dataframe
-fdf2.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
-1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
-2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ rsub()\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
-fdf1.rsub(other\ =\ fdf2,\ fill_value\ =\ 10).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ points\ \ total
-0\ \ \ \ \ \ \ \-3\ \ \ \ \ \ \-3
-1\ \ \ \ \ \ \ \-3\ \ \ \ \ \ \-1
-2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 0
-\f[]
-.fi
-.PP
-Here, only common columns in both dataframes are subtracted, excluding
-the missing values.
-The fill_value = 10 is subtracted on column values in other dataframe
-(excluding the missing values) and stored in new dataframe.
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame which contains the result of arithmetic
-operation.
-.SS 15. truediv(other, axis = \[aq]columns\[aq], level = None,
-fill_value = None)
+.SS 8. truediv(other, axis = \[aq]columns\[aq], level = None, fill_value
+= None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -5414,6 +3007,2348 @@ missing values) in resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
+.SS 9. radd(other, axis = \[aq]columns\[aq], level = None, fill_value =
+None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
+structure like the following:
+.PD 0
+.P
+.PD
+\- Number
+.PD 0
+.P
+.PD
+\- List.
+Currently, this method supports operation on only list of numeric
+values.
+.PD 0
+.P
+.PD
+\- A numpy ndarray.
+Currently, this method supports operation on only an array of numeric
+values.
+.PD 0
+.P
+.PD
+\- pandas DataFrame.
+It must not be an empty dataframe.
+.PD 0
+.P
+.PD
+\- pandas Series
+.PD 0
+.P
+.PD
+\- frovedis DataFrame.
+It must not be an empty dataframe.
+.PP
+Any of these is considered as the value to be added with the current
+dataframe.
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform reverse addition operation along
+the indices or by column labels.
+(Default: \[aq]columns\[aq])
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse addition operation
+on the columns.
+Currently, axis = 1 is supported in this method.
+.PP
+\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
+It fills existing missing (NaN) values, and any new element needed for
+successful dataframe alignment, with this value before computation.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is either None or not None and if data in both corresponding
+dataframe locations is missing, then the result will be missing
+(contains NaNs).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It performs reverse addition operation between two dataframes or
+dataframe and scalar value.
+It is equivalent to \f[B]\[aq]other + dataframe\[aq]\f[].
+.PP
+\f[B]Currently, it does not perform reverse addition of scalar using
+operator version. Only method version is supported.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ radd()\ demo\ with\ scalar\ value\ using\ method\ version
+fdf1.radd(10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 15\ \ \ \ \ \ 20
+1\ \ \ \ \ \ \ 16\ \ \ \ \ \ 21
+2\ \ \ \ \ \ \ 14\ \ \ \ \ \ 22
+\f[]
+.fi
+.PP
+Here, it adds the scalar to all columns in dataframe (axis = 1 by
+default).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For examples,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ radd()\ demo\ on\ two\ dataframes\ using\ method\ version
+fdf1.radd(other\ =\ fdf2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 7\ \ \ \ \ \ \ 17
+1\ \ \ \ \ \ \ 9\ \ \ \ \ \ \ 20
+2\ \ \ \ \ \ \ 12\ \ \ \ \ \ 23
+\f[]
+.fi
+.PP
+Here, only common columns in both dataframes are added.
+Column values in other datframe are replaced with NaN values in
+resultant dataframe (fill_value = None by default).
+.PP
+\f[B]When fill_value is not None,\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ radd()\ demo\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
+fdf1.radd(other\ =\ fdf2,\ fill_value\ =\ 10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 7\ \ \ \ \ \ \ 17
+1\ \ \ \ \ \ \ 9\ \ \ \ \ \ \ 21
+2\ \ \ \ \ \ \ 12\ \ \ \ \ \ 20
+\f[]
+.fi
+.PP
+Here, only common columns in both dataframes are added excluding the
+missing values.
+The fill_value = 10 is added to both column values in the dataframe
+(excluding the missing values) and stored in new dataframe.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame which contains the result of arithmetic
+operation.
+.SS 10. rdiv(other, axis = \[aq]columns\[aq], level = None, fill_value =
+None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
+structure like the following:
+.PD 0
+.P
+.PD
+\- Number
+.PD 0
+.P
+.PD
+\- List.
+Currently, this method supports operation on only list of numeric
+values.
+.PD 0
+.P
+.PD
+\- A numpy ndarray.
+Currently, this method supports operation on only an array of numeric
+values.
+.PD 0
+.P
+.PD
+\- pandas DataFrame.
+It must not be an empty dataframe.
+.PD 0
+.P
+.PD
+\- pandas Series
+.PD 0
+.P
+.PD
+\- frovedis DataFrame.
+It must not be an empty dataframe.
+.PP
+Any of these is considered as the value to be divided with the current
+dataframe.
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform reverse division operation along
+the indices or by column labels.
+(Default: \[aq]columns\[aq])
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse division operation
+on the columns.
+Currently, axis = 1 is supported in this method.
+.PP
+\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
+It fills existing missing (NaN) values, and any new element needed for
+successful dataframe alignment, with this value before computation.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is either None or not None and if data in both corresponding
+dataframe locations is missing, then the result will be missing
+(contains NaNs).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It performs reverse floating division operation between two dataframes
+or dataframe and a scalar value.
+It is equivalent to \f[B]\[aq]other / dataframe\[aq]\f[].
+.PP
+It is an alias of rtruediv().
+.PP
+\f[B]Currently, it does not perform reverse division of scalar using
+operator version. Only method version is supported.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rdiv()\ demo\ with\ scalar\ value\ using\ method\ version
+fdf1.rdiv(10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 1
+1\ \ \ \ \ \ \ 1.66666\ 0.90909
+2\ \ \ \ \ \ \ 2.5\ \ \ \ \ 0.833333
+\f[]
+.fi
+.PP
+Here, it uses the scalar to perform division on all column elements in
+dataframe (axis = 1 by default).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rdiv()\ demo\ on\ two\ dataframes\ using\ method\ version
+fdf1.rdiv(other\ =\ fdf2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 0.4\ \ \ \ \ 0.7
+1\ \ \ \ \ \ \ 0.5\ \ \ \ \ 0.818181
+2\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 0.916666
+\f[]
+.fi
+.PP
+Here, only common columns in both dataframes are divided.
+Other are replaced with NaN values in resultant dataframe (fill_value =
+None by default).
+.PP
+\f[B]When fill_value is not None,\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rdiv()\ demo\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
+fdf1.rdiv(other\ =\ fdf2,\ fill_value\ =\ 10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 0.4\ \ \ \ \ 0.7
+1\ \ \ \ \ \ \ 0.5\ \ \ \ \ 0.90909
+2\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 1
+\f[]
+.fi
+.PP
+Here, only common columns in both dataframes are divided, excluding the
+missing values.
+The fill_value = 10 is used to divide over column values in other
+dataframe (excluding the missing values) and stored in new dataframe.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame which contains the result of arithmetic
+operation.
+.SS 11. rfloordiv(other, axis = \[aq]columns\[aq], level = None,
+fill_value = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
+structure like the following:
+.PD 0
+.P
+.PD
+\- Number
+.PD 0
+.P
+.PD
+\- List.
+Currently, this method supports operation on only list of numeric
+values.
+.PD 0
+.P
+.PD
+\- A numpy ndarray.
+Currently, this method supports operation on only an array of numeric
+values.
+.PD 0
+.P
+.PD
+\- pandas DataFrame.
+It must not be an empty dataframe.
+.PD 0
+.P
+.PD
+\- pandas Series
+.PD 0
+.P
+.PD
+\- frovedis DataFrame.
+It must not be an empty dataframe.
+.PP
+Any of these is considered as the value to be divided with the current
+dataframe.
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform reverse division operation along
+the indices or by column labels.
+(Default: \[aq]columns\[aq])
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse division operation
+on the columns.
+Currently, axis = 1 is supported in this method.
+.PP
+\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
+It fills existing missing (NaN) values, and any new element needed for
+successful dataframe alignment, with this value before computation.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is either None or not None and if data in both corresponding
+dataframe locations is missing, then the result will be missing
+(contains NaNs).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It performs reverse floating division operation between two dataframes
+or dataframe and scalar value.
+It is equivalent to \f[B]\[aq]other // dataframe\[aq]\f[].
+.PP
+\f[B]Currently, it does not perform reverse division of scalar using
+operator version. Only method version is supported.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rfloordiv()\ demo\ with\ scalar\ value\ using\ method\ version
+fdf1.rfloordiv(10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 1
+1\ \ \ \ \ \ \ 1\ \ \ \ \ \ \ 0
+2\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 0
+\f[]
+.fi
+.PP
+Here, it uses the scalar to perform division on all column elements
+(axis = 1 by default).
+.PD 0
+.P
+.PD
+Also, resultant dataframe column elements will contain floor integer
+value.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rfloordiv()\ demo\ on\ two\ dataframes\ using\ method\ version
+fdf1.rfloordiv(other\ =\ fdf2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 0
+1\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 0
+2\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 0
+\f[]
+.fi
+.PP
+Here, only common columns in both dataframes are divided.
+Other are replaced with NaN values in resultant dataframe (fill_value =
+None by default).
+.PP
+\f[B]When fill_value is not None,\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rfloordiv()\ \ demo\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
+fdf1.rfloordiv(other\ =\ fdf2,\ fill_value\ =\ 10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 0
+1\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 0
+2\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 1
+\f[]
+.fi
+.PP
+Here, only common columns in both dataframes are divided, excluding the
+missing values.
+The fill_value = 10 is used to divide over column values in other
+dataframe (excluding the missing values) and stored in new dataframe.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame which contains the result of arithmetic
+operation.
+.SS 12. rmod(other, axis = \[aq]columns\[aq], level = None, fill_value =
+None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
+structure like the following:
+.PD 0
+.P
+.PD
+\- Number
+.PD 0
+.P
+.PD
+\- List.
+Currently, this method supports operation on only list of numeric
+values.
+.PD 0
+.P
+.PD
+\- A numpy ndarray.
+Currently, this method supports operation on only an array of numeric
+values.
+.PD 0
+.P
+.PD
+\- pandas DataFrame.
+It must not be an empty dataframe.
+.PD 0
+.P
+.PD
+\- pandas Series
+.PD 0
+.P
+.PD
+\- frovedis DataFrame.
+It must not be an empty dataframe.
+.PP
+Any of these is considered as the value to perform modulo operation with
+the current dataframe.
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform reverse modulo operation along
+the indices or by column labels.
+(Default: \[aq]columns\[aq])
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse modulo operation on
+the columns.
+Currently, axis = 1 is supported in this method.
+.PP
+\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
+It fills existing missing (NaN) values, and any new element needed for
+successful dataframe alignment, with this value before computation.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is either None or not None and if data in both corresponding
+dataframe locations is missing, then the result will be missing
+(contains NaNs).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It performs reverse modulo operation between two dataframes or dataframe
+and scalar value.
+It is equivalent to \f[B]\[aq]other % dataframe\[aq]\f[].
+.PP
+\f[B]Currently, it does not perform reverse modulo of scalar using
+operator version. Only method version is supported.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ "total":\ [50,\ 40,\ 20]
+\ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rmod()\ demo\ with\ scalar\ value\ using\ method\ version
+fdf1.rmod(10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 0
+1\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 10
+2\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 10
+\f[]
+.fi
+.PP
+Here, it uses the scalar to perform modulo operation on all column
+elements (axis = 1 by default).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
+\ \ \ \ \ \ \ \ }\ \ \ \ 
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rmod()\ demo\ on\ two\ dataframes\ using\ method\ version
+fdf1.rmod(other\ =\ fdf2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
+2\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 11
+\f[]
+.fi
+.PP
+Here, modulo is performed on only common columns in both dataframes.
+Other are replaced with NaN values in resultant dataframe (fill_value =
+None by default).
+.PP
+\f[B]When fill_value is not None,\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rmod()\ demo\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
+fdf1.rmod(other\ =\ fdf2,\ fill_value\ =\ 10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 10
+2\ \ \ \ \ \ \ 0\ \ \ \ \ \ \ 0
+\f[]
+.fi
+.PP
+Here, modulo is performed on only common columns in both dataframes,
+excluding the missing values.
+The fill_value = 10 is used to perform modulo over column values in
+other dataframe (excluding the missing values) and stored in new
+dataframe.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame which contains the result of arithmetic
+operation.
+.SS 13. rmul(other, axis = \[aq]columns\[aq], level = None, fill_value =
+None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
+structure like the following:
+.PD 0
+.P
+.PD
+\- Number
+.PD 0
+.P
+.PD
+\- List.
+Currently, this method supports operation on only list of numeric
+values.
+.PD 0
+.P
+.PD
+\- A numpy ndarray.
+Currently, this method supports operation on only an array of numeric
+values.
+.PD 0
+.P
+.PD
+\- pandas DataFrame.
+It must not be an empty dataframe.
+.PD 0
+.P
+.PD
+\- pandas Series
+.PD 0
+.P
+.PD
+\- frovedis DataFrame.
+It must not be an empty dataframe.
+.PP
+Any of these is considered as the value to be multiplied with the
+current dataframe.
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform reverse multiplication operation
+along the indices or by column labels.
+(Default: \[aq]columns\[aq])
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse multiplication
+operation on the columns.
+Currently, axis = 1 is supported in this method.
+.PP
+\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
+It fills existing missing (NaN) values, and any new element needed for
+successful dataframe alignment, with this value before computation.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is either None or not None and if data in both corresponding
+dataframe locations is missing, then the result will be missing
+(contains NaNs).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It performs reverse multiplication operation between two dataframes or
+dataframe and scalar value.
+It is equivalent to \f[B]\[aq]other * dataframe\[aq]\f[].
+.PP
+\f[B]Currently, it does not perform reverse multiplication of scalar
+using operator version. Only method version is supported.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ \ }\ \ \ 
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rmul()\ demo\ with\ scalar\ value\ using\ method\ version
+fdf1.rmul(10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 50\ \ \ \ \ \ 100
+1\ \ \ \ \ \ \ 60\ \ \ \ \ \ 110
+2\ \ \ \ \ \ \ 40\ \ \ \ \ \ 120
+\f[]
+.fi
+.PP
+Here, it uses the scalar to perform multiplication on all column
+elements in dataframe (axis = 1 by default).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
+\ \ \ \ \ \ \ \ }\ \ \ \ 
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rmul()\ demo\ on\ two\ dataframes\ using\ method\ version
+fdf1.rmul(other\ =\ fdf2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 10\ \ \ \ \ \ 70
+1\ \ \ \ \ \ \ 18\ \ \ \ \ \ 99
+2\ \ \ \ \ \ \ 32\ \ \ \ \ \ 132
+\f[]
+.fi
+.PP
+Here, only common columns in both dataframes are multiplied.
+Other are replaced with NaN values in resultant dataframe (fill_value =
+None by default).
+.PP
+\f[B]When fill_value is not None,\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rmul()\ demo\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
+fdf1.rmul(other\ =\ fdf2,\ fill_value\ =\ 10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 10\ \ \ \ \ \ 70
+1\ \ \ \ \ \ \ 18\ \ \ \ \ \ 110
+2\ \ \ \ \ \ \ 32\ \ \ \ \ \ 100
+\f[]
+.fi
+.PP
+Here, only common columns in both dataframes are multiplied, excluding
+the missing values.
+The fill_value = 10 is multiplied with column values in other dataframe
+(excluding the missing values) and stored in new dataframe.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame which contains the result of arithmetic
+operation.
+.SS 14. rpow(other, axis = \[aq]columns\[aq], level = None, fill_value =
+None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
+structure like the following:
+.PD 0
+.P
+.PD
+\- Number
+.PD 0
+.P
+.PD
+\- List.
+Currently, this method supports operation on only list of numeric
+values.
+.PD 0
+.P
+.PD
+\- A numpy ndarray.
+Currently, this method supports operation on only an array of numeric
+values.
+.PD 0
+.P
+.PD
+\- pandas DataFrame.
+It must not be an empty dataframe.
+.PD 0
+.P
+.PD
+\- pandas Series
+.PD 0
+.P
+.PD
+\- frovedis DataFrame.
+It must not be an empty dataframe.
+.PP
+Any of these is considered as the value to perfomr exponential power
+operation with the current dataframe.
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform reverse exponential power
+operation along the indices or by column labels.
+(Default: \[aq]columns\[aq])
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse exponential power
+operation on the columns.
+Currently, axis = 1 is supported in this method.
+.PP
+\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
+It fills existing missing (NaN) values, and any new element needed for
+successful dataframe alignment, with this value before computation.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is either None or not None and if data in both corresponding
+dataframe locations is missing, then the result will be missing
+(contains NaNs).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It performs reverse exponential power operation between two dataframes
+or dtaframe and scalar value.
+It is equivalent to \f[B]\[aq]other \f[] dataframe\[aq]**.
+.PP
+\f[B]Currently, it does not perform reverse exponential power operation
+of scalar using operator version. Only method version is supported.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rpow()\ demo\ with\ scalar\ value\ using\ method\ version
+fdf1.rpow(2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 32\ \ \ \ \ \ 1024
+1\ \ \ \ \ \ \ 64\ \ \ \ \ \ 2048
+2\ \ \ \ \ \ \ 16\ \ \ \ \ \ 4096
+\f[]
+.fi
+.PP
+Here, it uses the scalar to perform exponential power operation on all
+column elements in dataframe (axis = 1 by default).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ \ {
+\ \ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
+\ \ \ \ \ \ \ \ }\ \ \ \ 
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rpow()\ demo\ on\ two\ dataframes\ using\ method\ version
+fdf1.rpow(other\ =\ fdf2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 10\ \ \ \ \ \ 70
+1\ \ \ \ \ \ \ 18\ \ \ \ \ \ 99
+2\ \ \ \ \ \ \ 32\ \ \ \ \ \ 132
+\f[]
+.fi
+.PP
+Here, exponential power operation is performed on only common columns in
+both dataframes.
+Other are replaced with NaN values in resultant dataframe (fill_value =
+None by default).
+.PP
+\f[B]When fill_value is not None,\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rpow()\ demo\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
+fdf1.rpow(other\ =\ fdf2,\ fill_value\ =\ 10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 32\ \ \ \ \ \ 2.82475e+08
+1\ \ \ \ \ \ \ 729\ \ \ \ \ 9.99999e+10
+2\ \ \ \ \ \ \ 4096\ \ \ \ 1.00000e+10
+\f[]
+.fi
+.PP
+Here, exponential power operation is performed on only common columns in
+both dataframes, excluding the missing values.
+The fill_value = 10 is used to perform exponential power operation on
+column values in other dataframe (excluding the missing values) and
+stored in new dataframe.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame which contains the result of arithmetic
+operation.
+.SS 15. rsub(other, axis = \[aq]columns\[aq], level = None, fill_value =
+None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]other\f[]\f[]: It can accept single or multiple element data
+structure like the following:
+.PD 0
+.P
+.PD
+\- Number
+.PD 0
+.P
+.PD
+\- List.
+Currently, this method supports operation on only list of numeric
+values.
+.PD 0
+.P
+.PD
+\- A numpy ndarray.
+Currently, this method supports operation on only an array of numeric
+values.
+.PD 0
+.P
+.PD
+\- pandas DataFrame.
+It must not be an empty dataframe.
+.PD 0
+.P
+.PD
+\- pandas Series
+.PD 0
+.P
+.PD
+\- frovedis DataFrame.
+It must not be an empty dataframe.
+.PP
+Any of these is considered as the value to be subtracted with the
+current dataframe.
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform reverse subtraction operation
+along the indices or by column labels.
+(Default: \[aq]columns\[aq])
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform reverse subtraction
+operation on the columns.
+Currently, axis = 1 is supported in this method.
+.PP
+\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]fill_value\f[]\f[]: It accepts scalar values or None.
+It fills existing missing (NaN) values, and any new element needed for
+successful dataframe alignment, with this value before computation.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is either None or not None and if data in both corresponding
+dataframe locations is missing, then the result will be missing
+(contains NaNs).
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It performs reverse subtraction operation between two dataframes or
+dataframe and scalar value.
+It is equivalent to \f[B]\[aq]other \- dataframe\[aq]\f[].
+.PP
+**Currently, it does not perform reverse subtraction of scalar using
+operator version.
+Only method version is supported.*8
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ \ {
+\ \ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rsub()\ with\ scalar\ value\ using\ method\ version
+fdf1.rsub(10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 0
+1\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ \-1
+2\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ \-2
+\f[]
+.fi
+.PP
+Here, it subtracts the scalar to all columns in dataframe (axis = 1 by
+default).
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ \ {
+\ \ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ 12]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 12
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ 9,\ 11]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ 9
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ 11
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rsub()\ on\ two\ dataframes\ using\ method\ version
+fdf1.rsub(other\ =\ fdf2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ \-3\ \ \ \ \ \ \-3
+1\ \ \ \ \ \ \ \-3\ \ \ \ \ \ \-2
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ \-1
+\f[]
+.fi
+.PP
+Here, only common columns in both dataframes are subtracted.
+Other are replaced with NaN values in resultant dataframe (fill_value =
+None by default).
+.PP
+\f[B]When fill_value is not None,\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+data1\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [5,\ 6,\ 4],
+\ \ \ \ \ \ \ \ \ "total":\ [10,\ 11,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(data1)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 5\ \ \ \ \ \ \ 10
+1\ \ \ \ \ \ \ 6\ \ \ \ \ \ \ 11
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ a\ dictionary
+data2\ =\ {
+\ \ \ \ \ \ \ \ \ "points":\ [2,\ 3,\ 8],
+\ \ \ \ \ \ \ \ \ "total":\ [7,\ np.nan,\ np.nan]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf2\ =\ pd.DataFrame(data2)
+
+#\ create\ frovedis\ dataframe
+fdf2\ =\ fdf.DataFrame(pdf2)
+
+#\ display\ the\ frovedis\ dataframe
+fdf2.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ 2\ \ \ \ \ \ \ 7
+1\ \ \ \ \ \ \ 3\ \ \ \ \ \ \ NULL
+2\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ rsub()\ on\ two\ dataframes\ using\ method\ version\ and\ fill_value\ =\ 10
+fdf1.rsub(other\ =\ fdf2,\ fill_value\ =\ 10).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ points\ \ total
+0\ \ \ \ \ \ \ \-3\ \ \ \ \ \ \-3
+1\ \ \ \ \ \ \ \-3\ \ \ \ \ \ \-1
+2\ \ \ \ \ \ \ 4\ \ \ \ \ \ \ 0
+\f[]
+.fi
+.PP
+Here, only common columns in both dataframes are subtracted, excluding
+the missing values.
+The fill_value = 10 is subtracted on column values in other dataframe
+(excluding the missing values) and stored in new dataframe.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame which contains the result of arithmetic
+operation.
 .SS 16. rtruediv(other, axis = \[aq]columns\[aq], level = None,
 fill_value = None)
 .PP
@@ -5495,9 +5430,8 @@ It performs reverse floating division operation between two dataframes
 or dtaframe and scalar value.
 It is equivalent to \f[B]\[aq]other / dataframe\[aq]\f[].
 .PP
-Currently, it does not perform reverse division of scalar using operator
-version.
-Only method version is supported.
+\f[B]Currently, it does not perform reverse division of scalar using
+operator version. Only method version is supported.\f[]
 .PP
 For example,
 .IP
@@ -5748,3 +5682,30 @@ The fill_value = 10 is divided with column values in other dataframe
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
+.SH SEE ALSO
+.IP \[bu] 2
+\f[B]DataFrame \- Introduction (./DataFrame_Introduction.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Selection and
+Combinations (./DataFrame_SelectionAndCombinations.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Conversion, Missing data handling, Sorting
+Functions (./DataFrame_ConversionAndSorting.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Function Application,
+Groupby (./DataFrame_FunctionApplicationGroupby.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Aggregate
+Functions (./DataFrame_AggregateFunctions.md)\f[]

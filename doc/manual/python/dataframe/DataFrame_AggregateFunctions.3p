@@ -11,571 +11,28 @@ frovedis.dataframe.df.DataFrame(df\ =\ None,\ is_series\ =\ False)\ \
 \f[]
 .fi
 .SS Public Member Functions
-.PP
-describe()
-.PD 0
-.P
-.PD
-agg(func)
-.PD 0
-.P
-.PD
-apply(func, axis = 0, raw = False, result_type = None, args = (),
-**kwds)
-.PD 0
-.P
-.PD
-abs()
-.PD 0
-.P
-.PD
-mean(axis = None, skipna = None, level = None, numeric_only = None,
-**kwargs)
-.PD 0
-.P
-.PD
-var(axis = None, skipna = None, level = None, ddof = 1, numeric_only =
-None, **kwargs)
-.PD 0
-.P
-.PD
-mad(axis = None, skipna = None, level = None, numeric_only = None,
-**kwargs)
-.PD 0
-.P
-.PD
-std(axis = None, skipna = None, level = None, ddof = 1, numeric_only =
-None, **kwargs)
-.PD 0
-.P
-.PD
-sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only =
-None, **kwargs)
-.PD 0
-.P
-.PD
-median(axis = None, skipna = None, level = None, numeric_only = None,
-**kwargs)
-.PD 0
-.P
-.PD
-countna(axis = 0)
+.IP
+.nf
+\f[C]
+1.\ abs()\ \ 
+2.\ countna(axis\ =\ 0)\ \ 
+3.\ cov((min_periods\ =\ None,\ ddof\ =\ 1.0,\ low_memory\ =\ True,\ other\ =\ None)
+4.\ describe()\ \ 
+5.\ mad(axis\ =\ None,\ skipna\ =\ None,\ level\ =\ None,\ numeric_only\ =\ None,\ **kwargs)\ \ 
+6.\ max(axis\ =\ None,\ skipna\ =\ None,\ level\ =\ None,\ numeric_only\ =\ None,\ **kwargs)\ \ 
+7.\ mean(axis\ =\ None,\ skipna\ =\ None,\ level\ =\ None,\ numeric_only\ =\ None,\ **kwargs)\ \ 
+8.\ median(axis\ =\ None,\ skipna\ =\ None,\ level\ =\ None,\ numeric_only\ =\ None,\ **kwargs)\ \ 
+9.\ min(axis\ =\ None,\ skipna\ =\ None,\ level\ =\ None,\ numeric_only\ =\ None,\ **kwargs)\ \ 
+10.\ mode(axis\ =\ 0,\ numeric_only\ =\ False,\ dropna\ =\ True)
+11.\ sem(axis\ =\ None,\ skipna\ =\ None,\ level\ =\ None,\ ddof\ =\ 1,\ numeric_only\ =\ None,\ **kwargs)\ \ 
+12.\ std(axis\ =\ None,\ skipna\ =\ None,\ level\ =\ None,\ ddof\ =\ 1,\ numeric_only\ =\ None,\ **kwargs)\ \ 
+13.\ sum(axis\ =\ None,\ skipna\ =\ None,\ level\ =\ None,\ numeric_only\ =\ None,\ 
+\ \ \ \ \ \ \ \ min_count\ =\ 0,\ **kwargs)
+14.\ var(axis\ =\ None,\ skipna\ =\ None,\ level\ =\ None,\ ddof\ =\ 1,\ numeric_only\ =\ None,\ **kwargs)\ \ 
+\f[]
+.fi
 .SS Detailed Description
-.SS 1. describe()
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It generates descriptive statistics.
-Descriptive statistics include count, mean, median, etc, excluding
-missing values.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ numpy\ as\ np
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
-\ \ \ \ \ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(peopleDF)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
-0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
-1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
-2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
-3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
-4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
-6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
-7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-print(fdf1.describe())
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Age\ \ \ \ \ \ \ Score
-count\ \ \ \ \ 8.000000\ \ \ \ 6.000000
-mean\ \ \ \ \ 29.125000\ \ \ 39.833333
-median\ \ \ 29.500000\ \ \ 40.000000
-var\ \ \ \ \ \ 23.553571\ \ 123.766667
-mad\ \ \ \ \ \ \ 4.125000\ \ \ \ 9.166667
-std\ \ \ \ \ \ \ 4.853202\ \ \ 11.125047
-sem\ \ \ \ \ \ \ 1.715866\ \ \ \ 4.541781
-sum\ \ \ \ \ 233.000000\ \ 239.000000
-min\ \ \ \ \ \ 22.000000\ \ \ 23.000000
-max\ \ \ \ \ \ 36.000000\ \ \ 52.000000
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a pandas DataFrame instance with the result of the specified
-aggregate operation.
-.SS 2. agg(func)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]func\f[]\f[]: Names of functions to use for aggregating the
-data.
-The input to be used with the function must be a frovedis DataFrame
-instance having atleast one numeric column.
-.PD 0
-.P
-.PD
-Accepted combinations for this parameter are: \- A string function name
-such as \[aq]max\[aq], \[aq]min\[aq], etc.
-.PD 0
-.P
-.PD
-\- list of functions and/or function names, For example, [\[aq]max\[aq],
-\[aq]mean\[aq]].
-.PD 0
-.P
-.PD
-\- dictionary with keys as column labels and values as function name or
-list of such functions.
-For Example, {\[aq]Age\[aq]:
-[\[aq]max\[aq],\[aq]min\[aq],\[aq]mean\[aq]], \[aq]Ename\[aq]:
-[\[aq]count\[aq]]}
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It computes an aggregate operation based on the condition specified in
-\[aq]func\[aq].
-.PP
-\f[B]Currently, this method will perform aggregation operation along the
-rows.\f[]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ numpy\ as\ np
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
-\ \ \ \ \ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(peopleDF)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
-0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
-1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
-2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
-3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
-4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
-6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
-7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ agg()\ demo\ with\ func\ as\ a\ function\ string\ name\ 
-print(fdf1.agg(\[aq]max\[aq]))
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-Name\ \ \ \ \ \ \ \ \ \ \ \ \ nan
-Age\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 36
-City\ \ \ \ \ \ \ \ \ \ \ \ \ nan
-Qualification\ \ \ \ nan
-Score\ \ \ \ \ \ \ \ \ \ \ \ \ 52
-Name:\ max,\ dtype:\ object
-\f[]
-.fi
-.PP
-It displays a pandas dataframe containing numeric column(s) with newly
-computed aggregates of each groups.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ agg()\ demo\ with\ func\ as\ a\ dictionary\ 
-print(fdf1.agg({"Age":\ ["std",\ "mean"]}))
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-\ \ \ \ \ \ \ \ \ \ \ \ Age
-mean\ \ 29.125000
-std\ \ \ \ 4.853202
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ agg()\ demo\ where\ func\ is\ a\ list\ of\ functions\ 
-print(fdf1[\[aq]Age\[aq]].agg([\[aq]max\[aq],\[aq]min\[aq],\[aq]mean\[aq]])
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-\ \ \ \ \ \ \ \ \ Age
-max\ \ \ 36.000
-min\ \ \ 22.000
-mean\ \ 29.125
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-1.
-\f[B]If one \[aq]func\[aq] provided and \[aq]func\[aq] is a string:\f[]
-.PD 0
-.P
-.PD
-\- It returns a pandas Series instance with numeric column(s) only,
-after aggregation function is completed.
-.PD 0
-.P
-.PD
-2.
-\f[B]If one or more \[aq]func\[aq] provided and \[aq]func\[aq] is
-list/dict of string:\f[]
-.PD 0
-.P
-.PD
-\- It returns a pandas DataFrame instance with numeric column(s) only,
-after aggregation function is completed.
-.SS 3. apply(func, axis = 0, raw = False, result_type = None, args = (),
-**kwds)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]func\f[]\f[]: Names of functions to be applied on the data.
-The input to be used with the function must be a frovedis DataFrame
-instance having atleast one numeric column.
-.PD 0
-.P
-.PD
-Accepted combinations for this parameter are:
-.PD 0
-.P
-.PD
-\- A string function name such as \[aq]max\[aq], \[aq]min\[aq], etc.
-.PD 0
-.P
-.PD
-\- list of functions and/or function names, For example, [\[aq]max\[aq],
-\[aq]mean\[aq]].
-.PD 0
-.P
-.PD
-\- dictionary with keys as column labels and values as function name or
-list of such functions.
-.PD 0
-.P
-.PD
-For Example, {\[aq]Age\[aq]:
-[\[aq]max\[aq],\[aq]min\[aq],\[aq]mean\[aq]], \[aq]Ename\[aq]:
-[\[aq]count\[aq]]}
-.PP
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer as parameter.
-It is used to decide whether to perform aggregate operation along the
-columns or rows.
-(Default: 0)
-.PD 0
-.P
-.PD
-\f[I]\f[B]raw\f[]\f[]: It accepts boolean as parameter.
-When set to True, the row/column will be passed as an ndarray.
-(Default: False)
-.PD 0
-.P
-.PD
-\f[I]\f[B]result_type\f[]\f[]: It accepts string object as parameter.
-It specifies how the result will be returned.
-(Default: None)
-.PD 0
-.P
-.PD
-These only act when \f[B]axis = 1 (columns)\f[]:
-.PD 0
-.P
-.PD
-\- \f[B]expand\f[] : list\-like results will be turned into columns.
-.PD 0
-.P
-.PD
-\- \f[B]reduce\f[] : returns a Series if possible rather than expanding
-list\-like results.
-This is the opposite of \[aq]expand\[aq].
-.PD 0
-.P
-.PD
-\- \f[B]broadcast\f[] : results will be broadcast to the original shape
-of the DataFrame, the original index and columns will be retained.
-.PP
-The default behaviour (None) depends on the return value of the applied
-function.
-List\-like results will be returned as a Series of those.
-However if the apply function returns a Series these are expanded to
-columns.
-.PD 0
-.P
-.PD
-\f[I]\f[B]args\f[]\f[]: Positional arguments to pass to \[aq]func\[aq].
-(Default: ())
-.PD 0
-.P
-.PD
-\f[I]\f[B]**kwds\f[]\f[]: This is an unused parameter.
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-Apply a function along an axis of the DataFrame.
-.PP
-The parameter: "**kwds" is simply kept in to make the interface uniform
-to the pandas DataFrame.apply().
-.PD 0
-.P
-.PD
-This is not used anywhere within the frovedis implementation.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ numpy\ as\ np
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
-\ \ \ \ \ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(peopleDF)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
-0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
-1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
-2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
-3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
-4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
-6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
-7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ apply()\ demo\ using\ string\ function\ name
-print(fdf1.apply(\[aq]max\[aq]))
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-Name\ \ \ \ \ \ \ \ \ \ \ \ \ 8
-Age\ \ \ \ \ \ \ \ \ \ \ \ \ \ 8
-City\ \ \ \ \ \ \ \ \ \ \ \ \ 8
-Qualification\ \ \ \ 8
-Score\ \ \ \ \ \ \ \ \ \ \ \ 6
-dtype:\ int64
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ apply()\ demo\ using\ axis\ =\ 1
-print(fdf1.apply(\[aq]max\[aq],\ axis\ =\ 1))
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index
-0\ \ \ \ 27.0
-1\ \ \ \ 34.0
-2\ \ \ \ 35.0
-3\ \ \ \ 45.0
-4\ \ \ \ 33.0
-5\ \ \ \ 50.0
-6\ \ \ \ 52.0
-7\ \ \ \ 32.0
-dtype:\ float64
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ apply()\ demo\ using\ raw\ =\ True
-print(fdf1.apply(\[aq]max\[aq],\ raw\ =\ True))
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-Name\ \ \ \ \ \ \ \ \ \ \ \ \ Princi
-Age\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 36
-City\ \ \ \ \ \ \ \ \ \ \ \ \ Nagpur
-Qualification\ \ \ \ \ \ \ Phd
-Score\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 52
-dtype:\ object
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ apply()\ demo\ using\ result_type\ =\ \[aq]expand\[aq]
-print(fdf1.apply(\[aq]max\[aq],\ result_type\ =\ \[aq]expand\[aq]))
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-Name\ \ \ \ \ \ \ \ \ \ \ \ \ Princi
-Age\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 36
-City\ \ \ \ \ \ \ \ \ \ \ \ \ Nagpur
-Qualification\ \ \ \ \ \ \ Phd
-Score\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 52
-dtype:\ object
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-1.
-\f[B]If only one \[aq]func\[aq] provided:\f[]
-.PD 0
-.P
-.PD
-\- It returns a pandas Series instance with numeric column(s) only,
-after aggregation function is completed.
-.PD 0
-.P
-.PD
-2.
-\f[B]If more than one \[aq]func\[aq] provided:\f[]
-.PD 0
-.P
-.PD
-\- It returns a pandas DataFrame instance with numeric column(s) only,
-after aggregation function is completed.
-.SS 4. abs()
+.SS 1. abs()
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -595,7 +52,8 @@ import\ frovedis.dataframe\ as\ fdf
 
 #\ a\ dictionary
 tempDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:\ [\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:\ [\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
 \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Temperature\[aq]:\ [\-2,\ 10,\ 18,\ 34,\ \-8,\ \-4,\ 36,\ 45]
 \ \ \ \ \ \ \ \ \ \ \ }
 
@@ -656,1120 +114,7 @@ index\ \ \ Temperature
 .P
 .PD
 It returns a frovedis DataFrame instance.
-.SS 5. mean(axis = None, skipna = None, level = None, numeric_only =
-None, **kwargs)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer as parameter.
-It is used to decide whether to perform mean along the columns or rows.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it performs mean operation
-along the rows.
-.PD 0
-.P
-.PD
-\f[I]\f[B]skipna\f[]\f[]: It is a boolean parameter.
-When set to True, it will exclude missing values while computing the
-result.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it excludes missing values
-during mean computation.
-.PD 0
-.P
-.PD
-\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[I]\f[B]numeric_only\f[]\f[]: This is an unsued parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[I]\f[B]**kwargs\f[]\f[]: This is an unused parameter.
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It computes mean of the values over the requested axis.
-.PP
-The parameters: "level", "**kwargs" are simply kept in to make the
-interface uniform to the pandas DataFrame.mean().
-.PD 0
-.P
-.PD
-This is not used anywhere within the frovedis implementation.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ numpy\ as\ np
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
-\ \ \ \ \ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(peopleDF)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
-0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
-1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
-2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
-3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
-4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
-6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
-7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ mean()\ demo
-print(fdf1.mean())
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ mean
-Age\ \ \ \ \ 29.125
-Score\ \ \ 39.8333
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ mean()\ demo\ using\ axis\ =\ 1
-print(fdf1.mean(axis\ =\ 1))
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ mean
-0\ \ \ \ \ \ \ 25
-1\ \ \ \ \ \ \ 29
-2\ \ \ \ \ \ \ 28.5
-3\ \ \ \ \ \ \ 38.5
-4\ \ \ \ \ \ \ 33
-5\ \ \ \ \ \ \ 43
-6\ \ \ \ \ \ \ 39.5
-7\ \ \ \ \ \ \ 32
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ mean()\ demo\ using\ skipna\ =\ False
-print(fdf1.mean(skipna\ =\ False))
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ mean
-Age\ \ \ \ \ 29.125
-Score\ \ \ NULL
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame instance.
-.SS 6. var(axis = None, skipna = None, level = None, ddof = 1,
-numeric_only = None, **kwargs)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer as parameter.
-It\[aq]s used to decide whether to perform variance along the columns or
-rows.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it performs variance along
-the rows.
-.PD 0
-.P
-.PD
-\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
-When set to True, it will exclude missing values while computing the
-result.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it excludes missing values
-during variance computation.
-.PD 0
-.P
-.PD
-\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[B]\f[I]ddof\f[]\f[]: It accepts an integer parameter that specifies
-the delta degrees of freedom.
-(Default: 1)
-.PD 0
-.P
-.PD
-\f[I]\f[B]numeric_only\f[]\f[]: This is an unsed parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[I]\f[B]**kwargs\f[]\f[]: This is an unused parameter.
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It computes variance over requested axis.
-.PP
-The parameters: "level", "**kwargs" are simply kept in to make the
-interface uniform to the pandas DataFrame.var().
-.PD 0
-.P
-.PD
-This is not used anywhere within the frovedis implementation.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ numpy\ as\ np
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
-\ \ \ \ \ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(peopleDF)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
-0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
-1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
-2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
-3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
-4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
-6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
-7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ var()\ demo
-fdf1.var().show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ var
-Age\ \ \ \ \ 23.5535
-Score\ \ \ 123.766
-\f[]
-.fi
-.PP
-It displays a frovedis dataframe with numeric column(s) containing the
-newly computed variance for each groups.
-.PP
-Also, it excludes the missing value in \f[B]\[aq]Score\[aq]\f[] column
-while computing variance of groups \f[B]\[aq]B.Tech\[aq]\f[] and
-\f[B]\[aq]Phd\[aq]\f[].
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ var()\ demo\ using\ axis\ =\ 1
-fdf1.var(axis\ =\ 1).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ var
-0\ \ \ \ \ \ \ 8
-1\ \ \ \ \ \ \ 50
-2\ \ \ \ \ \ \ 84.5
-3\ \ \ \ \ \ \ 84.5
-4\ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ 98
-6\ \ \ \ \ \ \ 312.5
-7\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ var()\ demo\ using\ skipna\ =\ False
-fdf1.var(skipna\ =\ False).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ var
-Age\ \ \ \ \ 23.5535
-Score\ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ var()\ demo\ using\ ddof\ =\ 2\ 
-fdf1.var(ddof\ =\ 2).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ var
-Age\ \ \ \ \ 27.4791
-Score\ \ \ 154.708
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame instance with the result of the
-specified aggregate operation.
-.SS 7. mad(axis = None, skipna = None, level = None, numeric_only =
-None, **kwargs)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer as parameter.
-It is used to decide whether to perform mean absolute deviation along
-the columns or rows.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it performs mean absolute
-deviation along the rows.
-.PD 0
-.P
-.PD
-\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
-When set to True, it will exclude missing values while computing the
-result.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it excludes missing values
-during mean absolute deviation computation.
-.PD 0
-.P
-.PD
-\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[I]\f[B]numeric_only\f[]\f[]: This is an unsed parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[I]\f[B]**kwargs\f[]\f[]: This is an unused parameter.
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It computes the mean absolute deviation of the values over the requested
-axis.
-.PP
-The parameters: "level", "**kwargs" are simply kept in to make the
-interface uniform to the pandas DataFrame.mad().
-.PD 0
-.P
-.PD
-This is not used anywhere within the frovedis implementation.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ numpy\ as\ np
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
-\ \ \ \ \ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(peopleDF)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
-0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
-1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
-2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
-3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
-4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
-6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
-7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ mad()\ demo
-fdf1.mad().show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ mad
-Age\ \ \ \ \ 4.125
-Score\ \ \ 9.16666
-\f[]
-.fi
-.PP
-It displays a frovedis dataframe with numeric column(s) containing the
-newly computed mean absolute deviation for each groups.
-.PP
-Also, it excludes the missing value in \f[B]\[aq]Score\[aq]\f[] column
-while computing the mean absolute deviation of groups
-\f[B]\[aq]B.Tech\[aq]\f[] and \f[B]\[aq]Phd\[aq]\f[].
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ mad()\ demo\ using\ axis\ =\ 1
-fdf1.mad(axis\ =\ 1).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ mad
-0\ \ \ \ \ \ \ 2
-1\ \ \ \ \ \ \ 5
-2\ \ \ \ \ \ \ 6.5
-3\ \ \ \ \ \ \ 6.5
-4\ \ \ \ \ \ \ 0
-5\ \ \ \ \ \ \ 7
-6\ \ \ \ \ \ \ 12.5
-7\ \ \ \ \ \ \ 0
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ mad()\ demo\ using\ skipna\ =\ False
-fdf1.mad(skipna\ =\ False).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ mad
-Age\ \ \ \ \ 4.125
-Score\ \ \ NULL
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame instance with the result of the
-specified aggregate operation.
-.SS 8. std(axis = None, skipna = None, level = None, ddof = 1,
-numeric_only = None, **kwargs)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer as parameter.
-It is used to decide whether to perform standard deviation along the
-columns or rows.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it performs standard
-deviation along the rows.
-.PD 0
-.P
-.PD
-\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
-When set to True, it will exclude missing values while computing the
-result.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it excludes missing values
-during standard deviation computation.
-.PD 0
-.P
-.PD
-\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[B]\f[I]ddof\f[]\f[]: It accepts an integer parameter that specifies
-the delta degrees of freedom.
-(Default: 1)
-.PD 0
-.P
-.PD
-\f[I]\f[B]numeric_only\f[]\f[]: This is an unsed parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[I]\f[B]**kwargs\f[]\f[]: This is an unused parameter.
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It computes standard deviation over requested axis.
-.PP
-The parameters: "level", "**kwargs" are simply kept in to make the
-interface uniform to the pandas DataFrame.std().
-.PD 0
-.P
-.PD
-This is not used anywhere within the frovedis implementation.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ numpy\ as\ np
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
-\ \ \ \ \ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(peopleDF)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
-0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
-1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
-2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
-3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
-4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
-6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
-7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ std()\ demo
-fdf1.std().show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ std
-Age\ \ \ \ \ 4.8532
-Score\ \ \ 11.125
-\f[]
-.fi
-.PP
-It displays a frovedis dataframe with numeric column(s) containing the
-newly computed standard deviation for each groups.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ std()\ demo\ using\ axis\ =\ 1
-fdf1.std(axis\ =\ 1).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ std
-0\ \ \ \ \ \ \ 2.82842
-1\ \ \ \ \ \ \ 7.07106
-2\ \ \ \ \ \ \ 9.19238
-3\ \ \ \ \ \ \ 9.19238
-4\ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ 9.89949
-6\ \ \ \ \ \ \ 17.6776
-7\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ std()\ demo\ using\ skipna\ =\ False
-fdf1.std(skipna\ =\ False).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ std
-Age\ \ \ \ \ 4.8532
-Score\ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ std()\ demo\ using\ ddof\ =\ 2\ 
-fdf1.std(ddof\ =\ 2).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ std
-Age\ \ \ \ \ 5.24205
-Score\ \ \ 12.4381
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame instance with the result of the
-specified aggregate functions.
-.SS 9. sem(axis = None, skipna = None, level = None, ddof = 1,
-numeric_only = None, **kwargs)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer as parameter.
-It is used to decide whether to perform standard error of the mean along
-the columns or rows.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it performs standard error
-of the mean along the rows.
-.PD 0
-.P
-.PD
-\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
-When set to True, it will exclude missing values while computing the
-result.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it excludes missing values
-during standard error of the mean computation.
-.PD 0
-.P
-.PD
-\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[B]\f[I]ddof\f[]\f[]: It accepts an integer parameter that specifies
-the delta degrees of freedom.
-(Default: 1)
-.PD 0
-.P
-.PD
-\f[I]\f[B]numeric_only\f[]\f[]: This is an unsed parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[I]\f[B]**kwargs\f[]\f[]: This is an unused parameter.
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It computes standard error of the mean over requested axis.
-.PP
-The parameters: "level", "**kwargs" are simply kept in to make the
-interface uniform to the pandas DataFrame.sem().
-.PD 0
-.P
-.PD
-This is not used anywhere within the frovedis implementation.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ numpy\ as\ np
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
-\ \ \ \ \ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(peopleDF)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
-0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
-1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
-2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
-3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
-4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
-6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
-7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ sem()\ demo
-fdf1.sem().show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ sem
-Age\ \ \ \ \ 1.71586
-Score\ \ \ 4.54178
-\f[]
-.fi
-.PP
-It displays a frovedis dataframe with numeric column(s) containing the
-newly computed standard error of the mean for each groups.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ sem()\ demo\ using\ ddof\ =\ 2\ 
-fdf1.sem(ddof\ =\ 2).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ sem
-Age\ \ \ \ \ 1.85334
-Score\ \ \ 5.07786
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ sem()\ demo\ using\ axis\ =\ 1
-fdf1.sem(axis\ =\ 1).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ sem
-0\ \ \ \ \ \ \ 2
-1\ \ \ \ \ \ \ 5
-2\ \ \ \ \ \ \ 6.49999
-3\ \ \ \ \ \ \ 6.49999
-4\ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ 6.99999
-6\ \ \ \ \ \ \ 12.5
-7\ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ sem()\ demo\ using\ skipna\ =\ False
-fdf1.sem(skipna\ =\ False).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ sem
-Age\ \ \ \ \ 1.71586
-Score\ \ \ NULL
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame instance with the result of the
-specified aggregate operation.
-.SS 10. median(axis = None, skipna = None, level = None, numeric_only =
-None, **kwargs)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer as parameter.
-It is used to decide whether to perform median operation along the
-columns or rows.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it performs median along the
-rows.
-.PD 0
-.P
-.PD
-\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
-When set to True, it will exclude missing values while computing the
-result.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it excludes missing values
-during median computation.
-.PD 0
-.P
-.PD
-\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[I]\f[B]numeric_only\f[]\f[]: This is an unsued parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[I]\f[B]**kwargs\f[]\f[]: This is an unused parameter.
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It computes median of the values over the requested axis.
-.PP
-The parameters: "level", "**kwargs" are simply kept in to make the
-interface uniform to the pandas DataFrame.median().
-.PD 0
-.P
-.PD
-This is not used anywhere within the frovedis implementation.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ numpy\ as\ np
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
-\ \ \ \ \ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(peopleDF)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
-0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
-1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
-2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
-3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
-4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
-6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
-7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ median()\ demo
-print(fdf1.median())
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ median
-Age\ \ \ \ \ 29.5
-Score\ \ \ 40
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ median()\ demo\ using\ axis\ =\ 1
-print(fdf1.median(axis\ =\ 1))
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ median
-0\ \ \ \ \ \ \ 25
-1\ \ \ \ \ \ \ 29
-2\ \ \ \ \ \ \ 28.5
-3\ \ \ \ \ \ \ 38.5
-4\ \ \ \ \ \ \ 33
-5\ \ \ \ \ \ \ 43
-6\ \ \ \ \ \ \ 39.5
-7\ \ \ \ \ \ \ 32
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ median()\ demo\ using\ skipna\ =\ False
-print(fdf1.median(skipna\ =\ False))
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ median
-Age\ \ \ \ \ 29.5
-Score\ \ \ NULL
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a frovedis DataFrame instance.
-.SS 11.countna(axis = 0)
+.SS 2. countna(axis = 0)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -1783,7 +128,8 @@ or by column labels.
 .PD 0
 .P
 .PD
-\- \f[B]0 or \[aq]rows\[aq]\f[]: count missing values along the indices.
+\- \f[B]0 or \[aq]index\[aq]\f[]: count missing values along the
+indices.
 .PD 0
 .P
 .PD
@@ -1893,7 +239,2597 @@ index\ \ \ count
 .P
 .PD
 It returns a frovedis DataFrame instance.
-.SH SEE ALSO
+.SS 3. cov(min_periods = None, ddof = 1.0, low_memory = True, other =
+None)
 .PP
-DataFrame_Introduction, DataFrame_ConversionAndSorting,
-DataFrame_SelectionAndCombinations, DataFrame_BinaryOperators
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_periods\f[]\f[]: It accepts an integer as parameter.
+It specifies the minimum number of observations required per pair of
+columns to have a valid result.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), then \f[B]min_periods =
+1\f[].
+.PD 0
+.P
+.PD
+\f[B]\f[I]ddof\f[]\f[]: It accepts a float parameter that specifies the
+delta degrees of freedom.
+(Default: 1.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]low_memory\f[]\f[]: It accepts boolean parameter that
+specifies whethet to enable memory optimised computation or time
+optimsed computation.
+(Default: True)
+.PD 0
+.P
+.PD
+\f[B]\f[I]other\f[]\f[]: It accepts frovedis series (i.e.
+df[col_name]) as parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is not None (specified explicitly), it performs covariance
+operation between both the given frovedis series.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes pairwise covariance of columns, excluding missing values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ 23,\ 50,\ 52,\ 34]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Age\ \ \ \ \ Score
+0\ \ \ \ \ \ \ 27\ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ 24\ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ 22\ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ 32\ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ 33\ \ \ \ \ \ 23
+5\ \ \ \ \ \ \ 36\ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ 27\ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ 32\ \ \ \ \ \ 34
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ cov()\ demo
+fdf1.cov().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Age\ \ \ \ \ Score
+Age\ \ \ \ \ 23.5535\ 11
+Score\ \ \ 11\ \ \ \ \ \ 124.571
+\f[]
+.fi
+.PP
+It displays a covariance matrix as the frovedis DataFrame instance.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ cov()\ demo\ using\ min_periods\ =\ 8
+fdf1.cov(min_periods\ =\ 8).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Age\ \ \ \ \ Score
+Age\ \ \ \ \ NULL\ \ \ \ NULL
+Score\ \ \ NULL\ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ cov()\ demo\ using\ ddof\ =\ 2\ 
+fdf1.cov(ddof\ =\ 2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Age\ \ \ \ \ Score
+Age\ \ \ \ \ 27.4791\ 12.8333
+Score\ \ \ 12.8333\ 145.333
+\f[]
+.fi
+.PP
+\f[B]When using \[aq]other\[aq] parameter, both inputs must be frovedis
+series. Also, the output returned by this method will be a float
+value.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ create\ another\ dataframe
+pdf2\ =\ pd.DataFrame({\[aq]Score\[aq]:\ [51,\ 34,\ 33,\ 45,\ 12,\ 82,\ 67,\ 91]})
+fdf2\ =\ fdf.DataFrame(pdf2,\ is_series\ =\ True)
+
+#\ cov()\ demo\ using\ \[aq]other\[aq]\ parameter\ 
+print(fdf1[\[aq]Score\[aq]].cov(other\ =\ fdf2[\[aq]Score\[aq]]))
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+158.28571428571428
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+\- \f[B]If other = None:\f[]
+.PD 0
+.P
+.PD
+It returns a covariance matrix as the frovedis DataFrame instance.
+.PD 0
+.P
+.PD
+\- \f[B]If other != None:\f[]
+.PD 0
+.P
+.PD
+It returns covariance between frovedis series inputs.
+.SS 4. describe()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It generates descriptive statistics.
+Descriptive statistics include count, mean, median, etc, excluding
+missing values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print(fdf1.describe())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Age\ \ \ \ \ \ \ Score
+count\ \ \ \ \ 8.000000\ \ \ \ 6.000000
+mean\ \ \ \ \ 29.125000\ \ \ 39.833333
+median\ \ \ 29.500000\ \ \ 40.000000
+var\ \ \ \ \ \ 23.553571\ \ 123.766667
+mad\ \ \ \ \ \ \ 4.125000\ \ \ \ 9.166667
+std\ \ \ \ \ \ \ 4.853202\ \ \ 11.125047
+sem\ \ \ \ \ \ \ 1.715866\ \ \ \ 4.541781
+sum\ \ \ \ \ 233.000000\ \ 239.000000
+min\ \ \ \ \ \ 22.000000\ \ \ 23.000000
+max\ \ \ \ \ \ 36.000000\ \ \ 52.000000
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a pandas DataFrame instance with the result of the specified
+aggregate operation.
+.SS 5. mad(axis = None, skipna = None, level = None, numeric_only =
+None, **kwargs)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform mean absolute deviation along
+the columns or rows.
+(Default: None)
+.PD 0
+.P
+.PD
+\- \f[B]0 or \[aq]index\[aq]\f[]: perform mean absolute deviation along
+the indices.
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform mean absolute deviation
+along the columns.
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it performs mean absolute
+deviation along the rows.
+.PD 0
+.P
+.PD
+\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
+When set to True, it will exclude missing values while computing the
+result.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it excludes missing values
+during mean absolute deviation computation.
+.PD 0
+.P
+.PD
+\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]numeric_only\f[]\f[]: This is an unsed parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]**kwargs\f[]\f[]: Additional keyword arguments to be passed to
+the function.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the mean absolute deviation of the values over the requested
+axis.
+.PP
+\f[B]Currently, mean absolute deviation will be calculated for dataframe
+having atleast one numeric columns\f[].
+.PP
+The parameters: "level", "numeric_only", "**kwargs" are simply kept in
+to make the interface uniform to the pandas DataFrame.mad().
+These are not used internally in frovedis.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mad()\ demo,\ axis\ =\ 0\ by\ default
+fdf1.mad().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ mad
+Age\ \ \ \ \ 4.125
+Score\ \ \ 9.16666
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe with numeric column(s) containing the
+newly computed mean absolute deviation for each column.
+.PP
+Also, it excludes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing the mean absolute deviation.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mad()\ demo\ using\ skipna\ =\ False
+fdf1.mad(skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ mad
+Age\ \ \ \ \ 4.125
+Score\ \ \ NULL
+\f[]
+.fi
+.PP
+Here, it includes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing the mean absolute deviation.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mad()\ demo\ using\ axis\ =\ 1
+fdf1.mad(axis\ =\ 1).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ mad
+0\ \ \ \ \ \ \ 2
+1\ \ \ \ \ \ \ 5
+2\ \ \ \ \ \ \ 6.5
+3\ \ \ \ \ \ \ 6.5
+4\ \ \ \ \ \ \ 0
+5\ \ \ \ \ \ \ 7
+6\ \ \ \ \ \ \ 12.5
+7\ \ \ \ \ \ \ 0
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mad()\ demo\ using\ axis\ =\ 1\ and\ skipna\ =\ False
+fdf1.mad(axis\ =\ 1,\ skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ mad
+0\ \ \ \ \ \ \ 2
+1\ \ \ \ \ \ \ 5
+2\ \ \ \ \ \ \ 6.5
+3\ \ \ \ \ \ \ 6.5
+4\ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 7
+6\ \ \ \ \ \ \ 12.5
+7\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame instance with the result of the
+specified aggregate operation.
+.SS 6. max(axis = None, skipna = None, level = None, numeric_only =
+None, **kwargs)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform maximum operation along the
+columns or rows.
+(Default: None)
+.PD 0
+.P
+.PD
+\- \f[B]0 or \[aq]index\[aq]\f[]: perform maximum operation along the
+indices to get the maximum value.
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform maximum operation along the
+columns to get the maximum value.
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it performs maximum
+operation along the rows.
+.PD 0
+.P
+.PD
+\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
+When set to True, it will exclude missing values while computing the
+result.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it excludes missing values
+during maximum value computation.
+.PD 0
+.P
+.PD
+\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]numeric_only\f[]\f[]: This is an unsed parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]**kwargs\f[]\f[]: Additional keyword arguments to be passed to
+the function.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the maximum of the values over the requested axis.
+.PP
+\f[B]Currently, maximum operation will be calculated for dataframe
+having atleast one numeric columns\f[].
+.PP
+The parameters: "level", "numeric_only", "**kwargs" are simply kept in
+to make the interface uniform to the pandas DataFrame.max().
+These are not used internally in frovedis.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ max()\ demo
+fdf1.max().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ max
+Age\ \ \ \ \ 36
+Score\ \ \ 52
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe with numeric column(s) containing the
+newly computed maximum value for each column.
+.PP
+Also, it excludes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing the maximum value.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ max()\ demo\ using\ skipna\ =\ False
+fdf1.max(skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ max
+Age\ \ \ \ \ 36
+Score\ \ \ NULL
+\f[]
+.fi
+.PP
+Here, it includes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing the maximum value.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ max()\ demo\ using\ axis\ =\ 1
+fdf1.max(axis\ =\ 1).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ max
+0\ \ \ \ \ \ \ 27
+1\ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ 33
+5\ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ 32
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ max()\ demo\ using\ axis\ =\ 1\ and\ skipna\ =\ False
+fdf1.max(axis\ =\ 1,\ skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ max
+0\ \ \ \ \ \ \ 27
+1\ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame instance with the result of the
+specified aggregate operation.
+.SS 7. mean(axis = None, skipna = None, level = None, numeric_only =
+None, **kwargs)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform mean along the columns or rows.
+(Default: None)
+.PD 0
+.P
+.PD
+\- \f[B]0 or \[aq]index\[aq]\f[]: perform mean along the indices.
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform mean along the columns.
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it performs mean operation
+along the rows.
+.PD 0
+.P
+.PD
+\f[I]\f[B]skipna\f[]\f[]: It is a boolean parameter.
+When set to True, it will exclude missing values while computing the
+result.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it excludes missing values
+during mean computation.
+.PD 0
+.P
+.PD
+\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]numeric_only\f[]\f[]: This is an unsued parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]**kwargs\f[]\f[]: Additional keyword arguments to be passed to
+the function.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes mean of the values over the requested axis.
+.PP
+\f[B]Currently, mean will be calculated for dataframe having atleast one
+numeric columns\f[].
+.PP
+The parameters: "level", "numeric_only", "**kwargs" are simply kept in
+to make the interface uniform to the pandas DataFrame.mean().
+These are not used internally in frovedis.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mean()\ demo
+fdf1.mean(),show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ mean
+Age\ \ \ \ \ 29.125
+Score\ \ \ 39.8333
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe with numeric column(s) containing the
+newly computed mean for each column.
+.PP
+Also, it excludes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing the mean.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mean()\ demo\ using\ skipna\ =\ False
+fdf1.mean(skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ mean
+Age\ \ \ \ \ 29.125
+Score\ \ \ NULL
+\f[]
+.fi
+.PP
+Here, it includes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing the mean.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mean()\ demo\ using\ axis\ =\ 1
+fdf1.mean(axis\ =\ 1).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ mean
+0\ \ \ \ \ \ \ 25
+1\ \ \ \ \ \ \ 29
+2\ \ \ \ \ \ \ 28.5
+3\ \ \ \ \ \ \ 38.5
+4\ \ \ \ \ \ \ 33
+5\ \ \ \ \ \ \ 43
+6\ \ \ \ \ \ \ 39.5
+7\ \ \ \ \ \ \ 32
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mean()\ demo\ using\ axis\ =\ 1\ and\ skipna\ =\ False
+fdf1.mean(axis\ =\ 1,\ skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ mean
+0\ \ \ \ \ \ \ 25
+1\ \ \ \ \ \ \ 29
+2\ \ \ \ \ \ \ 28.5
+3\ \ \ \ \ \ \ 38.5
+4\ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 43
+6\ \ \ \ \ \ \ 39.5
+7\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame instance.
+.SS 8. median(axis = None, skipna = None, level = None, numeric_only =
+None, **kwargs)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform median operation along the
+columns or rows.
+(Default: None)
+.PD 0
+.P
+.PD
+\- \f[B]0 or \[aq]index\[aq]\f[]: perform median operation along the
+indices.
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform median operation along the
+columns.
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it performs median operation
+along the rows.
+.PD 0
+.P
+.PD
+\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
+When set to True, it will exclude missing values while computing the
+result.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it excludes missing values
+during median computation.
+.PD 0
+.P
+.PD
+\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]numeric_only\f[]\f[]: This is an unsued parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]**kwargs\f[]\f[]: Additional keyword arguments to be passed to
+the function.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes median of the values over the requested axis.
+.PP
+\f[B]Currently, median will be calculated for dataframe having atleast
+one numeric columns\f[].
+.PP
+The parameters: "level", "numeric_only", "**kwargs" are simply kept in
+to make the interface uniform to the pandas DataFrame.median().
+These are not used internally in frovedis.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ median()\ demo
+fdf1.median().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ median
+Age\ \ \ \ \ 29.5
+Score\ \ \ 40
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe with numeric column(s) containing the
+newly computed median for each column.
+.PP
+Also, it excludes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing the median.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ median()\ demo\ using\ skipna\ =\ False
+fdf1.median(skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ median
+Age\ \ \ \ \ 29.5
+Score\ \ \ NULL
+\f[]
+.fi
+.PP
+Here, it includes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing the median.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ median()\ demo\ using\ axis\ =\ 1
+fdf1.median(axis\ =\ 1).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ median
+0\ \ \ \ \ \ \ 25
+1\ \ \ \ \ \ \ 29
+2\ \ \ \ \ \ \ 28.5
+3\ \ \ \ \ \ \ 38.5
+4\ \ \ \ \ \ \ 33
+5\ \ \ \ \ \ \ 43
+6\ \ \ \ \ \ \ 39.5
+7\ \ \ \ \ \ \ 32
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ median()\ demo\ using\ axis\ =\ 1\ and\ skipna\ =\ False
+fdf1.median(axis\ =\ 1,\ skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ median
+0\ \ \ \ \ \ \ 25
+1\ \ \ \ \ \ \ 29
+2\ \ \ \ \ \ \ 28.5
+3\ \ \ \ \ \ \ 38.5
+4\ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 43
+6\ \ \ \ \ \ \ 39.5
+7\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame instance.
+.SS 9. min(axis = None, skipna = None, level = None, numeric_only =
+None, **kwargs)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform minimum operation along the
+columns or rows.
+(Default: None)
+.PD 0
+.P
+.PD
+\- \f[B]0 or \[aq]index\[aq]\f[]: perform minimum operation along the
+indices to get the minimum value.
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform minimum operation along the
+columns to get the minimum value.
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it performs minimum
+operation along the rows.
+.PD 0
+.P
+.PD
+\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
+When set to True, it will exclude missing values while computing the
+result.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it excludes missing values
+during minimum value computation.
+.PD 0
+.P
+.PD
+\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]numeric_only\f[]\f[]: This is an unsed parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]**kwargs\f[]\f[]: Additional keyword arguments to be passed to
+the function.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the minimum of the values over the requested axis.
+.PP
+\f[B]Currently, minimum operation will be calculated for dataframe
+having atleast one numeric columns\f[].
+.PP
+The parameters: "level", "numeric_only", "**kwargs" are simply kept in
+to make the interface uniform to the pandas DataFrame.min().
+These are not used internally in frovedis.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ min()\ demo
+fdf1.min().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ min
+Age\ \ \ \ \ 22
+Score\ \ \ 23
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe with numeric column(s) containing the
+newly computed minimum value for each column.
+.PP
+Also, it excludes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing the minimum value.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ min()\ demo\ using\ skipna\ =\ False
+fdf1.min(skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ min
+Age\ \ \ \ \ 22
+Score\ \ \ NULL
+\f[]
+.fi
+.PP
+Here, it includes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing the median.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ min()\ demo\ using\ axis\ =\ 1
+fdf1.min(axis\ =\ 1).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ min
+0\ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ 24
+2\ \ \ \ \ \ \ 22
+3\ \ \ \ \ \ \ 32
+4\ \ \ \ \ \ \ 33
+5\ \ \ \ \ \ \ 36
+6\ \ \ \ \ \ \ 27
+7\ \ \ \ \ \ \ 32
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ min()\ demo\ using\ axis\ =\ 1\ and\ skipna\ =\ False
+fdf1.min(axis\ =\ 1,\ skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ min
+0\ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ 24
+2\ \ \ \ \ \ \ 22
+3\ \ \ \ \ \ \ 32
+4\ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 36
+6\ \ \ \ \ \ \ 27
+7\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame instance with the result of the
+specified aggregate operation.
+.SS 10. mode(axis = 0, numeric_only = False, dropna = True)
+.PP
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform standard error of the mean along
+the columns or rows.
+(Default: 0)
+.PD 0
+.P
+.PD
+\- \f[B]0 or \[aq]index\[aq]\f[]: perform mode along the indices.
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform mode along the columns.
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it performs standard error
+of the mean along the rows.
+.PD 0
+.P
+.PD
+\f[I]\f[B]numeric_only\f[]\f[]: It accepts string object as parameter.
+If True, mode operation will result in a dataframe having only numeric
+columns.
+Otherwise, it will result in a dataframe having both numeric and
+non\-numeric columns.
+(Default: False)
+.PD 0
+.P
+.PD
+\f[I]\f[B]dropna\f[]\f[]: It accepts boolean as parameter.
+When set to True, it will exclude missing values while computing the
+result of mode operation.
+(Default: True)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it excludes missing values
+during mode computation.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method gets the mode(s) of each element along the selected axis.
+.PP
+The mode of a set of values is the value that appears most often.
+It can be multiple values.
+.PP
+\f[B]When input with non\-numeric columns is used with mode(), then it
+ignores the non\-numeric columns for mode computation.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mode()\ demo
+fdf1.mode().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Score\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ Qualification
+0\ \ \ \ \ \ \ 23\ \ \ \ \ \ Anuj\ \ \ \ 27\ \ \ \ \ \ Kanpur\ \ B.Tech
+1\ \ \ \ \ \ \ 34\ \ \ \ \ \ Jai\ \ \ \ \ 32\ \ \ \ \ \ NULL\ \ \ \ Phd
+2\ \ \ \ \ \ \ 35\ \ \ \ \ \ Princi\ \ NULL\ \ \ \ NULL\ \ \ \ NULL
+3\ \ \ \ \ \ \ 45\ \ \ \ \ \ NULL\ \ \ \ NULL\ \ \ \ NULL\ \ \ \ NULL
+4\ \ \ \ \ \ \ 50\ \ \ \ \ \ NULL\ \ \ \ NULL\ \ \ \ NULL\ \ \ \ NULL
+5\ \ \ \ \ \ \ 52\ \ \ \ \ \ NULL\ \ \ \ NULL\ \ \ \ NULL\ \ \ \ NULL
+\f[]
+.fi
+.PP
+\f[B]Mode will be calculated for dataframe having string and numeric
+columns when axis = 0 or \[aq]index\[aq].\f[]
+.PD 0
+.P
+.PD
+\f[B]Also, resultant dataframe has both numeric and non\-numeric
+columns.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mode()\ demo\ using\ numeric_ony\ =\ True
+fdf1.mode(numeric_ony\ =\ True).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Score\ \ \ Age
+0\ \ \ \ \ \ \ 23\ \ \ \ \ \ 27
+1\ \ \ \ \ \ \ 34\ \ \ \ \ \ 32
+2\ \ \ \ \ \ \ 35\ \ \ \ \ \ NULL
+3\ \ \ \ \ \ \ 45\ \ \ \ \ \ NULL
+4\ \ \ \ \ \ \ 50\ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 52\ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+\f[B]Here, resultant dataframe has only numeric columns.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mode()\ demo\ using\ dropna\ =\ False
+fdf1.mode(dropna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Anuj\ \ \ \ 27\ \ \ \ \ \ Kanpur\ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+1\ \ \ \ \ \ \ Jai\ \ \ \ \ 32\ \ \ \ \ \ NULL\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+2\ \ \ \ \ \ \ Princi\ \ NULL\ \ \ \ NULL\ \ \ \ NULL\ \ \ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+\f[B]For axis = 1 or \[aq]columns\[aq], mode will be calculated for
+dataframe having only numeric columns.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+bmiDF\ =\ {
+\ \ \ \ \ \ \ \ \[aq]height\[aq]:[157,\ 124,\ 162,\ np.nan,\ 133,\ 176,\ np.nan,\ 152],
+\ \ \ \ \ \ \ \ \[aq]weight\[aq]:\ [53,\ 64,\ np.nan,\ 65,\ 63,\ 80,\ np.nan,\ 84]
+\ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe\ with\ only\ numeric\ columns
+pdf1\ =\ pd.DataFrame(bmiDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ height\ \ weight
+0\ \ \ \ \ \ \ 157\ \ \ \ \ 53
+1\ \ \ \ \ \ \ 124\ \ \ \ \ 64
+2\ \ \ \ \ \ \ 162\ \ \ \ \ NULL
+3\ \ \ \ \ \ \ NULL\ \ \ \ 65
+4\ \ \ \ \ \ \ 133\ \ \ \ \ 63
+5\ \ \ \ \ \ \ 176\ \ \ \ \ 80
+6\ \ \ \ \ \ \ NULL\ \ \ \ NULL
+7\ \ \ \ \ \ \ 152\ \ \ \ \ 84
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mode()\ demo\ using\ axis\ =\ 1
+fdf1.mode(axis\ =\ 1).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ 0
+0\ \ \ \ \ \ \ 157
+1\ \ \ \ \ \ \ 124
+2\ \ \ \ \ \ \ 162
+3\ \ \ \ \ \ \ 65
+4\ \ \ \ \ \ \ 133
+5\ \ \ \ \ \ \ 176
+6\ \ \ \ \ \ \ 0
+7\ \ \ \ \ \ \ 152
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ mode()\ demo\ using\ axis\ =\ 1\ and\ dropna\ =\ False
+fdf1.mode(axis\ =\ 1,\ dropna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ 0
+0\ \ \ \ \ \ \ 157
+1\ \ \ \ \ \ \ 124
+2\ \ \ \ \ \ \ 162
+3\ \ \ \ \ \ \ NULL
+4\ \ \ \ \ \ \ 133
+5\ \ \ \ \ \ \ 176
+6\ \ \ \ \ \ \ NULL
+7\ \ \ \ \ \ \ 152
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+\- \f[B]If numeric_only = False\f[]:
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame instance having both numeric and
+non\-numeric columns (if any).
+.PD 0
+.P
+.PD
+\- \f[B]If numeric_only = True\f[]:
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame instance having only numeric columns.
+.SS 11. sem(axis = None, skipna = None, level = None, ddof = 1,
+numeric_only = None, **kwargs)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform standard error of the mean along
+the columns or rows.
+(Default: None)
+.PD 0
+.P
+.PD
+\- \f[B]0 or \[aq]index\[aq]\f[]: perform standard error of the mean
+along the indices.
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform standard error of the mean
+along the columns.
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it performs standard error
+of the mean along the rows.
+.PD 0
+.P
+.PD
+\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
+When set to True, it will exclude missing values while computing the
+result.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it excludes missing values
+during standard error of the mean computation.
+.PD 0
+.P
+.PD
+\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]ddof\f[]\f[]: It accepts an integer parameter that specifies
+the delta degrees of freedom.
+(Default: 1)
+.PD 0
+.P
+.PD
+\f[I]\f[B]numeric_only\f[]\f[]: This is an unsed parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]**kwargs\f[]\f[]: Additional keyword arguments to be passed to
+the function.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes standard error of the mean over requested axis.
+.PP
+\f[B]Currently, standard error of the mean will be calculated for
+dataframe having atleast one numeric columns\f[].
+.PP
+The parameters: "level", "numeric_only", "**kwargs" are simply kept in
+to make the interface uniform to the pandas DataFrame.sem().
+These are not used internally in frovedis.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ sem()\ demo
+fdf1.sem().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ sem
+Age\ \ \ \ \ 1.71586
+Score\ \ \ 4.54178
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe with numeric column(s) containing the
+newly computed standard error of the mean for each column.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ sem()\ demo\ using\ ddof\ =\ 2\ 
+fdf1.sem(ddof\ =\ 2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ sem
+Age\ \ \ \ \ 1.85334
+Score\ \ \ 5.07786
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ sem()\ demo\ using\ skipna\ =\ False
+fdf1.sem(skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ sem
+Age\ \ \ \ \ 1.71586
+Score\ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ sem()\ demo\ using\ axis\ =\ 1
+fdf1.sem(axis\ =\ 1).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ sem
+0\ \ \ \ \ \ \ 2
+1\ \ \ \ \ \ \ 5
+2\ \ \ \ \ \ \ 6.49999
+3\ \ \ \ \ \ \ 6.49999
+4\ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 6.99999
+6\ \ \ \ \ \ \ 12.5
+7\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ sem()\ demo\ using\ axis\ =\ 1\ and\ skipna\ =\ False
+fdf1.sem(axis\ =\ 1,\ skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ sem
+0\ \ \ \ \ \ \ 2
+1\ \ \ \ \ \ \ 5
+2\ \ \ \ \ \ \ 6.49999
+3\ \ \ \ \ \ \ 6.49999
+4\ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 6.99999
+6\ \ \ \ \ \ \ 12.5
+7\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame instance with the result of the
+specified aggregate operation.
+.SS 12. std(axis = None, skipna = None, level = None, ddof = 1,
+numeric_only = None, **kwargs)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform standard deviation along the
+columns or rows.
+(Default: None)
+.PD 0
+.P
+.PD
+\- \f[B]0 or \[aq]index\[aq]\f[]: perform standard deviation along the
+indices.
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform standard deviation along the
+columns.
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it performs standard
+deviation along the rows.
+.PD 0
+.P
+.PD
+\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
+When set to True, it will exclude missing values while computing the
+result.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it excludes missing values
+during standard deviation computation.
+.PD 0
+.P
+.PD
+\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]ddof\f[]\f[]: It accepts an integer parameter that specifies
+the delta degrees of freedom.
+(Default: 1)
+.PD 0
+.P
+.PD
+\f[I]\f[B]numeric_only\f[]\f[]: This is an unsed parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]**kwargs\f[]\f[]: Additional keyword arguments to be passed to
+the function.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes standard deviation over requested axis.
+.PP
+\f[B]Currently, standard deviation will be calculated for dataframe
+having atleast one numeric columns\f[].
+.PP
+The parameters: "level", "numeric_only", "**kwargs" are simply kept in
+to make the interface uniform to the pandas DataFrame.std().
+These are not used internally in frovedis.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ std()\ demo
+fdf1.std().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ std
+Age\ \ \ \ \ 4.8532
+Score\ \ \ 11.125
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe with numeric column(s) containing the
+newly computed standard deviation for each column.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ std()\ demo\ using\ skipna\ =\ False
+fdf1.std(skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ std
+Age\ \ \ \ \ 4.8532
+Score\ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ std()\ demo\ using\ axis\ =\ 1
+fdf1.std(axis\ =\ 1).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ std
+0\ \ \ \ \ \ \ 2.82842
+1\ \ \ \ \ \ \ 7.07106
+2\ \ \ \ \ \ \ 9.19238
+3\ \ \ \ \ \ \ 9.19238
+4\ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 9.89949
+6\ \ \ \ \ \ \ 17.6776
+7\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ std()\ demo\ using\ axis\ =\ 1\ and\ skipna\ =\ False
+fdf1.std(axis\ =\ 1,\ skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ std
+0\ \ \ \ \ \ \ 2.82842
+1\ \ \ \ \ \ \ 7.07106
+2\ \ \ \ \ \ \ 9.19238
+3\ \ \ \ \ \ \ 9.19238
+4\ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 9.89949
+6\ \ \ \ \ \ \ 17.6776
+7\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ std()\ demo\ using\ ddof\ =\ 2\ 
+fdf1.std(ddof\ =\ 2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ std
+Age\ \ \ \ \ 5.24205
+Score\ \ \ 12.4381
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame instance with the result of the
+specified aggregate functions.
+.SS 13. sum(axis = None, skipna = None, level = None, numeric_only =
+None, min_count = 0, **kwargs)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform summation operation along the
+columns or rows.
+(Default: None)
+.PD 0
+.P
+.PD
+\- \f[B]0 or \[aq]index\[aq]\f[]: perform summation operation along the
+indices.
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform summation operation along
+the columns.
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it performs summation
+operation along the rows.
+.PD 0
+.P
+.PD
+\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
+When set to True, it will exclude missing values while computing the
+result.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it excludes missing values
+during summation computation.
+.PD 0
+.P
+.PD
+\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]numeric_only\f[]\f[]: This is an unsed parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]min_count\f[]\f[]: It is an integer, float or double (float64)
+parameter that specifies the minimum number of values that needs to be
+present to perform the action.
+(Default: 0)
+.PD 0
+.P
+.PD
+\f[I]\f[B]**kwargs\f[]\f[]: Additional keyword arguments to be passed to
+the function.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes the sum of the values over the requested axis.
+.PP
+\f[B]Currently, summation will be calculated for dataframe having
+atleast one numeric columns\f[].
+.PP
+The parameters: "level", "numeric_only", "**kwargs" are simply kept in
+to make the interface uniform to the pandas DataFrame.sum().
+These are not used internally in frovedis.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ sum()\ demo
+fdf1.sum().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ sum
+Age\ \ \ \ \ 233
+Score\ \ \ 239
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe with numeric column(s) containing the
+newly computed summation for each column.
+.PP
+Also, it excludes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing summation.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ sum()\ demo\ using\ skipna\ =\ False
+fdf1.sum(skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ sum
+Age\ \ \ \ \ 233
+Score\ \ \ NULL
+\f[]
+.fi
+.PP
+Here, it includes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing the sum.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ sum()\ demo\ using\ axis\ =\ 1
+fdf1.sum(axis\ =\ 1).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ sum
+0\ \ \ \ \ \ \ 50
+1\ \ \ \ \ \ \ 58
+2\ \ \ \ \ \ \ 57
+3\ \ \ \ \ \ \ 77
+4\ \ \ \ \ \ \ 33
+5\ \ \ \ \ \ \ 86
+6\ \ \ \ \ \ \ 79
+7\ \ \ \ \ \ \ 32
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ sum()\ demo\ using\ axis\ =\ 1\ and\ skipna\ =\ False
+fdf1.sum(axis\ =\ 1,\ skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ sum
+0\ \ \ \ \ \ \ 50
+1\ \ \ \ \ \ \ 58
+2\ \ \ \ \ \ \ 57
+3\ \ \ \ \ \ \ 77
+4\ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 86
+6\ \ \ \ \ \ \ 79
+7\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame instance with the result of the
+specified aggregate functions.
+.SS 14. var(axis = None, skipna = None, level = None, ddof = 1,
+numeric_only = None, **kwargs)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]axis\f[]\f[]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform variance along the columns or
+rows.
+(Default: None)
+.PD 0
+.P
+.PD
+\- \f[B]0 or \[aq]index\[aq]\f[]: perform variance along the indices.
+.PD 0
+.P
+.PD
+\- \f[B]1 or \[aq]columns\[aq]\f[]: perform variance along the columns.
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it performs variance along
+the rows.
+.PD 0
+.P
+.PD
+\f[I]\f[B]skipna\f[]\f[]: It accepts boolean as parameter.
+When set to True, it will exclude missing values while computing the
+result.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it excludes missing values
+during variance computation.
+.PD 0
+.P
+.PD
+\f[I]\f[B]level\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]ddof\f[]\f[]: It accepts an integer parameter that specifies
+the delta degrees of freedom.
+(Default: 1)
+.PD 0
+.P
+.PD
+\f[I]\f[B]numeric_only\f[]\f[]: This is an unsed parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[I]\f[B]**kwargs\f[]\f[]: Additional keyword arguments to be passed to
+the function.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It computes variance over requested axis.
+.PP
+\f[B]Currently, variance will be calculated for dataframe having atleast
+one numeric columns\f[].
+.PP
+The parameters: "level", "numeric_only", "**kwargs" are simply kept in
+to make the interface uniform to the pandas DataFrame.var().
+These are not used internally in frovedis.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ var()\ demo
+fdf1.var().show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ var
+Age\ \ \ \ \ 23.5535
+Score\ \ \ 123.766
+\f[]
+.fi
+.PP
+It displays a frovedis dataframe with numeric column(s) containing the
+newly computed variance for each column.
+.PP
+Also, it excludes the missing value in \f[B]\[aq]Score\[aq]\f[] column
+while computing variance.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ var()\ demo\ using\ skipna\ =\ False
+fdf1.var(skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ var
+Age\ \ \ \ \ 23.5535
+Score\ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ var()\ demo\ using\ axis\ =\ 1
+fdf1.var(axis\ =\ 1).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ var
+0\ \ \ \ \ \ \ 8
+1\ \ \ \ \ \ \ 50
+2\ \ \ \ \ \ \ 84.5
+3\ \ \ \ \ \ \ 84.5
+4\ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 98
+6\ \ \ \ \ \ \ 312.5
+7\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ var()\ demo\ using\ axis\ =\ 1\ and\ skipna\ =\ False
+fdf1.var(axis\ =\ 1,\ skipna\ =\ False).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ var
+0\ \ \ \ \ \ \ 8
+1\ \ \ \ \ \ \ 50
+2\ \ \ \ \ \ \ 84.5
+3\ \ \ \ \ \ \ 84.5
+4\ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ 98
+6\ \ \ \ \ \ \ 312.5
+7\ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ var()\ demo\ using\ ddof\ =\ 2\ 
+fdf1.var(ddof\ =\ 2).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ var
+Age\ \ \ \ \ 27.4791
+Score\ \ \ 154.708
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a frovedis DataFrame instance with the result of the
+specified aggregate operation.
+.SH SEE ALSO
+.IP \[bu] 2
+\f[B]DataFrame \- Introduction (./DataFrame_Introduction.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Selection and
+Combinations (./DataFrame_SelectionAndCombinations.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Conversion, Missing data handling, Sorting
+Functions (./DataFrame_ConversionAndSorting.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Function Application,
+Groupby (./DataFrame_FunctionApplicationGroupby.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Binary Operators (./DataFrame_BinaryOperators.md)\f[]

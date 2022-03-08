@@ -2,7 +2,7 @@
 
 # NAME  
 
-DataFrame Binary Operator Functions - methods for carrying out binary operations like add(), sub(), etc and related functions like radd(), rsub(), etc. for carrying out reverse binary operations are illustrated here.  
+DataFrame Binary Operator Functions - this manual contains methods for carrying out binary operations like add(), sub(), etc and related functions like radd(), rsub(), etc. for carrying out reverse binary operations.  
 
 # SYNOPSIS  
     
@@ -10,22 +10,22 @@ DataFrame Binary Operator Functions - methods for carrying out binary operations
     
 ## Public Member Functions  
 
-add(other, axis = 'columns', level = None, fill_value = None)  
-radd(other, axis = 'columns', level = None, fill_value = None)  
-div(other, axis = 'columns', level = None, fill_value = None)  
-rdiv(other, axis = 'columns', level = None, fill_value = None)  
-floordiv(other, axis = 'columns', level = None, fill_value = None)  
-rfloordiv(other, axis = 'columns', level = None, fill_value = None)  
-mod(other, axis = 'columns', level = None, fill_value = None)  
-rmod(other, axis = 'columns', level = None, fill_value = None)  
-mul(other, axis = 'columns', level = None, fill_value = None)  
-rmul(other, axis = 'columns', level = None, fill_value = None)  
-pow(other, axis = 'columns', level = None, fill_value = None)  
-rpow(other, axis = 'columns', level = None, fill_value = None)  
-sub(other, axis = 'columns', level = None, fill_value = None)  
-rsub(other, axis = 'columns', level = None, fill_value = None)  
-truediv(other, axis = 'columns', level = None, fill_value = None)  
-rtruediv(other, axis = 'columns', level = None, fill_value = None)  
+    1. add(other, axis = 'columns', level = None, fill_value = None)  
+    2. div(other, axis = 'columns', level = None, fill_value = None)  
+    3. floordiv(other, axis = 'columns', level = None, fill_value = None)  
+    4. mod(other, axis = 'columns', level = None, fill_value = None)  
+    5. mul(other, axis = 'columns', level = None, fill_value = None)  
+    6. pow(other, axis = 'columns', level = None, fill_value = None)  
+    7. sub(other, axis = 'columns', level = None, fill_value = None)  
+    8. truediv(other, axis = 'columns', level = None, fill_value = None)  
+    9. radd(other, axis = 'columns', level = None, fill_value = None)  
+    10. rdiv(other, axis = 'columns', level = None, fill_value = None)  
+    11. rfloordiv(other, axis = 'columns', level = None, fill_value = None)  
+    12. rmod(other, axis = 'columns', level = None, fill_value = None)  
+    13. rmul(other, axis = 'columns', level = None, fill_value = None)  
+    14. rpow(other, axis = 'columns', level = None, fill_value = None)  
+    15. rsub(other, axis = 'columns', level = None, fill_value = None)  
+    16. rtruediv(other, axis = 'columns', level = None, fill_value = None)  
 
 ## Detailed Description  
 
@@ -251,220 +251,13 @@ Output
     1       9       21
     2       12      20
 
-Here, only common columns in both dataframes are added, excluding the misiing values. Other column elements are  
+Here, only common columns in both dataframes are added, excluding the misiing values. Other column elements are 
 added with the fill_value = 10 (exluding missing values) in resultant dataframe.  
 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 2. radd(other, axis = 'columns', level = None, fill_value = None)  
-
-__Parameters__  
-**_other_**: It can accept single or multiple element data structure like the following:  
-- Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
-- pandas DataFrame. It must not be an empty dataframe.  
-- pandas Series  
-- frovedis DataFrame. It must not be an empty dataframe.  
-
-Any of these is considered as the value to be added with the current dataframe.  
-**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
-perform reverse addition operation along the indices or by column labels. (Default: 'columns')  
-- **1 or 'columns'**: perform reverse addition operation on the columns. Currently, axis = 1 is supported in this method.  
-
-**_level_**: This is an unused parameter. (Default: None)  
-**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
-new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
-
-__Purpose__  
-It performs reverse addition operation between two dataframes or dataframe and scalar value. It is 
-equivalent to **'other + dataframe'**.  
-
-Currently, it does not perform reverse addition of scalar using operator version. Only method version 
-is supported.  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, 12]
-            }
-    
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-  
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For example,  
-
-    # radd() demo with scalar value using method version
-    fdf1.radd(10).show()
-
-Output  
-
-    index   points  total
-    0       15      20
-    1       16      21
-    2       14      22
-
-Here, it adds the scalar to all columns in dataframe (axis = 1 by default).  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, 12]
-            }
-    
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-    
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For examples,  
-    
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, 9, 11]
-            }
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-    
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       9
-    2       8       11
-
-For example,  
-
-    # radd() demo on two dataframes using method version
-    fdf1.radd(other = fdf2).show()
-
-Output  
-
-    index   points  total
-    0       7       17
-    1       9       20
-    2       12      23
-
-Here, only common columns in both dataframes are added. Column values in other 
-datframe are replaced with NaN values in resultant dataframe (fill_value = None by default).  
-
-**When fill_value is not None,**     
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, np.nan]
-            }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       NULL
-
-For example,  
-    
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, np.nan, np.nan]
-            }
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       NULL
-    2       8       NULL
-
-For example,  
-    
-    # radd() demo on two dataframes using method version and fill_value = 10
-    fdf1.radd(other = fdf2, fill_value = 10).show()
-
-Output  
-
-    index   points  total
-    0       7       17
-    1       9       21
-    2       12      20
-
-Here, only common columns in both dataframes are added excluding the missing values. The fill_value = 10 
-is added to both column values in the dataframe (excluding the missing values) and stored in new dataframe.  
-
-__Return Value__  
-It returns a frovedis DataFrame which contains the result of arithmetic operation.  
-
-### 3. div(other, axis = 'columns', level = None, fill_value = None)  
+### 2. div(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -489,7 +282,8 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs floating division operation between two dataframes or dataframe and scalar value. It is 
 equivalent to **'dataframe / other'**.  
-It is an alias of truediv().  
+
+**It is an alias of truediv().**  
 
 For example,  
 
@@ -693,213 +487,7 @@ elements are divided with the fill_value = 10 (excluding the missing values) in 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 4. rdiv(other, axis = 'columns', level = None, fill_value = None)  
-
-__Parameters__  
-**_other_**: It can accept single or multiple element data structure like the following:  
-- Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
-- pandas DataFrame. It must not be an empty dataframe.  
-- pandas Series  
-- frovedis DataFrame. It must not be an empty dataframe.  
-
-Any of these is considered as the value to be divided with the current dataframe.  
-**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
-perform reverse division operation along the indices or by column labels. (Default: 'columns')  
-- **1 or 'columns'**: perform reverse division operation on the columns. Currently, axis = 1 is supported in this method.  
-
-**_level_**: This is an unused parameter. (Default: None)  
-**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
-new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
-
-__Purpose__  
-It performs reverse floating division operation between two dataframes or dataframe and a scalar value. It is 
-equivalent to **'other / dataframe'**.  
-It is an alias of rtruediv().  
-Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, 12]
-            }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-    
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For example,  
-
-    # rdiv() demo with scalar value using method version
-    fdf1.rdiv(10).show()
-
-Output  
-
-    index   points  total
-    0       2       1
-    1       1.66666 0.90909
-    2       2.5     0.833333
-
-Here, it uses the scalar to perform division on all column elements in dataframe (axis = 1 by default).  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, 12]
-            }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-    
-Output  
-    
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-    
-For example,  
-
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, 9, 11]
-            }
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-    
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       9
-    2       8       11
-
-For example,  
-
-    # rdiv() demo on two dataframes using method version
-    fdf1.rdiv(other = fdf2).show()
-
-Output  
-
-    index   points  total
-    0       0.4     0.7
-    1       0.5     0.818181
-    2       2       0.916666
-
-Here, only common columns in both dataframes are divided. Other are replaced with 
-NaN values in resultant dataframe (fill_value = None by default).  
-
-**When fill_value is not None,**  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, np.nan]
-            }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       NULL
-
-For example,  
-    
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, np.nan, np.nan]
-            }
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       NULL
-    2       8       NULL
-
-For example,  
-
-    # rdiv() demo on two dataframes using method version and fill_value = 10
-    fdf1.rdiv(other = fdf2, fill_value = 10).show()
-
-Output  
-
-    index   points  total
-    0       0.4     0.7
-    1       0.5     0.90909
-    2       2       1
-
-Here, only common columns in both dataframes are divided, excluding the missing values. The fill_value = 10 
-is used to divide over column values in other dataframe (excluding the missing values) and stored in new dataframe.  
-
-__Return Value__  
-It returns a frovedis DataFrame which contains the result of arithmetic operation.  
-
-### 5. floordiv(other, axis = 'columns', level = None, fill_value = None)  
+### 3. floordiv(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -1122,220 +710,13 @@ Output
     1       2       1
     2       0       1
 
-Here, only common columns in both dataframes are divided, excluding the missing values. Other column elements are  
+Here, only common columns in both dataframes are divided, excluding the missing values. Other column elements are 
 divided with the fill_value = 10 (excluding the missing values) in resultant dataframe.  
 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 6. rfloordiv(other, axis = 'columns', level = None, fill_value = None)
-
-__Parameters__  
-**_other_**: It can accept single or multiple element data structure like the following:  
-- Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
-- pandas DataFrame. It must not be an empty dataframe.  
-- pandas Series  
-- frovedis DataFrame. It must not be an empty dataframe.  
-
-Any of these is considered as the value to be divided with the current dataframe.  
-**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
-perform reverse division operation along the indices or by column labels. (Default: 'columns')  
-- **1 or 'columns'**: perform reverse division operation on the columns. Currently, axis = 1 is supported in this method.  
-
-**_level_**: This is an unused parameter. (Default: None)  
-**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
-new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
-
-__Purpose__  
-It performs reverse floating division operation between two dataframes or dataframe and scalar value. It is 
-equivalent to **'other // dataframe'**.  
-
-Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, 12]
-            }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For example,  
-
-    # rfloordiv() demo with scalar value using method version
-    fdf1.rfloordiv(10).show()
-
-Output  
-
-    index   points  total
-    0       2       1
-    1       1       0
-    2       2       0
-
-Here, it uses the scalar to perform division on all column elements (axis = 1 by default).  
-Also, resultant dataframe column elements will contain floor integer value.  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, 12]
-            }
-    
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For example,  
-    
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, 9, 11]
-            }
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       9
-    2       8       11
-
-For example,  
-
-    # rfloordiv() demo on two dataframes using method version
-    fdf1.rfloordiv(other = fdf2).show()
-
-Output  
-
-    index   points  total
-    0       0       0
-    1       0       0
-    2       2       0
-
-Here, only common columns in both dataframes are divided. Other are replaced with 
-NaN values in resultant dataframe (fill_value = None by default).  
-
-**When fill_value is not None,**  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, np.nan]
-            }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       NULL
-
-For example,  
-    
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, np.nan, np.nan]
-            }
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       NULL
-    2       8       NULL
-
-For example,  
-    
-    # rfloordiv()  demo on two dataframes using method version and fill_value = 10
-    fdf1.rfloordiv(other = fdf2, fill_value = 10).show()
-
-Output  
-
-    index   points  total
-    0       0       0
-    1       0       0
-    2       2       1
-
-Here, only common columns in both dataframes are divided, excluding the missing values. The fill_value = 10 
-is used to divide over column values in other dataframe (excluding the missing values) and stored in new dataframe.  
-
-__Return Value__  
-It returns a frovedis DataFrame which contains the result of arithmetic operation.  
-
-### 7. mod(other, axis = 'columns', level = None, fill_value = None)
+### 4. mod(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -1563,214 +944,7 @@ is performed on other column elements using the value 10 (excluding the missing 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 8. rmod(other, axis = 'columns', level = None, fill_value = None)  
-
-__Parameters__  
-**_other_**: It can accept single or multiple element data structure like the following:  
-- Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
-- pandas DataFrame. It must not be an empty dataframe.  
-- pandas Series  
-- frovedis DataFrame. It must not be an empty dataframe.  
-
-Any of these is considered as the value to perform modulo operation with the current dataframe.  
-**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
-perform reverse modulo operation along the indices or by column labels. (Default: 'columns')  
-- **1 or 'columns'**: perform reverse modulo operation on the columns. Currently, axis = 1 is supported in this method.  
-
-**_level_**: This is an unused parameter. (Default: None)  
-**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
-new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
-
-__Purpose__  
-It performs reverse modulo operation between two dataframes or dataframe and scalar value. It is equivalent 
-to **'other % dataframe'**.  
-
-Currently, it does not perform reverse modulo of scalar using operator version. Only method version is supported.  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-            "points": [5, 6, 4],
-            "total": [50, 40, 20]
-           }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For example,  
-
-    # rmod() demo with scalar value using method version
-    fdf1.rmod(10).show()
-
-Output  
-
-    index   points  total
-    0       0       0
-    1       4       10
-    2       2       10
-
-Here, it uses the scalar to perform modulo operation on all column elements (axis = 1 by default).   
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, 12]
-            }
-    
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For example,  
-
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, 9, 11]
-            }    
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       9
-    2       8       11
-
-For example,  
-
-    # rmod() demo on two dataframes using method version
-    fdf1.rmod(other = fdf2).show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       9
-    2       0       11
-
-Here, modulo is performed on only common columns in both dataframes. Other are replaced with 
-NaN values in resultant dataframe (fill_value = None by default).  
-
-**When fill_value is not None,**  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, np.nan]
-            }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       NULL
-
-For example,  
-    
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, np.nan, np.nan]
-            }
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       NULL
-    2       8       NULL
-
-For example,  
-    
-    # rmod() demo on two dataframes using method version and fill_value = 10
-    fdf1.rmod(other = fdf2, fill_value = 10).show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       10
-    2       0       0
-
-Here, modulo is performed on only common columns in both dataframes, excluding the missing values. The 
-fill_value = 10 is used to perform modulo over column values in other dataframe (excluding the missing values) 
-and stored in new dataframe.  
-
-__Return Value__  
-It returns a frovedis DataFrame which contains the result of arithmetic operation.  
-
-### 9. mul(other, axis = 'columns', level = None, fill_value = None)
+### 5. mul(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -1998,215 +1172,7 @@ column elements are multiplied with the value 10 (excluding the missing values) 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 10. rmul(other, axis = 'columns', level = None, fill_value = None)  
-
-__Parameters__  
-**_other_**: It can accept single or multiple element data structure like the following:  
-- Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
-- pandas DataFrame. It must not be an empty dataframe.  
-- pandas Series  
-- frovedis DataFrame. It must not be an empty dataframe.  
-
-Any of these is considered as the value to be multiplied with the current dataframe.  
-**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
-perform reverse multiplication operation along the indices or by column labels. (Default: 'columns')  
-- **1 or 'columns'**: perform reverse multiplication operation on the columns. Currently, axis = 1 is supported in this method.  
-
-**_level_**: This is an unused parameter. (Default: None)  
-**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
-new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
-
-__Purpose__  
-It performs reverse multiplication operation between two dataframes or dataframe and scalar value. It is equivalent 
-to **'other * dataframe'**.  
-
-Currently, it does not perform reverse multiplication of scalar using operator version. Only method 
-version is supported.  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, 12]
-            }   
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For example,  
-
-    # rmul() demo with scalar value using method version
-    fdf1.rmul(10).show()
-
-Output  
-
-    index   points  total
-    0       50      100
-    1       60      110
-    2       40      120
-
-Here, it uses the scalar to perform multiplication on all column elements in dataframe (axis = 1 by default).  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, 12]
-            }
-    
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For example,  
-
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, 9, 11]
-            }    
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       9
-    2       8       11
-
-For example,  
-    
-    # rmul() demo on two dataframes using method version
-    fdf1.rmul(other = fdf2).show()
-
-Output  
-
-    index   points  total
-    0       10      70
-    1       18      99
-    2       32      132
-
-Here, only common columns in both dataframes are multiplied. Other are replaced with 
-NaN values in resultant dataframe (fill_value = None by default).  
-
-**When fill_value is not None,**  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, np.nan]
-            }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       NULL
-
-For example,  
-    
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, np.nan, np.nan]
-            }
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       NULL
-    2       8       NULL
-
-For example,  
-    
-    # rmul() demo on two dataframes using method version and fill_value = 10
-    fdf1.rmul(other = fdf2, fill_value = 10).show()
-
-Output  
-
-    index   points  total
-    0       10      70
-    1       18      110
-    2       32      100
-
-Here, only common columns in both dataframes are multiplied, excluding the missing values. The 
-fill_value = 10 is multiplied with column values in other dataframe (excluding the missing values) and 
-stored in new dataframe.  
-
-__Return Value__  
-It returns a frovedis DataFrame which contains the result of arithmetic operation.  
-
-### 11. pow(other, axis = 'columns', level = None, fill_value = None)
+### 6. pow(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -2436,216 +1402,7 @@ the value 10 (excluding the missing values) in resultant dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 12. rpow(other, axis = 'columns', level = None, fill_value = None)  
-
-__Parameters__  
-**_other_**: It can accept single or multiple element data structure like the following:  
-- Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
-- pandas DataFrame. It must not be an empty dataframe.  
-- pandas Series  
-- frovedis DataFrame. It must not be an empty dataframe.  
-
-Any of these is considered as the value to perfomr exponential power operation with the current dataframe.  
-**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
-perform reverse exponential power operation along the indices or by column labels. (Default: 'columns')  
-- **1 or 'columns'**: perform reverse exponential power operation on the columns. Currently, axis = 1 is supported in this method.  
-
-**_level_**: This is an unused parameter. (Default: None)  
-**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
-new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
-
-__Purpose__  
-It performs reverse exponential power operation between two dataframes or dtaframe and scalar value. It is 
-equivalent to **'other ** dataframe'**.  
-
-Currently, it does not perform reverse exponential power operation of scalar using operator version. Only 
-method version is supported.  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-            "points": [5, 6, 4],
-            "total": [10, 11, 12]
-           }
-    
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For example,  
-
-    # rpow() demo with scalar value using method version
-    fdf1.rpow(2).show()
-
-Output  
-
-    index   points  total
-    0       32      1024
-    1       64      2048
-    2       16      4096
-
-Here, it uses the scalar to perform exponential power operation on all column 
-elements in dataframe (axis = 1 by default).  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
-            }
-    
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For example,  
-
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, 9, 11]
-            }    
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-    
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       9
-    2       8       11
-
-For example,  
-
-    # rpow() demo on two dataframes using method version
-    fdf1.rpow(other = fdf2).show()
-
-Output  
-
-    index   points  total
-    0       10      70
-    1       18      99
-    2       32      132
-
-Here, exponential power operation is performed on only common columns in both 
-dataframes. Other are replaced with NaN values in resultant dataframe (fill_value = None by default).  
-
-**When fill_value is not None,**  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, np.nan]
-            }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       NULL
-
-For example,  
-    
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, np.nan, np.nan]
-            }
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       NULL
-    2       8       NULL
-
-For example,  
-    
-    # rpow() demo on two dataframes using method version and fill_value = 10
-    fdf1.rpow(other = fdf2, fill_value = 10).show()
-
-Output  
-
-    index   points  total
-    0       32      2.82475e+08
-    1       729     9.99999e+10
-    2       4096    1.00000e+10
-
-Here, exponential power operation is performed on only common columns in both dataframes, excluding 
-the missing values. The fill_value = 10 is used to perform exponential power operation on column values 
-in other dataframe (excluding the missing values) and stored in new dataframe.  
-
-__Return Value__  
-It returns a frovedis DataFrame which contains the result of arithmetic operation.  
-
-### 13. sub(other, axis = 'columns', level = None, fill_value = None)
+### 7. sub(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -2664,7 +1421,7 @@ perform subtraction operation along the indices or by column labels. (Default: '
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
+When it is either None or not, and if data in both corresponding dataframe locations is missing, then 
 the result will be missing (contains NaNs).   
 
 __Purpose__  
@@ -2873,214 +1630,7 @@ column elements are subtracted with the value 10 (excluding the missing values) 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 14. rsub(other, axis = 'columns', level = None, fill_value = None)  
-
-__Parameters__  
-**_other_**: It can accept single or multiple element data structure like the following:  
-- Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
-- pandas DataFrame. It must not be an empty dataframe.  
-- pandas Series  
-- frovedis DataFrame. It must not be an empty dataframe.  
-
-Any of these is considered as the value to be subtracted with the current dataframe.  
-**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
-perform reverse subtraction operation along the indices or by column labels. (Default: 'columns')  
-- **1 or 'columns'**: perform reverse subtraction operation on the columns. Currently, axis = 1 is supported in this method.  
-
-**_level_**: This is an unused parameter. (Default: None)  
-**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
-new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
-
-__Purpose__  
-It performs reverse subtraction operation between two dataframes or dataframe and scalar value. It is 
-equivalent to **'other - dataframe'**.  
-
-Currently, it does not perform reverse subtraction of scalar using operator version. Only method version is supported.  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
-            }
-    
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-  
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-    
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For example,  
-
-    # rsub() with scalar value using method version
-    fdf1.rsub(10).show()
-
-Output  
-
-    index   points  total
-    0       5       0
-    1       4       -1
-    2       6       -2
-
-Here, it subtracts the scalar to all columns in dataframe (axis = 1 by default).  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
-            }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       12
-
-For example,  
-
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, 9, 11]
-            }
-
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-    
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       9
-    2       8       11
-
-For example,  
-
-    # rsub() on two dataframes using method version
-    fdf1.rsub(other = fdf2).show()
-
-Output  
-
-    index   points  total
-    0       -3      -3
-    1       -3      -2
-    2       4       -1
-
-Here, only common columns in both dataframes are subtracted. Other are replaced with 
-NaN values in resultant dataframe (fill_value = None by default).  
-
-**When fill_value is not None,**  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    data1 = {
-             "points": [5, 6, 4],
-             "total": [10, 11, np.nan]
-            }
-
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(data1)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   points  total
-    0       5       10
-    1       6       11
-    2       4       NULL
-
-For example,  
-    
-    # a dictionary
-    data2 = {
-             "points": [2, 3, 8],
-             "total": [7, np.nan, np.nan]
-            }
-    
-    # create pandas dataframe
-    pdf2 = pd.DataFrame(data2)
-    
-    # create frovedis dataframe
-    fdf2 = fdf.DataFrame(pdf2)
-
-    # display the frovedis dataframe
-    fdf2.show()
-
-Output  
-
-    index   points  total
-    0       2       7
-    1       3       NULL
-    2       8       NULL
-
-For example,  
-    
-    # rsub() on two dataframes using method version and fill_value = 10
-    fdf1.rsub(other = fdf2, fill_value = 10).show()
-
-Output  
-
-    index   points  total
-    0       -3      -3
-    1       -3      -1
-    2       4       0
-
-Here, only common columns in both dataframes are subtracted, excluding the missing values. The 
-fill_value = 10 is subtracted on column values in other dataframe (excluding the missing values) and 
-stored in new dataframe.  
-
-__Return Value__  
-It returns a frovedis DataFrame which contains the result of arithmetic operation.  
-
-### 15. truediv(other, axis = 'columns', level = None, fill_value = None)
+### 8. truediv(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -3308,6 +1858,1461 @@ column elements are divided with the value 10 (excluding the missing values) in 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
+
+### 9. radd(other, axis = 'columns', level = None, fill_value = None)  
+
+__Parameters__  
+**_other_**: It can accept single or multiple element data structure like the following:  
+- Number  
+- List. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- pandas DataFrame. It must not be an empty dataframe.  
+- pandas Series  
+- frovedis DataFrame. It must not be an empty dataframe.  
+
+Any of these is considered as the value to be added with the current dataframe.  
+**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
+perform reverse addition operation along the indices or by column labels. (Default: 'columns')  
+- **1 or 'columns'**: perform reverse addition operation on the columns. Currently, axis = 1 is supported in this method.  
+
+**_level_**: This is an unused parameter. (Default: None)  
+**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
+new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
+When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).   
+
+__Purpose__  
+It performs reverse addition operation between two dataframes or dataframe and scalar value. It is 
+equivalent to **'other + dataframe'**.  
+
+**Currently, it does not perform reverse addition of scalar using operator version. Only method version 
+is supported.**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
+    
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+  
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For example,  
+
+    # radd() demo with scalar value using method version
+    fdf1.radd(10).show()
+
+Output  
+
+    index   points  total
+    0       15      20
+    1       16      21
+    2       14      22
+
+Here, it adds the scalar to all columns in dataframe (axis = 1 by default).  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
+    
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+    
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For examples,  
+    
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, 9, 11]
+            }
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+    
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       9
+    2       8       11
+
+For example,  
+
+    # radd() demo on two dataframes using method version
+    fdf1.radd(other = fdf2).show()
+
+Output  
+
+    index   points  total
+    0       7       17
+    1       9       20
+    2       12      23
+
+Here, only common columns in both dataframes are added. Column values in other 
+datframe are replaced with NaN values in resultant dataframe (fill_value = None by default).  
+
+**When fill_value is not None,**     
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, np.nan]
+            }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       NULL
+
+For example,  
+    
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, np.nan, np.nan]
+            }
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       NULL
+    2       8       NULL
+
+For example,  
+    
+    # radd() demo on two dataframes using method version and fill_value = 10
+    fdf1.radd(other = fdf2, fill_value = 10).show()
+
+Output  
+
+    index   points  total
+    0       7       17
+    1       9       21
+    2       12      20
+
+Here, only common columns in both dataframes are added excluding the missing values. The fill_value = 10 
+is added to both column values in the dataframe (excluding the missing values) and stored in new dataframe.  
+
+__Return Value__  
+It returns a frovedis DataFrame which contains the result of arithmetic operation.  
+
+
+### 10. rdiv(other, axis = 'columns', level = None, fill_value = None)  
+
+__Parameters__  
+**_other_**: It can accept single or multiple element data structure like the following:  
+- Number  
+- List. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- pandas DataFrame. It must not be an empty dataframe.  
+- pandas Series  
+- frovedis DataFrame. It must not be an empty dataframe.  
+
+Any of these is considered as the value to be divided with the current dataframe.  
+**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
+perform reverse division operation along the indices or by column labels. (Default: 'columns')  
+- **1 or 'columns'**: perform reverse division operation on the columns. Currently, axis = 1 is supported in this method.  
+
+**_level_**: This is an unused parameter. (Default: None)  
+**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
+new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
+When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).   
+
+__Purpose__  
+It performs reverse floating division operation between two dataframes or dataframe and a scalar value. It is 
+equivalent to **'other / dataframe'**.  
+
+It is an alias of rtruediv().  
+
+**Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+    
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For example,  
+
+    # rdiv() demo with scalar value using method version
+    fdf1.rdiv(10).show()
+
+Output  
+
+    index   points  total
+    0       2       1
+    1       1.66666 0.90909
+    2       2.5     0.833333
+
+Here, it uses the scalar to perform division on all column elements in dataframe (axis = 1 by default).  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+    
+Output  
+    
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+    
+For example,  
+
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, 9, 11]
+            }
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+    
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       9
+    2       8       11
+
+For example,  
+
+    # rdiv() demo on two dataframes using method version
+    fdf1.rdiv(other = fdf2).show()
+
+Output  
+
+    index   points  total
+    0       0.4     0.7
+    1       0.5     0.818181
+    2       2       0.916666
+
+Here, only common columns in both dataframes are divided. Other are replaced with 
+NaN values in resultant dataframe (fill_value = None by default).  
+
+**When fill_value is not None,**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, np.nan]
+            }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       NULL
+
+For example,  
+    
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, np.nan, np.nan]
+            }
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       NULL
+    2       8       NULL
+
+For example,  
+
+    # rdiv() demo on two dataframes using method version and fill_value = 10
+    fdf1.rdiv(other = fdf2, fill_value = 10).show()
+
+Output  
+
+    index   points  total
+    0       0.4     0.7
+    1       0.5     0.90909
+    2       2       1
+
+Here, only common columns in both dataframes are divided, excluding the missing values. The fill_value = 10 
+is used to divide over column values in other dataframe (excluding the missing values) and stored in new dataframe.  
+
+__Return Value__  
+It returns a frovedis DataFrame which contains the result of arithmetic operation.  
+
+### 11. rfloordiv(other, axis = 'columns', level = None, fill_value = None)
+
+__Parameters__  
+**_other_**: It can accept single or multiple element data structure like the following:  
+- Number  
+- List. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- pandas DataFrame. It must not be an empty dataframe.  
+- pandas Series  
+- frovedis DataFrame. It must not be an empty dataframe.  
+
+Any of these is considered as the value to be divided with the current dataframe.  
+**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
+perform reverse division operation along the indices or by column labels. (Default: 'columns')  
+- **1 or 'columns'**: perform reverse division operation on the columns. Currently, axis = 1 is supported in this method.  
+
+**_level_**: This is an unused parameter. (Default: None)  
+**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
+new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
+When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).   
+
+__Purpose__  
+It performs reverse floating division operation between two dataframes or dataframe and scalar value. It is 
+equivalent to **'other // dataframe'**.  
+
+**Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For example,  
+
+    # rfloordiv() demo with scalar value using method version
+    fdf1.rfloordiv(10).show()
+
+Output  
+
+    index   points  total
+    0       2       1
+    1       1       0
+    2       2       0
+
+Here, it uses the scalar to perform division on all column elements (axis = 1 by default).  
+Also, resultant dataframe column elements will contain floor integer value.  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
+    
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For example,  
+    
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, 9, 11]
+            }
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       9
+    2       8       11
+
+For example,  
+
+    # rfloordiv() demo on two dataframes using method version
+    fdf1.rfloordiv(other = fdf2).show()
+
+Output  
+
+    index   points  total
+    0       0       0
+    1       0       0
+    2       2       0
+
+Here, only common columns in both dataframes are divided. Other are replaced with 
+NaN values in resultant dataframe (fill_value = None by default).  
+
+**When fill_value is not None,**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, np.nan]
+            }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       NULL
+
+For example,  
+    
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, np.nan, np.nan]
+            }
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       NULL
+    2       8       NULL
+
+For example,  
+    
+    # rfloordiv()  demo on two dataframes using method version and fill_value = 10
+    fdf1.rfloordiv(other = fdf2, fill_value = 10).show()
+
+Output  
+
+    index   points  total
+    0       0       0
+    1       0       0
+    2       2       1
+
+Here, only common columns in both dataframes are divided, excluding the missing values. The fill_value = 10 
+is used to divide over column values in other dataframe (excluding the missing values) and stored in new dataframe.  
+
+__Return Value__  
+It returns a frovedis DataFrame which contains the result of arithmetic operation.  
+
+### 12. rmod(other, axis = 'columns', level = None, fill_value = None)  
+
+__Parameters__  
+**_other_**: It can accept single or multiple element data structure like the following:  
+- Number  
+- List. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- pandas DataFrame. It must not be an empty dataframe.  
+- pandas Series  
+- frovedis DataFrame. It must not be an empty dataframe.  
+
+Any of these is considered as the value to perform modulo operation with the current dataframe.  
+**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
+perform reverse modulo operation along the indices or by column labels. (Default: 'columns')  
+- **1 or 'columns'**: perform reverse modulo operation on the columns. Currently, axis = 1 is supported in this method.  
+
+**_level_**: This is an unused parameter. (Default: None)  
+**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
+new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
+When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).   
+
+__Purpose__  
+It performs reverse modulo operation between two dataframes or dataframe and scalar value. It is equivalent 
+to **'other % dataframe'**.  
+
+**Currently, it does not perform reverse modulo of scalar using operator version. Only method version is supported.**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+            "points": [5, 6, 4],
+            "total": [50, 40, 20]
+           }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For example,  
+
+    # rmod() demo with scalar value using method version
+    fdf1.rmod(10).show()
+
+Output  
+
+    index   points  total
+    0       0       0
+    1       4       10
+    2       2       10
+
+Here, it uses the scalar to perform modulo operation on all column elements (axis = 1 by default).   
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
+    
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For example,  
+
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, 9, 11]
+            }    
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       9
+    2       8       11
+
+For example,  
+
+    # rmod() demo on two dataframes using method version
+    fdf1.rmod(other = fdf2).show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       9
+    2       0       11
+
+Here, modulo is performed on only common columns in both dataframes. Other are replaced with 
+NaN values in resultant dataframe (fill_value = None by default).  
+
+**When fill_value is not None,**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, np.nan]
+            }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       NULL
+
+For example,  
+    
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, np.nan, np.nan]
+            }
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       NULL
+    2       8       NULL
+
+For example,  
+    
+    # rmod() demo on two dataframes using method version and fill_value = 10
+    fdf1.rmod(other = fdf2, fill_value = 10).show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       10
+    2       0       0
+
+Here, modulo is performed on only common columns in both dataframes, excluding the missing values. The 
+fill_value = 10 is used to perform modulo over column values in other dataframe (excluding the missing values) 
+and stored in new dataframe.  
+
+__Return Value__  
+It returns a frovedis DataFrame which contains the result of arithmetic operation.  
+
+### 13. rmul(other, axis = 'columns', level = None, fill_value = None)  
+
+__Parameters__  
+**_other_**: It can accept single or multiple element data structure like the following:  
+- Number  
+- List. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- pandas DataFrame. It must not be an empty dataframe.  
+- pandas Series  
+- frovedis DataFrame. It must not be an empty dataframe.  
+
+Any of these is considered as the value to be multiplied with the current dataframe.  
+**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
+perform reverse multiplication operation along the indices or by column labels. (Default: 'columns')  
+- **1 or 'columns'**: perform reverse multiplication operation on the columns. Currently, axis = 1 is supported in this method.  
+
+**_level_**: This is an unused parameter. (Default: None)  
+**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
+new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
+When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).   
+
+__Purpose__  
+It performs reverse multiplication operation between two dataframes or dataframe and scalar value. It is equivalent 
+to **'other * dataframe'**.  
+
+**Currently, it does not perform reverse multiplication of scalar using operator version. Only method 
+version is supported.**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }   
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For example,  
+
+    # rmul() demo with scalar value using method version
+    fdf1.rmul(10).show()
+
+Output  
+
+    index   points  total
+    0       50      100
+    1       60      110
+    2       40      120
+
+Here, it uses the scalar to perform multiplication on all column elements in dataframe (axis = 1 by default).  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
+    
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For example,  
+
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, 9, 11]
+            }    
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       9
+    2       8       11
+
+For example,  
+    
+    # rmul() demo on two dataframes using method version
+    fdf1.rmul(other = fdf2).show()
+
+Output  
+
+    index   points  total
+    0       10      70
+    1       18      99
+    2       32      132
+
+Here, only common columns in both dataframes are multiplied. Other are replaced with 
+NaN values in resultant dataframe (fill_value = None by default).  
+
+**When fill_value is not None,**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, np.nan]
+            }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       NULL
+
+For example,  
+    
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, np.nan, np.nan]
+            }
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       NULL
+    2       8       NULL
+
+For example,  
+    
+    # rmul() demo on two dataframes using method version and fill_value = 10
+    fdf1.rmul(other = fdf2, fill_value = 10).show()
+
+Output  
+
+    index   points  total
+    0       10      70
+    1       18      110
+    2       32      100
+
+Here, only common columns in both dataframes are multiplied, excluding the missing values. The 
+fill_value = 10 is multiplied with column values in other dataframe (excluding the missing values) and 
+stored in new dataframe.  
+
+__Return Value__  
+It returns a frovedis DataFrame which contains the result of arithmetic operation.  
+
+### 14. rpow(other, axis = 'columns', level = None, fill_value = None)  
+
+__Parameters__  
+**_other_**: It can accept single or multiple element data structure like the following:  
+- Number  
+- List. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- pandas DataFrame. It must not be an empty dataframe.  
+- pandas Series  
+- frovedis DataFrame. It must not be an empty dataframe.  
+
+Any of these is considered as the value to perfomr exponential power operation with the current dataframe.  
+**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
+perform reverse exponential power operation along the indices or by column labels. (Default: 'columns')  
+- **1 or 'columns'**: perform reverse exponential power operation on the columns. Currently, axis = 1 is supported in this method.  
+
+**_level_**: This is an unused parameter. (Default: None)  
+**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
+new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
+When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).   
+
+__Purpose__  
+It performs reverse exponential power operation between two dataframes or dtaframe and scalar value. It is 
+equivalent to **'other ** dataframe'**.  
+
+**Currently, it does not perform reverse exponential power operation of scalar using operator version. Only 
+method version is supported.**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+            "points": [5, 6, 4],
+            "total": [10, 11, 12]
+           }
+    
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For example,  
+
+    # rpow() demo with scalar value using method version
+    fdf1.rpow(2).show()
+
+Output  
+
+    index   points  total
+    0       32      1024
+    1       64      2048
+    2       16      4096
+
+Here, it uses the scalar to perform exponential power operation on all column 
+elements in dataframe (axis = 1 by default).  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 =  {
+              "points": [5, 6, 4],
+              "total": [10, 11, 12]
+            }
+    
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For example,  
+
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, 9, 11]
+            }    
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+    
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       9
+    2       8       11
+
+For example,  
+
+    # rpow() demo on two dataframes using method version
+    fdf1.rpow(other = fdf2).show()
+
+Output  
+
+    index   points  total
+    0       10      70
+    1       18      99
+    2       32      132
+
+Here, exponential power operation is performed on only common columns in both 
+dataframes. Other are replaced with NaN values in resultant dataframe (fill_value = None by default).  
+
+**When fill_value is not None,**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, np.nan]
+            }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       NULL
+
+For example,  
+    
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, np.nan, np.nan]
+            }
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       NULL
+    2       8       NULL
+
+For example,  
+    
+    # rpow() demo on two dataframes using method version and fill_value = 10
+    fdf1.rpow(other = fdf2, fill_value = 10).show()
+
+Output  
+
+    index   points  total
+    0       32      2.82475e+08
+    1       729     9.99999e+10
+    2       4096    1.00000e+10
+
+Here, exponential power operation is performed on only common columns in both dataframes, excluding 
+the missing values. The fill_value = 10 is used to perform exponential power operation on column values 
+in other dataframe (excluding the missing values) and stored in new dataframe.  
+
+__Return Value__  
+It returns a frovedis DataFrame which contains the result of arithmetic operation.  
+
+### 15. rsub(other, axis = 'columns', level = None, fill_value = None)  
+
+__Parameters__  
+**_other_**: It can accept single or multiple element data structure like the following:  
+- Number  
+- List. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- pandas DataFrame. It must not be an empty dataframe.  
+- pandas Series  
+- frovedis DataFrame. It must not be an empty dataframe.  
+
+Any of these is considered as the value to be subtracted with the current dataframe.  
+**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
+perform reverse subtraction operation along the indices or by column labels. (Default: 'columns')  
+- **1 or 'columns'**: perform reverse subtraction operation on the columns. Currently, axis = 1 is supported in this method.  
+
+**_level_**: This is an unused parameter. (Default: None)  
+**_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
+new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
+When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).   
+
+__Purpose__  
+It performs reverse subtraction operation between two dataframes or dataframe and scalar value. It is 
+equivalent to **'other - dataframe'**.  
+
+**Currently, it does not perform reverse subtraction of scalar using operator version. Only method version is supported.*8  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 =  {
+              "points": [5, 6, 4],
+              "total": [10, 11, 12]
+            }
+    
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+  
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+    
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For example,  
+
+    # rsub() with scalar value using method version
+    fdf1.rsub(10).show()
+
+Output  
+
+    index   points  total
+    0       5       0
+    1       4       -1
+    2       6       -2
+
+Here, it subtracts the scalar to all columns in dataframe (axis = 1 by default).  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 =  {
+              "points": [5, 6, 4],
+              "total": [10, 11, 12]
+            }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       12
+
+For example,  
+
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, 9, 11]
+            }
+
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+    
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       9
+    2       8       11
+
+For example,  
+
+    # rsub() on two dataframes using method version
+    fdf1.rsub(other = fdf2).show()
+
+Output  
+
+    index   points  total
+    0       -3      -3
+    1       -3      -2
+    2       4       -1
+
+Here, only common columns in both dataframes are subtracted. Other are replaced with 
+NaN values in resultant dataframe (fill_value = None by default).  
+
+**When fill_value is not None,**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, np.nan]
+            }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(data1)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   points  total
+    0       5       10
+    1       6       11
+    2       4       NULL
+
+For example,  
+    
+    # a dictionary
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, np.nan, np.nan]
+            }
+    
+    # create pandas dataframe
+    pdf2 = pd.DataFrame(data2)
+    
+    # create frovedis dataframe
+    fdf2 = fdf.DataFrame(pdf2)
+
+    # display the frovedis dataframe
+    fdf2.show()
+
+Output  
+
+    index   points  total
+    0       2       7
+    1       3       NULL
+    2       8       NULL
+
+For example,  
+    
+    # rsub() on two dataframes using method version and fill_value = 10
+    fdf1.rsub(other = fdf2, fill_value = 10).show()
+
+Output  
+
+    index   points  total
+    0       -3      -3
+    1       -3      -1
+    2       4       0
+
+Here, only common columns in both dataframes are subtracted, excluding the missing values. The 
+fill_value = 10 is subtracted on column values in other dataframe (excluding the missing values) and 
+stored in new dataframe.  
+
+__Return Value__  
+It returns a frovedis DataFrame which contains the result of arithmetic operation.  
+
 ### 16. rtruediv(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
@@ -3334,7 +3339,7 @@ __Purpose__
 It performs reverse floating division operation between two dataframes or dtaframe and scalar value. It is 
 equivalent to **'other / dataframe'**.  
 
-Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.  
+**Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.**  
 
 For example,  
 
@@ -3513,3 +3518,11 @@ is divided with column values in other dataframe (excluding the missing values) 
 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
+
+# SEE ALSO
+
+- **[DataFrame - Introduction](./DataFrame_Introduction.md)**  
+- **[DataFrame - Selection and Combinations](./DataFrame_SelectionAndCombinations.md)**  
+- **[DataFrame - Conversion, Missing data handling, Sorting Functions](./DataFrame_ConversionAndSorting.md)**  
+- **[DataFrame - Function Application, Groupby](./DataFrame_FunctionApplicationGroupby.md)**  
+- **[DataFrame - Aggregate Functions](./DataFrame_AggregateFunctions.md)**  

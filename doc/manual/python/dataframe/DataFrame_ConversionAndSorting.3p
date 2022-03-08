@@ -1,13 +1,40 @@
 .TH "DataFrame Conversion and Sorting Functions" "" "" "" ""
 .SH NAME
 .PP
-DataFrame Conversion and Sorting Functions \- functions related to
-conversion of datatypes and sorting are illustrated here.
+DataFrame Conversion and Sorting Functions \- this manual is related to
+conversion of datatypes and sorting which are being illustrated here.
 .SS SYNOPSIS
 .IP
 .nf
 \f[C]
 frovedis.dataframe.df.DataFrame(df\ =\ None,\ is_series\ =\ False)\ \ 
+\f[]
+.fi
+.SS Public Member Functions
+.IP
+.nf
+\f[C]
+1.\ asDF(df)
+2.\ astype(dtype,\ copy\ =\ True,\ errors\ =\ \[aq]raise\[aq],\ check_bool_like_string\ =\ False)
+3.\ copy(deep\ =\ True)
+4.\ dropna(axis\ =\ 0,\ how\ =\ \[aq]any\[aq],\ thresh\ =\ None,\ subset\ =\ None,\ inplace\ =\ False)
+5.\ fillna(value\ =\ None,\ method\ =\ None,\ axis\ =\ None,\ inplace\ =\ False,\ limit\ =\ None,\ downcast\ =\ None)
+6.\ isna()
+7.\ isnull()
+8.\ nlargest(n,\ columns,\ keep\ =\ \[aq]first\[aq])
+9.\ nsmallest(n,\ columns,\ keep\ =\ \[aq]first\[aq])
+10.\ nsort(n,\ columns,\ keep\ =\ \[aq]first\[aq],\ is_desc\ =\ False)
+11.\ sort(columns\ =\ None,\ axis\ =\ 0,\ ascending\ =\ True,\ inplace\ =\ False,\ kind\ =\ \[aq]radixsort\[aq],\ 
+\ \ \ \ \ \ \ \ \ na\\_position\ =\ \[aq]last\[aq],\ \\*\\*kwargs)
+12.\ sort_index(axis\ =\ 0,\ ascending\ =\ True,\ inplace\ =\ False,\ kind\ =\ \[aq]quicksort\[aq],\ na\\_position\ =\ \[aq]last\[aq])
+13.\ sort_values(by,\ axis\ =\ 0,\ ascending\ =\ True,\ inplace\ =\ False,\ kind\ =\ \[aq]radixsort\[aq],\ na\\_position\ =\ \[aq]last\[aq])
+14.\ to_dict(orient\ =\ "dict",\ into\ =\ dict)
+15.\ to_numpy(dtype\ =\ None,\ copy\ =\ False,\ na_value\ =\ None)
+16.\ to_pandas()
+17.\ to_frovedis_rowmajor_matrix(t_cols,\ dtype\ =\ np.float32)
+18.\ to_frovedis_colmajor_matrix(t_cols,\ dtype\ =\ np.float32)
+19.\ to_frovedis_crs_matrix(t_cols,\ cat_cols,\ dtype\ =\ np.float32,\ need_info\ =\ False)
+20.\ to_frovedis_crs_matrix_using_info(info,\ dtype\ =\ np.float32)
 \f[]
 .fi
 .SS Detailed Description
@@ -253,13 +280,13 @@ pd_df\ =\ pd.DataFrame(peopleDF)
 #\ converting\ to\ frovedis\ dataframe
 fd_df\ =\ fdf.DataFrame(pd_df)
 
-#display\ the\ dataframes
+#\ display\ the\ dataframes
 fd_df.show()
 
 #\ display\ the\ datatype
 print(fd_df.dtypes)
 
-#display\ the\ dataframes
+#\ display\ the\ dataframes
 fd_df.astype({\[aq]isMale\[aq]:\[aq]bool\[aq]},\ check_bool_like_string\ =\ True).show()
 
 #\ display\ the\ datatype
@@ -1131,469 +1158,7 @@ corresponding to each of the Frovedis DataFrame value depending of
 whether it is a valid NaN (True i.e.
 1) value or not (False i.e.
 0).
-.SS 8. groupby(by = None, axis = 0, level = None, as_index = True, sort
-= True, group_keys = True, squeeze = False, observed = False, dropna =
-True)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]by\f[]\f[]: It accepts a string object or an iterable to
-determine the groups on which groupby operation will be applied.
-Currently, gropuby operation will be applied along the index levels.
-It must be provided, otherwise it will raise an exception.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[B]\f[I]axis\f[]\f[]: It accepts an integer as parameter.
-It is used to decide whether to perform groupby operation along the
-indices or by column labels.
-(Default: 0)
-.PD 0
-.P
-.PD
-\f[B]Currently, axis = 0 is supported by this method.\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]level\f[]\f[]: This is an unused parameter.
-(Default: None)
-.PD 0
-.P
-.PD
-\f[I]\f[B]as_index\f[]\f[]: This is an unused parameter.
-(Default: True)
-.PD 0
-.P
-.PD
-\f[I]\f[B]sort\f[]\f[]: This is an unused parameter.
-(Default: True)
-.PD 0
-.P
-.PD
-\f[I]\f[B]group_keys\f[]\f[]: This is an unused parameter.
-(Default: True)
-.PD 0
-.P
-.PD
-\f[I]\f[B]squeeze\f[]\f[]: This is an unused parameter.
-(Default: False)
-.PD 0
-.P
-.PD
-\f[I]\f[B]observed\f[]\f[]: This is an unused parameter.
-(Default: False)
-.PD 0
-.P
-.PD
-\f[I]\f[B]dropna\f[]\f[]: It accepts a boolean parameter.
-It is used to remove missing values (NaNs) from the frovedis DataFrame
-during groupby operation.
-Currently, it removes missing values along the index levels.
-(Default: True)
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-This method can be used to group large amounts of data and compute
-operations on these groups.
-.PP
-The parameters: "level", "as_index", "sort", "group_keys", "squeeze" and
-"observed" is simply kept in to make the interface uniform to the pandas
-DataFrame.groupby().
-.PD 0
-.P
-.PD
-This is not used anywhere within the frovedis implementation.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import\ pandas\ as\ pd
-import\ numpy\ as\ np
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ dictionary
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:\ [\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:\ [27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:\ [\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:\ [\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ np.nan,\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ np.nan],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
-\ \ \ \ \ \ \ \ \ \ \ }
-
-#\ create\ pandas\ dataframe
-pdf1\ =\ pd.DataFrame(peopleDF)
-
-#\ create\ frovedis\ dataframe
-fdf1\ =\ fdf.DataFrame(pdf1)
-
-#\ display\ the\ frovedis\ dataframe
-fdf1.show()
-\ \ \ \ 
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ Name\ \ \ \ Age\ \ \ City\ \ \ \ \ \ \ Qualification\ \ Score
-0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 23
-1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 34
-2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ 35
-3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ Kannuaj\ \ \ \ NULL\ \ \ \ \ \ \ \ \ \ \ 45
-4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ NULL
-5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ 50
-6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ 52
-7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ Kanpur\ \ \ \ \ NULL\ \ \ \ \ \ \ \ \ \ \ NULL
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ groupby()\ demo
-fdf1.groupby(\[aq]Qualification\[aq])
-\f[]
-.fi
-.PP
-This will perform groupby operation on the dataframe over
-\f[B]\[aq]Qualification\[aq]\f[] column data.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ groupby()\ demo\ to\ perform\ aggregation\ on\ resultant\ grouped\ dataframe
-#\ Also,\ dropna\ =\ True\ by\ default
-fdf1.groupby(\[aq]Qualification\[aq],\ dropna\ =\ True).agg({\[aq]Score\[aq]:\ \[aq]count\[aq]})
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-Qualification\ \ \ count_Score
-B.Tech\ \ 3
-Phd\ \ \ \ \ 2
-\f[]
-.fi
-.PP
-Here, it excludes \f[B]NULL\f[] group since missing values were dropped
-during groupby().
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ groupby()\ demo\ to\ perform\ aggregation\ on\ resultant\ grouped\ dataframe
-#\ Also,\ dropna\ =\ False
-fdf1.groupby(\[aq]Qualification\[aq],\ dropna\ =\ False).agg({\[aq]Score\[aq]:\ \[aq]count\[aq]})
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-Qualification\ \ \ count_Score
-B.Tech\ \ 3
-Phd\ \ \ \ \ 2
-NULL\ \ \ \ 1
-\f[]
-.fi
-.PP
-Here, it includes \f[B]NULL\f[] as new group since missing values were
-not dropped during groupby().
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a FrovedisGroupedDataFrame instance.
-.SS 9. nsort(n, columns, keep=\[aq]first\[aq], is_desc=False)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]n\f[]\f[]: It accepts a positive integer parameter which
-represents the number of rows to return.
-.PD 0
-.P
-.PD
-\f[B]\f[I]columns\f[]\f[]: It accepts a string type or list of strings
-type parameter which represents the column label(s) to order by.
-.PD 0
-.P
-.PD
-\f[B]\f[I]keep\f[]\f[]: It accepts a string object parameter.
-This parameter is used when there are duplicate values.
-(Default: \[aq]first\[aq])
-.PD 0
-.P
-.PD
-1.
-\f[B]\[aq]first\[aq]\f[] : it prioritizes the first occurrence(s)
-.PD 0
-.P
-.PD
-2.
-\f[B]\[aq]last\[aq]\f[] : it prioritizes the last occurrence(s)
-.PD 0
-.P
-.PD
-3.
-\f[B]\[aq]all\[aq]\f[] : it is used to not drop any duplicates, even
-when it means selecting more than \f[B]n\f[] items.
-.PP
-\f[B]\f[I]is_desc\f[]\f[]: It accepts a boolean value as parameter.
-This parameter decides the order to sort the data.
-When this parameter is explicitly passed as True, it sorts the data into
-descending order.
-(Default: False)
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It is used to return the top \f[B]n\f[] rows ordered by the specified
-columns in ascending or descending order.
-The columns that are not specified are returned as well, but not used
-for ordering.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ example\ to\ use\ nsort\ with\ default\ parameters\ with\ n\ =\ 3\ and\ columns\ =\ \[aq]population\[aq]
-
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ In\ the\ following\ example,\ we\ will\ use\ nlargest()\ to\ select\ the\ three\ rows\ having\ the\ largest\ values\ in\ column\ “population”.
-pd_df\ =\ pd.DataFrame({\[aq]population\[aq]:\ [59000000,\ 65000000,\ 434000,\ 434000,\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 434000,\ 337000,\ 11300,\ 11300,\ 11300],
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]GDP\[aq]:\ [1937894,\ 2583560\ ,\ 12011,\ 4520,\ 12128,
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 17036,\ 182,\ 38,\ 311],
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]alpha\-2\[aq]:\ ["IT",\ "FR",\ "MT",\ "MV",\ "BN",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "IS",\ "NR",\ "TV",\ "AI"]},
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index=["Italy",\ "France",\ "Malta",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Maldives",\ "Brunei",\ "Iceland",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Nauru",\ "Tuvalu",\ "Anguilla"])
-fd_df\ =\ fdf.DataFrame(pd_df)
-
-#\ to\ display\ frovedis\ dataframe
-fd_df.show()
-
-#\ to\ display\ n\ largest\ rows\ according\ to\ given\ column
-fd_df.nsort(3,\ \[aq]population\[aq]).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ \ \ \ \ \ \ \ \ population\ \ \ \ \ \ GDP\ \ \ \ \ alpha\-2
-Italy\ \ \ \ \ \ \ \ \ \ \ 59000000\ \ \ \ \ \ \ \ 1937894\ IT
-France\ \ \ \ \ \ \ \ \ \ 65000000\ \ \ \ \ \ \ \ 2583560\ FR
-Malta\ \ \ \ \ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 12011\ \ \ MT
-Maldives\ \ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 4520\ \ \ \ MV
-Brunei\ \ \ \ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 12128\ \ \ BN
-Iceland\ \ \ \ \ \ \ \ \ 337000\ \ \ \ \ \ \ \ \ \ 17036\ \ \ IS
-Nauru\ \ \ \ \ \ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ \ \ 182\ \ \ \ \ NR
-Tuvalu\ \ \ \ \ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ TV
-Anguilla\ \ \ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
-
-index\ \ \ \ \ \ \ \ \ \ \ population\ \ \ \ \ \ GDP\ \ \ \ \ alpha\-2
-France\ \ \ \ \ \ \ \ \ \ 65000000\ \ \ \ \ \ \ \ 2583560\ FR
-Italy\ \ \ \ \ \ \ \ \ \ \ 59000000\ \ \ \ \ \ \ \ 1937894\ IT
-Malta\ \ \ \ \ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 12011\ \ \ MT
-
-index\ \ \ \ \ population\ \ \ GDP\ \ \ \ \ alpha\-2
-Italy\ \ \ \ \ 59000000\ \ \ \ \ 1937894\ IT
-France\ \ \ \ 65000000\ \ \ \ \ 2583560\ FR
-Malta\ \ \ \ \ 434000\ \ \ \ \ \ \ 12011\ \ \ MT
-Maldives\ \ 434000\ \ \ \ \ \ \ 4520\ \ \ \ MV
-Brunei\ \ \ \ 434000\ \ \ \ \ \ \ 12128\ \ \ BN
-Iceland\ \ \ 337000\ \ \ \ \ \ \ 17036\ \ \ IS
-Nauru\ \ \ \ \ 11300\ \ \ \ \ \ \ \ 182\ \ \ \ \ NR
-Tuvalu\ \ \ \ 11300\ \ \ \ \ \ \ \ 38\ \ \ \ \ \ TV
-Anguilla\ \ 11300\ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
-
-index\ \ \ \ \ population\ \ \ GDP\ \ \ \ \ alpha\-2
-Nauru\ \ \ \ \ 11300\ \ \ \ \ \ \ \ 182\ \ \ \ \ NR
-Tuvalu\ \ \ \ 11300\ \ \ \ \ \ \ \ 38\ \ \ \ \ \ TV
-Anguilla\ \ 11300\ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ example\ to\ show\ the\ behavior\ of\ nsort\ with\ keep\ =\ \[aq]last\[aq]
-
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ When\ using\ keep=\[aq]last\[aq],\ it\ will\ show\ the\ row\ only\ having\ last\ occurrence\ of\ the\ duplicate\ :
-pd_df\ =\ pd.DataFrame({\[aq]population\[aq]:\ [59000000,\ 65000000,\ 434000,\ 434000,\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 434000,\ 337000,\ 11300,\ 11300,\ 11300],
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]GDP\[aq]:\ [1937894,\ 2583560\ ,\ 12011,\ 4520,\ 12128,
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 17036,\ 182,\ 38,\ 311],
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]alpha\-2\[aq]:\ ["IT",\ "FR",\ "MT",\ "MV",\ "BN",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "IS",\ "NR",\ "TV",\ "AI"]},
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index=["Italy",\ "France",\ "Malta",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Maldives",\ "Brunei",\ "Iceland",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Nauru",\ "Tuvalu",\ "Anguilla"])
-fd_df\ =\ fdf.DataFrame(pd_df)
-
-#\ to\ display\ frovedis\ dataframe
-fd_df.show()
-
-fd_df.nsort(3,\ \[aq]population\[aq],\ keep=\[aq]last\[aq]).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ \ \ \ population\ \ \ \ GDP\ \ \ \ \ \ alpha\-2
-Italy\ \ \ \ \ \ 59000000\ \ \ \ \ \ 1937894\ \ IT
-France\ \ \ \ \ 65000000\ \ \ \ \ \ 2583560\ \ FR
-Malta\ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ 12011\ \ \ \ MT
-Maldives\ \ \ 434000\ \ \ \ \ \ \ \ 4520\ \ \ \ \ MV
-Brunei\ \ \ \ \ 434000\ \ \ \ \ \ \ \ 12128\ \ \ \ BN
-Iceland\ \ \ \ 337000\ \ \ \ \ \ \ \ 17036\ \ \ \ IS
-Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ \ NR
-Tuvalu\ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ \ TV
-Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ \ AI
-
-index\ \ \ \ \ \ population\ \ \ \ GDP\ \ \ \ \ \ alpha\-2
-Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ \ AI
-Tuvalu\ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ \ TV
-Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ \ NR
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ example\ to\ show\ the\ behavior\ of\ nsort\ with\ keep\ =\ \[aq]all\[aq]
-
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ When\ using\ keep=\[aq]all\[aq],\ all\ duplicate\ items\ are\ maintained:
-pd_df\ =\ pd.DataFrame({\[aq]population\[aq]:\ [59000000,\ 65000000,\ 434000,\ 434000,\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 434000,\ 337000,\ 11300,\ 11300,\ 11300],
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]GDP\[aq]:\ [1937894,\ 2583560\ ,\ 12011,\ 4520,\ 12128,
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 17036,\ 182,\ 38,\ 311],
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]alpha\-2\[aq]:\ ["IT",\ "FR",\ "MT",\ "MV",\ "BN",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "IS",\ "NR",\ "TV",\ "AI"]},
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index=["Italy",\ "France",\ "Malta",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Maldives",\ "Brunei",\ "Iceland",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Nauru",\ "Tuvalu",\ "Anguilla"])
-fd_df\ =\ fdf.DataFrame(pd_df)
-
-#\ to\ display\ frovedis\ dataframe
-fd_df.show()
-
-fd_df.nsort(3,\ \[aq]population\[aq],\ keep=\[aq]all\[aq]).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ \ \ \ population\ \ \ \ GDP\ \ \ \ \ \ alpha\-2
-Italy\ \ \ \ \ \ 59000000\ \ \ \ \ \ 1937894\ \ IT
-France\ \ \ \ \ 65000000\ \ \ \ \ \ 2583560\ \ FR
-Malta\ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ 12011\ \ \ \ MT
-Maldives\ \ \ 434000\ \ \ \ \ \ \ \ 4520\ \ \ \ \ MV
-Brunei\ \ \ \ \ 434000\ \ \ \ \ \ \ \ 12128\ \ \ \ BN
-Iceland\ \ \ \ 337000\ \ \ \ \ \ \ \ 17036\ \ \ \ IS
-Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ \ NR
-Tuvalu\ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ \ TV
-Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ \ AI
-
-index\ \ \ \ \ \ population\ \ \ \ GDP\ \ \ \ \ alpha\-2
-Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ NR
-Tuvalu\ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ TV
-Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
-\f[]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ example\ to\ show\ use\ of\ list\ of\ columns\ with\ nsort
-
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ To\ order\ by\ the\ largest\ values\ in\ column\ “population”\ and\ then\ “GDP”
-pd_df\ =\ pd.DataFrame({\[aq]population\[aq]:\ [59000000,\ 65000000,\ 434000,\ 434000,\ 
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 434000,\ 337000,\ 11300,\ 11300,\ 11300],
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]GDP\[aq]:\ [1937894,\ 2583560\ ,\ 12011,\ 4520,\ 12128,
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 17036,\ 182,\ 38,\ 311],
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]alpha\-2\[aq]:\ ["IT",\ "FR",\ "MT",\ "MV",\ "BN",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "IS",\ "NR",\ "TV",\ "AI"]},
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index=["Italy",\ "France",\ "Malta",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Maldives",\ "Brunei",\ "Iceland",
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Nauru",\ "Tuvalu",\ "Anguilla"])
-fd_df\ =\ fdf.DataFrame(pd_df)
-
-#\ to\ display\ frovedis\ dataframe
-fd_df.show()
-
-fd_df.nsort(3,\ [\[aq]population\[aq],\ \[aq]GDP\[aq]]).show()
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ \ \ \ population\ \ \ \ GDP\ \ \ \ \ \ alpha\-2
-Italy\ \ \ \ \ \ 59000000\ \ \ \ \ \ 1937894\ \ IT
-France\ \ \ \ \ 65000000\ \ \ \ \ \ 2583560\ \ FR
-Malta\ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ 12011\ \ \ \ MT
-Maldives\ \ \ 434000\ \ \ \ \ \ \ \ 4520\ \ \ \ \ MV
-Brunei\ \ \ \ \ 434000\ \ \ \ \ \ \ \ 12128\ \ \ \ BN
-Iceland\ \ \ \ 337000\ \ \ \ \ \ \ \ 17036\ \ \ \ IS
-Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ \ NR
-Tuvalu\ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ \ TV
-Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ \ AI
-
-index\ \ \ \ \ \ population\ \ \ \ GDP\ \ \ \ \ \ alpha\-2
-Tuvalu\ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ \ TV
-Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ \ NR
-Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ \ AI
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a Frovedis DataFrame object with \f[B]n\f[] rows ordered by
-the specified columns in ascending or descending order.
-.SS 10. nlargest(n, columns, keep = \[aq]first\[aq])
+.SS 8. nlargest(n, columns, keep = \[aq]first\[aq])
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -1615,18 +1180,15 @@ This parameter is used when there are duplicate values.
 .PD 0
 .P
 .PD
-1.
-\f[B]\[aq]first\[aq]\f[] : it prioritizes the first occurrence(s)
+\- \f[B]\[aq]first\[aq]\f[] : it prioritizes the first occurrence(s).
 .PD 0
 .P
 .PD
-2.
-\f[B]\[aq]last\[aq]\f[] : it prioritizes the last occurrence(s)
+\- \f[B]\[aq]last\[aq]\f[] : it prioritizes the last occurrence(s).
 .PD 0
 .P
 .PD
-3.
-\f[B]\[aq]all\[aq]\f[] : it is used to not drop any duplicates, even
+\- \f[B]\[aq]all\[aq]\f[] : it is used to not drop any duplicates, even
 when it means selecting more than \f[B]n\f[] items.
 .PP
 \f[B]Purpose\f[]
@@ -1850,7 +1412,7 @@ Brunei\ \ \ \ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 12128\ \ \ BN
 .PD
 It returns a Frovedis DataFrame object with \f[B]n\f[] rows ordered by
 the specified columns in descending order.
-.SS 11. nsmallest(n, columns, keep = \[aq]first\[aq])
+.SS 9. nsmallest(n, columns, keep = \[aq]first\[aq])
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -2061,7 +1623,8 @@ For example,
 import\ pandas\ as\ pd
 import\ frovedis.dataframe\ as\ fdf
 
-#\ To\ order\ by\ the\ smallest\ values\ in\ column\ “population”\ and\ then\ “GDP”,\ we\ can\ specify\ multiple\ columns\ like\ in\ the\ next\ example.
+#\ To\ order\ by\ the\ smallest\ values\ in\ column\ “population”\ and\ then\ “GDP”,\ 
+#\ we\ can\ specify\ multiple\ columns\ like\ in\ the\ next\ example.
 pd_df\ =\ pd.DataFrame({\[aq]population\[aq]:\ [59000000,\ 65000000,\ 434000,
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 434000,\ 434000,\ 337000,\ 11300,
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 11300,\ 11300],
@@ -2110,7 +1673,279 @@ Anguilla\ \ \ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
 .PD
 It returns a Frovedis DataFrame object with \f[B]n\f[] rows ordered by
 the specified columns in ascending order.
-.SS 12. sort(columns = None, axis = 0, ascending = True, inplace =
+.SS 10. nsort(n, columns, keep = \[aq]first\[aq], is_desc = False)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]n\f[]\f[]: It accepts a positive integer parameter which
+represents the number of rows to return.
+.PD 0
+.P
+.PD
+\f[B]\f[I]columns\f[]\f[]: It accepts a string type or list of strings
+type parameter which represents the column label(s) to order by.
+.PD 0
+.P
+.PD
+\f[B]\f[I]keep\f[]\f[]: It accepts a string object parameter.
+This parameter is used when there are duplicate values.
+(Default: \[aq]first\[aq])
+.PD 0
+.P
+.PD
+\- \f[B]\[aq]first\[aq]\f[] : it prioritizes the first occurrence(s)
+.PD 0
+.P
+.PD
+\- \f[B]\[aq]last\[aq]\f[] : it prioritizes the last occurrence(s)
+.PD 0
+.P
+.PD
+\- \f[B]\[aq]all\[aq]\f[] : it is used to not drop any duplicates, even
+when it means selecting more than \f[B]n\f[] items.
+.PP
+\f[B]\f[I]is_desc\f[]\f[]: It accepts a boolean value as parameter.
+This parameter decides the order to sort the data.
+When this parameter is explicitly passed as True, it sorts the data into
+descending order.
+(Default: False)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It is used to return the top \f[B]n\f[] rows ordered by the specified
+columns in ascending or descending order.
+The columns that are not specified are returned as well, but not used
+for ordering.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ example\ to\ use\ nsort\ with\ default\ parameters\ with\ n\ =\ 3\ and\ columns\ =\ \[aq]population\[aq]
+
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ In\ the\ following\ example,\ we\ will\ use\ nlargest()\ to\ select\ the\ three\ rows\ 
+#\ having\ the\ largest\ values\ in\ column\ “population”.
+pd_df\ =\ pd.DataFrame({\[aq]population\[aq]:\ [59000000,\ 65000000,\ 434000,\ 434000,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 434000,\ 337000,\ 11300,\ 11300,\ 11300],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]GDP\[aq]:\ [1937894,\ 2583560\ ,\ 12011,\ 4520,\ 12128,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 17036,\ 182,\ 38,\ 311],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]alpha\-2\[aq]:\ ["IT",\ "FR",\ "MT",\ "MV",\ "BN",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "IS",\ "NR",\ "TV",\ "AI"]},
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index=["Italy",\ "France",\ "Malta",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Maldives",\ "Brunei",\ "Iceland",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Nauru",\ "Tuvalu",\ "Anguilla"])
+fd_df\ =\ fdf.DataFrame(pd_df)
+
+#\ to\ display\ frovedis\ dataframe
+fd_df.show()
+
+#\ to\ display\ n\ largest\ rows\ according\ to\ given\ column
+fd_df.nsort(3,\ \[aq]population\[aq]).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ \ \ \ \ \ \ \ \ population\ \ \ \ \ \ GDP\ \ \ \ \ alpha\-2
+Italy\ \ \ \ \ \ \ \ \ \ \ 59000000\ \ \ \ \ \ \ \ 1937894\ IT
+France\ \ \ \ \ \ \ \ \ \ 65000000\ \ \ \ \ \ \ \ 2583560\ FR
+Malta\ \ \ \ \ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 12011\ \ \ MT
+Maldives\ \ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 4520\ \ \ \ MV
+Brunei\ \ \ \ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 12128\ \ \ BN
+Iceland\ \ \ \ \ \ \ \ \ 337000\ \ \ \ \ \ \ \ \ \ 17036\ \ \ IS
+Nauru\ \ \ \ \ \ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ \ \ 182\ \ \ \ \ NR
+Tuvalu\ \ \ \ \ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ TV
+Anguilla\ \ \ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
+
+index\ \ \ \ \ \ \ \ \ \ \ population\ \ \ \ \ \ GDP\ \ \ \ \ alpha\-2
+France\ \ \ \ \ \ \ \ \ \ 65000000\ \ \ \ \ \ \ \ 2583560\ FR
+Italy\ \ \ \ \ \ \ \ \ \ \ 59000000\ \ \ \ \ \ \ \ 1937894\ IT
+Malta\ \ \ \ \ \ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ \ \ 12011\ \ \ MT
+
+index\ \ \ \ \ population\ \ \ GDP\ \ \ \ \ alpha\-2
+Italy\ \ \ \ \ 59000000\ \ \ \ \ 1937894\ IT
+France\ \ \ \ 65000000\ \ \ \ \ 2583560\ FR
+Malta\ \ \ \ \ 434000\ \ \ \ \ \ \ 12011\ \ \ MT
+Maldives\ \ 434000\ \ \ \ \ \ \ 4520\ \ \ \ MV
+Brunei\ \ \ \ 434000\ \ \ \ \ \ \ 12128\ \ \ BN
+Iceland\ \ \ 337000\ \ \ \ \ \ \ 17036\ \ \ IS
+Nauru\ \ \ \ \ 11300\ \ \ \ \ \ \ \ 182\ \ \ \ \ NR
+Tuvalu\ \ \ \ 11300\ \ \ \ \ \ \ \ 38\ \ \ \ \ \ TV
+Anguilla\ \ 11300\ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
+
+index\ \ \ \ \ population\ \ \ GDP\ \ \ \ \ alpha\-2
+Nauru\ \ \ \ \ 11300\ \ \ \ \ \ \ \ 182\ \ \ \ \ NR
+Tuvalu\ \ \ \ 11300\ \ \ \ \ \ \ \ 38\ \ \ \ \ \ TV
+Anguilla\ \ 11300\ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ example\ to\ show\ the\ behavior\ of\ nsort\ with\ keep\ =\ \[aq]last\[aq]
+
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ When\ using\ keep=\[aq]last\[aq],\ it\ will\ show\ the\ row\ only\ having\ last\ occurrence\ of\ the\ duplicate\ :
+pd_df\ =\ pd.DataFrame({\[aq]population\[aq]:\ [59000000,\ 65000000,\ 434000,\ 434000,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 434000,\ 337000,\ 11300,\ 11300,\ 11300],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]GDP\[aq]:\ [1937894,\ 2583560\ ,\ 12011,\ 4520,\ 12128,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 17036,\ 182,\ 38,\ 311],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]alpha\-2\[aq]:\ ["IT",\ "FR",\ "MT",\ "MV",\ "BN",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "IS",\ "NR",\ "TV",\ "AI"]},
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index=["Italy",\ "France",\ "Malta",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Maldives",\ "Brunei",\ "Iceland",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Nauru",\ "Tuvalu",\ "Anguilla"])
+fd_df\ =\ fdf.DataFrame(pd_df)
+
+#\ to\ display\ frovedis\ dataframe
+fd_df.show()
+
+fd_df.nsort(3,\ \[aq]population\[aq],\ keep=\[aq]last\[aq]).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ \ \ \ population\ \ \ \ GDP\ \ \ \ \ \ alpha\-2
+Italy\ \ \ \ \ \ 59000000\ \ \ \ \ \ 1937894\ \ IT
+France\ \ \ \ \ 65000000\ \ \ \ \ \ 2583560\ \ FR
+Malta\ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ 12011\ \ \ \ MT
+Maldives\ \ \ 434000\ \ \ \ \ \ \ \ 4520\ \ \ \ \ MV
+Brunei\ \ \ \ \ 434000\ \ \ \ \ \ \ \ 12128\ \ \ \ BN
+Iceland\ \ \ \ 337000\ \ \ \ \ \ \ \ 17036\ \ \ \ IS
+Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ \ NR
+Tuvalu\ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ \ TV
+Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ \ AI
+
+index\ \ \ \ \ \ population\ \ \ \ GDP\ \ \ \ \ \ alpha\-2
+Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ \ AI
+Tuvalu\ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ \ TV
+Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ \ NR
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ example\ to\ show\ the\ behavior\ of\ nsort\ with\ keep\ =\ \[aq]all\[aq]
+
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ When\ using\ keep=\[aq]all\[aq],\ all\ duplicate\ items\ are\ maintained:
+pd_df\ =\ pd.DataFrame({\[aq]population\[aq]:\ [59000000,\ 65000000,\ 434000,\ 434000,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 434000,\ 337000,\ 11300,\ 11300,\ 11300],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]GDP\[aq]:\ [1937894,\ 2583560\ ,\ 12011,\ 4520,\ 12128,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 17036,\ 182,\ 38,\ 311],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]alpha\-2\[aq]:\ ["IT",\ "FR",\ "MT",\ "MV",\ "BN",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "IS",\ "NR",\ "TV",\ "AI"]},
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index=["Italy",\ "France",\ "Malta",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Maldives",\ "Brunei",\ "Iceland",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Nauru",\ "Tuvalu",\ "Anguilla"])
+fd_df\ =\ fdf.DataFrame(pd_df)
+
+#\ to\ display\ frovedis\ dataframe
+fd_df.show()
+
+fd_df.nsort(3,\ \[aq]population\[aq],\ keep=\[aq]all\[aq]).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ \ \ \ population\ \ \ \ GDP\ \ \ \ \ \ alpha\-2
+Italy\ \ \ \ \ \ 59000000\ \ \ \ \ \ 1937894\ \ IT
+France\ \ \ \ \ 65000000\ \ \ \ \ \ 2583560\ \ FR
+Malta\ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ 12011\ \ \ \ MT
+Maldives\ \ \ 434000\ \ \ \ \ \ \ \ 4520\ \ \ \ \ MV
+Brunei\ \ \ \ \ 434000\ \ \ \ \ \ \ \ 12128\ \ \ \ BN
+Iceland\ \ \ \ 337000\ \ \ \ \ \ \ \ 17036\ \ \ \ IS
+Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ \ NR
+Tuvalu\ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ \ TV
+Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ \ AI
+
+index\ \ \ \ \ \ population\ \ \ \ GDP\ \ \ \ \ alpha\-2
+Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ NR
+Tuvalu\ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ TV
+Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ AI
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ example\ to\ show\ use\ of\ list\ of\ columns\ with\ nsort
+
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ To\ order\ by\ the\ largest\ values\ in\ column\ “population”\ and\ then\ “GDP”
+pd_df\ =\ pd.DataFrame({\[aq]population\[aq]:\ [59000000,\ 65000000,\ 434000,\ 434000,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 434000,\ 337000,\ 11300,\ 11300,\ 11300],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]GDP\[aq]:\ [1937894,\ 2583560\ ,\ 12011,\ 4520,\ 12128,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 17036,\ 182,\ 38,\ 311],
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]alpha\-2\[aq]:\ ["IT",\ "FR",\ "MT",\ "MV",\ "BN",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "IS",\ "NR",\ "TV",\ "AI"]},
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index=["Italy",\ "France",\ "Malta",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Maldives",\ "Brunei",\ "Iceland",
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Nauru",\ "Tuvalu",\ "Anguilla"])
+fd_df\ =\ fdf.DataFrame(pd_df)
+
+#\ to\ display\ frovedis\ dataframe
+fd_df.show()
+
+fd_df.nsort(3,\ [\[aq]population\[aq],\ \[aq]GDP\[aq]]).show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ \ \ \ population\ \ \ \ GDP\ \ \ \ \ \ alpha\-2
+Italy\ \ \ \ \ \ 59000000\ \ \ \ \ \ 1937894\ \ IT
+France\ \ \ \ \ 65000000\ \ \ \ \ \ 2583560\ \ FR
+Malta\ \ \ \ \ \ 434000\ \ \ \ \ \ \ \ 12011\ \ \ \ MT
+Maldives\ \ \ 434000\ \ \ \ \ \ \ \ 4520\ \ \ \ \ MV
+Brunei\ \ \ \ \ 434000\ \ \ \ \ \ \ \ 12128\ \ \ \ BN
+Iceland\ \ \ \ 337000\ \ \ \ \ \ \ \ 17036\ \ \ \ IS
+Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ \ NR
+Tuvalu\ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ \ TV
+Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ \ AI
+
+index\ \ \ \ \ \ population\ \ \ \ GDP\ \ \ \ \ \ alpha\-2
+Tuvalu\ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 38\ \ \ \ \ \ \ TV
+Nauru\ \ \ \ \ \ 11300\ \ \ \ \ \ \ \ \ 182\ \ \ \ \ \ NR
+Anguilla\ \ \ 11300\ \ \ \ \ \ \ \ \ 311\ \ \ \ \ \ AI
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a Frovedis DataFrame object with \f[B]n\f[] rows ordered by
+the specified columns in ascending or descending order.
+.SS 11. sort(columns = None, axis = 0, ascending = True, inplace =
 False, kind = \[aq]radixsort\[aq], na_position = \[aq]last\[aq],
 **kwargs)
 .PP
@@ -2349,7 +2184,7 @@ index\ \ \ col1\ \ \ \ col2\ \ \ \ col3\ \ \ \ col4
 .P
 .PD
 It returns a new Frovedis DataFrame with sorted values.
-.SS 13. sort_index(axis = 0, ascending = True, inplace = False, kind =
+.SS 12. sort_index(axis = 0, ascending = True, inplace = False, kind =
 \[aq]quicksort\[aq], na_position = \[aq]last\[aq])
 .PP
 \f[B]Parameters\f[]
@@ -2505,7 +2340,7 @@ index\ \ \ A
 .P
 .PD
 It returns a new Frovedis DataFrame sorted by the labels.
-.SS 14. sort_values(by, axis = 0, ascending = True, inplace = False,
+.SS 13. sort_values(by, axis = 0, ascending = True, inplace = False,
 kind = \[aq]radixsort\[aq], na_position = \[aq]last\[aq])
 .PP
 \f[B]Parameters\f[]
@@ -2733,7 +2568,7 @@ index\ \ \ col1\ \ \ \ col2\ \ \ \ col3\ \ \ \ col4
 .P
 .PD
 It returns a new Frovedis DataFrame with sorted values.
-.SS 15. to_dict(orient = "dict", into = dict)
+.SS 14. to_dict(orient = "dict", into = dict)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -2844,7 +2679,259 @@ OrderedDict([(\[aq]index\[aq],\ array([\[aq]row1\[aq],\ \[aq]row2\[aq]],\ dtype=
 .PD
 It returns a dictionary representing the Frovedis DataFrame.
 The resulting transformation depends on the \[aq]orient\[aq] parameter.
-.SS 16. to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)
+.SS 15. to_numpy(dtype = None, copy = False, na_value = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]dtype\f[]\f[] : It accepts the dtype parameter which decides
+the datatype of numpy ndarray.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it will be set as double
+(float64).
+.PD 0
+.P
+.PD
+\f[B]\f[I]copy\f[]\f[] : This is an unused parameter.
+(Default: False)
+.PD 0
+.P
+.PD
+\f[B]\f[I]na_value\f[]\f[] : This is an unused parameter.
+(Default: None)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method is used to convert a frovedis dataframe into a numpy array.
+.PP
+The parameters: "copy" and "na_value" are simply kept in to make the
+interface uniform to the pandas DataFrame.to_numpy().
+.PD 0
+.P
+.PD
+This is not used anywhere within the frovedis implementation.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ example\ to\ convert\ a\ frovedis\ dataframe\ into\ numpy
+
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ python\ dict
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Ename\[aq]\ :\ [\[aq]Michael\[aq],\ \[aq]Andy\[aq],\ \[aq]Tanaka\[aq],\ \[aq]Raul\[aq],\ \[aq]Yuta\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]\ :\ [29,\ 30,\ 27,\ 19,\ 31],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Country\[aq]\ :\ [\[aq]USA\[aq],\ \[aq]England\[aq],\ \[aq]Japan\[aq],\ \[aq]France\[aq],\ \[aq]Japan\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]isMale\[aq]:\ [False,\ False,\ False,\ False,\ True]
+\ \ \ \ \ \ \ \ \ \ \ }
+
+#\ a\ pandas\ dataframe\ object\ from\ dict
+pd_df\ =\ pd.DataFrame(peopleDF)
+#\ to\ create\ a\ frovedis\ dataframe\ object
+fd_df\ =\ fdf.DataFrame(pd_df)
+
+#\ below\ will\ display\ a\ Frovedis\ dataframe\ type
+print(type(fd_df))
+
+#\ display\ frovedis\ dataframe
+fd_df.show()
+
+#\ below\ will\ display\ a\ numpy\ array\ type
+print(type(fd_df.to_numpy()))
+
+#\ below\ will\ display\ a\ numpy\ array\ type
+print(fd_df.to_numpy())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+<class\ \[aq]frovedis.dataframe.df.DataFrame\[aq]>
+
+index\ \ \ Ename\ \ \ Age\ \ \ \ \ Country\ isMale
+0\ \ \ \ \ \ \ Michael\ 29\ \ \ \ \ \ USA\ \ \ \ \ 0
+1\ \ \ \ \ \ \ Andy\ \ \ \ 30\ \ \ \ \ \ England\ 0
+2\ \ \ \ \ \ \ Tanaka\ \ 27\ \ \ \ \ \ Japan\ \ \ 0
+3\ \ \ \ \ \ \ Raul\ \ \ \ 19\ \ \ \ \ \ France\ \ 0
+4\ \ \ \ \ \ \ Yuta\ \ \ \ 31\ \ \ \ \ \ Japan\ \ \ 1
+
+<<class\ \[aq]numpy.ndarray\[aq]>
+
+[[\[aq]Michael\[aq]\ \[aq]29\[aq]\ \[aq]USA\[aq]\ \[aq]0\[aq]]
+\ [\[aq]Andy\[aq]\ \[aq]30\[aq]\ \[aq]England\[aq]\ \[aq]0\[aq]]
+\ [\[aq]Tanaka\[aq]\ \[aq]27\[aq]\ \[aq]Japan\[aq]\ \[aq]0\[aq]]
+\ [\[aq]Raul\[aq]\ \[aq]19\[aq]\ \[aq]France\[aq]\ \[aq]0\[aq]]
+\ [\[aq]Yuta\[aq]\ \[aq]31\[aq]\ \[aq]Japan\[aq]\ \[aq]1\[aq]]]
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a numpy ndarray that represents a Frovedis DataFrame.
+It has shape (nRows , nCols).
+.SS 16. to_pandas()
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It converts a Frovedis DataFrame instance into a pandas dataframe
+instance.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ example\ to\ convert\ frovedis\ dataframe\ to\ pandas\ dataframe
+
+import\ pandas\ as\ pd
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ python\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Ename\[aq]\ :\ [\[aq]Michael\[aq],\ \[aq]Andy\[aq],\ \[aq]Tanaka\[aq],\ \[aq]Raul\[aq],\ \[aq]Yuta\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]\ :\ [29,\ 30,\ 27,\ 19,\ 31],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Country\[aq]\ :\ [\[aq]USA\[aq],\ \[aq]England\[aq],\ \[aq]Japan\[aq],\ \[aq]France\[aq],\ \[aq]Japan\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]isMale\[aq]:\ [False,\ False,\ False,\ False,\ True]
+\ \ \ \ \ \ \ \ \ \ \ }
+#\ creating\ a\ pandas\ dataframe\ from\ python\ dict
+pd_df\ =\ pd.DataFrame(peopleDF)
+
+#\ creating\ a\ Frovedis\ dataframe\ from\ pandas\ dataframe
+fd_df\ =\ fdf.DataFrame(pd_df)
+
+#\ below\ will\ display\ a\ Frovedis\ dataframe\ type
+print(type(fd_df))
+
+#\ below\ will\ display\ a\ Frovedis\ dataframe
+fd_df.show()
+
+#\ below\ will\ display\ a\ pandas\ dataframe\ type\ after\ conversion
+print(type(fd_df.to_pandas()))
+
+#\ below\ will\ display\ a\ pandas\ dataframe\ after\ conversion
+print(fd_df.to_pandas())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+<class\ \[aq]frovedis.dataframe.df.DataFrame\[aq]>
+
+index\ \ \ Ename\ \ \ Age\ \ \ \ \ Country\ isMale
+0\ \ \ \ \ \ \ Michael\ 29\ \ \ \ \ \ USA\ \ \ \ \ 0
+1\ \ \ \ \ \ \ Andy\ \ \ \ 30\ \ \ \ \ \ England\ 0
+2\ \ \ \ \ \ \ Tanaka\ \ 27\ \ \ \ \ \ Japan\ \ \ 0
+3\ \ \ \ \ \ \ Raul\ \ \ \ 19\ \ \ \ \ \ France\ \ 0
+4\ \ \ \ \ \ \ Yuta\ \ \ \ 31\ \ \ \ \ \ Japan\ \ \ 1\ \ \ 
+
+<class\ \[aq]pandas.core.frame.DataFrame\[aq]>
+
+index\ \ Ename\ \ Age\ \ Country\ \ isMale
+0\ \ \ \ \ \ Michael\ \ \ 29\ \ \ \ \ \ USA\ \ \ False
+1\ \ \ \ \ \ \ \ \ Andy\ \ \ 30\ \ England\ \ \ False
+2\ \ \ \ \ \ \ Tanaka\ \ \ 27\ \ \ \ Japan\ \ \ False
+3\ \ \ \ \ \ \ \ \ Raul\ \ \ 19\ \ \ France\ \ \ False
+4\ \ \ \ \ \ \ \ \ Yuta\ \ \ 31\ \ \ \ Japan\ \ \ \ True\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a pandas dataframe instance after suitable conversion.
+.SS 17. to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]t_cols\f[]\f[]: It accepts a list of string type argument
+where each of the member of the list is the name of the column labels.
+.PD 0
+.P
+.PD
+\f[B]\f[I]dtype\f[]\f[]: It accepts a dtype type argument which is the
+type of the resultant values.
+.PD 0
+.P
+.PD
+Currently only float32 and float64 types are supported.
+(Default: np.float32)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method is used to convert a Frovedis DataFrame into
+FrovedisRowmajorMatrix instance.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ example\ to\ convert\ frovedis\ dataframe\ into\ frovedis\ row\ major\ matrix
+
+import\ frovedis.dataframe\ as\ fdf
+import\ numpy\ as\ np
+
+#\ read_csv\ demo\ to\ get\ values
+df\ =\ fdf.read_csv("./input/numbers.csv",\ names\ =\ [\[aq]one\[aq],\ \[aq]two\[aq],\ \[aq]three\[aq],\ \[aq]four\[aq]])
+
+#\ display\ frovedis\ dataframe
+df.show()
+
+row_mat\ =\ df.to_frovedis_rowmajor_matrix([\[aq]one\[aq],\ \[aq]two\[aq]],\ dtype\ =\ np.float64)
+
+#\ display\ row_mat\ (row\ major\ matrix)
+row_mat.debug_print()
+
+#\ display\ type\ of\ row_mat
+print(type(row_mat))
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ one\ \ \ \ \ two\ \ \ \ \ three\ \ \ four
+0\ \ \ \ \ \ \ 10\ \ \ \ \ \ 10.23\ \ \ F\ \ \ \ \ \ \ 0
+1\ \ \ \ \ \ \ 12\ \ \ \ \ \ 12.2\ \ \ \ F\ \ \ \ \ \ \ 0
+2\ \ \ \ \ \ \ 13\ \ \ \ \ \ 34.8999\ D\ \ \ \ \ \ \ 1
+3\ \ \ \ \ \ \ 15\ \ \ \ \ \ 100.12\ \ A\ \ \ \ \ \ \ 2
+
+<class\ \[aq]frovedis.matrix.dense.FrovedisRowmajorMatrix\[aq]>
+
+matrix:
+num_row\ =\ 4,\ num_col\ =\ 2
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 4,\ local_num_col\ =\ 2,\ val\ =\ 10\ 10.23\ 12\ 12.2\ 13\ 34.9\ 15\ 100.12
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a FrovedisRowmajorMatrix instance after suitable conversion.
+.SS 18. to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -2916,7 +3003,7 @@ node\ =\ 0,\ local_num_row\ =\ 4,\ local_num_col\ =\ 2,\ val\ =\ 10\ 12\ 13\ 15\
 .PD
 It returns a FrovedisColmajorMatrix instance after converting the
 original Frovedis DataFrame.
-.SS 17. to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32,
+.SS 19. to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32,
 need_info = False)
 .PP
 \f[B]Parameters\f[]
@@ -3026,7 +3113,7 @@ off\ :\ 0\ 3\ 6\ 9\ 12
 .PD
 It returns a FrovedisCRSMatrix instance after converting the original
 Frovedis DataFrame.
-.SS 18. to_frovedis_crs_matrix_using_info(info, dtype = np.float32)
+.SS 20. to_frovedis_crs_matrix_using_info(info, dtype = np.float32)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -3104,259 +3191,29 @@ off\ :\ 0\ 3\ 6\ 9\ 12
 .P
 .PD
 It returns a FrovedisCRSMatrix after converting Frovedis DataFrame.
-.SS 19. to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]t_cols\f[]\f[]: It accepts a list of string type argument
-where each of the member of the list is the name of the column labels.
-.PD 0
-.P
-.PD
-\f[B]\f[I]dtype\f[]\f[]: It accepts a dtype type argument which is the
-type of the resultant values.
-.PD 0
-.P
-.PD
-Currently only float32 and float64 types are supported.
-(Default: np.float32)
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-This method is used to convert a Frovedis DataFrame into
-FrovedisRowmajorMatrix instance.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ example\ to\ convert\ frovedis\ dataframe\ into\ frovedis\ row\ major\ matrix
-
-import\ frovedis.dataframe\ as\ fdf
-import\ numpy\ as\ np
-
-#\ read_csv\ demo\ to\ get\ values
-df\ =\ fdf.read_csv("./input/numbers.csv",\ names\ =\ [\[aq]one\[aq],\ \[aq]two\[aq],\ \[aq]three\[aq],\ \[aq]four\[aq]])
-
-#\ display\ frovedis\ dataframe
-df.show()
-
-row_mat\ =\ df.to_frovedis_rowmajor_matrix([\[aq]one\[aq],\ \[aq]two\[aq]],\ dtype\ =\ np.float64)
-
-#\ display\ row_mat\ (row\ major\ matrix)
-row_mat.debug_print()
-
-#\ display\ type\ of\ row_mat
-print(type(row_mat))
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index\ \ \ one\ \ \ \ \ two\ \ \ \ \ three\ \ \ four
-0\ \ \ \ \ \ \ 10\ \ \ \ \ \ 10.23\ \ \ F\ \ \ \ \ \ \ 0
-1\ \ \ \ \ \ \ 12\ \ \ \ \ \ 12.2\ \ \ \ F\ \ \ \ \ \ \ 0
-2\ \ \ \ \ \ \ 13\ \ \ \ \ \ 34.8999\ D\ \ \ \ \ \ \ 1
-3\ \ \ \ \ \ \ 15\ \ \ \ \ \ 100.12\ \ A\ \ \ \ \ \ \ 2
-
-<class\ \[aq]frovedis.matrix.dense.FrovedisRowmajorMatrix\[aq]>
-
-matrix:
-num_row\ =\ 4,\ num_col\ =\ 2
-node\ 0
-node\ =\ 0,\ local_num_row\ =\ 4,\ local_num_col\ =\ 2,\ val\ =\ 10\ 10.23\ 12\ 12.2\ 13\ 34.9\ 15\ 100.12
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a FrovedisRowmajorMatrix instance after suitable conversion.
-.SS 20. to_numpy(dtype = None, copy = False, na_value = None)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]dtype\f[]\f[] : It accepts the dtype parameter which decides
-the datatype of numpy ndarray.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it will be set as double
-(float64).
-.PD 0
-.P
-.PD
-\f[B]\f[I]copy\f[]\f[] : This is an unused parameter.
-(Default: False)
-.PD 0
-.P
-.PD
-\f[B]\f[I]na_value\f[]\f[] : This is an unused parameter.
-(Default: None)
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-This method is used to convert a frovedis dataframe into a numpy array.
-.PP
-The parameters: "copy" and "na_value" are simply kept in to make the
-interface uniform to the pandas DataFrame.to_numpy().
-.PD 0
-.P
-.PD
-This is not used anywhere within the frovedis implementation.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ example\ to\ convert\ a\ frovedis\ dataframe\ into\ numpy
-
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ python\ dict
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Ename\[aq]\ :\ [\[aq]Michael\[aq],\ \[aq]Andy\[aq],\ \[aq]Tanaka\[aq],\ \[aq]Raul\[aq],\ \[aq]Yuta\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]\ :\ [29,\ 30,\ 27,\ 19,\ 31],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Country\[aq]\ :\ [\[aq]USA\[aq],\ \[aq]England\[aq],\ \[aq]Japan\[aq],\ \[aq]France\[aq],\ \[aq]Japan\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]isMale\[aq]:\ [False,\ False,\ False,\ False,\ True]
-\ \ \ \ \ \ \ \ \ \ \ }
-
-#\ a\ pandas\ dataframe\ object\ from\ dict
-pd_df\ =\ pd.DataFrame(peopleDF)
-#\ to\ create\ a\ frovedis\ dataframe\ object
-fd_df\ =\ fdf.DataFrame(pd_df)
-
-#\ below\ will\ display\ a\ Frovedis\ dataframe\ type
-print(type(fd_df))
-
-#\ display\ frovedis\ dataframe
-fd_df.show()
-
-#\ below\ will\ display\ a\ numpy\ array\ type
-print(type(fd_df.to_numpy()))
-
-#\ below\ will\ display\ a\ numpy\ array\ type
-print(fd_df.to_numpy())
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-<class\ \[aq]frovedis.dataframe.df.DataFrame\[aq]>
-
-index\ \ \ Ename\ \ \ Age\ \ \ \ \ Country\ isMale
-0\ \ \ \ \ \ \ Michael\ 29\ \ \ \ \ \ USA\ \ \ \ \ 0
-1\ \ \ \ \ \ \ Andy\ \ \ \ 30\ \ \ \ \ \ England\ 0
-2\ \ \ \ \ \ \ Tanaka\ \ 27\ \ \ \ \ \ Japan\ \ \ 0
-3\ \ \ \ \ \ \ Raul\ \ \ \ 19\ \ \ \ \ \ France\ \ 0
-4\ \ \ \ \ \ \ Yuta\ \ \ \ 31\ \ \ \ \ \ Japan\ \ \ 1
-
-<<class\ \[aq]numpy.ndarray\[aq]>
-
-[[\[aq]Michael\[aq]\ \[aq]29\[aq]\ \[aq]USA\[aq]\ \[aq]0\[aq]]
-\ [\[aq]Andy\[aq]\ \[aq]30\[aq]\ \[aq]England\[aq]\ \[aq]0\[aq]]
-\ [\[aq]Tanaka\[aq]\ \[aq]27\[aq]\ \[aq]Japan\[aq]\ \[aq]0\[aq]]
-\ [\[aq]Raul\[aq]\ \[aq]19\[aq]\ \[aq]France\[aq]\ \[aq]0\[aq]]
-\ [\[aq]Yuta\[aq]\ \[aq]31\[aq]\ \[aq]Japan\[aq]\ \[aq]1\[aq]]]
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a numpy ndarray that represents a Frovedis DataFrame.
-It has shape (nRows , nCols).
-.SS 21. to_pandas_dataframe()
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It converts a Frovedis DataFrame instance into a pandas dataframe
-instance.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-#\ example\ to\ convert\ frovedis\ dataframe\ to\ pandas\ dataframe
-
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-#\ a\ python\ dictionary
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Ename\[aq]\ :\ [\[aq]Michael\[aq],\ \[aq]Andy\[aq],\ \[aq]Tanaka\[aq],\ \[aq]Raul\[aq],\ \[aq]Yuta\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]\ :\ [29,\ 30,\ 27,\ 19,\ 31],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Country\[aq]\ :\ [\[aq]USA\[aq],\ \[aq]England\[aq],\ \[aq]Japan\[aq],\ \[aq]France\[aq],\ \[aq]Japan\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]isMale\[aq]:\ [False,\ False,\ False,\ False,\ True]
-\ \ \ \ \ \ \ \ \ \ \ }
-#\ creating\ a\ pandas\ dataframe\ from\ python\ dict
-pd_df\ =\ pd.DataFrame(peopleDF)
-
-#\ creating\ a\ Frovedis\ dataframe\ from\ pandas\ dataframe
-fd_df\ =\ fdf.DataFrame(pd_df)
-
-#\ below\ will\ display\ a\ Frovedis\ dataframe\ type
-print(type(fd_df))
-
-#\ below\ will\ display\ a\ Frovedis\ dataframe
-fd_df.show()
-
-#\ below\ will\ display\ a\ Pandas\ dataframe\ type\ after\ conversion
-print(type(fd_df.to_pandas_dataframe()))
-
-#\ below\ will\ display\ a\ Pandas\ dataframe\ after\ conversion
-print(fd_df.to_pandas_dataframe())
-\f[]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-<class\ \[aq]frovedis.dataframe.df.DataFrame\[aq]>
-
-index\ \ \ Ename\ \ \ Age\ \ \ \ \ Country\ isMale
-0\ \ \ \ \ \ \ Michael\ 29\ \ \ \ \ \ USA\ \ \ \ \ 0
-1\ \ \ \ \ \ \ Andy\ \ \ \ 30\ \ \ \ \ \ England\ 0
-2\ \ \ \ \ \ \ Tanaka\ \ 27\ \ \ \ \ \ Japan\ \ \ 0
-3\ \ \ \ \ \ \ Raul\ \ \ \ 19\ \ \ \ \ \ France\ \ 0
-4\ \ \ \ \ \ \ Yuta\ \ \ \ 31\ \ \ \ \ \ Japan\ \ \ 1\ \ \ 
-
-<class\ \[aq]pandas.core.frame.DataFrame\[aq]>
-
-index\ \ Ename\ \ Age\ \ Country\ \ isMale
-0\ \ \ \ \ \ Michael\ \ \ 29\ \ \ \ \ \ USA\ \ \ False
-1\ \ \ \ \ \ \ \ \ Andy\ \ \ 30\ \ England\ \ \ False
-2\ \ \ \ \ \ \ Tanaka\ \ \ 27\ \ \ \ Japan\ \ \ False
-3\ \ \ \ \ \ \ \ \ Raul\ \ \ 19\ \ \ France\ \ \ False
-4\ \ \ \ \ \ \ \ \ Yuta\ \ \ 31\ \ \ \ Japan\ \ \ \ True\ \ 
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a pandas dataframe instance after suitable conversion.
 .SH SEE ALSO
-.PP
-DataFrame_Introduction, DataFrame_ConversionAndSorting,
-DataFrame_SelectionAndCombinations, DataFrame_BinaryOperators
+.IP \[bu] 2
+\f[B]DataFrame \- Introduction (./DataFrame_Introduction.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Selection and
+Combinations (./DataFrame_SelectionAndCombinations.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Function Application,
+Groupby (./DataFrame_FunctionApplicationGroupby.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Binary Operators (./DataFrame_BinaryOperators.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Aggregate
+Functions (./DataFrame_AggregateFunctions.md)\f[]
