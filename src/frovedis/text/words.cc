@@ -648,9 +648,9 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
   } else {
     for(size_t i = 0; i < num_words; i++) {
       auto end = starts[i] + lens[i];
-      auto newstarts = end + pos;
+      auto newstarts = ssize_t(end) + pos;
       auto newend = newstarts + num;
-      if(newstarts < starts[i]) newstarts = starts[i];
+      if(newstarts < ssize_t(starts[i])) newstarts = starts[i];
       if(newend < starts[i]) newend = starts[i];
       else if(newend > end) newend = end;
       starts[i] = newstarts;
@@ -667,16 +667,16 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
   }
   for(size_t i = 0; i < num_words; i++) {
     auto end = starts[i] + lens[i];
-    size_t newstarts, newend;
+    ssize_t newstarts, newend;
     if(pos[i] >= 0) {
       newstarts = starts[i] + pos[i];
       newend = newstarts + num;
       if(newstarts > end) newstarts = end;
       if(newend > end) newend = end;
     } else {
-      newstarts = end + pos[i];
+      newstarts = ssize_t(end) + pos[i];
       newend = newstarts + num;
-      if(newstarts < starts[i]) newstarts = starts[i];
+      if(newstarts < ssize_t(starts[i])) newstarts = starts[i];
       if(newend < starts[i]) newend = starts[i];
       else if(newend > end) newend = end;
     }
@@ -709,9 +709,9 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
   } else {
     for(size_t i = 0; i < num_words; i++) {
       auto end = starts[i] + lens[i];
-      auto newstarts = end + pos;
+      auto newstarts = ssize_t(end) + pos;
       auto newend = newstarts + num[i];
-      if(newstarts < starts[i]) newstarts = starts[i];
+      if(newstarts < ssize_t(starts[i])) newstarts = starts[i];
       if(newend < starts[i]) newend = starts[i];
       else if(newend > end) newend = end;
       starts[i] = newstarts;
@@ -731,16 +731,16 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
   auto fail = find_condition(num, num_words, is_lt<int>(0));
   for(size_t i = 0; i < num_words; i++) {
     auto end = starts[i] + lens[i];
-    size_t newstarts, newend;
+    ssize_t newstarts, newend;
     if(pos[i] >= 0) {
       newstarts = starts[i] + pos[i];
       newend = newstarts + num[i];
       if(newstarts > end) newstarts = end;
       if(newend > end) newend = end;
     } else {
-      newstarts = end + pos[i];
+      newstarts = ssize_t(end) + pos[i];
       newend = newstarts + num[i];
-      if(newstarts < starts[i]) newstarts = starts[i];
+      if(newstarts < ssize_t(starts[i])) newstarts = starts[i];
       if(newend < starts[i]) newend = starts[i];
       else if(newend > end) newend = end;
     }
@@ -770,8 +770,8 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
   } else {
     for(size_t i = 0; i < num_words; i++) {
       auto end = starts[i] + lens[i];
-      auto newstarts = end + pos;
-      if(newstarts < starts[i]) newstarts = starts[i];
+      auto newstarts = ssize_t(end) + pos;
+      if(newstarts < ssize_t(starts[i])) newstarts = starts[i];
       starts[i] = newstarts;
       lens[i] = end - newstarts;
     }
@@ -781,15 +781,15 @@ void substr(size_t* starts, size_t* lens, size_t num_words,
 void substr(size_t* starts, size_t* lens, size_t num_words,
             const int* pos) {
   for(size_t i = 0; i < num_words; i++) {
-    size_t newstarts, end;
+    ssize_t newstarts, end;
     if(pos[i] >= 0) {
       newstarts = starts[i] + pos[i];
       end = starts[i] + lens[i];
       if(newstarts > end) newstarts = end;
     } else {
       end = starts[i] + lens[i];
-      newstarts = end + pos[i];
-      if(newstarts < starts[i]) newstarts = starts[i];
+      newstarts = ssize_t(end) + pos[i];
+      if(newstarts < ssize_t(starts[i])) newstarts = starts[i];
     }
     starts[i] = newstarts;
     lens[i] = end - newstarts;
