@@ -3521,7 +3521,8 @@ concat_ws(const std::string& sep,
           const std::string& left,
           const std::string& right) {
   return std::make_shared<dffunction_concat>
-    (concat_im(id_col(left), sep), id_col(right));
+    (concat_im(id_col(left), sep), id_col(right))
+    ->as("concat_ws(" + sep + "," + left + "," + right + ")");
 }
 
 std::shared_ptr<dffunction>
@@ -3529,7 +3530,9 @@ concat_ws(const std::string& sep,
           const std::shared_ptr<dffunction>& left,
           const std::shared_ptr<dffunction>& right) {
   return std::make_shared<dffunction_concat>
-    (concat_im(left, sep), right);
+    (concat_im(left, sep), right)
+    ->as("concat_ws(" + sep + "," +
+         left->get_as() + "," + right->get_as() + ")");
 }
 
 
