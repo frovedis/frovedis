@@ -430,7 +430,10 @@ class DataFrame(object):
 
         self.release()
         if isinstance(df, pd.Series):
-            df = pd.DataFrame(df)
+            if len(df) == 1 and len(df[0]) > 1: # contains array-like
+                raise ValueError("Cannot load a pandas series " +\
+                                 "containing non-atomic elements!")
+            df = df.to_frame()
             self.is_series = True
 
         self.num_row = len(df)
@@ -1138,10 +1141,8 @@ class DataFrame(object):
         """
         if isinstance(df, DataFrame):
             return df
-        elif isinstance(df, pd.DataFrame):
+        elif isinstance(df, (pd.DataFrame, pd.Series)):
             return DataFrame(df)
-        elif isinstance(df, pd.Series):
-            return DataFrame(df=pd.DataFrame(df), is_series=True)
         else:
             raise TypeError("asDF: invalid dataframe type '%s' "
                             "is provided!" % (type(df).__name__))
