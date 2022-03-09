@@ -19,4 +19,12 @@ int main(int argc, char* argv[]){
   t.fselect({datetime_truncate_col(c1, frovedis::datetime_type::month)}).show();
   t.fselect({datetime_months_between_col(c1, c2)}).show();
   t.fselect({datetime_next_day_im(c1, 1)}).show();
+  auto t2 = t.fselect({cast_col(c1, "dic_string")->as("c3")});
+  t2.show();
+  auto c3 = ~std::string("c3");
+  t2.fselect({cast_col(c3, "datetime")}).show();
+  auto t3 =
+    t.fselect({datetime_format_im(c1, "%Y/%m/%d", "dic_string")->as("c3")});
+  t3.show();
+  t3.fselect({cast_col(c3, "datetime:%Y/%m/%d")}).show();
 }

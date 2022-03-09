@@ -2669,25 +2669,31 @@ the types of columns as the template arguments. The number of columns
 that can be provided is limited to 6 in the current implementation.
 
 
-## 5.9 Functions as column
+## 5.9 Built-in functions
 
 In the previous section, we explained `calc` as the method of calling
-function, but there are another way of calling a function. 
+a function, but we also provide built-in functions, which is another way
+of calling a function. 
 Please look at "src/tut5.9-1/tut.cc".
 
     auto c1 = ~string("c1");
     auto c2 = ~string("c2");
     t.fselect({c1, c2}).show();
 
-Here, `operator~()` is defined in frovedis namespace, so 
-`using namespace frovedis` is added at the top of the program.
-The `operator~()` for column name string creates
-`shared_ptr<dffunction>` object. This can be considered as "column" and
-can be passed as the arguments of special version of select: `fselect`.
+Here, `operator~()` is a kind of built-in function, which just returns
+the column itself. The type of built-in function is `shared_ptr<dffunction>`.
+(The `operator~()` is defined in frovedis namespace, so 
+`using namespace frovedis` is added at the top of the program.)
 
-Operators and functions are defined for this. For example, 
-the `operator+()` is defined and creates `shared_ptr<dffunctin>`. 
-So, users can write like:
+The special version of select `fselect` can accept built-in functions,
+so we can provide `c1` and `c2` here; it shows the contents of `c1`
+and `c2`.
+
+There are other kinds of built-in functions. Typically, they accept
+built-in functions (`shared_ptr<dffunction>`) or immediate values as
+their arguments. For example, the `operator+()` can take two
+`shared_ptr<dffunction>` as arguments and creates
+`shared_ptr<dffunction>`. So, users can write like:
 
     t.fselect({c1+c2}).show();
 
@@ -2742,7 +2748,8 @@ would produce output like:
     50	25
 
 Basic rule of function name is `xxx_col` if both arguments are
-columns. If one of the argument is immediate, it becomes `xxx_im`.
+columns (or `shared_ptr<dffunction>`, to be exact). 
+If one of the argument is immediate, it becomes `xxx_im`.
 If you can specify column name, you can use `xxx_col_as` or
 `xxx_im_as` and specify the column name as the last argument.
 
@@ -2751,6 +2758,43 @@ division), idiv (integer division), mod, pow and abs.
 
 You can change the type of the column using cast function. It takes
 type name string (e.g. "double") as the second argument.
+
+Casting to string is supported, which creates `dic_string`,
+`raw_string`, or `string` of the value. Casting from string is also
+supported. In this case, the `dic_string`, `raw_string`, or `string`
+is parsed to create the specified type.
+
+    auto t2 = t.fselect({cast_col(c1,"dic_string")->as("c3")});
+    t2.show();
+
+would produce output like:
+
+    c3
+    1
+    3
+    3
+    2
+    2
+    2
+    1
+    1
+
+and 
+
+    auto c3 = ~std::string("c3");
+    t2.fselect({cast_col(c3,"double")}).show();
+
+would produce output like:
+
+    CAST(c3 AS double)
+    1
+    3
+    3
+    2
+    2
+    2
+    1
+    1
 
 In addition, there are special functions for datetime columns.
 Please look at "src/tut5.9-2/tut.cc".
@@ -2874,27 +2918,374 @@ would produce output like:
     2019-02-24
     2018-06-10
 
-In addition, there are special functions for string columns.
+You can cast `datetime` column to `dic_string`, `raw_string` and
+`string`. 
+
+    auto t2 = t.fselect({cast_col(c1, "dic_string")->as("c3")});
+    t2.show();
+
+In this case, default format of `"%Y-%m-%d"` is used, so it should
+produce output like:
+
+    c3
+    2018-01-10
+    2018-02-10
+    2019-03-04
+    2020-12-03
+    2019-01-01
+    2018-11-03
+    2019-02-20
+    2018-06-03
+
+You can cast the string back to `datetime`.
+
+    t2.fselect({cast_col(c3, "datetime")}).show();
+
+In this case, default format of `"%Y-%m-%d"` is used again and should
+produce the same output.
+
+You might want to specify the format when casting to string. In that
+case, you can use `datetime_format_im` function.
+
+    auto t3 =
+      t.fselect({datetime_format_im(c1, "%Y/%m/%d", "dic_string")->as("c3")});
+    t3.show();
+
+The second argument is the format and the third argument is type
+(`dic_string`, `raw_string, or `string`). It should produce output like:
+
+    c3
+    2018/01/10
+    2018/02/10
+    2019/03/04
+    2020/12/03
+    2019/01/01
+    2018/11/03
+    2019/02/20
+    2018/06/03
+
+If you want to cast the string back to `datetime`, you can specify the
+format in the type string just like loading case.
+
+    t3.fselect({cast_col(c3, "datetime:%Y/%m/%d")}).show();
+
+This should parse the string and create `datetime` column. It should
+produce output like:
+
+    CAST(c3 AS datetime:%Y/%m/%d)
+    2018-01-10
+    2018-02-10
+    2019-03-04
+    2020-12-03
+    2019-01-01
+    2018-11-03
+    2019-02-20
+    2018-06-03
+
+In addition, there are built-in functions for string manipulation.
 Please look at "src/tut5.9-3/tut.cc".
 
-Currently, `substr` function is supported for string columns. There
-are several versions of `substr` functions: `substr_col` specifies the
-starting position of the sub string as a column; `substr_im` uses
-immediate value. You can also specify both starting position and
-number of characters by `substr_poscol_numcol`, `substr_poscol_numim`,
-`substr_posim_numcol` and `substr_posim_numim`. So in this
-case, 
+These functions assume that the strings are in UTF-8. They are
+converted to UTF-32 internally if needed. So characters like Japanese
+Kanji can be treated properly (except variation selector and combining
+character; they are treated as separate characters).
+
+These functions can take any types of columns; they are converted to
+string and these functions are applied to them. Return type of the
+functions is basically `dic_string`; if the type of the input column
+is `string` or `raw_string`, the return type is the same as the input
+column. 
+
+The input data of this sample is as follows:
+
+    c1		c2		c3
+    apple	林檎		www.google.com
+    applepie	りんごパイ	www.apple.com
+    orange	オレンジ		jp.nec.com
+    orangepie	オレンジパイ	www.apache.org
+    grape	葡萄		github.com
+    grapefruit	グレープフルーツ	www.facebook.com
+
+The column `c2` contains Japanese characters.
+
+First function is `substr`.There are several versions of `substr`
+functions: `substr_col` specifies the starting position of the sub
+string as a column; `substr_im` uses immediate value. You can also
+specify both starting position and number of characters by
+`substr_poscol_numcol`, `substr_poscol_numim`, `substr_posim_numcol`
+and `substr_posim_numim`. So in this case, 
 
     t.fselect({substr_posim_numim(c1,2,3)}).show();
 
 should produce output like:
 
-    ple
-    ple
-    ang
-    ang
-    ape
-    ape
+    substr_posim_numim(c1,2,3)
+    ppl
+    ppl
+    ran
+    ran
+    rap
+    rap
+
+Please note that the position starts from 1. If the position is
+negative, it represents the position from the last character.
+
+    t.fselect({substr_posim_numim(c2,-3,2)}).show();
+
+should produce output like:
+
+    substr_posim_numim(c2,-3,2)
+    林
+    ごパ
+    レン
+    ジパ
+    葡
+    ルー
+
+If the substring range is out of the original string (in this case,
+`林檎` and `葡萄`), only the valid range of the substring is returned.
+
+Functions `left_col`, `left_im`, `right_col`, `right_im` are similar
+to substr functions. They extract characters from left or
+right. Number of characters can be specified by the argument column or
+immediate value.
+
+Next function is `char_length_col`, which returns the length of the
+string (the return type is integer). 
+
+    t.fselect({char_length_col(c1)}).show();
+
+should produce output like:
+
+    char_length(c1)
+    5
+    8
+    6
+    9
+    5
+    10
+
+There are similar function `length_col`, which returns length in
+bytes. If the string is ASCII, `char_length_col` and `length_col`
+returns the same value, but if the string is not ASCII like Japanese
+characters, they will be different.
+
+    t.fselect({length_col(c2), char_length_col(c2)}).show();
+
+should produce output like:
+
+    length(c2)	char_length(c2)
+    6	2
+    15	5
+    12	4
+    18	6
+    6	2
+    24	8
+
+Since typically the Japanese characters consume 3 bytes, `length` is 3
+times larger than `char_length`.
+
+Next function is `locate_im`, which returns the position of first
+occurrence of the specified string. Currently, the string should be
+specified as immediate value.
+
+    t.fselect({locate_im(c3,"com")}).show();
+
+should produce output like:
+
+    locate(c3,com)
+    12
+    11
+    8
+    0
+    8
+    14
+
+If there is no occurrence, 0 will be returned.
+You can use non ASCII characters for locate. 
+
+    t.fselect({locate_im(c2,"パイ")}).show();
+
+should produce output like:
+
+    locate(c2,パイ)
+    0
+    4
+    0
+    5
+    0
+    0
+
+Next functions are `ltrim_im`, `rtrim_im`, and `trim_im`. They can be
+used to remove specified characters from left/right/both sides of the
+string. Currently, the characters should be specified as immediate value.
+
+    t.fselect({ltrim_im(c3,"w.")}).show();
+
+This removes `w` and `.` from the left side of the string. So it
+should produce output like:
+
+    ltrim(c3,w.)
+    google.com
+    apple.com
+    jp.nec.com
+    apache.org
+    github.com
+    facebook.com
+
+You can use non-ASCII characters. 
+
+    t.fselect({rtrim_im(c2,"パイ")}).show();
+
+This removes `パ` and `イ` from the right side of the string. So it
+should produce output like:
+
+    rtrim(c2,パイ)
+    林檎
+    りんご
+    オレンジ
+    オレンジ
+    葡萄
+    グレープフルーツ
+
+Next function is `replace_im`, which replaces the occurrence of
+specified string. Currently, the strings should be specified as
+immediate values.
+
+    t.fselect({replace_im(c1,"pie","cake")}).show();
+
+This replaces `pie` with `cake`. So it should produce output like:
+
+    replace(c1,pie,cake)
+    apple
+    applecake
+    orange
+    orangecake
+    grape
+    grapefruit
+
+You can use non-ASCII strings.
+
+    t.fselect({replace_im(c2,"パイ","ケーキ")}).show();
+
+should produce output like:
+
+    replace(c2,パイ,ケーキ)
+    林檎
+    りんごケーキ
+    オレンジ
+    オレンジケーキ
+    葡萄
+    グレープフルーツ
+
+Next function is `reverse_col`, which reverse the string.
+
+    t.fselect({reverse_col(c1)}).show();
+
+should produce output like:
+
+    reverse(c1)
+    elppa
+    eipelppa
+    egnaro
+    eipegnaro
+    eparg
+    tiurfeparg
+
+This function also supports non-ASCII strings.
+
+    t.fselect({reverse_col(c2)}).show();
+
+should produce output like:
+
+    reverse(c2)
+    檎林
+    イパごんり
+    ジンレオ
+    イパジンレオ
+    萄葡
+    ツールフプーレグ
+
+Next function is `substring_index_im`. It searches for the specified
+string and returns the substring until the specified number of
+occurrence of the string.
+
+    t.fselect({substring_index_im(c3,".",2)}).show();
+
+should produce output like:
+
+    substring_index(c3,.,2)
+    www.google
+    www.apple
+    jp.nec
+    www.apache
+    github.com
+    www.facebook
+
+In this case, it returns the substring from the beginning to the
+second occurrence of `.` (or to the end of the string if there are not
+two `.`).
+
+You can use non-ASCII characters. 
+
+    t.fselect({substring_index_im(c2,"パ",1)}).show();
+
+should produce output like:
+
+    substring_index(c2,パ,1)
+    林檎
+    りんご
+    オレンジ
+    オレンジ
+    葡萄
+    グレープフルーツ
+
+
+Next functions are `concat_col` and `concat_im`, which concatenate
+strings. 
+
+    t.fselect({concat_col(c1,c2)}).show(); 
+
+This concatenates column `c1` and `c2`. It should produce output like:
+
+    concat(c1,c2)
+    apple林檎
+    applepieりんごパイ
+    orangeオレンジ
+    orangepieオレンジパイ
+    grape葡萄
+    grapefruitグレープフルーツ
+
+There is another variant of concat, `concat_ws`, which concatenate
+strings with a separator.
+
+    t.fselect({concat_ws("_",c1,c2)}).show();
+
+This function only takes columns (if you want to use immediate value,
+the separator can be added to the value). It should produce output like:
+
+    concat_ws(_,c1,c2)
+    apple_林檎
+    applepie_りんごパイ
+    orange_オレンジ
+    orangepie_オレンジパイ
+    grape_葡萄
+    grapefruit_グレープフルーツ
+
+Next functions are `lower` and `upper`, which changes ASCII characters
+to lower or upper case.
+
+    t.fselect({upper_col(c1)}).show();
+
+should produce output like:
+
+    upper(c1)
+    APPLE
+    APPLEPIE
+    ORANGE
+    ORANGEPIE
+    GRAPE
+    GRAPEFRUIT
 
 There is special kind of function called `when`, which can be used to
 specify the if-then-else like condition.
