@@ -71,6 +71,18 @@ the supported ScaLAPACK operation requested by the python client on that
 matrix.
 After request is completed, frovedis server sends back the resultant
 matrix and it can then create equivalent python data.
+.PP
+\f[B]We have supported \[aq]overwrite\[aq] option in frovedis routine
+wrappers.\f[]
+.PP
+\f[B]However, unlike scipy.linalg, if \[aq]overwrite\[aq] option is
+enabled and input is a valid ndarray or an instance of
+FrovedisBlockcyclicMatrix, we would always overwrite (copy\-back) to the
+same (irrespective of its dtype).\f[]
+.PP
+\f[B]This will slow down the overall computation. This should be enabled
+only when it\[aq]s wanted to check the intermediate results (like LU
+factor etc.)\f[]
 .SS Detailed Description
 .SS 1. dgels(a, b, trans = \[aq]N\[aq], lwork = 0, overwrite_a = 0,
 overwrite_b = 0)
@@ -82,16 +94,16 @@ overwrite_b = 0)
 \f[I]\f[B]a\f[]\f[]: It accepts a python array\-like input or left hand
 side numpy matrix of the linear equation having int, float (float32) or
 double (float64) type values.
-It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+It also accepts FrovedisBlockcyclicMatrix instance having double
+(float64) type values.
 .PD 0
 .P
 .PD
 \f[I]\f[B]b\f[]\f[]: It accepts a python array\-like input or right hand
 side numpy matrix of the linear equation having int, float (float32) or
 double (float64) type values.
-It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+It also accepts FrovedisBlockcyclicMatrix instance having double
+(float64) type values.
 It should have number of rows >= max(M,N) and at least 1 column.
 .PD 0
 .P
@@ -138,39 +150,6 @@ They are not used anywhere within the frovedis implementation.
 .PP
 This method internally uses Scalapack.gels() \f[B](present in
 frovedis.matrix module)\f[].
-.IP \[bu] 2
-\f[B]If trans = False and M >= N\f[]:
-.PD 0
-.P
-.PD
-it finds the least squares solution of an overdetermined system.
-.PD 0
-.P
-.PD
-.IP \[bu] 2
-\f[B]If trans = False and M < N\f[]:
-.PD 0
-.P
-.PD
-it finds the minimum norm solution of an underdetermined system.
-.PD 0
-.P
-.PD
-.IP \[bu] 2
-\f[B]If trans = True and M >= N\f[]:
-.PD 0
-.P
-.PD
-it finds the minimum norm solution of an underdetermined system.
-.PD 0
-.P
-.PD
-.IP \[bu] 2
-\f[B]If trans = True and M < N\f[]:
-.PD 0
-.P
-.PD
-it finds the least squares solution of an overdetermined system.
 .PP
 For example,
 .IP
@@ -252,8 +231,12 @@ overwritten\ matrix\ with\ LQ\ or\ QF\ factor:\
 \f[]
 .fi
 .PP
-\f[B]Currently, the result of dgels() wrapper function with
-\[aq]overwrite_a\[aq] parameter is different in frovedis and scipy.\f[]
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, then LQ or QR factor would also be double (float64)
+type.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -285,8 +268,12 @@ overwritten\ matrix\ with\ solution\ matrix:\
 \f[]
 .fi
 .PP
-\f[B]Currently, the result of dgels() wrapper function with
-\[aq]overwrite_b\[aq] parameter is different in frovedis and scipy.\f[]
+\f[B]Here, if the input \[aq]mat2\[aq] is double (float64) type and
+overwite is enabled, then solution matrix would also be double (float64)
+type.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -342,12 +329,17 @@ matrices\f[]:
 .P
 .PD
 \- \f[B]lqr\f[]: It is a numpy matrix having double (float64) type
-values and containing the QR or LQ factor of input matrix \[aq]a\[aq].
+values (by default) and containing the QR or LQ factor of input matrix
+\[aq]a\[aq].
+In case \[aq]overwrite_a\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]a\[aq] dtype.
 .PD 0
 .P
 .PD
 \- \f[B]x\f[]: It is also a numpy matrix having double (float64) type
-values and containing the solution matrix.
+values (by default) and containing the solution matrix.
+In case \[aq]overwrite_b\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]b\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -378,6 +370,11 @@ containing the solution matrix.
 .PD
 \- \f[B]stat\f[]: It returns an integer containing status (info) of
 native scalapack dgetrs.
+.PD 0
+.P
+.PD
+Here, the original inputs \[aq]a\[aq] and \[aq]b\[aq] are not
+overwritten even when overwrite_a/overwrite_b is enabled.
 .SS 2. gels(a, b, trans = \[aq]N\[aq], lwork = 0, overwrite_a = 0,
 overwrite_b = 0, dtype = np.float64)
 .PP
@@ -459,39 +456,6 @@ They are not used anywhere within the frovedis implementation.
 .PP
 This method internally uses Scalapack.gels() \f[B](present in
 frovedis.matrix module)\f[].
-.IP \[bu] 2
-\f[B]If trans = False and M >= N\f[]:
-.PD 0
-.P
-.PD
-it finds the least squares solution of an overdetermined system.
-.PD 0
-.P
-.PD
-.IP \[bu] 2
-\f[B]If trans = False and M < N\f[]:
-.PD 0
-.P
-.PD
-it finds the minimum norm solution of an underdetermined system.
-.PD 0
-.P
-.PD
-.IP \[bu] 2
-\f[B]If trans = True and M >= N\f[]:
-.PD 0
-.P
-.PD
-it finds the minimum norm solution of an underdetermined system.
-.PD 0
-.P
-.PD
-.IP \[bu] 2
-\f[B]If trans = True and M < N\f[]:
-.PD 0
-.P
-.PD
-it finds the least squares solution of an overdetermined system.
 .PP
 For example,
 .IP
@@ -573,6 +537,13 @@ overwritten\ matrix\ with\ LQ\ or\ QF\ factor:\
 \f[]
 .fi
 .PP
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, then LQ or QR factor would also be double (float64)
+type.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
+.PP
 For example,
 .IP
 .nf
@@ -602,6 +573,13 @@ overwritten\ matrix\ with\ solution\ matrix:\
 \ [\-0.7254902\ \ \ 0.15686275\ \ 0.\ \ \ \ \ \ \ \ ]]
 \f[]
 .fi
+.PP
+\f[B]Here, if the input \[aq]mat2\[aq] is double (float64) type and
+overwite is enabled, then solution matrix would also be double (float64)
+type.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -666,6 +644,10 @@ val\ =\ \-7.54902\ \-1.5098\ \-0.72549\ 2.68627\ 1.13725\ 0.156863\ \-1\ 0\ 0
 \f[]
 .fi
 .PP
+\f[B]Note:\- \[aq]dtype\[aq] for the wrapper function and
+FrovedisBlockcyclicMatrix instance must be same during computation.
+Otherwise, it will raise an excpetion.\f[]
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
@@ -681,12 +663,17 @@ matrices and dtype = np.float64\f[]:
 .P
 .PD
 \- \f[B]lqr\f[]: It is a numpy matrix having double (float64) type
-values and containing the QR or LQ factor of input matrix \[aq]a\[aq].
+values (by default) and containing the QR or LQ factor of input matrix
+\[aq]a\[aq].
+In case \[aq]overwrite_a\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]a\[aq] dtype.
 .PD 0
 .P
 .PD
 \- \f[B]x\f[]: It is also a numpy matrix having double (float64) type
-values and containing the solution matrix.
+values (by default) and containing the solution matrix.
+In case \[aq]overwrite_b\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]b\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -706,12 +693,17 @@ matrices and dtype = np.float32\f[]:
 .P
 .PD
 \- \f[B]lqr\f[]: It is a numpy matrix having float (float32) type values
-and containing the QR or LQ factor of input matrix \[aq]a\[aq].
+(by default) and containing the QR or LQ factor of input matrix
+\[aq]a\[aq].
+In case \[aq]overwrite_a\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]a\[aq] dtype.
 .PD 0
 .P
 .PD
 \- \f[B]x\f[]: It is also a numpy matrix having float (float32) type
-values and containing the solution matrix.
+values (by default) and containing the solution matrix.
+In case \[aq]overwrite_b\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]b\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -753,7 +745,7 @@ overwrite_b = 0)
 side numpy matrix of the linear equation having int, float (float32) or
 double (float64) type values.
 It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+(float32) type values.
 .PD 0
 .P
 .PD
@@ -761,7 +753,7 @@ It also accepts FrovedisBlockcyclicMatrix instance having float
 side numpy matrix of the linear equation having int, float (float32) or
 double (float64) type values.
 It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+(float32) type values.
 It should have number of rows >= max(M,N) and at least 1 column.
 .PD 0
 .P
@@ -808,39 +800,6 @@ They are not used anywhere within the frovedis implementation.
 .PP
 This method internally uses Scalapack.gels() \f[B](present in
 frovedis.matrix module)\f[].
-.IP \[bu] 2
-\f[B]If trans = False and M >= N\f[]:
-.PD 0
-.P
-.PD
-it finds the least squares solution of an overdetermined system.
-.PD 0
-.P
-.PD
-.IP \[bu] 2
-\f[B]If trans = False and M < N\f[]:
-.PD 0
-.P
-.PD
-it finds the minimum norm solution of an underdetermined system.
-.PD 0
-.P
-.PD
-.IP \[bu] 2
-\f[B]If trans = True and M >= N\f[]:
-.PD 0
-.P
-.PD
-it finds the minimum norm solution of an underdetermined system.
-.PD 0
-.P
-.PD
-.IP \[bu] 2
-\f[B]If trans = True and M < N\f[]:
-.PD 0
-.P
-.PD
-it finds the least squares solution of an overdetermined system.
 .PP
 For example,
 .IP
@@ -921,8 +880,12 @@ overwritten\ matrix\ with\ LQ\ or\ QF\ factor:
 \f[]
 .fi
 .PP
-\f[B]Currently, the result of sgels() wrapper function with
-\[aq]overwrite_a\[aq] parameter is different in frovedis and scipy.\f[]
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, then LQ or QR factor would also be double (float64)
+type.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -954,8 +917,12 @@ overwritten\ matrix\ with\ solution\ matrix:\
 \f[]
 .fi
 .PP
-\f[B]Currently, the result of sgels() wrapper function with
-\[aq]overwrite_b\[aq] parameter is different in frovedis and scipy.\f[]
+\f[B]Here, if the input \[aq]mat2\[aq] is double (float64) type and
+overwite is enabled, then solution matrix would also be double (float64)
+type.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -1011,12 +978,17 @@ matrices\f[]:
 .P
 .PD
 \- \f[B]lqr\f[]: It is a numpy matrix having float (float32) type values
-and containing the QR or LQ factor of input matrix \[aq]a\[aq].
+(by default) and containing the QR or LQ factor of input matrix
+\[aq]a\[aq].
+In case \[aq]overwrite_a\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]a\[aq] dtype.
 .PD 0
 .P
 .PD
-\- \f[B]x\f[]: It is also a numpy matrix having float (float32) type
-values and containing the solution matrix.
+\- \f[B]x\f[]: It is also a numpy matrix having float (float32) (by
+default) type values and containing the solution matrix.
+In case \[aq]overwrite_b\[aq] is enabled then dtype for the matrix will
+depend on input \[aq]b\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -1056,16 +1028,16 @@ native scalapack dgetrs.
 \f[I]\f[B]a\f[]\f[]: It accepts a python array\-like input or left hand
 side numpy matrix of the linear equation having int, float (float32) or
 double (float64) type values.
-It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+It also accepts FrovedisBlockcyclicMatrix instance having double
+(float64) type values.
 .PD 0
 .P
 .PD
 \f[I]\f[B]b\f[]\f[]: It accepts a python array\-like input or right hand
 side numpy matrix of the linear equation having int, float (float32) or
 double (float64) type values.
-It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+It also accepts FrovedisBlockcyclicMatrix instance having double
+(float64) type values.
 It should have number of rows >= the number of rows in \[aq]a\[aq] and
 at least 1 column in it.
 .PD 0
@@ -1161,8 +1133,12 @@ overwritten\ matrix\ with\ LU\ factor:\
 \f[]
 .fi
 .PP
-\f[B]Currently, the result of dgesv() wrapper function with
-\[aq]overwrite_a\[aq] parameter is different in frovedis and scipy.\f[]
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, then LU factor would also be double (float64)
+type.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -1194,8 +1170,12 @@ overwritten\ matrix\ with\ solution\ matrix:\
 \f[]
 .fi
 .PP
-\f[B]Currently, the result of dgesv() wrapper function with
-\[aq]overwrite_b\[aq] parameter is different in frovedis and scipy.\f[]
+\f[B]Here, if the input \[aq]mat2\[aq] is double (float64) type and
+overwite is enabled, then solution matrix would also be double (float64)
+type.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -1253,7 +1233,9 @@ matrices\f[]:
 .P
 .PD
 \- \f[B]lu\f[]: It is a numpy matrix having double (float64) type values
-and containing the LU factor of input \[aq]a\[aq].
+(by default) and containing the LU factor of input \[aq]a\[aq].
+In case \[aq]overwrite_a\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]a\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -1263,7 +1245,9 @@ side pointer of pivot array.
 .P
 .PD
 \- \f[B]x\f[]: It is also a numpy matrix having double (float64) type
-values and containing the solution matrix.
+values (by default) and containing the solution matrix.
+In case \[aq]overwrite_b\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]b\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -1421,6 +1405,13 @@ overwritten\ matrix\ with\ LU\ factor:\
 \f[]
 .fi
 .PP
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, then LU factor would also be double (float64)
+type.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
+.PP
 For example,
 .IP
 .nf
@@ -1450,6 +1441,13 @@ overwritten\ matrix\ with\ solution\ matrix:\
 \ [\-0.7254902\ \ \ 0.15686275\ \ 0.\ \ \ \ \ \ \ \ ]]\ \ \ \ 
 \f[]
 .fi
+.PP
+\f[B]Here, if the input \[aq]mat2\[aq] is double (float64) type and
+overwite is enabled, then solution matrix would also be double (float64)
+type.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -1517,6 +1515,10 @@ val\ =\ \-7.54902\ \-1.5098\ \-0.72549\ 2.68627\ 1.13725\ 0.156863\ \-1\ 0\ 0
 \f[]
 .fi
 .PP
+\f[B]Note:\- \[aq]dtype\[aq] for the wrapper function and
+FrovedisBlockcyclicMatrix instance must be same during computation.
+Otherwise, it will raise an excpetion.\f[]
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
@@ -1532,7 +1534,9 @@ matrices and dtype = np.float32\f[]:
 .P
 .PD
 \- \f[B]lu\f[]: It is a numpy matrix having float (float32) type values
-and containing the LU factor of input \[aq]a\[aq].
+(by default) and containing the LU factor of input \[aq]a\[aq].
+In case \[aq]overwrite_a\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]a\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -1542,7 +1546,9 @@ side pointer of pivot array.
 .P
 .PD
 \- \f[B]x\f[]: It is also a numpy matrix having float (float32) type
-values and containing the solution matrix.
+values (by default) and containing the solution matrix.
+In case \[aq]overwrite_b\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]b\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -1562,7 +1568,9 @@ matrices and dtype = np.float64\f[]:
 .P
 .PD
 \- \f[B]lu\f[]: It is a numpy matrix having double (float64) type values
-and containing the LU factor of input \[aq]a\[aq].
+(by default) and containing the LU factor of input \[aq]a\[aq].
+In case \[aq]overwrite_a\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]a\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -1572,7 +1580,9 @@ side pointer of pivot array.
 .P
 .PD
 \- \f[B]x\f[]: It is also a numpy matrix having double (float64) type
-values and containing the solution matrix.
+values (by default) and containing the solution matrix.
+In case \[aq]overwrite_b\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]b\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -1618,7 +1628,7 @@ native scalapack dgetrs.
 side numpy matrix of the linear equation having int, float (float32) or
 double (float64) type values.
 It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+(float32) type values.
 .PD 0
 .P
 .PD
@@ -1626,7 +1636,7 @@ It also accepts FrovedisBlockcyclicMatrix instance having float
 side numpy matrix of the linear equation having int, float (float32) or
 double (float64) type values.
 It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+(float32) type values.
 It should have number of rows >= the number of rows in \[aq]a\[aq] and
 at least 1 column in it.
 .PD 0
@@ -1723,8 +1733,12 @@ overwritten\ matrix\ with\ LU\ factor:\
 \f[]
 .fi
 .PP
-\f[B]Currently, the result of sgesv() wrapper function with
-\[aq]overwrite_a\[aq] parameter is different in frovedis and scipy.\f[]
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, then LU factor would also be double (float64)
+type.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -1756,8 +1770,12 @@ overwritten\ matrix\ with\ solution\ matrix:\
 \f[]
 .fi
 .PP
-\f[B]Currently, the result of sgesv() wrapper function with
-\[aq]overwrite_b\[aq] parameter is different in frovedis and scipy.\f[]
+\f[B]Here, if the input \[aq]mat2\[aq] is double (float64) type and
+overwite is enabled, then solution matrix would also be double (float64)
+type.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -1815,7 +1833,9 @@ matrices\f[]:
 .P
 .PD
 \- \f[B]lu\f[]: It is a numpy matrix having float (float32) type values
-and containing the LU factor of input \[aq]a\[aq].
+(by default) and containing the LU factor of input \[aq]a\[aq].
+In case \[aq]overwrite_a\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]a\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -1825,7 +1845,9 @@ side pointer of pivot array.
 .P
 .PD
 \- \f[B]x\f[]: It is also a numpy matrix having float (float32) type
-values and containing the solution matrix.
+values (by default) and containing the solution matrix.
+In case \[aq]overwrite_b\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]b\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -1871,14 +1893,14 @@ overwrite_a = 0)
 \f[I]\f[B]a\f[]\f[]: It accepts a python array\-like input or left hand
 side numpy matrix of the linear equation having int, float (float32) or
 double (float64) type values.
-It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+It also accepts FrovedisBlockcyclicMatrix instance having double
+(float64) type values.
 .PD 0
 .P
 .PD
 \f[I]\f[B]compute_uv\f[]\f[]: It accepts an integer parameter that
-specifies whether left singul.ar matrix and right singular matrix will
-be computed.
+specifies whether left singular matrix and right singular matrix will be
+computed.
 If it is set as \[aq]0\[aq], a numpy matrix of shape \f[B](1,1)\f[] and
 datatype same as \[aq]a\[aq] will be assigned to the left and right
 singular matrix.
@@ -1997,8 +2019,12 @@ overwritten\ matrix:\
 \f[]
 .fi
 .PP
-\f[B]Currently, the result of dgesvd() wrapper function with
-\[aq]overwrite_a\[aq] parameter is different in frovedis and scipy.\f[]
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, it\[aq]s overwitten with double (float64) type
+values.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -2249,6 +2275,13 @@ overwritten\ matrix:\
 \f[]
 .fi
 .PP
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, it\[aq]s overwitten with double (float64) type
+values.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
+.PP
 For example,
 .IP
 .nf
@@ -2311,6 +2344,10 @@ node\ =\ 0,\ local_num_row\ =\ 3,\ local_num_col\ =\ 3,\ type\ =\ 2,\ descriptor
 val\ =\ 0.0403044\ \-0.397406\ 0.916757\ 0.176105\ \-0.900315\ \-0.39802\ \-0.983546\ \-0.177488\ \-0.0336986
 \f[]
 .fi
+.PP
+\f[B]Note:\- \[aq]dtype\[aq] for the wrapper function and
+FrovedisBlockcyclicMatrix instance must be same during computation.
+Otherwise, it will raise an excpetion.\f[]
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -2413,7 +2450,7 @@ overwrite_a = 0)
 side numpy matrix of the linear equation having int, float (float32) or
 double (float64) type values.
 It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+(float32) type values.
 .PD 0
 .P
 .PD
@@ -2540,8 +2577,12 @@ overwritten\ matrix:\
 \f[]
 .fi
 .PP
-\f[B]Currently, the result of sgesvd() wrapper function with
-\[aq]overwrite_a\[aq] parameter is different in frovedis and scipy.\f[]
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, it\[aq]s overwitten with double (float64) type
+values.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -2736,8 +2777,45 @@ overwritten\ matrix:\
 \f[]
 .fi
 .PP
-\f[B]Currently, the result of dgetrf() wrapper function with
-\[aq]overwrite_a\[aq] parameter is different in frovedis and scipy.\f[]
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, it\[aq]s overwitten with double (float64) type
+values.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+from\ frovedis.matrix.dense\ import\ FrovedisBlockcyclicMatrix
+mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+bcm1\ =\ FrovedisBlockcyclicMatrix(mat1,dtype\ =\ np.float64)
+
+#\ dgetrf()\ demo\ and\ bcm1\ is\ an\ instance\ of\ FrovedisBlockcyclicMatrix
+from\ frovedis.linalg.scalapack\ import\ dgetrf
+rf\ =\ dgetrf(bcm1)
+
+#\ Unpacking\ the\ tuple
+rf[0].debug_print()
+print(rf[1])
+print(rf[2])
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+<frovedis.matrix.results.GetrfResult\ object\ at\ 0x7f785d244978>
+0
+matrix:
+num_row\ =\ 3,\ num_col\ =\ 3
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 3,\ local_num_col\ =\ 3,\ type\ =\ 2,\ descriptor\ =\ 1\ 1\ 3\ 3\ 3\ 3\ 0\ 0\ 3\ 3\ 3
+val\ =\ 1\ \-1\ 0\ 0\ 5\ 0.6\ 2\ 2\ \-10.2
+\f[]
+.fi
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -2753,7 +2831,9 @@ overwritten\ matrix:\
 .P
 .PD
 \- \f[B]lu\f[]: It is a numpy matrix having double (float64) type values
-and containing the LU factor of input matrix \[aq]a\[aq].
+(by default) and containing the LU factor of input matrix \[aq]a\[aq].
+In case \[aq]overwrite_a\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]a\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -2890,6 +2970,13 @@ overwritten\ matrix:\
 \f[]
 .fi
 .PP
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, it\[aq]s overwitten with double (float64) type
+values.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
+.PP
 For example,
 .IP
 .nf
@@ -2912,6 +2999,43 @@ Output
 \f[]
 .fi
 .PP
+For example,
+.IP
+.nf
+\f[C]
+from\ frovedis.matrix.dense\ import\ FrovedisBlockcyclicMatrix
+mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+bcm1\ =\ FrovedisBlockcyclicMatrix(mat1,dtype\ =\ np.float32)
+
+#\ getrf()\ demo\ and\ bcm1\ is\ an\ instance\ of\ FrovedisBlockcyclicMatrix
+from\ frovedis.linalg.scalapack\ import\ getrf
+rf\ =\ getrf(bcm1,dtype\ =\ np.float32)
+
+#\ Unpacking\ the\ tuple
+rf[0].debug_print()
+print(rf[1])
+print(rf[2])
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+<frovedis.matrix.results.GetrfResult\ object\ at\ 0x7f56091379b0>
+0
+matrix:
+num_row\ =\ 3,\ num_col\ =\ 3
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 3,\ local_num_col\ =\ 3,\ type\ =\ 2,\ descriptor\ =\ 1\ 1\ 3\ 3\ 3\ 3\ 0\ 0\ 3\ 3\ 3
+val\ =\ 1\ \-1\ 0\ 0\ 5\ 0.6\ 2\ 2\ \-10.2
+\f[]
+.fi
+.PP
+\f[B]Note:\- \[aq]dtype\[aq] for the wrapper function and
+FrovedisBlockcyclicMatrix instance must be same during computation.
+Otherwise, it will raise an excpetion.\f[]
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
@@ -2927,7 +3051,9 @@ np.float32\f[]:
 .P
 .PD
 \- \f[B]lu\f[]: It is a numpy matrix having float (float32) type values
-and containing the LU factor of input matrix \[aq]a\[aq].
+(by default) and containing the LU factor of input matrix \[aq]a\[aq].
+In case \[aq]overwrite_a\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]a\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -2952,7 +3078,9 @@ np.float64\f[]:
 .P
 .PD
 \- \f[B]lu\f[]: It is a numpy matrix having double (float64) type values
-and containing the LU factor of input matrix \[aq]a\[aq].
+(by default) and containing the LU factor of input matrix \[aq]a\[aq].
+In case \[aq]overwrite_a\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]a\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -2997,7 +3125,7 @@ native scalapack dgetrf.
 side numpy matrix of the linear equation having int, float (float32) or
 double (float64) type values.
 It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+(float32) type values.
 .PD 0
 .P
 .PD
@@ -3081,8 +3209,45 @@ overwritten\ matrix:\
 \f[]
 .fi
 .PP
-\f[B]Currently, the result of sgetrf() wrapper function with
-\[aq]overwrite_a\[aq] parameter is different in frovedis and scipy.\f[]
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, it\[aq]s overwitten with double (float64) type
+values.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+from\ frovedis.matrix.dense\ import\ FrovedisBlockcyclicMatrix
+mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+bcm1\ =\ FrovedisBlockcyclicMatrix(mat1,dtype\ =\ np.float32)
+
+#\ sgetrf()\ demo\ and\ bcm1\ is\ an\ instance\ of\ FrovedisBlockcyclicMatrix
+from\ frovedis.linalg.scalapack\ import\ getrf
+rf\ =\ getrf(bcm1,dtype\ =\ np.float32)
+
+#\ Unpacking\ the\ tuple
+rf[0].debug_print()
+print(rf[1])
+print(rf[2])
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+<frovedis.matrix.results.GetrfResult\ object\ at\ 0x7f6199f28908>
+0
+matrix:
+num_row\ =\ 3,\ num_col\ =\ 3
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 3,\ local_num_col\ =\ 3,\ type\ =\ 2,\ descriptor\ =\ 1\ 1\ 3\ 3\ 3\ 3\ 0\ 0\ 3\ 3\ 3
+val\ =\ 1\ \-1\ 0\ 0\ 5\ 0.6\ 2\ 2\ \-10.2
+\f[]
+.fi
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -3098,7 +3263,9 @@ overwritten\ matrix:\
 .P
 .PD
 \- \f[B]lu\f[]: It is a numpy matrix having float (float32) type values
-and containing the LU factor of input matrix \[aq]a\[aq].
+(by default) and containing the LU factor of input matrix \[aq]a\[aq].
+In case \[aq]overwrite_a\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]a\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -3141,8 +3308,8 @@ native scalapack dgetrf.
 .PD
 \f[I]\f[B]lu\f[]\f[]: It accepts a python array\-like input or numpy
 matrix having int, float (float32) or double (float64) type values.
-It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values computed using dgetrf().
+It also accepts FrovedisBlockcyclicMatrix instance having double
+(float64) type values computed using dgetrf().
 .PD 0
 .P
 .PD
@@ -3214,7 +3381,7 @@ mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
 from\ frovedis.linalg.scalapack\ import\ dgetrf,dgetri
 
 #\ compute\ lu\ and\ piv\ using\ dgetrf()
-rf\ =\ dgetrf(mat1)
+rf\ =\ dgetrf(mat1,overwrite_a\ =\ 1)
 
 #\ dgetri()\ demo\ and\ overwriting\ of\ lu
 print(\[aq]original\ matrix\ mat1:\ \[aq])
@@ -3234,9 +3401,54 @@ original\ matrix\ mat1:
 \ [\-1.\ \ 5.\ \ 0.]
 \ [\ 0.\ \ 3.\ \-9.]]
 overwritten\ matrix:
-[[\ 1.\ \ 0.\ \ 2.]
-\ [\-1.\ \ 5.\ \ 0.]
-\ [\ 0.\ \ 3.\ \-9.]]
+[[\ 0.88235294\ \-0.11764706\ \ 0.19607843]
+\ [\ 0.17647059\ \ 0.17647059\ \ 0.03921569]
+\ [\ 0.05882353\ \ 0.05882353\ \-0.09803922]]
+\f[]
+.fi
+.PP
+The input matrix is only processed by dgetrf() first to generate LU
+factor.
+The LU factor and ipiv information is then used with dgetri().
+.PP
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, it\[aq]s overwitten with inverse matrix having
+double (float64) type values.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+from\ frovedis.matrix.dense\ import\ FrovedisBlockcyclicMatrix
+mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+mat2\ =\ np.array([[\-9.,3.,\-1.],[0.,3.,1.],[2.,2.,0.]])
+bcm1\ =\ FrovedisBlockcyclicMatrix(mat1)
+bcm2\ =\ FrovedisBlockcyclicMatrix(mat2)
+
+#\ dgetri()\ demo\ and\ bcm1\ and\ bcm2\ are\ an\ instance\ of\ FrovedisBlockcyclicMatrix
+from\ frovedis.linalg.scalapack\ import\ dgetrf,dgetri
+rf\ =\ dgetrf(bcm1)
+ri\ =\ dgetri(rf[0],rf[1],bcm2)
+
+#\ Unpacking\ the\ tuple
+ri[0].debug_print()
+print(ri[1])
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+0
+matrix:
+num_row\ =\ 3,\ num_col\ =\ 3
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 3,\ local_num_col\ =\ 3,\ type\ =\ 2,\ descriptor\ =\ 1\ 1\ 3\ 3\ 3\ 3\ 0\ 0\ 3\ 3\ 3
+val\ =\ 0.882353\ 0.176471\ 0.0588235\ \-0.117647\ 0.176471\ 0.0588235\ 0.196078\ 0.0392157\ \-0.0980392
 \f[]
 .fi
 .PP
@@ -3254,7 +3466,9 @@ overwritten\ matrix:
 .P
 .PD
 \- \f[B]inv_a\f[]: It is a numpy matrix having double (float64) type
-values and containing the inverse matrix.
+values (by default) and containing the inverse matrix.
+In case \[aq]overwrite_lu\[aq] is enabled, then dtype for the matrix
+will depend on intermediate input \[aq]LU\[aq] factor dtype.
 .PD 0
 .P
 .PD
@@ -3375,7 +3589,7 @@ mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
 from\ frovedis.linalg.scalapack\ import\ getrf,getri
 
 #\ compute\ lu\ and\ piv\ using\ getrf()
-rf\ =\ getrf(mat1)
+rf\ =\ getrf(mat1,\ overwrite_a\ =\ 1)
 
 #\ getri()\ demo\ and\ overwriting\ of\ lu
 print(\[aq]original\ matrix\ mat1:\ \[aq])
@@ -3395,11 +3609,22 @@ original\ matrix\ mat1:
 \ [\-1.\ \ 5.\ \ 0.]
 \ [\ 0.\ \ 3.\ \-9.]]
 overwritten\ matrix:
-[[\ 1.\ \ 0.\ \ 2.]
-\ [\-1.\ \ 5.\ \ 0.]
-\ [\ 0.\ \ 3.\ \-9.]]
+[[\ 0.88235294\ \-0.11764706\ \ 0.19607843]
+\ [\ 0.17647059\ \ 0.17647059\ \ 0.03921569]
+\ [\ 0.05882353\ \ 0.05882353\ \-0.09803922]]
 \f[]
 .fi
+.PP
+The input matrix is only processed by getrf() first to generate LU
+factor.
+The LU factor and ipiv information is then used with getri().
+.PP
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, it\[aq]s overwitten with inverse matrix having
+double (float64) type values.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -3431,6 +3656,44 @@ Output
 \f[]
 .fi
 .PP
+For example,
+.IP
+.nf
+\f[C]
+from\ frovedis.matrix.dense\ import\ FrovedisBlockcyclicMatrix
+mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+mat2\ =\ np.array([[\-9.,3.,\-1.],[0.,3.,1.],[2.,2.,0.]])
+bcm1\ =\ FrovedisBlockcyclicMatrix(mat1,dtype\ =\ np.float32)
+bcm2\ =\ FrovedisBlockcyclicMatrix(mat2,dtype\ =\ np.float32)
+
+#\ sgetri()\ demo\ and\ bcm1\ and\ bcm2\ are\ an\ instance\ of\ FrovedisBlockcyclicMatrix
+from\ frovedis.linalg.scalapack\ import\ getrf,getri
+rf\ =\ getrf(bcm1,dtype\ =\ np.float32)
+ri\ =\ getri(rf[0],rf[1],bcm2,\ dtype\ =\ np.float32)
+
+#\ Unpacking\ the\ tuple
+ri[0].debug_print()
+print(ri[1])
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+0
+matrix:
+num_row\ =\ 3,\ num_col\ =\ 3
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 3,\ local_num_col\ =\ 3,\ type\ =\ 2,\ descriptor\ =\ 1\ 1\ 3\ 3\ 3\ 3\ 0\ 0\ 3\ 3\ 3
+val\ =\ 0.882353\ 0.176471\ 0.0588235\ \-0.117647\ 0.176471\ 0.0588235\ 0.196078\ 0.0392157\ \-0.0980392
+\f[]
+.fi
+.PP
+\f[B]Note:\- \[aq]dtype\[aq] for the wrapper function and
+FrovedisBlockcyclicMatrix instance must be same during computation.
+Otherwise, it will raise an excpetion.\f[]
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
@@ -3446,7 +3709,9 @@ np.float32\f[]:
 .P
 .PD
 \- \f[B]inv_a\f[]: It is a numpy matrix having float (float32) type
-values and containing the inverse matrix.
+values (by default) and containing the inverse matrix.
+In case \[aq]overwrite_lu\[aq] is enabled, then dtype for the matrix
+will depend on intermediate input \[aq]LU\[aq] factor dtype.
 .PD 0
 .P
 .PD
@@ -3466,7 +3731,9 @@ np.float64\f[]:
 .P
 .PD
 \- \f[B]inv_a\f[]: It is a numpy matrix having double (float64) type
-values and containing the inverse matrix.
+values (by default) and containing the inverse matrix.
+In case \[aq]overwrite_lu\[aq] is enabled, then dtype for the matrix
+will depend on intermediate input \[aq]LU\[aq] factor dtype.
 .PD 0
 .P
 .PD
@@ -3500,7 +3767,7 @@ native scalapack dgetri.
 \f[I]\f[B]lu\f[]\f[]: It accepts a python array\-like input or numpy
 matrix having int, float (float32) or double (float64) type values.
 It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+(float32) type values.
 .PD 0
 .P
 .PD
@@ -3572,7 +3839,7 @@ mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
 from\ frovedis.linalg.scalapack\ import\ sgetrf,sgetri
 
 #\ compute\ lu\ and\ piv\ using\ sgetrf()
-rf\ =\ sgetrf(mat1)
+rf\ =\ sgetrf(mat1,\ overwrite_a\ =\ 1)
 
 #\ sgetri()\ demo\ and\ overwriting\ of\ lu
 print(\[aq]original\ matrix\ mat1:\ \[aq])
@@ -3593,9 +3860,54 @@ original\ matrix\ mat1:
 \ [\ 0.\ \ 3.\ \-9.]]
 \ 
 overwritten\ matrix:
-[[\ 1.\ \ 0.\ \ 2.]
-\ [\-1.\ \ 5.\ \ 0.]
-\ [\ 0.\ \ 3.\ \-9.]]
+[[\ 0.88235295\ \-0.11764707\ \ 0.19607843]
+\ [\ 0.17647059\ \ 0.17647059\ \ 0.03921569]
+\ [\ 0.05882353\ \ 0.05882353\ \-0.09803922]]
+\f[]
+.fi
+.PP
+The input matrix is only processed by sgetrf() first to generate LU
+factor.
+The LU factor and ipiv information is then used with sgetri().
+.PP
+\f[B]Here, if the input \[aq]mat1\[aq] is double (float64) type and
+overwite is enabled, it\[aq]s overwitten with inverse matrix having
+double (float64) type values.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+from\ frovedis.matrix.dense\ import\ FrovedisBlockcyclicMatrix
+mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+mat2\ =\ np.array([[\-9.,3.,\-1.],[0.,3.,1.],[2.,2.,0.]])
+bcm1\ =\ FrovedisBlockcyclicMatrix(mat1,dtype\ =\ np.float32)
+bcm2\ =\ FrovedisBlockcyclicMatrix(mat2,dtype\ =\ np.float32)
+
+#\ sgetri()\ demo\ and\ bcm1\ and\ bcm2\ are\ an\ instance\ of\ FrovedisBlockcyclicMatrix
+from\ frovedis.linalg.scalapack\ import\ sgetrf,sgetri
+rf\ =\ sgetrf(bcm1)
+ri\ =\ sgetri(rf[0],rf[1],bcm2)
+
+#\ Unpacking\ the\ tuple
+ri[0].debug_print()
+print(ri[1])
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+0
+matrix:
+num_row\ =\ 3,\ num_col\ =\ 3
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 3,\ local_num_col\ =\ 3,\ type\ =\ 2,\ descriptor\ =\ 1\ 1\ 3\ 3\ 3\ 3\ 0\ 0\ 3\ 3\ 3
+val\ =\ 0.882353\ 0.176471\ 0.0588235\ \-0.117647\ 0.176471\ 0.0588235\ 0.196078\ 0.0392157\ \-0.0980392
 \f[]
 .fi
 .PP
@@ -3613,7 +3925,9 @@ overwritten\ matrix:
 .P
 .PD
 \- \f[B]inv_a\f[]: It is a numpy matrix having float (float32) type
-values and containing the inverse matrix.
+values (by default) and containing the inverse matrix.
+In case \[aq]overwrite_lu\[aq] is enabled, then dtype for the matrix
+will depend on intermediate input \[aq]LU\[aq] factor dtype.
 .PD 0
 .P
 .PD
@@ -3646,8 +3960,8 @@ native scalapack dgetri.
 .PD
 \f[I]\f[B]lu\f[]\f[]: It accepts a python array\-like input or numpy
 matrix having int, float (float32) or double (float64) type values.
-It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values computed using dgetrf.
+It also accepts FrovedisBlockcyclicMatrix instance having double
+(float64) type values computed using dgetrf.
 .PD 0
 .P
 .PD
@@ -3659,8 +3973,8 @@ server side pointer of pivot array computed using dgetrf().
 \f[I]\f[B]b\f[]\f[]: It accepts a python array\-like input or right hand
 side matrix of the linear equation having int, float (float32) or double
 (float64) type values.
-It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+It also accepts FrovedisBlockcyclicMatrix instance having double
+(float64) type values.
 It should have number of rows >= the number of rows in \[aq]a\[aq] and
 at least 1 column in it.
 .PD 0
@@ -3700,6 +4014,7 @@ For example,
 \f[C]
 import\ numpy\ as\ np
 mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+mat2\ =\ np.array([[\-9.,3.,\-1.],[0.,3.,1.],[2.,2.,0.]])
 
 #\ dgetrf()\ demo
 from\ frovedis.linalg.scalapack\ import\ dgetrf,dgetrs
@@ -3708,7 +4023,7 @@ from\ frovedis.linalg.scalapack\ import\ dgetrf,dgetrs
 rf\ =\ dgetrf(mat1)
 
 #\ dgetrs()\ demo
-ri\ =\ dgetrs(rf[0],rf[1])
+ri\ =\ dgetrs(rf[0],rf[1],mat2)
 print(ri)
 \f[]
 .fi
@@ -3729,17 +4044,18 @@ For example,
 \f[C]
 import\ numpy\ as\ np
 mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+mat2\ =\ np.array([[\-9.,3.,\-1.],[0.,3.,1.],[2.,2.,0.]])
 
 #\ dgetrf()\ demo
 from\ frovedis.linalg.scalapack\ import\ dgetrf,dgetrs
 
 #\ compute\ lu\ and\ piv\ using\ dgetrf()
-rf\ =\ dgetrf(mat1)
+rf\ =\ dgetrf(mat1,\ overwrite_a\ =\ 1)
 
 #\ dgetrs()\ demo\ and\ overwriting\ of\ b
-print(\[aq]original\ matrix\ mat1:\ \[aq])
-print(mat1)
-ri\ =\ dgetrs(rf[0],rf[1],\ overwrite_b\ =\ 1)
+print(\[aq]original\ matrix\ mat2:\ \[aq])
+print(mat2)
+ri\ =\ dgetrs(rf[0],rf[1],mat2,overwrite_b\ =\ 1)
 print(\[aq]overwritten\ matrix:\ \[aq])
 print(mat1)
 \f[]
@@ -3749,14 +4065,55 @@ Output
 .IP
 .nf
 \f[C]
-original\ matrix\ mat1:
-[[\ 1.\ \ 0.\ \ 2.]
-\ [\-1.\ \ 5.\ \ 0.]
-\ [\ 0.\ \ 3.\ \-9.]]
+original\ matrix\ mat2:
+[[\-9.\ \ 3.\ \-1.]
+\ [\ 0.\ \ 3.\ \ 1.]
+\ [\ 2.\ \ 2.\ \ 0.]]
 overwritten\ matrix:
-[[\ 1.\ \ 0.\ \ 2.]
-\ [\-1.\ \ 5.\ \ 0.]
-\ [\ 0.\ \ 3.\ \-9.]]
+[[\-7.54901961\ \ 2.68627451\ \-1.\ \ \ \ \ \ \ \ ]
+\ [\-1.50980392\ \ 1.1372549\ \ \ 0.\ \ \ \ \ \ \ \ ]
+\ [\-0.7254902\ \ \ 0.15686275\ \ 0.\ \ \ \ \ \ \ \ ]]
+\f[]
+.fi
+.PP
+\f[B]Here, if the inputs \[aq]mat2\[aq] is double (float64) type and
+overwite is enabled in dgetrs(), it\[aq]s overwitten with solution
+having double (float64) type values.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+from\ frovedis.matrix.dense\ import\ FrovedisBlockcyclicMatrix
+mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+mat2\ =\ np.array([[\-9.,3.,\-1.],[0.,3.,1.],[2.,2.,0.]])
+bcm1\ =\ FrovedisBlockcyclicMatrix(mat1)
+bcm2\ =\ FrovedisBlockcyclicMatrix(mat2)
+
+#\ dgetrs()\ demo\ and\ bcm1\ and\ bcm2\ are\ an\ instance\ of\ FrovedisBlockcyclicMatrix
+from\ frovedis.linalg.scalapack\ import\ dgetrf,dgetrs
+rf\ =\ dgetrf(bcm1)
+ri\ =\ dgetrs(rf[0],rf[1],bcm2)
+
+#\ Unpacking\ the\ tuple
+ri[0].debug_print()
+print(ri[1])
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+0
+matrix:
+num_row\ =\ 3,\ num_col\ =\ 3
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 3,\ local_num_col\ =\ 3,\ type\ =\ 2,\ descriptor\ =\ 1\ 1\ 3\ 3\ 3\ 3\ 0\ 0\ 3\ 3\ 3
+val\ =\ \-7.54902\ \-1.5098\ \-0.72549\ 2.68627\ 1.13725\ 0.156863\ \-1\ 0\ 0
 \f[]
 .fi
 .PP
@@ -3774,7 +4131,9 @@ overwritten\ matrix:
 .P
 .PD
 \- \f[B]x\f[]: It is a numpy matrix having double (float64) type values
-and containing the solution matrix.
+(by default) and containing the solution matrix.
+In case \[aq]overwrite_b\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]b\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -3877,6 +4236,7 @@ For example,
 \f[C]
 import\ numpy\ as\ np
 mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+mat2\ =\ np.array([[\-9.,3.,\-1.],[0.,3.,1.],[2.,2.,0.]])
 
 #\ getrf()\ demo
 from\ frovedis.linalg.scalapack\ import\ getrf,getrs
@@ -3885,7 +4245,7 @@ from\ frovedis.linalg.scalapack\ import\ getrf,getrs
 rf\ =\ getrf(mat1)
 
 #\ getrs()\ demo
-ri\ =\ getrs(rf[0],rf[1])
+ri\ =\ getrs(rf[0],rf[1],mat2)
 print(ri)
 \f[]
 .fi
@@ -3906,19 +4266,20 @@ For example,
 \f[C]
 import\ numpy\ as\ np
 mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+mat2\ =\ np.array([[\-9.,3.,\-1.],[0.,3.,1.],[2.,2.,0.]])
 
 #\ getrf()\ demo
 from\ frovedis.linalg.scalapack\ import\ getrf,getrs
 
 #\ compute\ lu\ and\ piv\ using\ getrf()
-rf\ =\ getrf(mat1)
+rf\ =\ getrf(mat1,\ overwrite_a\ =\ 1)
 
 #\ getrs()\ demo\ and\ overwriting\ of\ b
-print(\[aq]original\ matrix\ mat1:\ \[aq])
-print(mat1)
-ri\ =\ getrs(rf[0],rf[1],\ overwrite_b\ =\ 1)
+print(\[aq]original\ matrix\ mat2:\ \[aq])
+print(mat2)
+ri\ =\ getrs(rf[0],rf[1],\ mat2,\ overwrite_b\ =\ 1)
 print(\[aq]overwritten\ matrix:\ \[aq])
-print(mat1)
+print(mat2)
 \f[]
 .fi
 .PP
@@ -3926,16 +4287,23 @@ Output
 .IP
 .nf
 \f[C]
-original\ matrix\ mat1:
-[[\ 1.\ \ 0.\ \ 2.]
-\ [\-1.\ \ 5.\ \ 0.]
-\ [\ 0.\ \ 3.\ \-9.]]
+original\ matrix\ mat2:
+[[\-9.\ \ 3.\ \-1.]
+\ [\ 0.\ \ 3.\ \ 1.]
+\ [\ 2.\ \ 2.\ \ 0.]]
 overwritten\ matrix:
-[[\ 1.\ \ 0.\ \ 2.]
-\ [\-1.\ \ 5.\ \ 0.]
-\ [\ 0.\ \ 3.\ \-9.]]
+[[\-7.54901961\ \ 2.68627451\ \-1.\ \ \ \ \ \ \ \ ]
+\ [\-1.50980392\ \ 1.1372549\ \ \ 0.\ \ \ \ \ \ \ \ ]
+\ [\-0.7254902\ \ \ 0.15686275\ \ 0.\ \ \ \ \ \ \ \ ]]
 \f[]
 .fi
+.PP
+\f[B]Here, if the inputs \[aq]mat2\[aq] is double (float64) type and
+overwite is enabled in dgetrs(), it\[aq]s overwitten with solution
+having double (float64) type values.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
 .PP
 For example,
 .IP
@@ -3964,9 +4332,46 @@ Output
 (array([[\-7.54902\ \ \ ,\ \ 2.6862745\ ,\ \-1.\ \ \ \ \ \ \ \ ],
 \ \ \ [\-1.509804\ \ ,\ \ 1.137255\ \ ,\ \ 0.\ \ \ \ \ \ \ \ ],
 \ \ \ [\-0.7254902\ ,\ \ 0.15686277,\ \ 0.\ \ \ \ \ \ \ \ ]],\ dtype=float32),\ 0)
-\ \ \ 
 \f[]
 .fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+from\ frovedis.matrix.dense\ import\ FrovedisBlockcyclicMatrix
+mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+mat2\ =\ np.array([[\-9.,3.,\-1.],[0.,3.,1.],[2.,2.,0.]])
+bcm1\ =\ FrovedisBlockcyclicMatrix(mat1,dtype\ =\ np.float32)
+bcm2\ =\ FrovedisBlockcyclicMatrix(mat2,\ dtype\ =\ np.float32)
+
+#\ getrs()\ demo\ and\ bcm1\ and\ bcm2\ are\ an\ instance\ of\ FrovedisBlockcyclicMatrix
+from\ frovedis.linalg.scalapack\ import\ getrf,getrs
+rf\ =\ getrf(bcm1,dtype\ =\ np.float32)
+ri\ =\ getrs(rf[0],rf[1],bcm2,dtype\ =\ np.float32)
+
+#\ Unpacking\ the\ tuple
+ri[0].debug_print()
+print(ri[1])
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+0
+matrix:
+num_row\ =\ 3,\ num_col\ =\ 3
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 3,\ local_num_col\ =\ 3,\ type\ =\ 2,\ descriptor\ =\ 1\ 1\ 3\ 3\ 3\ 3\ 0\ 0\ 3\ 3\ 3
+val\ =\ \-7.54902\ \-1.5098\ \-0.72549\ 2.68627\ 1.13725\ 0.156863\ \-1\ 0\ 0
+\f[]
+.fi
+.PP
+\f[B]Note:\- \[aq]dtype\[aq] for the wrapper function and
+FrovedisBlockcyclicMatrix instance must be same during computation.
+Otherwise, it will raise an excpetion.\f[]
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -3983,7 +4388,9 @@ np.float32\f[]:
 .P
 .PD
 \- \f[B]x\f[]: It is a numpy matrix having float (float32) type values
-containing the solution matrix.
+(by default) containing the solution matrix.
+In case \[aq]overwrite_b\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]b\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -4003,7 +4410,9 @@ np.float64\f[]:
 .P
 .PD
 \- \f[B]x\f[]: It is a numpy matrix having double (float64) type values
-containing the solution matrix.
+(by default) containing the solution matrix.
+In case \[aq]overwrite_b\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]b\[aq] dtype.
 .PD 0
 .P
 .PD
@@ -4037,7 +4446,7 @@ native scalapack dgetri.
 \f[I]\f[B]lu\f[]\f[]: It accepts a python array\-like input or numpy
 matrix having int, float (float32) or double (float64) type values.
 It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values computed using dgetrf.
+(float32) type values computed using dgetrf.
 .PD 0
 .P
 .PD
@@ -4050,7 +4459,7 @@ server side pointer of pivot array computed using dgetrf().
 side matrix of the linear equation having int, float (float32) or double
 (float64) type values.
 It also accepts FrovedisBlockcyclicMatrix instance having float
-(float32) or double (float64) type values.
+(float32) type values.
 It should have number of rows >= the number of rows in \[aq]a\[aq] and
 at least 1 column in it.
 .PD 0
@@ -4093,6 +4502,7 @@ For example,
 \f[C]
 import\ numpy\ as\ np
 mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+mat2\ =\ np.array([[\-9.,3.,\-1.],[0.,3.,1.],[2.,2.,0.]])
 
 #\ sgetrf()\ demo
 from\ frovedis.linalg.scalapack\ import\ sgetrf,sgetrs
@@ -4101,7 +4511,7 @@ from\ frovedis.linalg.scalapack\ import\ sgetrf,sgetrs
 rf\ =\ sgetrf(mat1)
 
 #\ sgetrs()\ demo
-ri\ =\ sgetrs(rf[0]rf[1])
+ri\ =\ sgetrs(rf[0]rf[1],mat2)
 print(ri)
 \f[]
 .fi
@@ -4130,11 +4540,11 @@ from\ frovedis.linalg.scalapack\ import\ sgetrf,sgetrs
 rf\ =\ sgetrf(mat1)
 
 #\ sgetrs()\ demo\ and\ overwriting\ of\ b
-print(\[aq]original\ matrix\ mat1:\ \[aq])
-print(mat1)
-ri\ =\ sgetrs(rf[0],rf[1],mat2,\ overwrite_b\ =\ 1)
+print(\[aq]original\ matrix\ mat2:\ \[aq])
+print(mat2)
+ri\ =\ sgetrs(rf[0],rf[1],\ mat2,\ overwrite_b\ =\ 1)
 print(\[aq]overwritten\ matrix:\ \[aq])
-print(mat1)
+print(mat2)
 \f[]
 .fi
 .PP
@@ -4142,15 +4552,55 @@ Output
 .IP
 .nf
 \f[C]
-original\ matrix\ mat1:
-[[\ 1.\ \ 0.\ \ 2.]
-\ [\-1.\ \ 5.\ \ 0.]
-\ [\ 0.\ \ 3.\ \-9.]]
-\ 
+original\ matrix\ mat2:
+[[\-9.\ \ 3.\ \-1.]
+\ [\ 0.\ \ 3.\ \ 1.]
+\ [\ 2.\ \ 2.\ \ 0.]]
 overwritten\ matrix:
-[[\ 1.\ \ 0.\ \ 2.]
-\ [\-1.\ \ 5.\ \ 0.]
-\ [\ 0.\ \ 3.\ \-9.]]
+[[\-7.54901981\ \ 2.68627453\ \-1.\ \ \ \ \ \ \ \ ]
+\ [\-1.50980401\ \ 1.13725495\ \ 0.\ \ \ \ \ \ \ \ ]
+\ [\-0.72549021\ \ 0.15686277\ \ 0.\ \ \ \ \ \ \ \ ]]
+\f[]
+.fi
+.PP
+\f[B]Here, if the inputs \[aq]mat2\[aq] is double (float64) type and
+overwite is enabled in dgetrs(), it\[aq]s overwitten with solution
+having double (float64) type values.\f[]
+.PP
+\f[B]Same applies for other types (int, float (float32)) when input is a
+numpy matrix/array and overwrite is enabled.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+from\ frovedis.matrix.dense\ import\ FrovedisBlockcyclicMatrix
+mat1\ =\ np.array([[1.,0.,2.],[\-1.,5.,0.],[0.,3.,\-9.]])
+mat2\ =\ np.array([[\-9.,3.,\-1.],[0.,3.,1.],[2.,2.,0.]])
+bcm1\ =\ FrovedisBlockcyclicMatrix(mat1,dtype\ =\ np.float32)
+bcm2\ =\ FrovedisBlockcyclicMatrix(mat2,dtype\ =\ np.float32)
+
+#\ sgetrs()\ demo\ and\ bcm1\ and\ bcm2\ are\ an\ instance\ of\ FrovedisBlockcyclicMatrix
+from\ frovedis.linalg.scalapack\ import\ sgetrf,sgetrs
+rf\ =\ sgetrf(bcm1)
+ri\ =\ sgetrs(rf[0],rf[1],bcm2)
+
+#\ Unpacking\ the\ tuple
+ri[0].debug_print()
+print(ri[1])
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+0
+matrix:
+num_row\ =\ 3,\ num_col\ =\ 3
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 3,\ local_num_col\ =\ 3,\ type\ =\ 2,\ descriptor\ =\ 1\ 1\ 3\ 3\ 3\ 3\ 0\ 0\ 3\ 3\ 3
+val\ =\ \-7.54902\ \-1.5098\ \-0.72549\ 2.68627\ 1.13725\ 0.156863\ \-1\ 0\ 0\ \ \ \ 
 \f[]
 .fi
 .PP
@@ -4169,6 +4619,8 @@ overwritten\ matrix:
 .PD
 \- \f[B]x\f[]: It is a numpy matrix having float (float32) type value
 and containing the solution matrix.
+In case \[aq]overwrite_b\[aq] is enabled, then dtype for the matrix will
+depend on input \[aq]b\[aq] dtype.
 .PD 0
 .P
 .PD
