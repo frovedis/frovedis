@@ -8,6 +8,32 @@ DataFrame Selection and Combinations Functions - the functions used for selectio
   
     frovedis.dataframe.df.DataFrame(df = None, is_series = False)  
 
+## Public Member Functions  
+    1. add_index(name)
+    2. append(other, ignore_index = False, verify_integrity = False, sort = False)
+    3. between(left, right, inclusive="both")
+    4. drop(labels = None, axis = 0, index = None, columns = None, level = None, 
+            inplace = False, errors = 'raise')
+    5. drop_cols(targets, inplace = False)
+    6. drop_duplicates(subset = None, keep = 'first', inplace = False, ignore_index = False)
+    7. drop_rows(targets, inplace = False)
+    8. filter(items = None, like = None, regex = None, axis = None)
+    9. get_index_loc(value)
+    10. head(n = 5)
+    11. insert(loc, column, value, allow_duplicates = False)
+    12. join(right, on, how = 'inner', lsuffix = '\_left', rsuffix = '\_right', 
+             sort = False, join_type = 'bcast')
+    13. merge(right, on = None, how = 'inner', left_on = None, right_on = None, 
+              left_index = False, right_index = False, sort = False, suffixes = ('\_x', '\_y'), 
+              copy = True, indicator = False, join_type = 'bcast')
+    14. rename(columns, inplace = False)
+    15. rename_index(new_name, inplace = False)
+    16. reset_index(drop = False, inplace = False)
+    17. set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
+    18. show()
+    19. tail(n = 5)
+    20. update_index(value, key = None, verify_integrity = False, inplace = False) 
+
 ## Detailed Description   
   
 ### 1. add_index(name)  
@@ -61,7 +87,6 @@ Output,
 
 __Return Value__  
 It returns a self reference.  
-  
   
 ### 2. append(other, ignore_index = False, verify_integrity = False, sort = False)   
 
@@ -254,8 +279,137 @@ Output,
 __Return Value__  
 It returns a new Frovedis DataFrame consisting of the rows of original DataFrame object and the rows of other DataFrame object.  
 
+### 3. between(left, right, inclusive = "both")  
 
-### 3. drop(labels = None, axis = 0, index = None, columns = None, level = None, inplace = False, errors = 'raise')  
+__Parameters__  
+**_left_**: It accepts scalar values as parameter.  
+**_right_**: It accepts scalar values as parameter.  
+**_inclusive_**: It accepts string object as parameter tha specifies which boundaries to include, whether to set 
+bounds as open or closed. (Default: 'both')  
+- **'left'**: left boundary value is included.  
+- **'right'**: right boundary value is included.  
+- **'both'**: boundary values are included.  
+- **'neither'**: boundary values are excluded.  
+
+
+__Purpose__  
+This method performs filtering of rows according to the specified bound over a single column at a time.  
+
+**Currently, this medthod filters data for numeric column data only.**  
+
+For example,  
+
+    import pandas as pd
+    import numpy as np
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    peopleDF = {
+                'Name':['Jai', 'Anuj', 'Jai', 'Princi', 'Gaurav', 'Anuj', 'Princi', 'Abhi'],
+                'Age':[27, 24, 22, 32, 33, 36, 27, 32],
+                'City':['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad', 
+                        'Kanpur', 'Kanpur', 'Kanpur'],
+                'Qualification':['B.Tech', 'Phd', 'B.Tech', 'Phd', 'Phd', 'B.Tech', 'Phd', 'B.Tech'],
+                'Score': [23, 34, 35, 45, np.nan, 50, 52, np.nan]
+               }
+    
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(peopleDF)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   Name    Age     City       Qualification   Score
+    0       Jai     27      Nagpur     B.Tech          23
+    1       Anuj    24      Kanpur     Phd             34
+    2       Jai     22      Allahabad  B.Tech          35
+    3       Princi  32      Kannuaj    Phd             45
+    4       Gaurav  33      Allahabad  Phd             NULL
+    5       Anuj    36      Kanpur     B.Tech          50
+    6       Princi  27      Kanpur     Phd             52
+    7       Abhi    32      Kanpur     B.Tech          NULL
+
+For example,  
+
+    # between() demo used with given column of dataframe
+    # Also, both boundaries are included
+    fdf1['Score'].between(40,50)
+    
+Unlike pandas, it returns an instance of dfoperator **(present in frovedis only)** which contains masked boolean data as result of between operation. In order to unmask the data, **to_mask_array()** must be used.
+
+    fdf1['Score'].between(40,50).to_mask_array
+    
+Output  
+
+    [False False False  True False  True False False]
+
+This returns a boolean array containing True wherever the corresponding element is between the boundary values 'left' and 'right'. The missing values are treated as False.  
+
+Also, this method can be used in the form of given expression below:  
+
+For example,  
+    
+    # between() demo used with given column of dataframe
+    # Also, both boundaries are included
+    res = fdf1[fdf1['Score'].between(40,50)]
+    print(res)
+
+Output  
+
+    index   Name    Age     City    Qualification   Score
+    3       Princi  32      Kannuaj Phd     45
+    5       Anuj    36      Kanpur  B.Tech  50
+    
+It can also be expressed as follows:  
+
+For example,  
+
+    print(fdf1[fdf1.Score.between(40,50)])
+
+Output  
+
+    index   Name    Age     City    Qualification   Score
+    3       Princi  32      Kannuaj Phd     45
+    5       Anuj    36      Kanpur  B.Tech  50
+
+Now, when 'inclusive' parameter is provided, then,  
+
+For example,  
+
+    # between() demo and only left boundary included
+    print(fdf1['Score'].between(40,50,inclusive = 'left').to_mask_array())
+    
+Output  
+
+    [False False False  True False False False False]
+
+For example,  
+
+    # between() demo and only right boundary included
+    print(fdf1['Score'].between(40,50,inclusive = 'right').to_mask_array())
+    
+Output  
+
+    [False False False  True False  True False False]
+
+For example,  
+
+    # between() demo and both boundaries excluded
+    print(fdf1['Score'].between(40,50,inclusive = 'neither').to_mask_array())
+    
+Output  
+
+    [False False False  True False False False False]
+    
+__Return Value__  
+It returns a dfoperator instance.  
+
+### 4. drop(labels = None, axis = 0, index = None, columns = None, level = None, inplace = False, errors = 'raise')  
 
 __Parameters__  
 **_labels_**: It takes an integer or string type as argument. It represents column labels and integer represent index values of rows to be dropped. If any of the label is not found in the selected axis, it will raise an exception. (Default: None)  
@@ -263,6 +417,7 @@ When it is None (not specified explicitly), 'index' or 'columns' parameter must 
 **_axis_**: It accepts an integer type parameter where the value indicates the direction of drop operation according to below conditions:  
 - 0 : The corresponding index labels will be dropped.  
 - 1 : The corresponding columns labels will be dropped.  
+
 **_index_**: It accepts an integer or string object as parameter. It is equivalent to dropping indices along the axis = 0. (Default: None)  
 When it is None (not specified explicitly), 'columns' or 'labels' must be provided.  
 **_columns_**: It accepts a string object or list of strings. It is equivalent to dropping columns along the axis = 1. (Default: None)  
@@ -271,7 +426,7 @@ When it is None (not specified explicitly), 'index' or 'labels' must be provided
 **_inplace_**: It accepts a boolean as a parameter. It return a copy of DataFrame instance by default but when explicitly set to True, it performs operation on original DataFrame. (Default: False)  
 **_errors_**: This is an unsed parameter. (Default: ‘raise’)  
 
-__Purpose__
+__Purpose__  
 It is used to drop specified labels from rows or columns.  
 Rows or columns can be removed by specifying label names and corresponding axis, or by specifying index or column names.  
 
@@ -362,8 +517,7 @@ __Return Value__
 1. It returns a new of Frovedis DataFrame having remaining entries.  
 2. It returns None when parameter 'inplace' = True.  
 
-
-### 4. drop_cols(targets, inplace = False)
+### 5. drop_cols(targets, inplace = False)
 
 __Parameters__  
 **_targets_**: It accepts a string or a list of strings as parameter. It is list of names of column labels to drop from the dataframe.  
@@ -464,8 +618,7 @@ __Return Value__
 1. It returns a new of Frovedis DataFrame having remaining entries.  
 2. It returns None when parameter 'inplace' = True.  
 
-
-### 5. drop_duplicates(subset = None, keep = 'first', inplace = False, ignore_index = False)
+### 6. drop_duplicates(subset = None, keep = 'first', inplace = False, ignore_index = False)
 
 __Parameters__  
 **_subset_**:  It accepts a string object or a list of strings which only consider certain columns for identifying duplicates. (Default: None)  
@@ -473,6 +626,7 @@ When it is None (not specified explicitly), it will consider all of the columns.
 **_keep_**: It accepts a string object which is used to determine which duplicates values to keep. (Default: 'first')  
 1. **'first'** : Drop duplicates except for the first occurrence.  
 2. **'last'** : Drop duplicates except for the last occurrence.  
+
 **_inplace_**: It accepts a boolean as a parameter. It return a copy of DataFrame instance by default but when explicitly set to True, it performs operation on original DataFrame. (Default: False)  
 **_ignore\_index_**: It accepts a boolean type parameter. If True, old index axis is ignored and a new index axis is added with values 0 to n - 1, where n is the number of rows in the DataFrame. (Default: False)  
 
@@ -581,8 +735,7 @@ __Return Value__
 1. It returns a new of Frovedis DataFrame having remaining entries.  
 2. It returns None when parameter 'inplace' = True.  
 
-
-### 6. drop_rows(targets, inplace = False)
+### 7. drop_rows(targets, inplace = False)
 
 __Parameters__  
 **_targets_**: It accepts a integer or string type as parameter. It is the name of the indices to drop from the dataframe.  
@@ -679,8 +832,7 @@ __Return Value__
 1. It returns a new of Frovedis DataFrame having remaining entries.  
 2. It returns None when parameter 'inplace' = True.  
 
-
-### 7. filter(items = None, like = None, regex = None, axis = None)
+### 8. filter(items = None, like = None, regex = None, axis = None)
 
 __Parameters__  
 **_items_**: It accepts a list of string as parameter. It filters only those labels which are mentioned. (Default: None)  
@@ -782,8 +934,7 @@ Output,
 __Return Value__  
 It returns a new Frovedis DataFrame with the column labels that matches the given conditions.  
 
-
-### 8. get_index_loc(value)  
+### 9. get_index_loc(value)  
 
 __Parameters__  
 **_value_**: It accepts an integer or string parameter. It is the index value whose location is to be determined.  
@@ -897,8 +1048,7 @@ It returns the following values:
 2. slice: when there is a monotonic index i.e. repetitive values in index  
 3. mask: it returns a list of boolean values otherwise  
 
-
-### 9. head(n = 5)
+### 10. head(n = 5)
 
 __Parameters__  
 **_n_**: It accepts an integer parameter which represents the number of rows to select. (Default: 5)  
@@ -906,7 +1056,7 @@ __Parameters__
 __Purpose__   
 This function returns the first n rows for the object based on position. It is useful for quickly testing if your object has the right type of data in it.  
 
-For negative values of n, this function returns all rows except the last n rows, equivalent to df[:-n].  
+For negative values of n, this function returns all rows except the last n rows, equivalent to **df[:-n]**.  
 
 For example:  
  
@@ -1022,8 +1172,7 @@ __Return Value__
 1. It n is positive integer, it returns a new DataFrame with the first n rows.  
 2. If n is negative integer, it returns a new DataFrame with all rows except last n rows.  
 
-
-### 10. insert(loc, column, value, allow_duplicates = False)
+### 11. insert(loc, column, value, allow_duplicates = False)
 
 __Parameters__  
 **_loc_**: It accepts an integer as parameter which represents the Insertion index. It must be in range 0 to n-1 where n is number of columns in DataFrame.  
@@ -1091,7 +1240,7 @@ __Return Value__
 It returns a self reference.  
 
 
-### 11. join(right, on, how = 'inner', lsuffix = '\_left', rsuffix = '\_right', sort = False, join_type = 'bcast')  
+### 12. join(right, on, how = 'inner', lsuffix = '\_left', rsuffix = '\_right', sort = False, join_type = 'bcast')  
 
 __Parameters__  
 **_right_**: It accepts a Frovedis DataFrame or a pandas DataFrame or a list of DataFrame objects as parameter. Index should be similar to one of the columns in this one. If a Series is passed, its name attribute must be set, and that will be used as the column name in the resulting joined DataFrame.  
@@ -1099,6 +1248,7 @@ __Parameters__
 **_how_**: It accepts a string object as parameter that specifies how to handle the operation of the two DataFrames. (Default: 'inner')  
 1. **'left'**: form union of calling DataFrame’s index (or column if 'on' is specified) with other DataFrame’s index, and sort it lexicographically.  
 2. **'inner'**: form intersection of calling DataFrame’s index (or column if 'on' is specified) with other DataFrame’s index, preserving the order of the calling’s one.  
+
 **_lsuffix_**: It accepts a string object as parameter. It adds the suffix to left DataFrame’s overlapping columns. (Default: '\_left')  
 **_rsuffix_**: It accepts a string object as parameter. It adds the suffix to right DataFrame’s overlapping columns. (Default: '\_right')  
 **_sort_**: It accepts a boolean type value. It orders resultant DataFrame lexicographically by the join key. If False, the order of the join key depends on the join type ('how' keyword). (Default: False)  
@@ -1109,7 +1259,7 @@ Join columns of another DataFrame.
 
 Join columns with other DataFrame either on index or on a key column. Efficiently join multiple DataFrame objects by index at once by passing a list.  
 
-**NOTE: Parameters 'on', 'lsuffix', and 'rsuffix' are not supported when passing a list of DataFrame objects.**  
+**Note:- Parameters 'on', 'lsuffix', and 'rsuffix' are not supported when passing a list of DataFrame objects.**  
 
 For example:
 
@@ -1241,8 +1391,7 @@ Output,
 __Return Value__  
 It returns a new Frovedis DataFrame containing columns from both the DataFrame instances.  
 
-
-### 12. merge(right, on = None, how = 'inner', left_on = None, right_on = None, left_index = False, right_index = False, sort = False, suffixes = ('\_x', '\_y'), copy = True, indicator = False, join_type = 'bcast')  
+### 13. merge(right, on = None, how = 'inner', left_on = None, right_on = None, left_index = False, right_index = False, sort = False, suffixes = ('\_x', '\_y'), copy = True, indicator = False, join_type = 'bcast')  
 
 __Parameters__  
 **_right_**: It accepts a Frovedis DataFrame or a pandas DataFrame or a list of Frovedis DataFrame objects as parameter. Index should be similar to one of the columns in this one. If a Series is passed, its name attribute must be set, and that will be used as the column name in the resulting joined DataFrame.  
@@ -1251,20 +1400,21 @@ When it is None and not merging on indexes then this defaults to the intersectio
 **_how_**: It accepts a string object as parameter. It informs the type of merge operation on the two objects. (Default: 'inner')  
 1. **'left'**: form union of calling DataFrame’s index (or column if 'on' is specified) with other’s index and sort it lexicographically.  
 2. **'inner'**: form intersection of calling DataFrame’s index (or column if 'on' is specified) with other’s index, preserving the order of the  calling’s one.  
+
 **_left\_on_**: It accepts a string object or a list of strings as parameter. It represents column names to join on in the left DataFrame. It can also be an array or list of arrays of the length of the left DataFrame. These arrays are treated as if they are columns. (Default: None)  
 **_right\_on_**: It accepts a string object or a list of strings as parameter. It represents column names to join on in the right DataFrame. It can also be an array or list of arrays of the length of the right DataFrame. These arrays are treated as if they are columns. (Default: None)  
 **_left\_index_**: It accepts a boolean value as parameter. It is used to specify whether to use the index from the left DataFrame as the join key. (Default: False)  
 
-**NOTE: Either parameter 'left_on' or 'left_index' can be used but not combination of both.**  
+**Note:- Either parameter 'left_on' or 'left_index' can be used but not combination of both.**  
 
 **_right\_index_**: It accepts a boolean value as parameter. It is used to specify whether to use the index from the right DataFrame as the join key. (Default: False)  
 
-**NOTE: Either parameter 'right_on' or 'right_index' can be used but not combination of both.**  
+**Note:- Either parameter 'right_on' or 'right_index' can be used but not combination of both.**  
 
 **_sort_**: It accepts a boolean value. When this is explicitly set to True, it sorts the join keys lexicographically in the resultant DataFrame. When it is False, the order of the join keys depends on the join type ('how' parameter). (Default: False)  
 **_suffixes_**: It accepts a list like (list or tuple) object of strings of length two as parameter. It indicates the suffix to be added to the overlapping column names in left and right respectively. Need to explicitly pass a value of None instead of a string to indicate that the column name from left or right should be left as-it is, with no suffix. At least one of the values must not be None. (Default: (“\_x”, “\_y”))  
 
-**NOTE: During merging two DataFrames, the overlapping column names should be different. For example: suffixes = (False, False), then the overlapping columns would have the same name so merging operation will fail.  
+**Note:- During merging two DataFrames, the overlapping column names should be different. For example: suffixes = (False, False), then the overlapping columns would have the same name so merging operation will fail.  
 Also when there is no overlapping column, then this parameter is ignored automatically.**  
 
 **_copy_**: It is an unused parameter. (Default: True)  
@@ -1338,7 +1488,8 @@ For example:
     fd_df2 = fdf.DataFrame(pd_df2)
     fd_df2.show()     
     
-    # Merge DataFrames fd_df1 and fd_df2 with specified left and right suffixes appended to any overlapping columns
+    # Merge DataFrames fd_df1 and fd_df2 with specified left and right suffixes 
+    # appended to any overlapping columns
     fd_df1.merge(fd_df2, left_on = 'lkey', right_on = 'rkey', suffixes = ('_left', '_right')).show()
     
 Output,
@@ -1404,7 +1555,8 @@ Output,
     3       baz     3               baz     7
     4       foo     5               foo     8
     5       foo     5               foo     5
-NOTE: In above example, suffix is ignored as merging column labels are different. To have suffix, the column name must be same in both DataFrames but then the suffixes must be different.  
+
+**Note:-** In above example, suffix is ignored as merging column labels are different. To have suffix, the column name must be same in both DataFrames but then the suffixes must be different.  
 
 For example:
 
@@ -1524,8 +1676,7 @@ Output,
 __Return Value__  
 It returns a new Frovedis DataFrame with the merged entries of the two DataFrame instances.  
 
-
-### 13. rename(columns, inplace = False)  
+### 14. rename(columns, inplace = False)  
 
 __Parameters__  
 **_columns_**: It accepts a dictionary object as parameter. It contains the key as the name of the labels to be renamed and values as the final names.  
@@ -1594,7 +1745,7 @@ __Return Value__
 2. It returns None when 'inplace' parameter is set to True.  
 
 
-### 14. rename_index(new_name, inplace = False)  
+### 15. rename_index(new_name, inplace = False)  
 
 __Parameters__  
 **_new\_name_**: It accepts a string object as parameter. It renames the index for which the value is provided.  
@@ -1644,7 +1795,7 @@ __Return Value__
 2. It returns None when inplace parameter is set to True.  
 
 
-### 15. reset_index(drop = False, inplace = False)  
+### 16. reset_index(drop = False, inplace = False)  
 
 __Parameters__  
 **_drop_**: It accepts a boolean value as parameter. Do not try to insert index into dataframe columns. This resets the index to the default integer index. (Default: False)  
@@ -1653,7 +1804,7 @@ __Parameters__
 __Purpose__   
 It is used to reset the Index label of the DataFrame. A new Index label is inserted with default integer values from 0 to n-1 where n is the number of rows.  
 
-**NOTE : MultiIndex is not supported by Frovedis DataFrame.**  
+**Note:- MultiIndex is not supported by Frovedis DataFrame.**  
 
 For example:
 
@@ -1739,91 +1890,6 @@ Output,
 __Return Value__   
 1. It returns a new Frovedis DataFrame with the default sequence in Index label.  
 2. It returns None if 'inplace' parameter is set to True.  
-
-
-### 16. select_frovedis_dataframe(targets)  
-
-__Parameters__  
-**_targets_**: It accepts a string object or a list of strings as parameter. It represents the column label of the Frovedis DataFrame which are to be selected.  
-
-__Purpose__  
-It is used to select specified columns from the Frovedis DataFrame.  
-
-For example:
-
-    # example to use select_frovedis_dataframe
-    
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    peopleDF = {
-                'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'],
-                'Age' : [29, 30, 27, 19, 31],
-                'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
-                'isMale': [False, False, False, False, True]
-               }
-    pd_df = pd.DataFrame(peopleDF)
-    fd_df = fdf.DataFrame(pd_df)
-    fd_df.show()
-    
-    # select frovedis dataframe with just 'Age' column
-    fd_df.select_frovedis_dataframe('Age').show()
-    
-Output,
-
-    index   Ename   Age     Country isMale
-    0       Michael 29      USA     0
-    1       Andy    30      England 0
-    2       Tanaka  27      Japan   0
-    3       Raul    19      France  0
-    4       Yuta    31      Japan   1
-
-    index   Age
-    0       29
-    1       30
-    2       27
-    3       19
-    4       31
-    
-For example:    
-    
-    # example to use select_frovedis_dataframe with multiple columns
-    
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    peopleDF = {
-                'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'],
-                'Age' : [29, 30, 27, 19, 31],
-                'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
-                'isMale': [False, False, False, False, True]
-               }
-    pd_df = pd.DataFrame(peopleDF)
-    fd_df = fdf.DataFrame(pd_df)
-    fd_df.show()
-
-    # select frovedis dataframe with many columns
-    fd_df.select_frovedis_dataframe(['Age', 'isMale']).show()
-    
-Output,
-
-    index   Ename   Age     Country isMale
-    0       Michael 29      USA     0
-    1       Andy    30      England 0
-    2       Tanaka  27      Japan   0
-    3       Raul    19      France  0
-    4       Yuta    31      Japan   1
-
-    index   Age     isMale
-    0       29      0
-    1       30      0
-    2       27      0
-    3       19      0
-    4       31      1
-
-__Return Value__  
-It returns a new Frovedis DataFrame with the selected column labels and index label.  
-
   
 ### 17. set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)  
 
@@ -1839,7 +1905,7 @@ Currently, Frovedis doesn't support append = True.
 __Purpose__  
 It is used to set the Frovedis DataFrame index using existing columns. The index will replace the existing index.  
 
-**NOTE: Frovedis DataFrame does not support Multi Index.**  
+**Note:- Frovedis DataFrame does not support Multi Index.**  
 
 For example:  
 
@@ -1902,7 +1968,8 @@ Output,
     4       2014    40
     7       2013    84
     10      2014    31
-NOTE: In above example, the column which is being selected as index must have unique values.  
+
+**Note:-** In above example, the column which is being selected as index must have unique values.  
 
 __Return Value__  
 1. It returns a new Frovedis DataFrame where the Index column label is replace with specified column label.  
@@ -1995,7 +2062,6 @@ Output,
 __Return Value__  
 It return nothing.  
 
-
 ### 19. tail(n = 5)  
 
 __Parameters__  
@@ -2005,7 +2071,7 @@ __Purpose__
 This utility is used to return the last **n** rows from the DataFrame.  
 It is useful for quickly verifying data, for example, after sorting or appending rows.  
 
-For negative values of n, this function returns all rows except the first n rows, equivalent to fdf[n:].  
+For negative values of n, this function returns all rows except the first n rows, equivalent to **fdf[n:]**.  
 
 For example:
 
@@ -2129,7 +2195,6 @@ Output,
 __Return Value__   
 It returns a new Frovedis DataFrame instance with last **n** rows.  
 
-
 ### 20. update_index(value, key = None, verify_integrity = False, inplace = False)  
 
 __Parameters__  
@@ -2202,8 +2267,18 @@ Output,
     b       4       2014    40
     c       7       2013    84
     d       10      2014    31
-NOTE: Values used to update 'index' must be different when parameter 'verify_integrity' = True.  
+
+**Note:-** Values used to update 'index' must be different when parameter 'verify_integrity' = True.  
 
 __Return Value__  
 1. It returns a new Frovedis DataFrame with updated row values for index field along with specified label.  
 2. It returns None when 'inplace' parameter is set to True.  
+
+
+# SEE ALSO  
+
+- **[DataFrame - Introduction](./DataFrame_Introduction.md)**  
+- **[DataFrame - Conversion, Missing data handling, Sorting Functions](./DataFrame_ConversionAndSorting.md)**  
+- **[DataFrame - Function Application, Groupby](./DataFrame_FunctionApplicationGroupby.md)**  
+- **[DataFrame - Binary Operators](./DataFrame_BinaryOperators.md)**  
+- **[DataFrame - Aggregate Functions](./DataFrame_AggregateFunctions.md)**  

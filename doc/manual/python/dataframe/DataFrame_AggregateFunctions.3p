@@ -271,14 +271,22 @@ optimsed computation.
 .PD 0
 .P
 .PD
-\f[B]\f[I]other\f[]\f[]: It accepts frovedis series (i.e.
-df[col_name]) as parameter.
+\f[B]\f[I]other\f[]\f[]: It accepts frovedis dataframe as parameter,
+where it must be expressed in \f[B]"df[col_name]"\f[] form.
+Also, it can be expressed in \f[B]"df.col_name"\f[] form as well.
 (Default: None)
+.IP \[bu] 2
+\f[B]When it is not None (specified explicitly)\f[], it performs
+covariance operation between both the given frovedis dataframes.
+Although, the input dataframe must be used as expressions mentioned
+above.
 .PD 0
 .P
 .PD
-When it is not None (specified explicitly), it performs covariance
-operation between both the given frovedis series.
+.IP \[bu] 2
+\f[B]When it is None (not specified explicitly)\f[], it will perform
+covarince on input dataframe to give covraince matrix represented as a
+dataframe.
 .PP
 \f[B]Purpose\f[]
 .PD 0
@@ -411,6 +419,13 @@ Output
 \f[]
 .fi
 .PP
+Here, it could also be expressed as
+\f[B]"fdf1[\[aq]Score\[aq]].cov(other = fdf2[\[aq]Score\[aq]])"\f[].
+.PP
+\f[B]Note:\-\f[] While using input dataframe in the form
+\f[B]\[aq]fdf1[\[aq]Score\[aq]]\[aq] or \[aq]fdf1.Score\[aq]\f[],
+\f[B]\[aq]other\[aq]\f[] parameter must be provided.
+.PP
 \f[B]Return Value\f[]
 .PD 0
 .P
@@ -419,7 +434,8 @@ Output
 .PD 0
 .P
 .PD
-It returns a covariance matrix as the frovedis DataFrame instance.
+It returns a covariance matrix represented as frovedis DataFrame
+instance.
 .PD 0
 .P
 .PD
@@ -427,7 +443,7 @@ It returns a covariance matrix as the frovedis DataFrame instance.
 .PD 0
 .P
 .PD
-It returns covariance between frovedis series inputs.
+It returns covariance as scalar value.
 .SS 4. describe()
 .PP
 \f[B]Purpose\f[]

@@ -10,6 +10,36 @@ selection and combinations are illustrated here.
 frovedis.dataframe.df.DataFrame(df\ =\ None,\ is_series\ =\ False)\ \ 
 \f[]
 .fi
+.SS Public Member Functions
+.IP
+.nf
+\f[C]
+1.\ add_index(name)
+2.\ append(other,\ ignore_index\ =\ False,\ verify_integrity\ =\ False,\ sort\ =\ False)
+3.\ between(left,\ right,\ inclusive="both")
+4.\ drop(labels\ =\ None,\ axis\ =\ 0,\ index\ =\ None,\ columns\ =\ None,\ level\ =\ None,\ 
+\ \ \ \ \ \ \ \ inplace\ =\ False,\ errors\ =\ \[aq]raise\[aq])
+5.\ drop_cols(targets,\ inplace\ =\ False)
+6.\ drop_duplicates(subset\ =\ None,\ keep\ =\ \[aq]first\[aq],\ inplace\ =\ False,\ ignore_index\ =\ False)
+7.\ drop_rows(targets,\ inplace\ =\ False)
+8.\ filter(items\ =\ None,\ like\ =\ None,\ regex\ =\ None,\ axis\ =\ None)
+9.\ get_index_loc(value)
+10.\ head(n\ =\ 5)
+11.\ insert(loc,\ column,\ value,\ allow_duplicates\ =\ False)
+12.\ join(right,\ on,\ how\ =\ \[aq]inner\[aq],\ lsuffix\ =\ \[aq]\\_left\[aq],\ rsuffix\ =\ \[aq]\\_right\[aq],\ 
+\ \ \ \ \ \ \ \ \ sort\ =\ False,\ join_type\ =\ \[aq]bcast\[aq])
+13.\ merge(right,\ on\ =\ None,\ how\ =\ \[aq]inner\[aq],\ left_on\ =\ None,\ right_on\ =\ None,\ 
+\ \ \ \ \ \ \ \ \ \ left_index\ =\ False,\ right_index\ =\ False,\ sort\ =\ False,\ suffixes\ =\ (\[aq]\\_x\[aq],\ \[aq]\\_y\[aq]),\ 
+\ \ \ \ \ \ \ \ \ \ copy\ =\ True,\ indicator\ =\ False,\ join_type\ =\ \[aq]bcast\[aq])
+14.\ rename(columns,\ inplace\ =\ False)
+15.\ rename_index(new_name,\ inplace\ =\ False)
+16.\ reset_index(drop\ =\ False,\ inplace\ =\ False)
+17.\ set_index(keys,\ drop\ =\ True,\ append\ =\ False,\ inplace\ =\ False,\ verify_integrity\ =\ False)
+18.\ show()
+19.\ tail(n\ =\ 5)
+20.\ update_index(value,\ key\ =\ None,\ verify_integrity\ =\ False,\ inplace\ =\ False)\ 
+\f[]
+.fi
 .SS Detailed Description
 .SS 1. add_index(name)
 .PP
@@ -353,7 +383,232 @@ y\ \ \ \ \ \ \ 7\ \ \ \ \ \ \ 8\ \ \ \ \ \ \ NULL\ \ \ \ NULL
 .PD
 It returns a new Frovedis DataFrame consisting of the rows of original
 DataFrame object and the rows of other DataFrame object.
-.SS 3. drop(labels = None, axis = 0, index = None, columns = None, level
+.SS 3. between(left, right, inclusive = "both")
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]left\f[]\f[]: It accepts scalar values as parameter.
+.PD 0
+.P
+.PD
+\f[B]\f[I]right\f[]\f[]: It accepts scalar values as parameter.
+.PD 0
+.P
+.PD
+\f[B]\f[I]inclusive\f[]\f[]: It accepts string object as parameter tha
+specifies which boundaries to include, whether to set bounds as open or
+closed.
+(Default: \[aq]both\[aq])
+.PD 0
+.P
+.PD
+\- \f[B]\[aq]left\[aq]\f[]: left boundary value is included.
+.PD 0
+.P
+.PD
+\- \f[B]\[aq]right\[aq]\f[]: right boundary value is included.
+.PD 0
+.P
+.PD
+\- \f[B]\[aq]both\[aq]\f[]: boundary values are included.
+.PD 0
+.P
+.PD
+\- \f[B]\[aq]neither\[aq]\f[]: boundary values are excluded.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method performs filtering of rows according to the specified bound
+over a single column at a time.
+.PP
+\f[B]Currently, this medthod filters data for numeric column data
+only.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import\ pandas\ as\ pd
+import\ numpy\ as\ np
+import\ frovedis.dataframe\ as\ fdf
+
+#\ a\ dictionary
+peopleDF\ =\ {
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Name\[aq]:[\[aq]Jai\[aq],\ \[aq]Anuj\[aq],\ \[aq]Jai\[aq],\ \[aq]Princi\[aq],\ \[aq]Gaurav\[aq],\ \[aq]Anuj\[aq],\ \[aq]Princi\[aq],\ \[aq]Abhi\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]:[27,\ 24,\ 22,\ 32,\ 33,\ 36,\ 27,\ 32],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]City\[aq]:[\[aq]Nagpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Allahabad\[aq],\ \[aq]Kannuaj\[aq],\ \[aq]Allahabad\[aq],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq],\ \[aq]Kanpur\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq],\ \[aq]Phd\[aq],\ \[aq]B.Tech\[aq]],
+\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Score\[aq]:\ [23,\ 34,\ 35,\ 45,\ np.nan,\ 50,\ 52,\ np.nan]
+\ \ \ \ \ \ \ \ \ \ \ }
+
+#\ create\ pandas\ dataframe
+pdf1\ =\ pd.DataFrame(peopleDF)
+
+#\ create\ frovedis\ dataframe
+fdf1\ =\ fdf.DataFrame(pdf1)
+
+#\ display\ the\ frovedis\ dataframe
+fdf1.show()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ \ \ \ Qualification\ \ \ Score
+0\ \ \ \ \ \ \ Jai\ \ \ \ \ 27\ \ \ \ \ \ Nagpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ \ 23
+1\ \ \ \ \ \ \ Anuj\ \ \ \ 24\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 34
+2\ \ \ \ \ \ \ Jai\ \ \ \ \ 22\ \ \ \ \ \ Allahabad\ \ B.Tech\ \ \ \ \ \ \ \ \ \ 35
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 45
+4\ \ \ \ \ \ \ Gaurav\ \ 33\ \ \ \ \ \ Allahabad\ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ \ NULL
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ \ 50
+6\ \ \ \ \ \ \ Princi\ \ 27\ \ \ \ \ \ Kanpur\ \ \ \ \ Phd\ \ \ \ \ \ \ \ \ \ \ \ \ 52
+7\ \ \ \ \ \ \ Abhi\ \ \ \ 32\ \ \ \ \ \ Kanpur\ \ \ \ \ B.Tech\ \ \ \ \ \ \ \ \ \ NULL
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ between()\ demo\ used\ with\ given\ column\ of\ dataframe
+#\ Also,\ both\ boundaries\ are\ included
+fdf1[\[aq]Score\[aq]].between(40,50)
+\f[]
+.fi
+.PP
+Unlike pandas, it returns an instance of dfoperator \f[B](present in
+frovedis only)\f[] which contains masked boolean data as result of
+between operation.
+In order to unmask the data, \f[B]to_mask_array()\f[] must be used.
+.IP
+.nf
+\f[C]
+fdf1[\[aq]Score\[aq]].between(40,50).to_mask_array
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[False\ False\ False\ \ True\ False\ \ True\ False\ False]
+\f[]
+.fi
+.PP
+This returns a boolean array containing True wherever the corresponding
+element is between the boundary values \[aq]left\[aq] and
+\[aq]right\[aq].
+The missing values are treated as False.
+.PP
+Also, this method can be used in the form of given expression below:
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ between()\ demo\ used\ with\ given\ column\ of\ dataframe
+#\ Also,\ both\ boundaries\ are\ included
+res\ =\ fdf1[fdf1[\[aq]Score\[aq]].between(40,50)]
+print(res)
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ Qualification\ \ \ Score
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ Phd\ \ \ \ \ 45
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ B.Tech\ \ 50
+\f[]
+.fi
+.PP
+It can also be expressed as follows:
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print(fdf1[fdf1.Score.between(40,50)])
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index\ \ \ Name\ \ \ \ Age\ \ \ \ \ City\ \ \ \ Qualification\ \ \ Score
+3\ \ \ \ \ \ \ Princi\ \ 32\ \ \ \ \ \ Kannuaj\ Phd\ \ \ \ \ 45
+5\ \ \ \ \ \ \ Anuj\ \ \ \ 36\ \ \ \ \ \ Kanpur\ \ B.Tech\ \ 50
+\f[]
+.fi
+.PP
+Now, when \[aq]inclusive\[aq] parameter is provided, then,
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ between()\ demo\ and\ only\ left\ boundary\ included
+print(fdf1[\[aq]Score\[aq]].between(40,50,inclusive\ =\ \[aq]left\[aq]).to_mask_array())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[False\ False\ False\ \ True\ False\ False\ False\ False]
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ between()\ demo\ and\ only\ right\ boundary\ included
+print(fdf1[\[aq]Score\[aq]].between(40,50,inclusive\ =\ \[aq]right\[aq]).to_mask_array())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[False\ False\ False\ \ True\ False\ \ True\ False\ False]
+\f[]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ between()\ demo\ and\ both\ boundaries\ excluded
+print(fdf1[\[aq]Score\[aq]].between(40,50,inclusive\ =\ \[aq]neither\[aq]).to_mask_array())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[False\ False\ False\ \ True\ False\ False\ False\ False]
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It returns a dfoperator instance.
+.SS 4. drop(labels = None, axis = 0, index = None, columns = None, level
 = None, inplace = False, errors = \[aq]raise\[aq])
 .PP
 \f[B]Parameters\f[]
@@ -387,9 +642,7 @@ conditions:
 .P
 .PD
 \- 1 : The corresponding columns labels will be dropped.
-.PD 0
-.P
-.PD
+.PP
 \f[B]\f[I]index\f[]\f[]: It accepts an integer or string object as
 parameter.
 It is equivalent to dropping indices along the axis = 0.
@@ -429,8 +682,11 @@ set to True, it performs operation on original DataFrame.
 \f[B]\f[I]errors\f[]\f[]: This is an unsed parameter.
 (Default: ‘raise')
 .PP
-\f[B]Purpose\f[] It is used to drop specified labels from rows or
-columns.
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It is used to drop specified labels from rows or columns.
 .PD 0
 .P
 .PD
@@ -555,7 +811,7 @@ It returns a new of Frovedis DataFrame having remaining entries.
 .PD
 2.
 It returns None when parameter \[aq]inplace\[aq] = True.
-.SS 4. drop_cols(targets, inplace = False)
+.SS 5. drop_cols(targets, inplace = False)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -693,7 +949,7 @@ It returns a new of Frovedis DataFrame having remaining entries.
 .PD
 2.
 It returns None when parameter \[aq]inplace\[aq] = True.
-.SS 5. drop_duplicates(subset = None, keep = \[aq]first\[aq], inplace =
+.SS 6. drop_duplicates(subset = None, keep = \[aq]first\[aq], inplace =
 False, ignore_index = False)
 .PP
 \f[B]Parameters\f[]
@@ -726,9 +982,7 @@ occurrence.
 2.
 \f[B]\[aq]last\[aq]\f[] : Drop duplicates except for the last
 occurrence.
-.PD 0
-.P
-.PD
+.PP
 \f[B]\f[I]inplace\f[]\f[]: It accepts a boolean as a parameter.
 It return a copy of DataFrame instance by default but when explicitly
 set to True, it performs operation on original DataFrame.
@@ -880,7 +1134,7 @@ It returns a new of Frovedis DataFrame having remaining entries.
 .PD
 2.
 It returns None when parameter \[aq]inplace\[aq] = True.
-.SS 6. drop_rows(targets, inplace = False)
+.SS 7. drop_rows(targets, inplace = False)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -1014,7 +1268,7 @@ It returns a new of Frovedis DataFrame having remaining entries.
 .PD
 2.
 It returns None when parameter \[aq]inplace\[aq] = True.
-.SS 7. filter(items = None, like = None, regex = None, axis = None)
+.SS 8. filter(items = None, like = None, regex = None, axis = None)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -1190,7 +1444,7 @@ rabbit\ \ 6
 .PD
 It returns a new Frovedis DataFrame with the column labels that matches
 the given conditions.
-.SS 8. get_index_loc(value)
+.SS 9. get_index_loc(value)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -1350,7 +1604,7 @@ repetitive values in index
 .PD
 3.
 mask: it returns a list of boolean values otherwise
-.SS 9. head(n = 5)
+.SS 10. head(n = 5)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -1369,7 +1623,7 @@ It is useful for quickly testing if your object has the right type of
 data in it.
 .PP
 For negative values of n, this function returns all rows except the last
-n rows, equivalent to df[:\-n].
+n rows, equivalent to \f[B]df[:\-n]\f[].
 .PP
 For example:
 .IP
@@ -1518,7 +1772,7 @@ rows.
 2.
 If n is negative integer, it returns a new DataFrame with all rows
 except last n rows.
-.SS 10. insert(loc, column, value, allow_duplicates = False)
+.SS 11. insert(loc, column, value, allow_duplicates = False)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -1626,7 +1880,7 @@ index\ \ \ col0\ \ \ \ col1\ \ \ \ col2
 .P
 .PD
 It returns a self reference.
-.SS 11. join(right, on, how = \[aq]inner\[aq], lsuffix =
+.SS 12. join(right, on, how = \[aq]inner\[aq], lsuffix =
 \[aq]_left\[aq], rsuffix = \[aq]_right\[aq], sort = False, join_type =
 \[aq]bcast\[aq])
 .PP
@@ -1668,9 +1922,7 @@ sort it lexicographically.
 \f[B]\[aq]inner\[aq]\f[]: form intersection of calling DataFrame's index
 (or column if \[aq]on\[aq] is specified) with other DataFrame's index,
 preserving the order of the calling's one.
-.PD 0
-.P
-.PD
+.PP
 \f[B]\f[I]lsuffix\f[]\f[]: It accepts a string object as parameter.
 It adds the suffix to left DataFrame's overlapping columns.
 (Default: \[aq]_left\[aq])
@@ -1708,7 +1960,7 @@ Join columns with other DataFrame either on index or on a key column.
 Efficiently join multiple DataFrame objects by index at once by passing
 a list.
 .PP
-\f[B]NOTE: Parameters \[aq]on\[aq], \[aq]lsuffix\[aq], and
+\f[B]Note:\- Parameters \[aq]on\[aq], \[aq]lsuffix\[aq], and
 \[aq]rsuffix\[aq] are not supported when passing a list of DataFrame
 objects.\f[]
 .PP
@@ -1869,7 +2121,7 @@ index\ \ \ key\ \ \ \ \ A\ \ \ \ \ \ \ B
 .PD
 It returns a new Frovedis DataFrame containing columns from both the
 DataFrame instances.
-.SS 12. merge(right, on = None, how = \[aq]inner\[aq], left_on = None,
+.SS 13. merge(right, on = None, how = \[aq]inner\[aq], left_on = None,
 right_on = None, left_index = False, right_index = False, sort = False,
 suffixes = (\[aq]_x\[aq], \[aq]_y\[aq]), copy = True, indicator = False,
 join_type = \[aq]bcast\[aq])
@@ -1916,9 +2168,7 @@ lexicographically.
 \f[B]\[aq]inner\[aq]\f[]: form intersection of calling DataFrame's index
 (or column if \[aq]on\[aq] is specified) with other's index, preserving
 the order of the calling's one.
-.PD 0
-.P
-.PD
+.PP
 \f[B]\f[I]left_on\f[]\f[]: It accepts a string object or a list of
 strings as parameter.
 It represents column names to join on in the left DataFrame.
@@ -1944,7 +2194,7 @@ It is used to specify whether to use the index from the left DataFrame
 as the join key.
 (Default: False)
 .PP
-\f[B]NOTE: Either parameter \[aq]left_on\[aq] or \[aq]left_index\[aq]
+\f[B]Note:\- Either parameter \[aq]left_on\[aq] or \[aq]left_index\[aq]
 can be used but not combination of both.\f[]
 .PP
 \f[B]\f[I]right_index\f[]\f[]: It accepts a boolean value as parameter.
@@ -1952,8 +2202,8 @@ It is used to specify whether to use the index from the right DataFrame
 as the join key.
 (Default: False)
 .PP
-\f[B]NOTE: Either parameter \[aq]right_on\[aq] or \[aq]right_index\[aq]
-can be used but not combination of both.\f[]
+\f[B]Note:\- Either parameter \[aq]right_on\[aq] or
+\[aq]right_index\[aq] can be used but not combination of both.\f[]
 .PP
 \f[B]\f[I]sort\f[]\f[]: It accepts a boolean value.
 When this is explicitly set to True, it sorts the join keys
@@ -1974,7 +2224,7 @@ no suffix.
 At least one of the values must not be None.
 (Default: (“_x”, “_y”))
 .PP
-\f[B]NOTE: During merging two DataFrames, the overlapping column names
+\f[B]Note:\- During merging two DataFrames, the overlapping column names
 should be different. For example: suffixes = (False, False), then the
 overlapping columns would have the same name so merging operation will
 fail.
@@ -2084,7 +2334,8 @@ fd_df1.show()
 fd_df2\ =\ fdf.DataFrame(pd_df2)
 fd_df2.show()\ \ \ \ \ 
 
-#\ Merge\ DataFrames\ fd_df1\ and\ fd_df2\ with\ specified\ left\ and\ right\ suffixes\ appended\ to\ any\ overlapping\ columns
+#\ Merge\ DataFrames\ fd_df1\ and\ fd_df2\ with\ specified\ left\ and\ right\ suffixes\ 
+#\ appended\ to\ any\ overlapping\ columns
 fd_df1.merge(fd_df2,\ left_on\ =\ \[aq]lkey\[aq],\ right_on\ =\ \[aq]rkey\[aq],\ suffixes\ =\ (\[aq]_left\[aq],\ \[aq]_right\[aq])).show()
 \f[]
 .fi
@@ -2165,8 +2416,8 @@ index\ \ \ lkey\ \ \ \ left_value\ \ \ \ \ \ rkey\ \ \ \ right_value
 \f[]
 .fi
 .PP
-NOTE: In above example, suffix is ignored as merging column labels are
-different.
+\f[B]Note:\-\f[] In above example, suffix is ignored as merging column
+labels are different.
 To have suffix, the column name must be same in both DataFrames but then
 the suffixes must be different.
 .PP
@@ -2315,7 +2566,7 @@ index\ \ \ a\ \ \ \ \ \ \ b\ \ \ \ \ \ \ c
 .PD
 It returns a new Frovedis DataFrame with the merged entries of the two
 DataFrame instances.
-.SS 13. rename(columns, inplace = False)
+.SS 14. rename(columns, inplace = False)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -2422,7 +2673,7 @@ specified columns.
 .PD
 2.
 It returns None when \[aq]inplace\[aq] parameter is set to True.
-.SS 14. rename_index(new_name, inplace = False)
+.SS 15. rename_index(new_name, inplace = False)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -2500,7 +2751,7 @@ label.
 .PD
 2.
 It returns None when inplace parameter is set to True.
-.SS 15. reset_index(drop = False, inplace = False)
+.SS 16. reset_index(drop = False, inplace = False)
 .PP
 \f[B]Parameters\f[]
 .PD 0
@@ -2526,7 +2777,7 @@ It is used to reset the Index label of the DataFrame.
 A new Index label is inserted with default integer values from 0 to n\-1
 where n is the number of rows.
 .PP
-\f[B]NOTE : MultiIndex is not supported by Frovedis DataFrame.\f[]
+\f[B]Note:\- MultiIndex is not supported by Frovedis DataFrame.\f[]
 .PP
 For example:
 .IP
@@ -2637,117 +2888,6 @@ label.
 .PD
 2.
 It returns None if \[aq]inplace\[aq] parameter is set to True.
-.SS 16. select_frovedis_dataframe(targets)
-.PP
-\f[B]Parameters\f[]
-.PD 0
-.P
-.PD
-\f[B]\f[I]targets\f[]\f[]: It accepts a string object or a list of
-strings as parameter.
-It represents the column label of the Frovedis DataFrame which are to be
-selected.
-.PP
-\f[B]Purpose\f[]
-.PD 0
-.P
-.PD
-It is used to select specified columns from the Frovedis DataFrame.
-.PP
-For example:
-.IP
-.nf
-\f[C]
-#\ example\ to\ use\ select_frovedis_dataframe
-
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Ename\[aq]\ :\ [\[aq]Michael\[aq],\ \[aq]Andy\[aq],\ \[aq]Tanaka\[aq],\ \[aq]Raul\[aq],\ \[aq]Yuta\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]\ :\ [29,\ 30,\ 27,\ 19,\ 31],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Country\[aq]\ :\ [\[aq]USA\[aq],\ \[aq]England\[aq],\ \[aq]Japan\[aq],\ \[aq]France\[aq],\ \[aq]Japan\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]isMale\[aq]:\ [False,\ False,\ False,\ False,\ True]
-\ \ \ \ \ \ \ \ \ \ \ }
-pd_df\ =\ pd.DataFrame(peopleDF)
-fd_df\ =\ fdf.DataFrame(pd_df)
-fd_df.show()
-
-#\ select\ frovedis\ dataframe\ with\ just\ \[aq]Age\[aq]\ column
-fd_df.select_frovedis_dataframe(\[aq]Age\[aq]).show()
-\f[]
-.fi
-.PP
-Output,
-.IP
-.nf
-\f[C]
-index\ \ \ Ename\ \ \ Age\ \ \ \ \ Country\ isMale
-0\ \ \ \ \ \ \ Michael\ 29\ \ \ \ \ \ USA\ \ \ \ \ 0
-1\ \ \ \ \ \ \ Andy\ \ \ \ 30\ \ \ \ \ \ England\ 0
-2\ \ \ \ \ \ \ Tanaka\ \ 27\ \ \ \ \ \ Japan\ \ \ 0
-3\ \ \ \ \ \ \ Raul\ \ \ \ 19\ \ \ \ \ \ France\ \ 0
-4\ \ \ \ \ \ \ Yuta\ \ \ \ 31\ \ \ \ \ \ Japan\ \ \ 1
-
-index\ \ \ Age
-0\ \ \ \ \ \ \ 29
-1\ \ \ \ \ \ \ 30
-2\ \ \ \ \ \ \ 27
-3\ \ \ \ \ \ \ 19
-4\ \ \ \ \ \ \ 31
-\f[]
-.fi
-.PP
-For example:
-.IP
-.nf
-\f[C]
-#\ example\ to\ use\ select_frovedis_dataframe\ with\ multiple\ columns
-
-import\ pandas\ as\ pd
-import\ frovedis.dataframe\ as\ fdf
-
-peopleDF\ =\ {
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Ename\[aq]\ :\ [\[aq]Michael\[aq],\ \[aq]Andy\[aq],\ \[aq]Tanaka\[aq],\ \[aq]Raul\[aq],\ \[aq]Yuta\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Age\[aq]\ :\ [29,\ 30,\ 27,\ 19,\ 31],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]Country\[aq]\ :\ [\[aq]USA\[aq],\ \[aq]England\[aq],\ \[aq]Japan\[aq],\ \[aq]France\[aq],\ \[aq]Japan\[aq]],
-\ \ \ \ \ \ \ \ \ \ \ \ \[aq]isMale\[aq]:\ [False,\ False,\ False,\ False,\ True]
-\ \ \ \ \ \ \ \ \ \ \ }
-pd_df\ =\ pd.DataFrame(peopleDF)
-fd_df\ =\ fdf.DataFrame(pd_df)
-fd_df.show()
-
-#\ select\ frovedis\ dataframe\ with\ many\ columns
-fd_df.select_frovedis_dataframe([\[aq]Age\[aq],\ \[aq]isMale\[aq]]).show()
-\f[]
-.fi
-.PP
-Output,
-.IP
-.nf
-\f[C]
-index\ \ \ Ename\ \ \ Age\ \ \ \ \ Country\ isMale
-0\ \ \ \ \ \ \ Michael\ 29\ \ \ \ \ \ USA\ \ \ \ \ 0
-1\ \ \ \ \ \ \ Andy\ \ \ \ 30\ \ \ \ \ \ England\ 0
-2\ \ \ \ \ \ \ Tanaka\ \ 27\ \ \ \ \ \ Japan\ \ \ 0
-3\ \ \ \ \ \ \ Raul\ \ \ \ 19\ \ \ \ \ \ France\ \ 0
-4\ \ \ \ \ \ \ Yuta\ \ \ \ 31\ \ \ \ \ \ Japan\ \ \ 1
-
-index\ \ \ Age\ \ \ \ \ isMale
-0\ \ \ \ \ \ \ 29\ \ \ \ \ \ 0
-1\ \ \ \ \ \ \ 30\ \ \ \ \ \ 0
-2\ \ \ \ \ \ \ 27\ \ \ \ \ \ 0
-3\ \ \ \ \ \ \ 19\ \ \ \ \ \ 0
-4\ \ \ \ \ \ \ 31\ \ \ \ \ \ 1
-\f[]
-.fi
-.PP
-\f[B]Return Value\f[]
-.PD 0
-.P
-.PD
-It returns a new Frovedis DataFrame with the selected column labels and
-index label.
 .SS 17. set_index(keys, drop = True, append = False, inplace = False,
 verify_integrity = False)
 .PP
@@ -2801,7 +2941,7 @@ Performance of this method will be better when it is set to False.
 It is used to set the Frovedis DataFrame index using existing columns.
 The index will replace the existing index.
 .PP
-\f[B]NOTE: Frovedis DataFrame does not support Multi Index.\f[]
+\f[B]Note:\- Frovedis DataFrame does not support Multi Index.\f[]
 .PP
 For example:
 .IP
@@ -2881,8 +3021,8 @@ month\ \ \ year\ \ \ \ sale
 \f[]
 .fi
 .PP
-NOTE: In above example, the column which is being selected as index must
-have unique values.
+\f[B]Note:\-\f[] In above example, the column which is being selected as
+index must have unique values.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -3024,7 +3164,7 @@ It is useful for quickly verifying data, for example, after sorting or
 appending rows.
 .PP
 For negative values of n, this function returns all rows except the
-first n rows, equivalent to fdf[n:].
+first n rows, equivalent to \f[B]fdf[n:]\f[].
 .PP
 For example:
 .IP
@@ -3297,8 +3437,8 @@ d\ \ \ \ \ \ \ 10\ \ \ \ \ \ 2014\ \ \ \ 31
 \f[]
 .fi
 .PP
-NOTE: Values used to update \[aq]index\[aq] must be different when
-parameter \[aq]verify_integrity\[aq] = True.
+\f[B]Note:\-\f[] Values used to update \[aq]index\[aq] must be different
+when parameter \[aq]verify_integrity\[aq] = True.
 .PP
 \f[B]Return Value\f[]
 .PD 0
@@ -3312,3 +3452,29 @@ field along with specified label.
 .PD
 2.
 It returns None when \[aq]inplace\[aq] parameter is set to True.
+.SH SEE ALSO
+.IP \[bu] 2
+\f[B]DataFrame \- Introduction (./DataFrame_Introduction.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Conversion, Missing data handling, Sorting
+Functions (./DataFrame_ConversionAndSorting.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Function Application,
+Groupby (./DataFrame_FunctionApplicationGroupby.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Binary Operators (./DataFrame_BinaryOperators.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame \- Aggregate
+Functions (./DataFrame_AggregateFunctions.md)\f[]

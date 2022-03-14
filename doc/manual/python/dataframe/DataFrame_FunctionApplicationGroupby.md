@@ -12,7 +12,7 @@ DataFrame FunctionApplication, Groupby - list of all functions related to functi
 
     1. agg(func)  
     2. apply(func, axis = 0, raw = False, result_type = None, args = (), \*\*kwds)  
-    3. groupby((min_periods = None, ddof = 1.0, low_memory = True, other = None)
+    3. groupby(min_periods = None, ddof = 1.0, low_memory = True, other = None)
 
 ## Detailed Description  
 

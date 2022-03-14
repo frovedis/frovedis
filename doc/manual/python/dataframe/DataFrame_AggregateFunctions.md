@@ -178,8 +178,11 @@ pair of columns to have a valid result.  (Default: None)
 When it is None (not specified explicitly), then **min_periods = 1**.  
 **_ddof_**: It accepts a float parameter that specifies the delta degrees of freedom. (Default: 1.0)  
 **_low\_memory_**: It accepts boolean parameter that specifies whethet to enable memory optimised computation or time optimsed computation. (Default: True)  
-**_other_**: It accepts frovedis series (i.e. df[col_name]) as parameter. (Default: None)  
-When it is not None (specified explicitly), it performs covariance operation between both the given frovedis series.  
+**_other_**: It accepts frovedis dataframe as parameter, where it must be expressed in **"df[col_name]"** form. Also, it can be expressed in **"df.col_name"** form as well. (Default: None)  
+
+- **When it is not None (specified explicitly)**, it performs covariance operation between both the given frovedis dataframes. Although, the input dataframe must be used as expressions mentioned above.  
+- **When it is None (not specified explicitly)**, it will perform covarince on input dataframe to give covraince matrix represented as a dataframe.  
+
 
 __Purpose__  
 It computes pairwise covariance of columns, excluding missing values.  
@@ -267,12 +270,15 @@ Output
 
     158.28571428571428
 
+Here, it could also be expressed as **"fdf1['Score'].cov(other = fdf2['Score'])"**.  
+
+**Note:-** While using input dataframe in the form **'fdf1['Score']' or 'fdf1.Score'**, **'other'** parameter must be provided.  
+
 __Return Value__  
 - **If other = None:**  
-It returns a covariance matrix as the frovedis DataFrame instance.  
+It returns a covariance matrix represented as frovedis DataFrame instance.  
 - **If other != None:**  
-It returns covariance between frovedis series inputs.  
-
+It returns covariance as scalar value.  
 
 ### 4. describe()  
 
