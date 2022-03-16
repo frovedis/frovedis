@@ -2193,6 +2193,54 @@ public:
                                      const std::string& datetime_fmt="%Y-%m-%d",
                                      bool escape = false,
                                      const std::string& nullstr = "NULL");
+  std::shared_ptr<dfcolumn>
+  typed_eq(const std::shared_ptr<typed_dfcolumn<datetime>>& right);
+  std::shared_ptr<dfcolumn>
+  typed_eq_im(const std::shared_ptr<typed_dfscalar<datetime>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  eq(const std::shared_ptr<dfcolumn>& right); 
+  virtual std::shared_ptr<dfcolumn>
+  eq_im(const std::shared_ptr<dfscalar>& right); 
+  std::shared_ptr<dfcolumn>
+  typed_neq(const std::shared_ptr<typed_dfcolumn<datetime>>& right);
+  std::shared_ptr<dfcolumn>
+  typed_neq_im(const std::shared_ptr<typed_dfscalar<datetime>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  neq(const std::shared_ptr<dfcolumn>& right);
+  virtual std::shared_ptr<dfcolumn>
+  neq_im(const std::shared_ptr<dfscalar>& right);
+  std::shared_ptr<dfcolumn>
+  typed_lt(const std::shared_ptr<typed_dfcolumn<datetime>>& right);
+  std::shared_ptr<dfcolumn>
+  typed_lt_im(const std::shared_ptr<typed_dfscalar<datetime>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  lt(const std::shared_ptr<dfcolumn>& right);
+  virtual std::shared_ptr<dfcolumn>
+  lt_im(const std::shared_ptr<dfscalar>& right);
+  std::shared_ptr<dfcolumn>
+  typed_le(const std::shared_ptr<typed_dfcolumn<datetime>>& right);
+  std::shared_ptr<dfcolumn>
+  typed_le_im(const std::shared_ptr<typed_dfscalar<datetime>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  le(const std::shared_ptr<dfcolumn>& right);
+  virtual std::shared_ptr<dfcolumn>
+  le_im(const std::shared_ptr<dfscalar>& right);
+  std::shared_ptr<dfcolumn>
+  typed_gt(const std::shared_ptr<typed_dfcolumn<datetime>>& right);
+  std::shared_ptr<dfcolumn>
+  typed_gt_im(const std::shared_ptr<typed_dfscalar<datetime>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  gt(const std::shared_ptr<dfcolumn>& right);
+  virtual std::shared_ptr<dfcolumn>
+  gt_im(const std::shared_ptr<dfscalar>& right);
+  std::shared_ptr<dfcolumn>
+  typed_ge(const std::shared_ptr<typed_dfcolumn<datetime>>& right);
+  std::shared_ptr<dfcolumn>
+  typed_ge_im(const std::shared_ptr<typed_dfscalar<datetime>>& right);
+  virtual std::shared_ptr<dfcolumn>
+  ge(const std::shared_ptr<dfcolumn>& right);
+  virtual std::shared_ptr<dfcolumn>
+  ge_im(const std::shared_ptr<dfscalar>& right);
   virtual node_local<std::vector<size_t>>
   filter_eq(std::shared_ptr<dfcolumn>& right);
   virtual node_local<std::vector<size_t>>
@@ -2217,6 +2265,17 @@ public:
   filter_ge(std::shared_ptr<dfcolumn>& right);
   virtual node_local<std::vector<size_t>>
   filter_ge_immed(std::shared_ptr<dfscalar>& right);
+  virtual std::shared_ptr<dfcolumn>
+  add(const std::shared_ptr<dfcolumn>& right);
+  virtual std::shared_ptr<dfcolumn>
+  add_im(const std::shared_ptr<dfscalar>& right);
+  virtual std::shared_ptr<dfcolumn>
+  sub(const std::shared_ptr<dfcolumn>& right);
+  virtual std::shared_ptr<dfcolumn>
+  sub_im(const std::shared_ptr<dfscalar>& right);
+  virtual std::shared_ptr<dfcolumn>
+  rsub_im(const std::shared_ptr<dfscalar>& right);
+
   // need to define member functions that returns typed_dfcolumn<datetime>
   virtual std::shared_ptr<dfcolumn>
   extract(node_local<std::vector<size_t>>& idx);

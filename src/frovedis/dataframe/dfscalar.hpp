@@ -26,6 +26,16 @@ struct typed_dfscalar : public dfscalar {
   T val;
 };
 
+struct datetime {}; // for tag
+
+template <>
+struct typed_dfscalar<datetime> : public typed_dfscalar<datetime_t> {
+  typed_dfscalar(): typed_dfscalar<datetime_t>() {}
+  typed_dfscalar(datetime_t val) : typed_dfscalar<datetime_t>(val) {}
+  virtual std::shared_ptr<dfscalar> type_cast(const std::string& to_type);
+  virtual std::string dtype() const { return "datetime"; }
+};
+
 template <>
 struct typed_dfscalar<std::string> : public dfscalar {
   typed_dfscalar(){}
@@ -51,11 +61,11 @@ struct typed_dfscalar<std::string> : public dfscalar {
       return std::make_shared<typed_dfscalar<double>>(c_val);
     } else if(to_type == "datetime") { // default format: "%Y-%m-%d"
       auto c_val = parsedatetime(val, "%Y-%m-%d");
-      return std::make_shared<typed_dfscalar<datetime_t>>(c_val);
+      return std::make_shared<typed_dfscalar<datetime>>(c_val);
     } else if(to_type.find("datetime:") == 0) {
       auto fmt = to_type.substr(9);
       auto c_val = parsedatetime(val, fmt);
-      return std::make_shared<typed_dfscalar<datetime_t>>(c_val);
+      return std::make_shared<typed_dfscalar<datetime>>(c_val);
     } else {
       throw std::runtime_error("dfscalar<string>::type_cast: unsupported type: " + to_type);
     }
@@ -65,27 +75,6 @@ struct typed_dfscalar<std::string> : public dfscalar {
   }
 
   std::string val;
-};
-
-struct datetime {}; // for tag
-
-template <>
-struct typed_dfscalar<datetime> : public dfscalar {
-  typed_dfscalar(){}
-  typed_dfscalar(datetime_t val) : val(val) {}
-
-  virtual std::shared_ptr<dfscalar> type_cast(const std::string& to_type) {
-    if(to_type == "datetime") {
-      return std::make_shared<typed_dfscalar<datetime>>(*this);
-    } else if(to_type == "string") {
-      auto str = datetime_to_string(val, "%Y-%m-%d"); // default format
-      return std::make_shared<typed_dfscalar<std::string>>(str);
-    } else {
-      throw std::runtime_error("dfscalar<datetime>::type_cast: unsupported type: " + to_type);
-    }
-  }
-  virtual std::string dtype() const { return "datetime"; }
-  datetime_t val;
 };
 
 template <class T>
@@ -108,7 +97,7 @@ typed_dfscalar<T>::type_cast(const std::string& to_type) {
   } else if(to_type == "string") {
     return std::make_shared<typed_dfscalar<std::string>>(std::to_string(val));
   } else if(to_type == "datetime") {
-    return std::make_shared<typed_dfscalar<datetime_t>>(static_cast<datetime_t>(val));
+    return std::make_shared<typed_dfscalar<datetime>>(static_cast<datetime_t>(val));
   } else {
     throw std::runtime_error("dfscalar<T>::type_cast: unsupported type: " + to_type);
   }

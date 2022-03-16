@@ -659,15 +659,20 @@ typed_dfcolumn<datetime>::filter_eq(std::shared_ptr<dfcolumn>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_eq_immed(std::shared_ptr<dfscalar>& right) {
-  std::shared_ptr<typed_dfscalar<datetime_t>> right2 = NULL;
+  std::shared_ptr<typed_dfscalar<datetime>> right2 = NULL;
   auto dt = right->dtype();
-  if(dt == "datetime" || dt == "long") {
-    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  if(dt == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
   } else if(dt == "string") {
     auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
-    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(tmp);
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(tmp);
   }
-  else throw std::runtime_error("datetime == " + dt + ": invalid operation!");
+  else { // must be of datetime_t type
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+    if(!static_cast<bool>(tmp)) 
+      throw std::runtime_error("datetime == " + dt + ": invalid operation!");
+    right2 = std::make_shared<typed_dfscalar<datetime>>(tmp->val);
+  }
   auto filtered_idx = val.map(filter_eq_immed_helper<datetime_t, datetime_t>,
                               broadcast(right2->val));
   if(contain_nulls)
@@ -697,15 +702,20 @@ typed_dfcolumn<datetime>::filter_neq(std::shared_ptr<dfcolumn>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_neq_immed(std::shared_ptr<dfscalar>& right) {
-  std::shared_ptr<typed_dfscalar<datetime_t>> right2 = NULL;
+  std::shared_ptr<typed_dfscalar<datetime>> right2 = NULL;
   auto dt = right->dtype();
-  if(dt == "datetime" || dt == "long") {
-    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  if(dt == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
   } else if(dt == "string") {
     auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
-    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(tmp);
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(tmp);
   }
-  else throw std::runtime_error("datetime != " + dt + ": invalid operation!");
+  else { // must be of datetime_t type
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+    if(!static_cast<bool>(tmp)) 
+      throw std::runtime_error("datetime != " + dt + ": invalid operation!");
+    right2 = std::make_shared<typed_dfscalar<datetime>>(tmp->val);
+  }
   auto filtered_idx = val.map(filter_neq_immed_helper<datetime_t, datetime_t>,
                               broadcast(right2->val));
   if(contain_nulls)
@@ -735,15 +745,20 @@ typed_dfcolumn<datetime>::filter_lt(std::shared_ptr<dfcolumn>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_lt_immed(std::shared_ptr<dfscalar>& right) {
-  std::shared_ptr<typed_dfscalar<datetime_t>> right2 = NULL;
+  std::shared_ptr<typed_dfscalar<datetime>> right2 = NULL;
   auto dt = right->dtype();
-  if(dt == "datetime" || dt == "long") {
-    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  if(dt == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
   } else if(dt == "string") {
     auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
-    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(tmp);
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(tmp);
   }
-  else throw std::runtime_error("datetime < " + dt + ": invalid operation!");
+  else { // must be of datetime_t type
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+    if(!static_cast<bool>(tmp)) 
+      throw std::runtime_error("datetime < " + dt + ": invalid operation!");
+    right2 = std::make_shared<typed_dfscalar<datetime>>(tmp->val);
+  }
   auto filtered_idx = val.map(filter_lt_immed_helper<datetime_t, datetime_t>,
                               broadcast(right2->val));
   if(contain_nulls)
@@ -773,15 +788,20 @@ typed_dfcolumn<datetime>::filter_le(std::shared_ptr<dfcolumn>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_le_immed(std::shared_ptr<dfscalar>& right) {
-  std::shared_ptr<typed_dfscalar<datetime_t>> right2 = NULL;
+  std::shared_ptr<typed_dfscalar<datetime>> right2 = NULL;
   auto dt = right->dtype();
-  if(dt == "datetime" || dt == "long") {
-    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  if(dt == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
   } else if(dt == "string") {
     auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
-    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(tmp);
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(tmp);
   }
-  else throw std::runtime_error("datetime <= " + dt + ": invalid operation!");
+  else { // must be of datetime_t type
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+    if(!static_cast<bool>(tmp)) 
+      throw std::runtime_error("datetime <= " + dt + ": invalid operation!");
+    right2 = std::make_shared<typed_dfscalar<datetime>>(tmp->val);
+  }
   auto filtered_idx = val.map(filter_le_immed_helper<datetime_t, datetime_t>,
                               broadcast(right2->val));
   if(contain_nulls)
@@ -811,15 +831,20 @@ typed_dfcolumn<datetime>::filter_gt(std::shared_ptr<dfcolumn>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_gt_immed(std::shared_ptr<dfscalar>& right) {
-  std::shared_ptr<typed_dfscalar<datetime_t>> right2 = NULL;
+  std::shared_ptr<typed_dfscalar<datetime>> right2 = NULL;
   auto dt = right->dtype();
-  if(dt == "datetime" || dt == "long") {
-    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  if(dt == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
   } else if(dt == "string") {
     auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
-    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(tmp);
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(tmp);
   }
-  else throw std::runtime_error("datetime > " + dt + ": invalid operation!");
+  else { // must be of datetime_t type
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+    if(!static_cast<bool>(tmp)) 
+      throw std::runtime_error("datetime > " + dt + ": invalid operation!");
+    right2 = std::make_shared<typed_dfscalar<datetime>>(tmp->val);
+  }
   auto filtered_idx = val.map(filter_gt_immed_helper<datetime_t, datetime_t>,
                               broadcast(right2->val));
   if(contain_nulls)
@@ -849,15 +874,20 @@ typed_dfcolumn<datetime>::filter_ge(std::shared_ptr<dfcolumn>& right) {
 
 node_local<std::vector<size_t>>
 typed_dfcolumn<datetime>::filter_ge_immed(std::shared_ptr<dfscalar>& right) {
-  std::shared_ptr<typed_dfscalar<datetime_t>> right2 = NULL;
+  std::shared_ptr<typed_dfscalar<datetime>> right2 = NULL;
   auto dt = right->dtype();
-  if(dt == "datetime" || dt == "long") {
-    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+  if(dt == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
   } else if(dt == "string") {
     auto tmp = right->type_cast("datetime"); // using default format: %Y-%m-%d
-    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(tmp);
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(tmp);
   }
-  else throw std::runtime_error("datetime >= " + dt + ": invalid operation!");
+  else { // must be of datetime_t type
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+    if(!static_cast<bool>(tmp)) 
+      throw std::runtime_error("datetime >= " + dt + ": invalid operation!");
+    right2 = std::make_shared<typed_dfscalar<datetime>>(tmp->val);
+  }
   auto filtered_idx = val.map(filter_ge_immed_helper<datetime_t, datetime_t>,
                               broadcast(right2->val));
   if(contain_nulls)
@@ -1510,6 +1540,612 @@ create_null_column<datetime>(const std::vector<size_t>& sizes) {
   ret->val = std::move(val);
   ret->nulls = std::move(nulls);
   ret->contain_nulls_check();
+  return ret;
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::typed_eq(
+  const std::shared_ptr<typed_dfcolumn<datetime>>& right) {
+  auto newval =
+    val.map(+[](const std::vector<datetime_t>& left,
+                const std::vector<datetime_t>& right) {
+              auto leftp = left.data();
+              auto rightp = right.data();
+              auto size = left.size();
+              std::vector<int> ret(size);
+              auto retp = ret.data();
+              for(size_t i = 0; i < size; i++)
+                retp[i] = (leftp[i] == rightp[i]);
+              return ret;
+      }, right->val);
+  if(contain_nulls || right->contain_nulls) {
+    auto newnulls = nulls.map(set_union<size_t>, right->nulls);
+    newval.mapv(reset_null<int>, newnulls);
+    return std::make_shared<typed_dfcolumn<int>>
+      (std::move(newval), std::move(newnulls));
+  } else {
+    auto dvval = newval.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::eq(const std::shared_ptr<dfcolumn>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<typed_dfcolumn<datetime>> right2 = NULL;
+  if (right_type == "string" || right_type == "dic_string" ||
+      right_type == "raw_string") {
+    auto tmp = right->type_cast("datetime");
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(tmp);
+  } else if(right_type == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  } else throw std::runtime_error(
+    "datetime == " + right_type + ": invalid operation!");
+  if(!static_cast<bool>(right2)) 
+    throw std::runtime_error("internal type error");
+  return typed_eq(right2);
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::typed_eq_im
+(const std::shared_ptr<typed_dfscalar<datetime>>& right) {
+  auto bcast_right = broadcast(right->val);
+  auto newval =
+    val.map(+[](const std::vector<datetime_t>& left, datetime_t right) {
+              auto leftp = left.data();
+              auto size = left.size();
+              std::vector<int> ret(size);
+              auto retp = ret.data();
+              for(size_t i = 0; i < size; i++)
+                retp[i] = (leftp[i] == right);
+              return ret;
+      }, bcast_right);
+  if(contain_nulls) {
+    newval.mapv(reset_null<int>, nulls);
+    return std::make_shared<typed_dfcolumn<int>>(std::move(newval), nulls);
+  } else {
+    auto dvval = newval.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::eq_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<typed_dfscalar<datetime>> right2 = NULL;
+  if (right_type == "string" || right_type == "dic_string" ||
+      right_type == "raw_string") {
+    auto tmp = right->type_cast("datetime");
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(tmp);
+  } else if(right_type == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
+  } else { // must be of datetime_t type
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+    if(!static_cast<bool>(tmp)) throw std::runtime_error(
+      "datetime == " + right_type + ": invalid operation!");
+    right2 = std::make_shared<typed_dfscalar<datetime>>(tmp->val);
+  }
+  return typed_eq_im(right2);
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::typed_neq(
+  const std::shared_ptr<typed_dfcolumn<datetime>>& right) {
+  auto newval =
+    val.map(+[](const std::vector<datetime_t>& left,
+                const std::vector<datetime_t>& right) {
+              auto leftp = left.data();
+              auto rightp = right.data();
+              auto size = left.size();
+              std::vector<int> ret(size);
+              auto retp = ret.data();
+              for(size_t i = 0; i < size; i++)
+                retp[i] = (leftp[i] != rightp[i]);
+              return ret;
+      }, right->val);
+  if(contain_nulls || right->contain_nulls) {
+    auto newnulls = nulls.map(set_union<size_t>, right->nulls);
+    newval.mapv(reset_null<int>, newnulls);
+    return std::make_shared<typed_dfcolumn<int>>
+      (std::move(newval), std::move(newnulls));
+  } else {
+    auto dvval = newval.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::neq(const std::shared_ptr<dfcolumn>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<typed_dfcolumn<datetime>> right2 = NULL;
+  if (right_type == "string" || right_type == "dic_string" ||
+      right_type == "raw_string") {
+    auto tmp = right->type_cast("datetime");
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(tmp);
+  } else if(right_type == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  } else throw std::runtime_error(
+    "datetime != " + right_type + ": invalid operation!");
+  if(!static_cast<bool>(right2)) 
+    throw std::runtime_error("internal type error");
+  return typed_neq(right2);
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::typed_neq_im
+(const std::shared_ptr<typed_dfscalar<datetime>>& right) {
+  auto bcast_right = broadcast(right->val);
+  auto newval =
+    val.map(+[](const std::vector<datetime_t>& left, datetime_t right) {
+              auto leftp = left.data();
+              auto size = left.size();
+              std::vector<int> ret(size);
+              auto retp = ret.data();
+              for(size_t i = 0; i < size; i++)
+                retp[i] = (leftp[i] != right);
+              return ret;
+      }, bcast_right);
+  if(contain_nulls) {
+    newval.mapv(reset_null<int>, nulls);
+    return std::make_shared<typed_dfcolumn<int>>(std::move(newval), nulls);
+  } else {
+    auto dvval = newval.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::neq_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<typed_dfscalar<datetime>> right2 = NULL;
+  if (right_type == "string" || right_type == "dic_string" ||
+      right_type == "raw_string") {
+    auto tmp = right->type_cast("datetime");
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(tmp);
+  } else if(right_type == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
+  } else { // must be of datetime_t type
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+    if(!static_cast<bool>(tmp)) throw std::runtime_error(
+      "datetime != " + right_type + ": invalid operation!");
+    right2 = std::make_shared<typed_dfscalar<datetime>>(tmp->val);
+  }
+  return typed_neq_im(right2);
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::typed_gt(
+  const std::shared_ptr<typed_dfcolumn<datetime>>& right) {
+  auto newval =
+    val.map(+[](const std::vector<datetime_t>& left,
+                const std::vector<datetime_t>& right) {
+              auto leftp = left.data();
+              auto rightp = right.data();
+              auto size = left.size();
+              std::vector<int> ret(size);
+              auto retp = ret.data();
+              for(size_t i = 0; i < size; i++)
+                retp[i] = (leftp[i] > rightp[i]);
+              return ret;
+      }, right->val);
+  if(contain_nulls || right->contain_nulls) {
+    auto newnulls = nulls.map(set_union<size_t>, right->nulls);
+    newval.mapv(reset_null<int>, newnulls);
+    return std::make_shared<typed_dfcolumn<int>>
+      (std::move(newval), std::move(newnulls));
+  } else {
+    auto dvval = newval.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::gt(const std::shared_ptr<dfcolumn>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<typed_dfcolumn<datetime>> right2 = NULL;
+  if (right_type == "string" || right_type == "dic_string" ||
+      right_type == "raw_string") {
+    auto tmp = right->type_cast("datetime");
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(tmp);
+  } else if(right_type == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  } else throw std::runtime_error(
+    "datetime > " + right_type + ": invalid operation!");
+  if(!static_cast<bool>(right2)) 
+    throw std::runtime_error("internal type error");
+  return typed_gt(right2);
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::typed_gt_im
+(const std::shared_ptr<typed_dfscalar<datetime>>& right) {
+  auto bcast_right = broadcast(right->val);
+  auto newval =
+    val.map(+[](const std::vector<datetime_t>& left, datetime_t right) {
+              auto leftp = left.data();
+              auto size = left.size();
+              std::vector<int> ret(size);
+              auto retp = ret.data();
+              for(size_t i = 0; i < size; i++)
+                retp[i] = (leftp[i] > right);
+              return ret;
+      }, bcast_right);
+  if(contain_nulls) {
+    newval.mapv(reset_null<int>, nulls);
+    return std::make_shared<typed_dfcolumn<int>>(std::move(newval), nulls);
+  } else {
+    auto dvval = newval.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::gt_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<typed_dfscalar<datetime>> right2 = NULL;
+  if (right_type == "string" || right_type == "dic_string" ||
+      right_type == "raw_string") {
+    auto tmp = right->type_cast("datetime");
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(tmp);
+  } else if(right_type == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
+  } else { // must be of datetime_t type
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+    if(!static_cast<bool>(tmp)) throw std::runtime_error(
+      "datetime > " + right_type + ": invalid operation!");
+    right2 = std::make_shared<typed_dfscalar<datetime>>(tmp->val);
+  }
+  return typed_gt_im(right2);
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::typed_ge(
+  const std::shared_ptr<typed_dfcolumn<datetime>>& right) {
+  auto newval =
+    val.map(+[](const std::vector<datetime_t>& left,
+                const std::vector<datetime_t>& right) {
+              auto leftp = left.data();
+              auto rightp = right.data();
+              auto size = left.size();
+              std::vector<int> ret(size);
+              auto retp = ret.data();
+              for(size_t i = 0; i < size; i++)
+                retp[i] = (leftp[i] >= rightp[i]);
+              return ret;
+      }, right->val);
+  if(contain_nulls || right->contain_nulls) {
+    auto newnulls = nulls.map(set_union<size_t>, right->nulls);
+    newval.mapv(reset_null<int>, newnulls);
+    return std::make_shared<typed_dfcolumn<int>>
+      (std::move(newval), std::move(newnulls));
+  } else {
+    auto dvval = newval.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::ge(const std::shared_ptr<dfcolumn>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<typed_dfcolumn<datetime>> right2 = NULL;
+  if (right_type == "string" || right_type == "dic_string" ||
+      right_type == "raw_string") {
+    auto tmp = right->type_cast("datetime");
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(tmp);
+  } else if(right_type == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  } else throw std::runtime_error(
+    "datetime >= " + right_type + ": invalid operation!");
+  if(!static_cast<bool>(right2)) 
+    throw std::runtime_error("internal type error");
+  return typed_ge(right2);
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::typed_ge_im
+(const std::shared_ptr<typed_dfscalar<datetime>>& right) {
+  auto bcast_right = broadcast(right->val);
+  auto newval =
+    val.map(+[](const std::vector<datetime_t>& left, datetime_t right) {
+              auto leftp = left.data();
+              auto size = left.size();
+              std::vector<int> ret(size);
+              auto retp = ret.data();
+              for(size_t i = 0; i < size; i++)
+                retp[i] = (leftp[i] >= right);
+              return ret;
+      }, bcast_right);
+  if(contain_nulls) {
+    newval.mapv(reset_null<int>, nulls);
+    return std::make_shared<typed_dfcolumn<int>>(std::move(newval), nulls);
+  } else {
+    auto dvval = newval.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::ge_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<typed_dfscalar<datetime>> right2 = NULL;
+  if (right_type == "string" || right_type == "dic_string" ||
+      right_type == "raw_string") {
+    auto tmp = right->type_cast("datetime");
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(tmp);
+  } else if(right_type == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
+  } else { // must be of datetime_t type
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+    if(!static_cast<bool>(tmp)) throw std::runtime_error(
+      "datetime >= " + right_type + ": invalid operation!");
+    right2 = std::make_shared<typed_dfscalar<datetime>>(tmp->val);
+  }
+  return typed_ge_im(right2);
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::typed_lt(
+  const std::shared_ptr<typed_dfcolumn<datetime>>& right) {
+  auto newval =
+    val.map(+[](const std::vector<datetime_t>& left,
+                const std::vector<datetime_t>& right) {
+              auto leftp = left.data();
+              auto rightp = right.data();
+              auto size = left.size();
+              std::vector<int> ret(size);
+              auto retp = ret.data();
+              for(size_t i = 0; i < size; i++)
+                retp[i] = (leftp[i] < rightp[i]);
+              return ret;
+      }, right->val);
+  if(contain_nulls || right->contain_nulls) {
+    auto newnulls = nulls.map(set_union<size_t>, right->nulls);
+    newval.mapv(reset_null<int>, newnulls);
+    return std::make_shared<typed_dfcolumn<int>>
+      (std::move(newval), std::move(newnulls));
+  } else {
+    auto dvval = newval.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::lt(const std::shared_ptr<dfcolumn>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<typed_dfcolumn<datetime>> right2 = NULL;
+  if (right_type == "string" || right_type == "dic_string" ||
+      right_type == "raw_string") {
+    auto tmp = right->type_cast("datetime");
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(tmp);
+  } else if(right_type == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  } else throw std::runtime_error(
+    "datetime < " + right_type + ": invalid operation!");
+  if(!static_cast<bool>(right2)) 
+    throw std::runtime_error("internal type error");
+  return typed_lt(right2);
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::typed_lt_im
+(const std::shared_ptr<typed_dfscalar<datetime>>& right) {
+  auto bcast_right = broadcast(right->val);
+  auto newval =
+    val.map(+[](const std::vector<datetime_t>& left, datetime_t right) {
+              auto leftp = left.data();
+              auto size = left.size();
+              std::vector<int> ret(size);
+              auto retp = ret.data();
+              for(size_t i = 0; i < size; i++)
+                retp[i] = (leftp[i] < right);
+              return ret;
+      }, bcast_right);
+  if(contain_nulls) {
+    newval.mapv(reset_null<int>, nulls);
+    return std::make_shared<typed_dfcolumn<int>>(std::move(newval), nulls);
+  } else {
+    auto dvval = newval.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::lt_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<typed_dfscalar<datetime>> right2 = NULL;
+  if (right_type == "string" || right_type == "dic_string" ||
+      right_type == "raw_string") {
+    auto tmp = right->type_cast("datetime");
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(tmp);
+  } else if(right_type == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
+  } else { // must be of datetime_t type
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+    if(!static_cast<bool>(tmp)) throw std::runtime_error(
+      "datetime < " + right_type + ": invalid operation!");
+    right2 = std::make_shared<typed_dfscalar<datetime>>(tmp->val);
+  }
+  return typed_lt_im(right2);
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::typed_le(
+  const std::shared_ptr<typed_dfcolumn<datetime>>& right) {
+  auto newval =
+    val.map(+[](const std::vector<datetime_t>& left,
+                const std::vector<datetime_t>& right) {
+              auto leftp = left.data();
+              auto rightp = right.data();
+              auto size = left.size();
+              std::vector<int> ret(size);
+              auto retp = ret.data();
+              for(size_t i = 0; i < size; i++)
+                retp[i] = (leftp[i] <= rightp[i]);
+              return ret;
+      }, right->val);
+  if(contain_nulls || right->contain_nulls) {
+    auto newnulls = nulls.map(set_union<size_t>, right->nulls);
+    newval.mapv(reset_null<int>, newnulls);
+    return std::make_shared<typed_dfcolumn<int>>
+      (std::move(newval), std::move(newnulls));
+  } else {
+    auto dvval = newval.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::le(const std::shared_ptr<dfcolumn>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<typed_dfcolumn<datetime>> right2 = NULL;
+  if (right_type == "string" || right_type == "dic_string" ||
+      right_type == "raw_string") {
+    auto tmp = right->type_cast("datetime");
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(tmp);
+  } else if(right_type == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(right);
+  } else throw std::runtime_error(
+    "datetime <= " + right_type + ": invalid operation!");
+  if(!static_cast<bool>(right2)) 
+    throw std::runtime_error("internal type error");
+  return typed_le(right2);
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::typed_le_im
+(const std::shared_ptr<typed_dfscalar<datetime>>& right) {
+  auto bcast_right = broadcast(right->val);
+  auto newval =
+    val.map(+[](const std::vector<datetime_t>& left, datetime_t right) {
+              auto leftp = left.data();
+              auto size = left.size();
+              std::vector<int> ret(size);
+              auto retp = ret.data();
+              for(size_t i = 0; i < size; i++)
+                retp[i] = (leftp[i] <= right);
+              return ret;
+      }, bcast_right);
+  if(contain_nulls) {
+    newval.mapv(reset_null<int>, nulls);
+    return std::make_shared<typed_dfcolumn<int>>(std::move(newval), nulls);
+  } else {
+    auto dvval = newval.template moveto_dvector<int>();
+    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+  }
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::le_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<typed_dfscalar<datetime>> right2 = NULL;
+  if (right_type == "string" || right_type == "dic_string" ||
+      right_type == "raw_string") {
+    auto tmp = right->type_cast("datetime");
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(tmp);
+  } else if(right_type == "datetime") {
+    right2 = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
+  } else { // must be of datetime_t type
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime_t>>(right);
+    if(!static_cast<bool>(tmp)) throw std::runtime_error(
+      "datetime <= " + right_type + ": invalid operation!");
+    right2 = std::make_shared<typed_dfscalar<datetime>>(tmp->val);
+  }
+  return typed_le_im(right2);
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::add(const std::shared_ptr<dfcolumn>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<dfcolumn> ret = NULL;
+  if (right_type == "int") ret = datetime_add(right, datetime_type::day);
+  else if (right_type == "unsigned int" || 
+           right_type == "long" || right_type == "unsigned long") {
+    std::shared_ptr<dfcolumn> tmp = 
+      std::dynamic_pointer_cast<typed_dfcolumn<int>>(right->type_cast("int"));
+    ret = datetime_add(tmp, datetime_type::day);
+  } else throw std::runtime_error(
+      "datetime + " + right_type + ": invalid operation!");
+  return ret;
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::add_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<dfcolumn> ret = NULL;
+  if (right_type == "int") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
+    ret = datetime_add_im(tmp->val, datetime_type::day);
+  } else if (right_type == "unsigned int" || 
+             right_type == "long" || right_type == "unsigned long") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(
+                                         right->type_cast("int"));
+    ret = datetime_add_im(tmp->val, datetime_type::day);
+  } else throw std::runtime_error(
+      "datetime + " + right_type + ": invalid operation!");
+  return ret;
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::sub(const std::shared_ptr<dfcolumn>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<dfcolumn> ret = NULL;
+  if (right_type == "int") ret = datetime_sub(right, datetime_type::day);
+  else if (right_type == "datetime") ret = datetime_diff(right, datetime_type::day);
+  else if (right_type == "unsigned int" ||
+           right_type == "long" || right_type == "unsigned long") {
+    std::shared_ptr<dfcolumn> tmp =
+      std::dynamic_pointer_cast<typed_dfcolumn<int>>(right->type_cast("int"));
+    ret = datetime_sub(tmp, datetime_type::day);
+  } else if (right_type == "string" ||
+             right_type == "raw_string" || right_type == "dic_string") {
+    std::shared_ptr<dfcolumn> tmp =
+      std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(
+        right->type_cast("datetime")); // as per default format: %Y-%m-%d
+    ret = datetime_diff(tmp, datetime_type::day);
+  } else throw std::runtime_error(
+      "datetime - " + right_type + ": invalid operation!");
+  return ret;
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::sub_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<dfcolumn> ret = NULL;
+  if (right_type == "int") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
+    ret = datetime_sub_im(tmp->val, datetime_type::day);
+  } else if (right_type == "datetime") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
+    ret = datetime_diff_im(tmp->val, datetime_type::day);
+  } else if (right_type == "unsigned int" ||
+             right_type == "long" || right_type == "unsigned long") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(
+                                         right->type_cast("int"));
+    ret = datetime_sub_im(tmp->val, datetime_type::day);
+  } else if (right_type == "string" ||
+             right_type == "raw_string" || right_type == "dic_string") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(
+      right->type_cast("datetime")); // as per default format: %Y-%m-%d
+    ret = datetime_diff_im(tmp->val, datetime_type::day);
+  } else throw std::runtime_error(
+      "datetime - " + right_type + ": invalid operation!");
+  return ret;
+}
+
+std::shared_ptr<dfcolumn>
+typed_dfcolumn<datetime>::rsub_im(const std::shared_ptr<dfscalar>& right) {
+  auto right_type = right->dtype();
+  std::shared_ptr<dfcolumn> ret = NULL;
+  if (right_type == "datetime") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
+    ret = rdatetime_diff_im(tmp->val, datetime_type::day);
+  } else if (right_type == "string" ||
+             right_type == "raw_string" || right_type == "dic_string") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(
+      right->type_cast("datetime")); // as per default format: %Y-%m-%d
+    ret = rdatetime_diff_im(tmp->val, datetime_type::day);
+  } else throw std::runtime_error(
+      right_type + " - datetime: invalid operation!");
   return ret;
 }
 
