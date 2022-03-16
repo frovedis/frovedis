@@ -4,6 +4,7 @@ import org.apache.spark.unsafe.Platform;
 import org.apache.spark.unsafe.types.UTF8String;
 import org.apache.spark.unsafe.bitset.BitSetMethods;
 import scala.collection.mutable.ArrayBuffer;
+import java.util.TimeZone;
 
 public class jPlatform implements java.io.Serializable {
   // REF: https://github.com/apache/spark/blob/95fc4c56426706546601d339067ce6e3e7f4e03f/sql/catalyst/src/main/java/org/apache/spark/sql/catalyst/expressions/UnsafeRow.java#L136
@@ -47,6 +48,35 @@ public class jPlatform implements java.io.Serializable {
       return Long.MAX_VALUE;
     else 
       return Platform.getLong(baseObject, getFieldOffset(baseOffset, numFields, ordinal));
+  }
+
+  public static long getDate(Object baseObject,
+                             long baseOffset,
+                             int numFields,
+                             int ordinal) {
+    long multiplier = 24L * 3600 * 1000 * 1000 * 1000;
+    assertIndexIsValid(ordinal, numFields);
+    if (isNullAt(baseObject, baseOffset, numFields, ordinal))
+      return Long.MAX_VALUE;
+    else { // (numdays * 24L * 3600 * 1000 * 1000 * 1000 -> GMT nanoseconds)
+      long numdays = Platform.getLong(baseObject, getFieldOffset(baseOffset, numFields, ordinal));
+      return numdays * multiplier;
+    }
+  }
+
+  public static long getTime(Object baseObject,
+                             long baseOffset,
+                             int numFields,
+                             int ordinal) {
+    long ts_offset = TimeZone.getDefault().getRawOffset() * 1000L; // offset in microseconds
+    assertIndexIsValid(ordinal, numFields);
+    if (isNullAt(baseObject, baseOffset, numFields, ordinal))
+      return Long.MAX_VALUE;
+    else {
+      long msec = Platform.getLong(baseObject, getFieldOffset(baseOffset, numFields, ordinal));
+      long gmt_msec = msec + ts_offset; // GMT microseconds
+      return gmt_msec * 1000L; // GMT nanoseconds
+    }
   }
 
   public static float getFloat(Object baseObject,

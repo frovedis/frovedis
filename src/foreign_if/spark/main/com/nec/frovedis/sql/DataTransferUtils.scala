@@ -831,8 +831,6 @@ object sDFTransfer extends java.io.Serializable {
         copy_t.show_lap("[partition: " + index + "] a. baseObject, baseOffset copy: ")
         next_t.show_lap("[partition: " + index + "] b. hasNext: ")
 
-        val ts_offset = TimeZone.getDefault().getRawOffset() * 1000L // offset in microseconds
-        val multiplier = 24L * 3600 * 1000 * 1000 * 1000
         for (i <- 0 until ncol) {
           val row_offset = offset(i)
           val vptr = vptrs(row_offset * nproc + destId)
@@ -877,10 +875,7 @@ object sDFTransfer extends java.io.Serializable {
               alloc_t.lap_stop()
 
               copy_t.lap_start()
-              for (j <- 0 until k) {
-                val numdays = jPlatform.getLong(obj(j), off(j), ncol, i) // numdays
-                buf.putLong(numdays * multiplier) // (numdays * 24L * 3600 * 1000 * 1000 * 1000 -> GMT nanoseconds)
-              }
+              for (j <- 0 until k) buf.putLong(jPlatform.getDate(obj(j), off(j), ncol, i))
               copy_t.lap_stop()
 
               send_t.lap_start()
@@ -897,10 +892,7 @@ object sDFTransfer extends java.io.Serializable {
               alloc_t.lap_stop()
 
               copy_t.lap_start()
-              for (j <- 0 until k) {
-                val ts = jPlatform.getLong(obj(j), off(j), ncol, i) + ts_offset // GMT microseconds
-                buf.putLong(ts * 1000L) // GMT nanoseconds
-              }
+              for (j <- 0 until k) buf.putLong(jPlatform.getTime(obj(j), off(j), ncol, i))
               copy_t.lap_stop()
 
               send_t.lap_start()
