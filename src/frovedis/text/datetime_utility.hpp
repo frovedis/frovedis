@@ -372,8 +372,8 @@ inline double datetime_months_between(datetime_t a, datetime_t b) {
   if(ad == bd || (alastday == ad && blastday == bd)) {
     return (ay - by) * 12 + am - bm;
   } else {
-    int diffmonth = (ay - by) * 12 + am - bm - 1;
-    int diffday = ad + blastday - bd;
+    int diffmonth = (ay - by) * 12 + am - bm;
+    int diffday = ad - bd;
     datetime_t difftime =
       aH * 60L * 60L * 1000000000L +
       aM * 60L * 1000000000L +
