@@ -2124,7 +2124,7 @@ typed_dfcolumn<datetime>::sub_im(const std::shared_ptr<dfscalar>& right) {
     ret = datetime_sub_im(tmp->val, datetime_type::day);
   } else if (right_type == "string" ||
              right_type == "raw_string" || right_type == "dic_string") {
-    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(
       right->type_cast("datetime")); // as per default format: %Y-%m-%d
     ret = datetime_diff_im(tmp->val, datetime_type::day);
   } else throw std::runtime_error(
@@ -2141,7 +2141,7 @@ typed_dfcolumn<datetime>::rsub_im(const std::shared_ptr<dfscalar>& right) {
     ret = rdatetime_diff_im(tmp->val, datetime_type::day);
   } else if (right_type == "string" ||
              right_type == "raw_string" || right_type == "dic_string") {
-    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(
       right->type_cast("datetime")); // as per default format: %Y-%m-%d
     ret = rdatetime_diff_im(tmp->val, datetime_type::day);
   } else throw std::runtime_error(

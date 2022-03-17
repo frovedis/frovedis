@@ -718,8 +718,15 @@ typed_dfcolumn<raw_string>::type_cast(const std::string& to_type,
       (std::move(newval), std::move(newnulls));
   } else if(to_type == "raw_string") {
     ret = std::make_shared<typed_dfcolumn<raw_string>>(*this);
-  } else if(to_type == "datetime") { // default format: "%Y-%m-%d"
-    std::string fmt = "%Y-%m-%d";
+  } else if(to_type == "datetime") { 
+    auto clen = head(1)->length()->at<int>(0); // FIXME: issue when 0th element is NULL
+    std::string fmt;
+    if (clen == 10) fmt = "%Y-%m-%d";
+    else if (clen == 11) fmt = "%Y-%b-%d";
+    else if (clen == 19) fmt = "%Y-%m-%d %H-%M-%S";
+    else if (clen == 20) fmt = "%Y-%b-%d %H-%M-%S";
+    else throw std::runtime_error(
+    "unknown format for string -> datetime conversion!");
     // create safe NULL string
     auto nullstr_size = fmt.size();
     if(fmt.find("%Y") != std::string::npos) nullstr_size += 2;

@@ -2382,7 +2382,7 @@ datetime_months_between_col_as(const std::string& left,
                                const std::string& as);
 
 std::shared_ptr<dffunction>
-datetime_months_between_col_as(const std::shared_ptr<dffunction>&left,
+datetime_months_between_col_as(const std::shared_ptr<dffunction>& left,
                                const std::shared_ptr<dffunction>& right,
                                const std::string& as);
 
