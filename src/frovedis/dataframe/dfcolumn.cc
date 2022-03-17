@@ -633,6 +633,11 @@ std::string dfcolumn::first(bool ignore_nulls) {
     if(!static_cast<bool>(colp2))
       throw std::runtime_error("internal type error");
     return colp2->first(ignore_nulls);
+  } else if(dtype() == "raw_string") {
+    auto colp2 = dynamic_cast<typed_dfcolumn<raw_string>*>(this);
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
+    return colp2->first(ignore_nulls);
   } else throw std::runtime_error("unsupported type: " + dtype());
 }
 
@@ -645,6 +650,11 @@ std::string dfcolumn::last(bool ignore_nulls) {
     return colp2->last(ignore_nulls);
   } else if(dtype() == "dic_string") {
     auto colp2 = dynamic_cast<typed_dfcolumn<dic_string>*>(this);
+    if(!static_cast<bool>(colp2))
+      throw std::runtime_error("internal type error");
+    return colp2->last(ignore_nulls);
+  } else if(dtype() == "raw_string") {
+    auto colp2 = dynamic_cast<typed_dfcolumn<raw_string>*>(this);
     if(!static_cast<bool>(colp2))
       throw std::runtime_error("internal type error");
     return colp2->last(ignore_nulls);

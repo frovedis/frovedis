@@ -2134,6 +2134,8 @@ public:
   raw_string at(size_t i) {
     throw std::runtime_error("at of raw_string is not defined");
   }
+  std::string first(bool ignore_nulls = false);
+  std::string last(bool ignore_nulls = false);
   virtual dvector<float> as_dvector_float() {
     throw std::runtime_error("as_dvector_float of raw_string is not defined");
   } 

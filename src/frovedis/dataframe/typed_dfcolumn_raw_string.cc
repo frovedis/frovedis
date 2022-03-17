@@ -262,6 +262,105 @@ size_t typed_dfcolumn<raw_string>::count() {
   } else return size;
 }
 
+// bool: true if NULL
+std::vector<std::pair<bool, std::string>>
+raw_string_first_helper(compressed_words& cws,
+                        std::vector<size_t>& nulls,
+                        bool ignore_nulls) {
+  auto num_words = cws.order.size();
+  if(ignore_nulls == true) {
+    std::vector<size_t> iota(num_words);
+    auto iotap = iota.data();
+    for(size_t i = 0; i < num_words; i++) iotap[i] = i;
+    auto non_null = set_difference(iota, nulls); // TODO: inefficient
+    if(non_null.size() == 0) {
+      if(num_words != 0) return {std::make_pair(true,std::string("NULL"))};
+      else return std::vector<std::pair<bool, std::string>>();
+    } else {
+      auto vs = words_to_vector_string(cws.extract({non_null[0]}).decompress());
+      return {std::make_pair(false, vs[0])};
+    }
+  } else {
+    if(num_words == 0) {
+      return std::vector<std::pair<bool, std::string>>();
+    } else {
+      if(nulls.size() != 0 && nulls[0] == 0) {
+        return {std::make_pair(true,std::string("NULL"))};
+      } else {
+        auto vs = words_to_vector_string(cws.extract({0}).decompress());
+        return {std::make_pair(false, vs[0])};
+      }
+    }
+  }
+}
+
+std::string typed_dfcolumn<raw_string>::first(bool ignore_nulls) {
+  auto firsts = comp_words.map(raw_string_first_helper,
+                               nulls,
+                               broadcast(ignore_nulls)).gather();
+  auto firsts_size = firsts.size();
+  std::string ret = "NULL";
+  for(size_t i = 0; i < firsts_size; i++) {
+    auto crnt = firsts[firsts_size - 1 - i];
+    if(!ignore_nulls) {
+      if(crnt.size() != 0) ret = crnt[0].second;
+    } else {
+      if(crnt.size() != 0 && !crnt[0].first) ret = crnt[0].second;
+    }
+  }
+  return ret;
+}
+
+std::vector<std::pair<bool, std::string>>
+raw_string_last_helper(compressed_words& cws,
+                       std::vector<size_t>& nulls,
+                       bool ignore_nulls) {
+  auto num_words = cws.order.size();
+  if(ignore_nulls == true) {
+    std::vector<size_t> iota(num_words);
+    auto iotap = iota.data();
+    for(size_t i = 0; i < num_words; i++) iotap[i] = i;
+    auto non_null = set_difference(iota, nulls); // TODO: inefficient
+    if(non_null.size() == 0) {
+      if(num_words != 0) return {std::make_pair(true,std::string("NULL"))};
+      else return std::vector<std::pair<bool, std::string>>();
+    } else {
+      auto vs = words_to_vector_string
+        (cws.extract({non_null[non_null.size()-1]}).decompress());
+      return {std::make_pair(false, vs[0])};
+    }
+  } else {
+    if(num_words == 0) {
+      return std::vector<std::pair<bool, std::string>>();
+    } else {
+      if(nulls.size() != 0 && nulls[0] == num_words-1) {
+        return {std::make_pair(true,std::string("NULL"))};
+      } else {
+        auto vs = words_to_vector_string
+          (cws.extract({num_words-1}).decompress());
+        return {std::make_pair(false, vs[0])};
+      }
+    }
+  }
+}
+
+std::string typed_dfcolumn<raw_string>::last(bool ignore_nulls) {
+  auto lasts = comp_words.map(raw_string_last_helper,
+                              nulls,
+                              broadcast(ignore_nulls)).gather();
+  auto lasts_size = lasts.size();
+  std::string ret = "NULL";
+  for(size_t i = 0; i < lasts_size; i++) {
+    auto crnt = lasts[i];
+    if(!ignore_nulls) {
+      if(crnt.size() != 0) ret = crnt[0].second;
+    } else {
+      if(crnt.size() != 0 && !crnt[0].first) ret = crnt[0].second;
+    }
+  }
+  return ret;
+}
+
 // representation of NULL is not normalized, which is OK because of _nulls file
 void typed_dfcolumn<raw_string>::save(const std::string& file) {
   comp_words.map(+[](const compressed_words& cws) {
