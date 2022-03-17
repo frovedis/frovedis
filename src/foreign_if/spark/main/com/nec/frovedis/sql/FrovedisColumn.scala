@@ -300,7 +300,13 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.TRUNCWEEK => "trunc(" + left + ", Week)"
       case OPTYPE.TRUNCQUARTER => "trunc(" + left + ", Quarter)"
 
-      case OPTYPE.CAST => "CAST(" + left + " AS " + TMAPPER.castedName(right) + ")"
+      case OPTYPE.CAST => {
+        val tmp = right.split(":")
+        if (tmp.length > 1) // for datetime with pattern (used from to_date etc.)
+          "CAST(" + left + " AS " + TMAPPER.castedName(tmp(0)) + ":" + tmp(1) + ")"
+        else
+          "CAST(" + left + " AS " + TMAPPER.castedName(right) + ")"
+      }
       case OPTYPE.IF   => "CASE WHEN " + left + " THEN " + right + " END"
       case OPTYPE.ELIF => {
         val left2  = left.substring(0, left.length() - 4)
@@ -636,5 +642,10 @@ object functions extends java.io.Serializable {
   def var_samp(col: String)            = variance(col)
   def var_samp(col: FrovedisColumn)    = variance(col)
   def pow(col: FrovedisColumn, right: Any) = col ** right
+  def to_date(col: FrovedisColumn) = col.cast("date") 
+  def to_date(col: FrovedisColumn, format: String): FrovedisColumn = {
+    val pattern = "datetime:" + DateTimeUtils.parse_format(format)
+    new FrovedisColumn(col, pattern, OPTYPE.CAST, false)
+  }
 }
 

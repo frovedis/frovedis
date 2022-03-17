@@ -122,8 +122,8 @@ bin/com/nec/frovedis/graphx/Graph.class: main/com/nec/frovedis/graphx/Graph.scal
 bin/com/nec/frovedis/graphx/GraphLoader.class: main/com/nec/frovedis/graphx/GraphLoader.scala bin/com/nec/frovedis/graphx/Graph.class
 	${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/graphx/GraphLoader.scala
 
-bin/com/nec/frovedis/sql/FrovedisColumn.class: main/com/nec/frovedis/sql/FrovedisColumn.scala bin/com/nec/frovedis/matrix/DTYPE.class 
-	${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisColumn.scala
+bin/com/nec/frovedis/sql/FrovedisColumn.class: main/com/nec/frovedis/sql/FrovedisColumn.scala main/com/nec/frovedis/sql/DateTimeUtils.scala bin/com/nec/frovedis/matrix/DTYPE.class 
+	${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisColumn.scala main/com/nec/frovedis/sql/DateTimeUtils.scala
 bin/com/nec/frovedis/sql/FrovedisDataFrame.class: main/com/nec/frovedis/sql/FrovedisDataframe.scala bin/com/nec/frovedis/exrpc/FrovedisSparseData.class bin/com/nec/frovedis/sql/DFtoSparseInfo.class bin/com/nec/frovedis/Jsql/jDFTransfer.class bin/com/nec/frovedis/Jsql/jPlatform.class
 	${SCALA_HOME}/bin/scalac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/sql/FrovedisDataframe.scala ./main/com/nec/frovedis/Jsql/FrovedisDataFrameFinalizer.java ./main/com/nec/frovedis/sql/FrovedisGroupedDF.scala ./main/com/nec/frovedis/Jsql/FrovedisGroupedDFFinalizer.java ./main/com/nec/frovedis/sql/DataTransferUtils.scala
 	${JAVA_HOME}/bin/javac -cp "./bin:${SPARK_HOME}/jars/*:${HDPATH}" -sourcepath . -d bin ./main/com/nec/frovedis/Jsql/FrovedisDataFrameFinalizer.java
