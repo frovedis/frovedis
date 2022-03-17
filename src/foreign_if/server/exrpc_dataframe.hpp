@@ -245,7 +245,8 @@ exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
       case ADDMONTHS: opt = new std::shared_ptr<dffunction>(datetime_add_im_as(left, right, datetime_type::month, cname)); break;
       case SUBDATE: opt = new std::shared_ptr<dffunction>(datetime_sub_im_as(left, right, datetime_type::day, cname)); break;
       case NEXTDAY: opt = new std::shared_ptr<dffunction>(datetime_next_day_im_as(left, right, cname)); break;
-      
+      case DATEDIFF:  REPORT_ERROR(USER_ERROR, "date_diff: supported only for string as immediate value!\n");
+      case MONTHSBETWEEN: REPORT_ERROR(USER_ERROR, "months_between: supported only for string as immediate value!\n");
       default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
     }
   } else {
@@ -265,9 +266,14 @@ exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
       case FDIV: opt = new std::shared_ptr<dffunction>(fdiv_im_as(right, left, cname)); break;
       case MOD:  opt = new std::shared_ptr<dffunction>(mod_im_as (right, left, cname)); break;
       case POW:  opt = new std::shared_ptr<dffunction>(pow_im_as (right, left, cname)); break;
-      
-
-      default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
+      // --- date ---
+      case ADDDATE:   REPORT_ERROR(USER_ERROR, "add_date: reversed operation is not allowed!\n");
+      case ADDMONTHS: REPORT_ERROR(USER_ERROR, "add_months: reversed operation is not allowed!\n");
+      case SUBDATE:   REPORT_ERROR(USER_ERROR, "date_sub: reversed operation is not allowed!\n");
+      case NEXTDAY:   REPORT_ERROR(USER_ERROR, "next_day: reversed operation is not allowed!\n"); 
+      case DATEDIFF:  REPORT_ERROR(USER_ERROR, "date_diff: supported only for string as immediate value!\n");
+      case MONTHSBETWEEN: REPORT_ERROR(USER_ERROR, "months_between: supported only for string as immediate value!\n");
+      default:        REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
     }
   }
   return reinterpret_cast<exrpc_ptr_t> (opt);

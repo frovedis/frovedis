@@ -2259,6 +2259,16 @@ exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
       case LIKE:  opt = new std::shared_ptr<dffunction>(is_like(left, right)->as(cname)); break;
       case NLIKE: opt = new std::shared_ptr<dffunction>(is_not_like(left, right)->as(cname)); break;
       case CAST:  opt = new std::shared_ptr<dffunction>(cast_col_as(left, right, cname)); break;
+      // currently supported operation for datetime column only: 
+      // SUB: date_column - immediate_date_as_string => id_col("date") - "2020-02-01"
+      case DATEDIFF:
+      case SUB:   opt = new std::shared_ptr<dffunction>(sub_im_as<std::string>(
+                                            left, right, cname)); break;
+      // datetime_months_between_*: doesn't support immediate value
+      case MONTHSBETWEEN: opt = new std::shared_ptr<dffunction>(
+                                  datetime_months_between_col_as(left, 
+                                    cast_col(dic_string_im(right), "datetime"), 
+                                    cname)); break;
       default: REPORT_ERROR(USER_ERROR,
                "Unsupported immed dffunction on string type column is encountered!\n");
     }
@@ -2273,6 +2283,12 @@ exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
       case LIKE:  REPORT_ERROR(USER_ERROR, "like: reversed operation is not allowed!\n");
       case NLIKE: REPORT_ERROR(USER_ERROR, "not_like: reversed operation is not allowed!\n");
       case CAST:  REPORT_ERROR(USER_ERROR, "cast: reversed operation is not allowed!\n");
+      // currently supported operation for datetime column only: 
+      // immediate_date_as_string - date_column => "2020-02-01" - id_col("date")
+      case DATEDIFF:
+      case SUB:   opt = new std::shared_ptr<dffunction>(sub_im_as<std::string>(
+                                            right, left, cname)); break;
+      case MONTHSBETWEEN: REPORT_ERROR(USER_ERROR, "months_between: reversed operation is not allowed!\n");
       default: REPORT_ERROR(USER_ERROR,
                "Unsupported immed dffunction on string type column is encountered!\n");
     }
