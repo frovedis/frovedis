@@ -2186,6 +2186,15 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
     case FDIV:      opt = new std::shared_ptr<dffunction>(fdiv_col_as(left, right, cname)); break;
     case MOD:       opt = new std::shared_ptr<dffunction>(mod_col_as(left, right, cname)); break;
     case POW:       opt = new std::shared_ptr<dffunction>(pow_col_as(left, right, cname)); break;
+    // --- string ---
+    case UPPER:     opt = new std::shared_ptr<dffunction>(upper_col_as(left, cname)); break;
+    case LOWER:     opt = new std::shared_ptr<dffunction>(lower_col_as(left, cname)); break;
+    case LEN:       opt = new std::shared_ptr<dffunction>(length_col_as(left, cname)); break;
+    case CHARLEN:   opt = new std::shared_ptr<dffunction>(char_length_col_as(left, cname)); break;
+    case REV:       opt = new std::shared_ptr<dffunction>(reverse_col_as(left, cname)); break;
+    case TRIM:      opt = new std::shared_ptr<dffunction>(trim_im_as(left, cname)); break;
+    case LTRIM:     opt = new std::shared_ptr<dffunction>(ltrim_im_as(left, cname)); break;
+    case RTRIM:     opt = new std::shared_ptr<dffunction>(rtrim_im_as(left, cname)); break;
     // -- date --
     case GETYEAR:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::year, cname)); break;
     case GETMONTH:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::month, cname)); break;
@@ -2259,7 +2268,10 @@ exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
       case LIKE:  opt = new std::shared_ptr<dffunction>(is_like(left, right)->as(cname)); break;
       case NLIKE: opt = new std::shared_ptr<dffunction>(is_not_like(left, right)->as(cname)); break;
       case CAST:  opt = new std::shared_ptr<dffunction>(cast_col_as(left, right, cname)); break;
-      // currently supported operation for datetime column only: 
+      case TRIMWS:  opt = new std::shared_ptr<dffunction>(trim_im_as(left, right, cname)); break;
+      case LTRIMWS: opt = new std::shared_ptr<dffunction>(ltrim_im_as(left, right, cname)); break;
+      case RTRIMWS: opt = new std::shared_ptr<dffunction>(rtrim_im_as(left, right, cname)); break;
+      // currently supported operation for datetime/string/raw_string/dic_string column only: 
       // SUB: date_column - immediate_date_as_string => id_col("date") - "2020-02-01"
       case DATEDIFF:
       case SUB:   opt = new std::shared_ptr<dffunction>(sub_im_as<std::string>(
@@ -2283,12 +2295,19 @@ exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
       case LIKE:  REPORT_ERROR(USER_ERROR, "like: reversed operation is not allowed!\n");
       case NLIKE: REPORT_ERROR(USER_ERROR, "not_like: reversed operation is not allowed!\n");
       case CAST:  REPORT_ERROR(USER_ERROR, "cast: reversed operation is not allowed!\n");
-      // currently supported operation for datetime column only: 
+      case TRIMWS:  REPORT_ERROR(USER_ERROR, "trim: reversed operation is not allowed!\n");
+      case LTRIMWS: REPORT_ERROR(USER_ERROR, "ltrim: reversed operation is not allowed!\n");
+      case RTRIMWS: REPORT_ERROR(USER_ERROR, "rtrim: reversed operation is not allowed!\n");
+      // currently supported operation for datetime/string/raw_string/dic_string column only: 
       // immediate_date_as_string - date_column => "2020-02-01" - id_col("date")
       case DATEDIFF:
       case SUB:   opt = new std::shared_ptr<dffunction>(sub_im_as<std::string>(
                                             right, left, cname)); break;
-      case MONTHSBETWEEN: REPORT_ERROR(USER_ERROR, "months_between: reversed operation is not allowed!\n");
+      // datetime_months_between_*: doesn't support immediate value
+      case MONTHSBETWEEN: opt = new std::shared_ptr<dffunction>(
+                                  datetime_months_between_col_as(
+                                    cast_col(dic_string_im(right), "datetime"), 
+                                    left, cname)); break;
       default: REPORT_ERROR(USER_ERROR,
                "Unsupported immed dffunction on string type column is encountered!\n");
     }
@@ -2313,6 +2332,16 @@ get_immed_substr(exrpc_ptr_t& colp, int& pos, int& num,
   auto& col = *reinterpret_cast<std::shared_ptr<dffunction>*>(colp);
   auto retp = new std::shared_ptr<dffunction>(
                 substr_posim_numim_as(col, pos, num, cname));
+  return reinterpret_cast<exrpc_ptr_t> (retp);
+}
+
+exrpc_ptr_t 
+get_immed_substr_index(exrpc_ptr_t& colp, 
+                       std::string& delim, int& num,
+                       std::string& cname) {
+  auto& col = *reinterpret_cast<std::shared_ptr<dffunction>*>(colp);
+  auto retp = new std::shared_ptr<dffunction>(
+                substring_index_im_as(col, delim, num, cname));
   return reinterpret_cast<exrpc_ptr_t> (retp);
 }
 

@@ -127,9 +127,21 @@ enum OPTYPE {
   aLST  = 54,
   // --- other ---
   CAST = 100,
-  SUBSTR = 101,
-  ISNAN = 102,
-  
+  ISNAN = 101,
+  // --- string ---
+  SUBSTR = 102,
+  SUBSTRINDX = 103,
+  UPPER = 104,
+  LOWER = 105,
+  LEN = 106,
+  CHARLEN = 107,
+  REV = 108,
+  TRIM = 109,
+  TRIMWS = 110,
+  LTRIM = 111,
+  LTRIMWS = 112,
+  RTRIM = 113,
+  RTRIMWS = 114,
   // --- date ---
   GETYEAR = 201,
   GETMONTH = 202,

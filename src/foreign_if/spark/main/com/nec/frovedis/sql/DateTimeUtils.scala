@@ -1,6 +1,6 @@
 package com.nec.frovedis.sql;
 
-import java.time.format.DateTimeFormatterBuilder
+import java.time.format.DateTimeFormatter
 
 object DateTimeUtils extends java.io.Serializable {
 
@@ -45,16 +45,15 @@ object DateTimeUtils extends java.io.Serializable {
 }
 
 def parse_format(format: String): String = {
-  val pattern = new DateTimeFormatterBuilder().appendPattern(format)
-                                              .toFormatter.toString
+  val pattern = DateTimeFormatter.ofPattern(format).toString
   val items = pattern.split("'")
   if (items.length > 11) throw new IllegalArgumentException(
     "Unsupported date format is specified!")
 
   var ret: String = ""
   for (i <- 0 until items.length) {
-    if (i % 2 == 0) ret += get_symbol(items(i))
-    else       ret += items(i)
+    val e = items(i)
+    ret += (if (e.length < 2) e else get_symbol(e))
   }
   return ret  
 }

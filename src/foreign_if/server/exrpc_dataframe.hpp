@@ -153,6 +153,10 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp, exrpc_ptr_t& rightp,
 exrpc_ptr_t get_immed_substr(exrpc_ptr_t& colp, int& pos, int& num,
                              std::string& cname);
 
+exrpc_ptr_t get_immed_substr_index(exrpc_ptr_t& colp, 
+                                   std::string& delim, int& num,
+                                   std::string& cname);
+
 exrpc_ptr_t get_col_substr(exrpc_ptr_t& colp, 
                            exrpc_ptr_t& posp, exrpc_ptr_t& nump,
                            std::string& cname);

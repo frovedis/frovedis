@@ -710,6 +710,23 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getImmedSubstrFu
   return (jlong) ret_proxy;
 }
 
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getImmedSubstrIndexFunc
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong proxy, jstring delim, jint num, jstring colname) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto colProxy = (exrpc_ptr_t) proxy;
+  auto cname = to_cstring(env, colname);
+  auto delm = to_cstring(env, delim);
+  exrpc_ptr_t ret_proxy = 0;
+  try {
+    ret_proxy = exrpc_async(fm_node, get_immed_substr_index, colProxy, 
+                            delm, num, cname).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) ret_proxy;
+}
+
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getColSubstrFunc
   (JNIEnv *env, jclass thisCls, jobject master_node,
    jlong proxy, jlong pos, jlong num, jstring colname) {

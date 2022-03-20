@@ -157,6 +157,7 @@ void expose_frovedis_dataframe_functions() {
   expose(get_immed_dffunc_opt<double>);
   expose(get_immed_string_dffunc_opt);
   expose(get_immed_substr);
+  expose(get_immed_substr_index);
   expose(get_col_substr);
   expose(set_dffunc_asCol_name);
   expose(execute_dffunc);

@@ -775,6 +775,12 @@ public class JNISupport {
                                                    long[] block_sizes, int nproc,
                                                    short[] dtypes, long ncol);
 
+  public static native void loadByteRows(Node t_node, long[] vptrs, 
+                                         int destId, long index,
+                                         short[] dtypes, int[] offset,
+                                         long bytesp, long sizesp, int nrow,
+                                         int str_size, boolean rawsend);
+
   // for data loading (exrpc transfer) from OffHeapArray
   public static native void loadFrovedisWorkerTypedVector(Node t_node, long vptr,
                                                           long index, long datap,
@@ -983,6 +989,9 @@ public class JNISupport {
   public static native long getImmedSubstrFunc(Node master_node, long proxy, 
                                                int pos, int num,
                                                String col_name);
+  public static native long getImmedSubstrIndexFunc(Node master_node, long proxy, 
+                                                    String delim, int num,
+                                                    String col_name);
 
   public static native long getColSubstrFunc(Node master_node, long proxy, 
                                              long pos, long num,
