@@ -3632,6 +3632,45 @@ upper_col_as(const std::shared_ptr<dffunction>& left, const std::string& as) {
 }
 
 
+// ----- repeat -----
+std::shared_ptr<dffunction>
+repeat_im_helper(const std::shared_ptr<dffunction>& left, int times) {
+  if(times == 0) {
+    return substr_posim_numim(left, 0, 0); // to handle NULL properly
+  } if(times == 1) {
+    return left;
+  } else if(times == 2) {
+    return concat_col(left, left);
+  } else {
+    int half = times / 2;
+    return concat_col(repeat_im_helper(left, times - half),
+                      repeat_im_helper(left, half));
+  }
+}
+
+std::shared_ptr<dffunction>
+repeat_im(const std::shared_ptr<dffunction>& left, int times) {
+  return repeat_im_helper(left, times)->
+    as(std::string("repeat(")+ left->get_as() + "," + STR(times) + ")");
+}
+
+std::shared_ptr<dffunction>
+repeat_im(const std::string& left, int times) {
+  return repeat_im(id_col(left), times);
+}
+
+std::shared_ptr<dffunction>
+repeat_im_as(const std::shared_ptr<dffunction>& left, int times,
+             const std::string& as) {
+  return repeat_im(left, times)->as(as);
+}
+
+std::shared_ptr<dffunction>
+repeat_im_as(const std::string& left, int times, const std::string& as) {
+  return repeat_im(left, times)->as(as);
+}
+
+
 // ----- datetime_format_im -----
 std::shared_ptr<dfcolumn>
 dffunction_datetime_format_im::execute(dftable_base& t) const {

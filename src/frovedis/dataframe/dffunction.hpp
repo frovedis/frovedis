@@ -4591,6 +4591,22 @@ std::shared_ptr<dffunction>
 upper_col_as(const std::shared_ptr<dffunction>& left, const std::string& as);
 
 
+// ----- repeat -----
+
+std::shared_ptr<dffunction>
+repeat_im(const std::string& left, int times);
+
+std::shared_ptr<dffunction>
+repeat_im(const std::shared_ptr<dffunction>& left, int times);
+
+std::shared_ptr<dffunction>
+repeat_im_as(const std::string& left, int times, const std::string& as);
+
+std::shared_ptr<dffunction>
+repeat_im_as(const std::shared_ptr<dffunction>& left, int times,
+             const std::string& as);
+
+
 // ----- datetime_format -----
 struct dffunction_datetime_format_im : public dffunction {
   dffunction_datetime_format_im(const std::shared_ptr<dffunction>& left,
