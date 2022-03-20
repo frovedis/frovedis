@@ -508,6 +508,8 @@ public:
   append_string(const std::string& str);
   virtual std::shared_ptr<dfcolumn> lower();
   virtual std::shared_ptr<dfcolumn> upper();
+  virtual std::shared_ptr<dfcolumn> lpad(int len, const std::string& pad);
+  virtual std::shared_ptr<dfcolumn> rpad(int len, const std::string& pad);
   virtual std::shared_ptr<dfcolumn>
   datetime_format(const std::string& fmt,
                   const std::string& type = "dic_string") {

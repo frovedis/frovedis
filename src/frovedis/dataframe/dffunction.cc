@@ -3671,6 +3671,152 @@ repeat_im_as(const std::string& left, int times, const std::string& as) {
 }
 
 
+// ----- lpad -----
+std::shared_ptr<dfcolumn>
+dffunction_lpad::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->lpad(len, str);
+}
+
+std::shared_ptr<dfcolumn> dffunction_lpad::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  return left_column->lpad(len, str);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_lpad::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->lpad(len, str);
+}
+
+std::shared_ptr<dffunction>
+lpad_im(const std::string& left, int len) {
+  return std::make_shared<dffunction_lpad>(id_col(left), len, " ");
+}
+
+std::shared_ptr<dffunction>
+lpad_im(const std::shared_ptr<dffunction>& left, int len) {
+  return std::make_shared<dffunction_lpad>(left, len, " ");
+}
+
+std::shared_ptr<dffunction>
+lpad_im(const std::string& left, int len, const std::string& str) {
+  return std::make_shared<dffunction_lpad>(id_col(left), len, str);
+}
+
+std::shared_ptr<dffunction>
+lpad_im(const std::shared_ptr<dffunction>& left, int len,
+        const std::string& str) {
+  return std::make_shared<dffunction_lpad>(left, len, str);
+}
+
+std::shared_ptr<dffunction>
+lpad_im_as(const std::string& left, int len,
+           const std::string& as) {
+  return std::make_shared<dffunction_lpad>(id_col(left), len, " ", as);
+}
+
+std::shared_ptr<dffunction>
+lpad_im_as(const std::shared_ptr<dffunction>& left, int len,
+           const std::string& as) {
+  return std::make_shared<dffunction_lpad>(left, len, " ", as);
+}
+
+std::shared_ptr<dffunction>
+lpad_im_as(const std::string& left, int len, 
+           const std::string& str, const std::string& as) {
+  return std::make_shared<dffunction_lpad>(id_col(left), len, str, as);
+}
+
+std::shared_ptr<dffunction>
+lpad_im_as(const std::shared_ptr<dffunction>& left, int len,
+           const std::string& str, const std::string& as) {
+  return std::make_shared<dffunction_lpad>(left, len, str, as);
+}
+
+
+// ----- rpad -----
+std::shared_ptr<dfcolumn>
+dffunction_rpad::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->rpad(len, str);
+}
+
+std::shared_ptr<dfcolumn> dffunction_rpad::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  return left_column->rpad(len, str);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_rpad::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->rpad(len, str);
+}
+
+std::shared_ptr<dffunction>
+rpad_im(const std::string& left, int len) {
+  return std::make_shared<dffunction_rpad>(id_col(left), len, " ");
+}
+
+std::shared_ptr<dffunction>
+rpad_im(const std::shared_ptr<dffunction>& left, int len) {
+  return std::make_shared<dffunction_rpad>(left, len, " ");
+}
+
+std::shared_ptr<dffunction>
+rpad_im(const std::string& left, int len, const std::string& str) {
+  return std::make_shared<dffunction_rpad>(id_col(left), len, str);
+}
+
+std::shared_ptr<dffunction>
+rpad_im(const std::shared_ptr<dffunction>& left, int len,
+        const std::string& str) {
+  return std::make_shared<dffunction_rpad>(left, len, str);
+}
+
+std::shared_ptr<dffunction>
+rpad_im_as(const std::string& left, int len,
+           const std::string& as) {
+  return std::make_shared<dffunction_rpad>(id_col(left), len, " ", as);
+}
+
+std::shared_ptr<dffunction>
+rpad_im_as(const std::shared_ptr<dffunction>& left, int len,
+           const std::string& as) {
+  return std::make_shared<dffunction_rpad>(left, len, " ", as);
+}
+
+std::shared_ptr<dffunction>
+rpad_im_as(const std::string& left, int len, 
+           const std::string& str, const std::string& as) {
+  return std::make_shared<dffunction_rpad>(id_col(left), len, str, as);
+}
+
+std::shared_ptr<dffunction>
+rpad_im_as(const std::shared_ptr<dffunction>& left, int len,
+           const std::string& str, const std::string& as) {
+  return std::make_shared<dffunction_rpad>(left, len, str, as);
+}
+
+
 // ----- datetime_format_im -----
 std::shared_ptr<dfcolumn>
 dffunction_datetime_format_im::execute(dftable_base& t) const {

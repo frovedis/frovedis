@@ -4607,6 +4607,174 @@ repeat_im_as(const std::shared_ptr<dffunction>& left, int times,
              const std::string& as);
 
 
+// ----- lpad -----
+struct dffunction_lpad : public dffunction {
+  dffunction_lpad(const std::shared_ptr<dffunction>& left,
+                  int len, const std::string& str) :
+    left(left), len(len) , str(str){
+    if(str == " ")
+      as_name = "lpad(" + left->get_as() + "," + STR(len) + ")";
+    else
+      as_name = "lpad(" + left->get_as() + "," + STR(len) + "," + str + ")";
+  }
+  dffunction_lpad(const std::shared_ptr<dffunction>& left,
+                  int len, const std::string& str,
+                  const std::string& as_name) :
+    left(left), len(len), str(str), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_lpad>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("lpad(): is not available for binary operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
+
+  std::shared_ptr<dffunction> left;
+  int len;
+  std::string str;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+lpad_im(const std::string& left, int len);
+
+std::shared_ptr<dffunction>
+lpad_im(const std::shared_ptr<dffunction>& left, int len);
+
+std::shared_ptr<dffunction>
+lpad_im(const std::string& left, int len, const std::string& str);
+
+std::shared_ptr<dffunction>
+lpad_im(const std::shared_ptr<dffunction>& left, int len,
+        const std::string& str);
+
+std::shared_ptr<dffunction>
+lpad_im_as(const std::string& left, int len,
+           const std::string& as);
+
+std::shared_ptr<dffunction>
+lpad_im_as(const std::shared_ptr<dffunction>& left, int len,
+           const std::string& as);
+
+std::shared_ptr<dffunction>
+lpad_im_as(const std::string& left, int len, 
+           const std::string& str, const std::string& as);
+
+std::shared_ptr<dffunction>
+lpad_im_as(const std::shared_ptr<dffunction>& left, int len,
+           const std::string& str, const std::string& as);
+
+
+// ----- rpad -----
+struct dffunction_rpad : public dffunction {
+  dffunction_rpad(const std::shared_ptr<dffunction>& left,
+                  int len, const std::string& str) :
+    left(left), len(len) , str(str){
+    if(str == " ")
+      as_name = "rpad(" + left->get_as() + "," + STR(len) + ")";
+    else
+      as_name = "rpad(" + left->get_as() + "," + STR(len) + "," + str + ")";
+  }
+  dffunction_rpad(const std::shared_ptr<dffunction>& left,
+                  int len, const std::string& str,
+                  const std::string& as_name) :
+    left(left), len(len), str(str), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_rpad>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1, 
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("rpad(): is not available for binary operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
+
+  std::shared_ptr<dffunction> left;
+  int len;
+  std::string str;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+rpad_im(const std::string& left, int len);
+
+std::shared_ptr<dffunction>
+rpad_im(const std::shared_ptr<dffunction>& left, int len);
+
+std::shared_ptr<dffunction>
+rpad_im(const std::string& left, int len, const std::string& str);
+
+std::shared_ptr<dffunction>
+rpad_im(const std::shared_ptr<dffunction>& left, int len,
+        const std::string& str);
+
+std::shared_ptr<dffunction>
+rpad_im_as(const std::string& left, int len,
+           const std::string& as);
+
+std::shared_ptr<dffunction>
+rpad_im_as(const std::shared_ptr<dffunction>& left, int len,
+           const std::string& as);
+
+std::shared_ptr<dffunction>
+rpad_im_as(const std::string& left, int len, 
+           const std::string& str, const std::string& as);
+
+std::shared_ptr<dffunction>
+rpad_im_as(const std::shared_ptr<dffunction>& left, int len,
+           const std::string& str, const std::string& as);
+
+
 // ----- datetime_format -----
 struct dffunction_datetime_format_im : public dffunction {
   dffunction_datetime_format_im(const std::shared_ptr<dffunction>& left,

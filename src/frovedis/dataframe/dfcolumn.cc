@@ -1447,6 +1447,128 @@ dfcolumn::upper() {
   }
 }
 
+std::shared_ptr<dfcolumn>
+dfcolumn::lpad(int len, const std::string& pad) {
+  auto utf32pad = utf8_to_utf32(pad);
+  std::vector<int> repeatpad(len);
+  auto utf32pad_size = utf32pad.size();
+  auto rep = len / utf32pad_size;
+  size_t crnt = 0;
+  for(size_t i = 0; i < rep; i++) {
+    for(size_t j = 0; j < utf32pad_size; j++) {
+      repeatpad[crnt++] = utf32pad[j];
+    }
+  }
+  auto rest = len - utf32pad_size * rep;
+  if(utf32pad_size == 0) {
+    for(size_t i = 0; i < rest; i++) {
+      repeatpad[crnt++] = ' ';
+    }
+  } else {
+    for(size_t i = 0; i < rest; i++) {
+      repeatpad[crnt++] = utf32pad[i];
+    }
+  }
+  auto ws = as_words();
+  auto padws = ws.map(+[](words& ws, int len, std::vector<int>& pad) {
+      ws.utf8_to_utf32();
+      auto lens_size = ws.lens.size();
+      auto lensp = ws.lens.data();
+      std::vector<words> catv(2);
+      catv[1] = std::move(ws);
+      catv[0].lens.resize(lens_size);
+      catv[0].starts.resize(lens_size);
+      catv[0].chars = pad;
+      auto padlensp = catv[0].lens.data();
+      for(size_t i = 0; i < lens_size; i++) {
+        padlensp[i] = lensp[i] < len ? len - lensp[i] : 0;
+      }
+      auto padstartsp = catv[0].starts.data();
+      for(size_t i = 0; i < lens_size; i++) {
+        padstartsp[i] = 0;
+      }
+      auto retws = horizontal_concat_words(catv);
+      retws.utf32_to_utf8();
+      return retws;
+    }, broadcast(len), broadcast(repeatpad));
+  auto nulls = get_nulls();
+  if(dtype() == "string") {
+    auto vs = padws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(padws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(padws), std::move(nulls));
+    return ret;
+  }
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::rpad(int len, const std::string& pad) {
+  auto utf32pad = utf8_to_utf32(pad);
+  std::vector<int> repeatpad(len);
+  auto utf32pad_size = utf32pad.size();
+  auto rep = len / utf32pad_size;
+  size_t crnt = 0;
+  for(size_t i = 0; i < rep; i++) {
+    for(size_t j = 0; j < utf32pad_size; j++) {
+      repeatpad[crnt++] = utf32pad[j];
+    }
+  }
+  auto rest = len - utf32pad_size * rep;
+  if(utf32pad_size == 0) {
+    for(size_t i = 0; i < rest; i++) {
+      repeatpad[crnt++] = ' ';
+    }
+  } else {
+    for(size_t i = 0; i < rest; i++) {
+      repeatpad[crnt++] = utf32pad[i];
+    }
+  }
+  auto ws = as_words();
+  auto padws = ws.map(+[](words& ws, int len, std::vector<int>& pad) {
+      ws.utf8_to_utf32();
+      auto lens_size = ws.lens.size();
+      auto lensp = ws.lens.data();
+      std::vector<words> catv(2);
+      catv[0] = std::move(ws);
+      catv[1].lens.resize(lens_size);
+      catv[1].starts.resize(lens_size);
+      catv[1].chars = pad;
+      auto padlensp = catv[1].lens.data();
+      for(size_t i = 0; i < lens_size; i++) {
+        padlensp[i] = lensp[i] < len ? len - lensp[i] : 0;
+      }
+      auto padstartsp = catv[1].starts.data();
+      for(size_t i = 0; i < lens_size; i++) {
+        padstartsp[i] = 0;
+      }
+      auto retws = horizontal_concat_words(catv);
+      retws.utf32_to_utf8();
+      return retws;
+    }, broadcast(len), broadcast(repeatpad));
+  auto nulls = get_nulls();
+  if(dtype() == "string") {
+    auto vs = padws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(padws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(padws), std::move(nulls));
+    return ret;
+  }
+}
+
 template <>
 dvector<std::string> dfcolumn::as_dvector() {
   dvector<std::string> ret;
