@@ -818,7 +818,7 @@ typed_dfcolumn<raw_string>::type_cast(const std::string& to_type,
   } else if(to_type == "raw_string") {
     ret = std::make_shared<typed_dfcolumn<raw_string>>(*this);
   } else if(to_type == "datetime") { 
-    auto clen = head(1)->length()->at<int>(0); // FIXME: issue when 0th element is NULL
+    auto clen = first(true).length();
     std::string fmt;
     if (clen == 10) fmt = "%Y-%m-%d";
     else if (clen == 11) fmt = "%Y-%b-%d";
