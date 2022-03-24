@@ -2863,6 +2863,53 @@ make_datetime_col_as(const std::shared_ptr<dffunction>& year,
                                                     hour, minute, second, as);
 }
 
+// ----- ascii -----
+std::shared_ptr<dfcolumn>
+dffunction_ascii::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->ascii();
+}
+
+std::shared_ptr<dfcolumn> dffunction_ascii::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  return left_column->ascii();
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_ascii::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->ascii();
+}
+
+std::shared_ptr<dffunction>
+ascii_col(const std::string& left) {
+  return std::make_shared<dffunction_ascii>(id_col(left));
+}
+
+std::shared_ptr<dffunction>
+ascii_col(const std::shared_ptr<dffunction>& left) {
+  return std::make_shared<dffunction_ascii>(left);
+}
+
+std::shared_ptr<dffunction>
+ascii_col_as(const std::string& left, const std::string& as) {
+  return std::make_shared<dffunction_ascii>(id_col(left), as);
+}
+
+std::shared_ptr<dffunction>
+ascii_col_as(const std::shared_ptr<dffunction>& left,
+             const std::string& as) {
+  return std::make_shared<dffunction_ascii>(left, as);
+}
 
 // ----- length -----
 std::shared_ptr<dfcolumn>
@@ -2911,7 +2958,6 @@ length_col_as(const std::shared_ptr<dffunction>& left,
               const std::string& as) {
   return std::make_shared<dffunction_length>(left, as);
 }
-
 
 // ----- char_length -----
 std::shared_ptr<dfcolumn>
@@ -3631,13 +3677,74 @@ upper_col_as(const std::shared_ptr<dffunction>& left, const std::string& as) {
   return std::make_shared<dffunction_upper>(left, as);
 }
 
+// ----- concat_multi -----
+std::shared_ptr<dffunction>
+concat_multi_col_helper(const std::vector<std::shared_ptr<dffunction>>& cols,
+                        int start, int end) {
+  auto ncol = end - start;
+  if(ncol == 0) {
+    return dic_string_im(""); // to handle case: empty string of length 0
+  } else if (ncol == 1) {
+    return cols[start];
+  } else if (ncol == 2) {
+    return concat_col(cols[start], cols[start + 1]);
+  } else {
+    int half = start + (ncol / 2);
+    return concat_col(concat_multi_col_helper(cols, start, half), 
+                      concat_multi_col_helper(cols, half, end));
+  }
+}
+
+std::shared_ptr<dffunction>
+concat_multi_col_ws_helper(const std::vector<std::shared_ptr<dffunction>>& cols,
+                           int start, int end,
+                           const std::string& sep) {
+  auto ncol = end - start;
+  if(ncol == 0) {
+    return dic_string_im(""); // to handle case: empty string of length 0
+  } else if (ncol == 1) {
+    return cols[start];
+  } else if (ncol == 2) {
+    return concat_col(concat_im(cols[start], sep), cols[start + 1]);
+  } else {
+    int half = start + (ncol / 2);
+    return concat_col(
+      concat_im(concat_multi_col_ws_helper(cols, start, half, sep), sep),
+      concat_multi_col_ws_helper(cols, half, end, sep)
+    );
+  }
+}
+
+std::shared_ptr<dffunction>
+concat_multi_col(const std::vector<std::shared_ptr<dffunction>>& left) {
+  return concat_multi_col_helper(left, 0, left.size())->as("concat_multi()");
+}
+
+std::shared_ptr<dffunction>
+concat_multi_col_as(const std::vector<std::shared_ptr<dffunction>>& left,
+                    const std::string& as) {
+  return concat_multi_col_helper(left, 0, left.size())->as(as);
+}
+
+std::shared_ptr<dffunction>
+concat_multi_col_ws(const std::vector<std::shared_ptr<dffunction>>& left,
+                    const std::string& sep) {
+  return concat_multi_col_ws_helper(left, 0, left.size(), sep)->as("concat_multi_ws()");
+}
+
+std::shared_ptr<dffunction>
+concat_multi_col_ws_as(const std::vector<std::shared_ptr<dffunction>>& left,
+                       const std::string& sep,
+                       const std::string& as) {
+  return concat_multi_col_ws_helper(left, 0, left.size(), sep)->as(as);
+}
 
 // ----- repeat -----
 std::shared_ptr<dffunction>
 repeat_im_helper(const std::shared_ptr<dffunction>& left, int times) {
   if(times == 0) {
     return substr_posim_numim(left, 0, 0); // to handle NULL properly
-  } if(times == 1) {
+  } else if(times == 1) {
     return left;
   } else if(times == 2) {
     return concat_col(left, left);

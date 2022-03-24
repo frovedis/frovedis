@@ -1061,6 +1061,32 @@ std::shared_ptr<dfcolumn> dfcolumn::substr(int pos) {
   }
 }
 
+// returns ascii of the first character in each word
+std::shared_ptr<dfcolumn> dfcolumn::ascii() {
+  auto ws = as_words();
+  auto nulls = get_nulls();
+  auto len = ws.map(+[](words& ws, std::vector<size_t>& nulls){
+      auto size = ws.starts.size();
+      std::vector<int> ret(size);
+      auto retp = ret.data();
+      auto charsp = ws.chars.data();
+      auto startsp = ws.starts.data();
+#pragma _NEC ivdep
+      for(size_t i = 0; i < size; i++) retp[i] = charsp[startsp[i]];
+      auto nullsp = nulls.data();
+      auto nulls_size = nulls.size();
+      auto max = std::numeric_limits<int>::max();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+      for(size_t i = 0; i < nulls_size; i++) {
+        retp[nullsp[i]] = max;
+      }
+      return ret;}, nulls);
+  return std::make_shared<typed_dfcolumn<int>>
+    (std::move(len), std::move(nulls));
+}
+
 // length returns length in bytes
 std::shared_ptr<dfcolumn> dfcolumn::length() {
   auto ws = as_words();
