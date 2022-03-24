@@ -23,6 +23,9 @@ class FrovedisColumn(object):
         self.__dtype = dtype
         self.df = None
 
+    def copy(self):
+        return FrovedisColumn(self.__colName, self.__dtype)
+
     def __str__(self):
         """ to-string """
         return "name: " + self.__colName + "; dtype: " + \
@@ -403,12 +406,7 @@ class FrovedisColumn(object):
         param = check_stat_error("first", False, \
                                  skipna_=skipna)
         ret_df = self.df[self.__colName]
-        if param.skipna_:
-            ret_df = ret_df.dropna()
-        if len(ret_df):
-            return ret_df.first_element(self.__colName) \
-                         .to_numpy()[0][0]
-        return np.nan
+        return ret_df.first_element(self.__colName, param.skipna_)
 
     def last_element(self, skipna=None):
         """
@@ -418,12 +416,7 @@ class FrovedisColumn(object):
         param = check_stat_error("last", False, \
                                  skipna_=skipna)
         ret_df = self.df[self.__colName]
-        if param.skipna_:
-            ret_df = ret_df.dropna()
-        if len(ret_df):
-            return ret_df.last_element(self.__colName) \
-                         .to_numpy()[0][0]
-        return np.nan
+        return ret_df.last_element(self.__colName, param.skipna_)
 
 class FrovedisStringMethods(object):
     """

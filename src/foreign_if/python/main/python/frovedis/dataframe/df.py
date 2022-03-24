@@ -567,7 +567,7 @@ class DataFrame(object):
             ret = self.__filter_using_mask(opt.mask)
         else:
             ret = DataFrame(is_series=self.is_series)
-            ret.index = self.index
+            ret.index = self.index.copy()
             (host, port) = FrovedisServer.getServerInstance()
             proxy = rpclib.filter_frovedis_dataframe(host, port, \
                                                      self.get(), opt.get())
@@ -585,7 +585,7 @@ class DataFrame(object):
         if not isinstance(mask, FrovedisIntDvector):
             mask = FrovedisIntDvector(np.asarray(mask, dtype=np.int32)) #checks errors
         ret = DataFrame(is_series=self.is_series)
-        ret.index = self.index
+        ret.index = self.index.copy()
         (host, port) = FrovedisServer.getServerInstance()
         proxy = rpclib.filter_df_using_mask(host, port, \
                                             self.get(), mask.get())
@@ -604,7 +604,7 @@ class DataFrame(object):
         ret_types = self.__get_column_types(targets)
         ret_cols = list(targets) #targets is a list
         ret.num_row = len(self)
-        ret.index = self.index
+        ret.index = self.index.copy()
 
         if self.has_index():
             targets = [self.index.name] + targets
@@ -742,7 +742,7 @@ class DataFrame(object):
                                 type(ascending).__name__)
 
         ret = DataFrame(is_series=self.is_series)
-        ret.index = self.index
+        ret.index = self.index.copy()
         ret.num_row = len(self)
         (host, port) = FrovedisServer.getServerInstance()
         proxy = rpclib.sort_frovedis_dataframe(host, port, self.get(),\
@@ -1058,7 +1058,7 @@ class DataFrame(object):
             ret = self
         else:
             ret = DataFrame(is_series=self.is_series)
-            ret.index = self.index
+            ret.index = self.index.copy()
             ret.num_row = len(self)
         ret_cols = list(self.__cols)
         ret_types = list(self.__types)
@@ -1440,7 +1440,7 @@ class DataFrame(object):
             if (self.index.dtype == DTYPE.BOOL):
                 res.index = res.index.to_series().replace({0: False, 1: True})
             elif (self.index.dtype == DTYPE.STRING):
-                res.index = res.index.to_series().replace({"NULL": np.nan})
+                res.index = res.index.to_series().replace({"NULL": None})
 
         for col in self.columns:
             # BOOL treatment
@@ -1672,7 +1672,7 @@ class DataFrame(object):
             raise RuntimeError(excpt["info"])
         ret = DataFrame()
         ret.num_row = len(self)
-        ret.index = self.index
+        ret.index = self.index.copy()
         ret_cols = list(self.__cols)
         ret_types = [DTYPE.BOOL]*len(self)
         ret.load_dummy(proxy, ret_cols, ret_types)
@@ -3137,44 +3137,58 @@ class DataFrame(object):
         return ret
 
     @check_association
-    def first_element(self, col_name):
+    def first_element(self, col_name, skipna=None):
         """
         Returns the first element/row from column/dataframe
         """
-        (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_first(host, port, \
-                                   self.get(), \
-                                   col_name.encode('ascii'))
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        ret = DataFrame()
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-        ret.num_row = dummy_df["nrow"]
-        ret.index = FrovedisColumn(names[0], types[0]) #setting index
-        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        return ret
+        param = check_stat_error("first", DTYPE.STRING in self.__types, \
+                                 skipna_=skipna)
+        ret_df = self[col_name]
+        if param.skipna_:
+            ret_df = ret_df.dropna()
+        if len(ret_df):
+            (host, port) = FrovedisServer.getServerInstance()
+            dummy_df = rpclib.df_first(host, port, \
+                                       ret_df.get(), \
+                                       col_name.encode('ascii'))
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            ret = DataFrame()
+            names = dummy_df["names"]
+            types = dummy_df["types"]
+            ret.num_row = dummy_df["nrow"]
+            ret.index = FrovedisColumn(names[0], types[0])
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+            return ret.to_numpy()[0][0]
+        return np.nan
 
     @check_association
-    def last_element(self, col_name):
+    def last_element(self, col_name, skipna=None):
         """
-        Returns the last element/row from column/dataframe
+        Returns the last element from column
         """
-        (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_last(host, port, \
-                                  self.get(), \
-                                  col_name.encode('ascii'))
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        ret = DataFrame()
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-        ret.num_row = dummy_df["nrow"]
-        ret.index = FrovedisColumn(names[0], types[0]) #setting index
-        ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        return ret
+        param = check_stat_error("last", DTYPE.STRING in self.__types, \
+                                 skipna_=skipna)
+        ret_df = self[col_name]
+        if param.skipna_:
+            ret_df = ret_df.dropna()
+        if len(ret_df):
+            (host, port) = FrovedisServer.getServerInstance()
+            dummy_df = rpclib.df_last(host, port, \
+                                      ret_df.get(), \
+                                      col_name.encode('ascii'))
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            ret = DataFrame()
+            names = dummy_df["names"]
+            types = dummy_df["types"]
+            ret.num_row = dummy_df["nrow"]
+            ret.index = FrovedisColumn(names[0], types[0])
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+            return ret.to_numpy()[0][0]
+        return np.nan
 
     @check_association
     def min(self, axis=None, skipna=None, level=None,
