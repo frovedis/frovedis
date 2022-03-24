@@ -2195,6 +2195,7 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
     case TRIM:      opt = new std::shared_ptr<dffunction>(trim_im_as(left, cname)); break;
     case LTRIM:     opt = new std::shared_ptr<dffunction>(ltrim_im_as(left, cname)); break;
     case RTRIM:     opt = new std::shared_ptr<dffunction>(rtrim_im_as(left, cname)); break;
+    case ASCII:     opt = new std::shared_ptr<dffunction>(ascii_col_as(left, cname)); break;
     // -- date --
     case GETYEAR:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::year, cname)); break;
     case GETMONTH:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::month, cname)); break;
@@ -2216,6 +2217,9 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
     case TRUNCYEAR: opt = new std::shared_ptr<dffunction>(datetime_truncate_col_as(left, datetime_type::year, cname)); break;
     case TRUNCWEEK: opt = new std::shared_ptr<dffunction>(datetime_truncate_col_as(left, datetime_type::weekofyear, cname)); break;
     case TRUNCQUARTER: opt = new std::shared_ptr<dffunction>(datetime_truncate_col_as(left, datetime_type::quarter, cname)); break;
+    case TRUNCHOUR: opt = new std::shared_ptr<dffunction>(datetime_truncate_col_as(left, datetime_type::hour, cname)); break;
+    case TRUNCMINUTE: opt = new std::shared_ptr<dffunction>(datetime_truncate_col_as(left, datetime_type::minute, cname)); break;
+    case TRUNCSECOND: opt = new std::shared_ptr<dffunction>(datetime_truncate_col_as(left, datetime_type::second, cname)); break;
 
     default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction/dfoperator is requested!\n");
   }
@@ -2243,6 +2247,31 @@ exrpc_ptr_t get_string_immed_when_dffunc(exrpc_ptr_t& leftp,
       opt = new std::shared_ptr<dffunction>(when(cond, func)->as(cname)); break;
     }
     default: REPORT_ERROR(USER_ERROR, "when: Unsupported dffunction is requested!\n");
+  }
+  return reinterpret_cast<exrpc_ptr_t> (opt);
+}
+
+exrpc_ptr_t get_immed_int_dffunc_opt(exrpc_ptr_t& leftp,
+                                     int& right,
+                                     short& opt_id,
+                                     std::string& cname) {
+  auto& left = *reinterpret_cast<std::shared_ptr<dffunction>*>(leftp);
+  std::shared_ptr<dffunction> *opt = NULL;
+  switch(opt_id) {
+    // --- date ---
+    case ADDDATE:   opt = new std::shared_ptr<dffunction>(datetime_add_im_as(
+                            left, right, datetime_type::day, cname)); break;
+    case ADDMONTHS: opt = new std::shared_ptr<dffunction>(datetime_add_im_as(
+                            left, right, datetime_type::month, cname)); break;
+    case SUBDATE:   opt = new std::shared_ptr<dffunction>(datetime_sub_im_as(
+                            left, right, datetime_type::day, cname)); break;
+    case NEXTDAY:   opt = new std::shared_ptr<dffunction>(
+                            datetime_next_day_im_as(left, right, cname)); break;
+    // --- string ---
+    case REPEAT:    opt = new std::shared_ptr<dffunction>(
+                            repeat_im_as(left, right, cname)); break;
+    default:   REPORT_ERROR(USER_ERROR, 
+               "Unsupported dffunction with integer as immed value is requested!\n");
   }
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }
@@ -2281,8 +2310,12 @@ exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
                                   datetime_months_between_col_as(left, 
                                     cast_col(dic_string_im(right), "datetime"), 
                                     cname)); break;
+      case DATEFORMAT:  opt = new std::shared_ptr<dffunction>(
+                                  datetime_format_im_as(left, right,
+                                                       "dic_string",cname)
+                                  ); break;
       default: REPORT_ERROR(USER_ERROR,
-               "Unsupported immed dffunction on string type column is encountered!\n");
+               "Unsupported dffunction with string as immed value is requested!\n");
     }
   } else {
     switch(opt_id) {
@@ -2309,7 +2342,7 @@ exrpc_ptr_t get_immed_string_dffunc_opt(exrpc_ptr_t& leftp,
                                     cast_col(dic_string_im(right), "datetime"), 
                                     left, cname)); break;
       default: REPORT_ERROR(USER_ERROR,
-               "Unsupported immed dffunction on string type column is encountered!\n");
+               "Unsupported dffunction with string as immed value is requested!\n");
     }
   }
   return reinterpret_cast<exrpc_ptr_t> (opt);
@@ -2354,6 +2387,37 @@ get_col_substr(exrpc_ptr_t& colp,
   auto& num = *reinterpret_cast<std::shared_ptr<dffunction>*>(nump);
   auto retp = new std::shared_ptr<dffunction>(
                 substr_poscol_numcol_as(col, pos, num, cname));
+  return reinterpret_cast<exrpc_ptr_t> (retp);
+}
+
+exrpc_ptr_t get_col_concat_multi(std::vector<exrpc_ptr_t>& cols,
+                                 std::string& as,
+                                 std::string& sep, bool& with_sep) {
+  auto funcs = to_dffunction(cols);
+  auto retp = new std::shared_ptr<dffunction>(
+                with_sep ? concat_multi_col_ws_as(funcs, sep, as)
+                         : concat_multi_col_as(funcs, as)
+              );
+  return reinterpret_cast<exrpc_ptr_t> (retp);
+}
+
+exrpc_ptr_t get_immed_locate(exrpc_ptr_t& colp, 
+                             std::string& substr, int& pos, 
+                             std::string& cname) {
+  auto& col = *reinterpret_cast<std::shared_ptr<dffunction>*>(colp);
+  auto retp = new std::shared_ptr<dffunction>(
+                locate_im_as(col, substr, pos, cname));
+  return reinterpret_cast<exrpc_ptr_t> (retp);
+}
+
+exrpc_ptr_t get_immed_pad(exrpc_ptr_t& colp,
+                          int& len, std::string& value,
+                          std::string& cname, bool& is_left) {
+  auto& col = *reinterpret_cast<std::shared_ptr<dffunction>*>(colp);
+  auto retp = new std::shared_ptr<dffunction>(
+                is_left ? lpad_im_as(col, len, value, cname)
+                        : rpad_im_as(col, len, value, cname)
+              );
   return reinterpret_cast<exrpc_ptr_t> (retp);
 }
 

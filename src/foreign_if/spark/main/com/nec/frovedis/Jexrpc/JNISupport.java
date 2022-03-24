@@ -992,10 +992,17 @@ public class JNISupport {
   public static native long getImmedSubstrIndexFunc(Node master_node, long proxy, 
                                                     String delim, int num,
                                                     String col_name);
-
   public static native long getColSubstrFunc(Node master_node, long proxy, 
                                              long pos, long num,
                                              String col_name);
+
+  public static native long getImmedPadFunc(Node master_node, long proxy, 
+                                            int len, String value, 
+                                            String col_name, boolean is_left);
+
+  public static native long getImmedLocateFunc(Node master_node, long proxy, 
+                                               String substr, int pos,
+                                               String col_name);
 
   public static native long appendWhenCondition(Node master_node, long left_fn,
                                                 long right_fn, String col_name);
@@ -1003,6 +1010,15 @@ public class JNISupport {
                                               String right_str, short right_dtype,
                                               short opt, String col_name, 
                                               boolean is_rev);
+  public static native long getOptIntImmedDFfunc(Node master_node, 
+                                                 long left_fn, int right, 
+                                                 short opt, String col_name);
+
+  public static native long getOptConcat(Node master_node, 
+                                         long[] proxies, int size, 
+                                         String sep, boolean with_sep,
+                                         String col_name);
+
   public static native long getDFagg(Node master_node, long left_fn, 
                                      short opt, String col_name,
                                      boolean ignore_nulls);

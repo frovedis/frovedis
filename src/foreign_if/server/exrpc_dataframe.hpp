@@ -161,6 +161,18 @@ exrpc_ptr_t get_col_substr(exrpc_ptr_t& colp,
                            exrpc_ptr_t& posp, exrpc_ptr_t& nump,
                            std::string& cname);
 
+exrpc_ptr_t get_col_concat_multi(std::vector<exrpc_ptr_t>& cols,
+                                 std::string& as,
+                                 std::string& sep, bool& with_sep);
+
+exrpc_ptr_t get_immed_pad(exrpc_ptr_t& colp,
+                          int& len, std::string& value,
+                          std::string& cname, bool& is_left);
+
+exrpc_ptr_t get_immed_locate(exrpc_ptr_t& colp, 
+                             std::string& substr, int& pos, 
+                             std::string& cname);
+
 exrpc_ptr_t append_when_condition(exrpc_ptr_t& leftp, 
                                   exrpc_ptr_t& rightp,
                                   std::string& cname);
@@ -213,6 +225,11 @@ exrpc_ptr_t get_immed_when_dffunc(exrpc_ptr_t& leftp,
   return reinterpret_cast<exrpc_ptr_t> (opt);
 }
 
+exrpc_ptr_t get_immed_int_dffunc_opt(exrpc_ptr_t& leftp,
+                                     int& right,
+                                     short& opt_id,
+                                     std::string& cname);
+
 // for immediate value (right) of non-string type, T
 // where left is a "dffunction", used in spark wrapper
 template <class T>
@@ -245,12 +262,10 @@ exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
       case MOD:  opt = new std::shared_ptr<dffunction>(mod_im_as (left, right, cname)); break;
       case POW:  opt = new std::shared_ptr<dffunction>(pow_im_as (left, right, cname)); break;
       // --- date ---
-      case ADDDATE: opt = new std::shared_ptr<dffunction>(datetime_add_im_as(left, right, datetime_type::day, cname)); break;
-      case ADDMONTHS: opt = new std::shared_ptr<dffunction>(datetime_add_im_as(left, right, datetime_type::month, cname)); break;
-      case SUBDATE: opt = new std::shared_ptr<dffunction>(datetime_sub_im_as(left, right, datetime_type::day, cname)); break;
-      case NEXTDAY: opt = new std::shared_ptr<dffunction>(datetime_next_day_im_as(left, right, cname)); break;
-      case DATEDIFF:  REPORT_ERROR(USER_ERROR, "date_diff: supported only for string as immediate value!\n");
-      case MONTHSBETWEEN: REPORT_ERROR(USER_ERROR, "months_between: supported only for string as immediate value!\n");
+      case DATEDIFF:  REPORT_ERROR(USER_ERROR, 
+                        "date_diff: supported only for string as immediate value!\n");
+      case MONTHSBETWEEN: REPORT_ERROR(USER_ERROR, 
+                         "months_between: supported only for string as immediate value!\n");
       default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
     }
   } else {
@@ -271,13 +286,11 @@ exrpc_ptr_t get_immed_dffunc_opt(exrpc_ptr_t& leftp,
       case MOD:  opt = new std::shared_ptr<dffunction>(mod_im_as (right, left, cname)); break;
       case POW:  opt = new std::shared_ptr<dffunction>(pow_im_as (right, left, cname)); break;
       // --- date ---
-      case ADDDATE:   REPORT_ERROR(USER_ERROR, "add_date: reversed operation is not allowed!\n");
-      case ADDMONTHS: REPORT_ERROR(USER_ERROR, "add_months: reversed operation is not allowed!\n");
-      case SUBDATE:   REPORT_ERROR(USER_ERROR, "date_sub: reversed operation is not allowed!\n");
-      case NEXTDAY:   REPORT_ERROR(USER_ERROR, "next_day: reversed operation is not allowed!\n"); 
-      case DATEDIFF:  REPORT_ERROR(USER_ERROR, "date_diff: supported only for string as immediate value!\n");
-      case MONTHSBETWEEN: REPORT_ERROR(USER_ERROR, "months_between: supported only for string as immediate value!\n");
-      default:        REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
+      case DATEDIFF:  REPORT_ERROR(USER_ERROR, 
+                         "date_diff: reversed operation is supported only for string as immediate value!\n");
+      case MONTHSBETWEEN: REPORT_ERROR(USER_ERROR, 
+                         "months_between: reversed operation is supported only for string as immediate value!\n");
+      default:   REPORT_ERROR(USER_ERROR, "Unsupported dffunction is requested!\n");
     }
   }
   return reinterpret_cast<exrpc_ptr_t> (opt);

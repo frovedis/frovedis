@@ -5,6 +5,8 @@ import com.nec.frovedis.matrix.DTYPE
 import scala.collection.mutable
 import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
 import org.apache.spark.sql.types._
+import java.util.TimeZone
+import java.time.LocalDate
 
 object TMAPPER extends java.io.Serializable {
   val spk2frov_namedDT = Map("IntegerType" -> "int", "LongType" -> "long",
@@ -22,7 +24,7 @@ object TMAPPER extends java.io.Serializable {
   val id2field = Map(DTYPE.INT -> IntegerType,   DTYPE.LONG -> LongType,
                      DTYPE.FLOAT -> FloatType,   DTYPE.DOUBLE -> DoubleType,
                      DTYPE.STRING -> StringType, DTYPE.WORDS -> StringType,
-                     DTYPE.BOOL -> BooleanType, DTYPE.DATETIME -> DateType,
+                     DTYPE.BOOL -> BooleanType,  DTYPE.DATETIME -> DateType,
                      DTYPE.TIMESTAMP -> TimestampType)
 
   val id2string = Map(DTYPE.INT -> "IntegerType",   DTYPE.LONG -> "LongType",
@@ -51,7 +53,8 @@ object ColKind extends java.io.Serializable {
 }
 
 object OPTYPE extends java.io.Serializable {
-  val ID:        Short = 0 // for column-name or scalar
+  val NONE:      Short = -1 // for unknown operator
+  val ID:        Short = 0  // for column-name or scalar
   // --- conditional ---
   val EQ:        Short = 1
   val NE:        Short = 2
@@ -96,60 +99,77 @@ object OPTYPE extends java.io.Serializable {
   // --- other ---
   val CAST:       Short = 100
   val ISNAN:      Short = 101
+  // --- string ---
   val SUBSTR:     Short = 102
   val SUBSTRINDX: Short = 103
-  val UPPER: Short = 104
-  val LOWER: Short = 105
-  val LEN: Short = 106
-  val CHARLEN: Short = 107
-  val REV: Short = 108
-  val TRIM: Short = 109
-  val TRIMWS: Short = 110
-  val LTRIM: Short = 111
-  val LTRIMWS: Short = 112
-  val RTRIM: Short = 113
-  val RTRIMWS: Short = 114
+  val UPPER:      Short = 104
+  val LOWER:      Short = 105
+  val LEN:        Short = 106
+  val CHARLEN:    Short = 107
+  val REV:        Short = 108
+  val TRIM:       Short = 109
+  val TRIMWS:     Short = 110
+  val LTRIM:      Short = 111
+  val LTRIMWS:    Short = 112
+  val RTRIM:      Short = 113
+  val RTRIMWS:    Short = 114
+  val ASCII:      Short = 115
+  val REPEAT:     Short = 116
+  val CONCAT:     Short = 117
+  val LPAD:       Short = 118
+  val RPAD:       Short = 119
+  val LOCATE:     Short = 120
+  val INSTR:      Short = 121
   // --- date ---
-  val GETYEAR:   Short = 201
-  val GETMONTH:   Short = 202
-  val GETDAYOFMONTH:   Short = 203
-  val GETHOUR: Short = 204
-  val GETMINUTE: Short = 205
-  val GETSECOND: Short = 206
-  val GETQUARTER: Short = 207
-  val GETDAYOFWEEK: Short = 208
-  val GETDAYOFYEAR: Short = 209
+  val GETYEAR:       Short = 201
+  val GETMONTH:      Short = 202
+  val GETDAYOFMONTH: Short = 203
+  val GETHOUR:       Short = 204
+  val GETMINUTE:     Short = 205
+  val GETSECOND:     Short = 206
+  val GETQUARTER:    Short = 207
+  val GETDAYOFWEEK:  Short = 208
+  val GETDAYOFYEAR:  Short = 209
   val GETWEEKOFYEAR: Short = 210
-  val ADDDATE: Short = 211
-  val ADDMONTHS: Short = 212
-  val SUBDATE: Short = 213
-  val DATEDIFF: Short = 214
+  val ADDDATE:       Short = 211
+  val ADDMONTHS:     Short = 212
+  val SUBDATE:       Short = 213
+  val DATEDIFF:      Short = 214
   val MONTHSBETWEEN: Short = 215
-  val NEXTDAY: Short = 216
-  val TRUNCMONTH: Short = 217
-  val TRUNCYEAR: Short = 218
-  val TRUNCWEEK: Short = 219
-  val TRUNCQUARTER: Short = 220
+  val NEXTDAY:       Short = 216
+  val TRUNCMONTH:    Short = 217
+  val TRUNCYEAR:     Short = 218
+  val TRUNCWEEK:     Short = 219
+  val TRUNCQUARTER:  Short = 220
+  val TRUNCHOUR:     Short = 221
+  val TRUNCMINUTE:   Short = 222
+  val TRUNCSECOND:   Short = 223
+  val DATEFORMAT:    Short = 224
   // --- date/time casting ---
-  val TODATE: Short = 300 
-  val TODATEWS: Short = 301
-  val TOTIMESTAMP: Short = 302
+  val TODATE:        Short = 300 
+  val TODATEWS:      Short = 301
+  val TOTIMESTAMP:   Short = 302
   val TOTIMESTAMPWS: Short = 303
 }
 
 class FrovedisColumn extends java.io.Serializable {
-  private var col_name: String = null // would be updated if as() is performed
+  // org_name: the name assigned during the object construction
+  // col_name: would be updated if as() is performed, otherwise same as org_name
+  private var org_name: String = null 
+  private var col_name: String = null 
   private var kind: Short = ColKind.DFID
   private var opType: Short = OPTYPE.ID
   private var proxy: Long = 0
-  private var isBool: Boolean = false
   private var isDesc: Int = 0
-  private var dtype: Short = 0  // would be set only for scalar
-  private var value: Any = null // would be set for scalar
+
+  // would be set for scalar and others for which type can be detected
+  private var dtype: Short = DTYPE.NONE  
+  private var value: Any = null // would be set only for scalar
 
   def this(n: String) = {
     this()
     this.col_name = n
+    this.org_name = this.col_name
     this.opType = OPTYPE.ID
     this.kind = ColKind.DFID
     val fs = FrovedisServer.getServerInstance()
@@ -159,11 +179,10 @@ class FrovedisColumn extends java.io.Serializable {
   }
 
   // right can be FrovedisColumn, Spark column including literals
-  def this(left: FrovedisColumn, right: Any, 
-           opt: Short, cond: Boolean = false) = { 
+  def this(left: FrovedisColumn, right: Any, opt: Short, dtype: Short) = {
     this()
     this.opType = opt
-    this.isBool = cond
+    this.dtype = dtype
     this.kind = ColKind.DFFUNC
 
     var right2: FrovedisColumn = null
@@ -177,6 +196,7 @@ class FrovedisColumn extends java.io.Serializable {
       else right2 = new FrovedisColumn(right.toString) // spark column -> frovedis column
     }
     this.col_name = get_name(left.col_name, right2.col_name, opt)
+    this.org_name = this.col_name
     if (left.isAGG) throw new java.lang.UnsupportedOperationException(
                     this.col_name +  ": is not supported with aggregator!")
     if (right2.isAGG) throw new java.lang.UnsupportedOperationException(
@@ -237,14 +257,16 @@ class FrovedisColumn extends java.io.Serializable {
    *                 OPTYPE.GETQUARTER, OPTYPE.GETDAYOFWEEK, 
    *                 OPTYPE.GETDAYOFYEAR, OPTYPE.GETWEEKOFYEAR, 
    *                 OPTYPE.TRUNCYEAR, OPTYPE.TRUNCMONTH, OPTYPE.TRUNCWEEK,
-   *                 OPTYPE.TRUNCQUARTER
+   *                 OPTYPE.TRUNCQUARTER, OPTYPE.TRUNCHOUR, OPTYPE.TRUNCMINUTE,
+   *                 OPTYPE.TRUNCSECOND
    */
-  def this(left: FrovedisColumn, opt: Short, cond: Boolean) = {
+  def this(left: FrovedisColumn, opt: Short, dtype: Short) = {
     this()
     this.opType = opt
-    this.isBool = cond
+    this.dtype = dtype
     this.kind = ColKind.DFFUNC
     this.col_name = get_name(left.col_name, "", opt)
+    this.org_name = this.col_name
     if (left.isAGG) throw new java.lang.UnsupportedOperationException(
                     this.col_name +  ": is not supported with aggregator!")
 
@@ -258,15 +280,16 @@ class FrovedisColumn extends java.io.Serializable {
   /*
    * --- for operations with right-argument as String ---
    * supported opt:  OPTYPE.CAST, OPTYPE.LIKE, OPTYPE.NLIKE,
-   *                 OPTYPE.TRIMWS, OPTYPE.LTRIMWS, OPTYPE.RTRIMWS
+   *                 OPTYPE.TRIMWS, OPTYPE.LTRIMWS, OPTYPE.RTRIMWS,
+   *                 OPTYPE.DATEFORMAT
    */
-  def this(left: FrovedisColumn, right: String, 
-           opt: Short, cond: Boolean) = {
+  def this(left: FrovedisColumn, right: String, opt: Short, dtype: Short) = {
     this()
     this.opType = opt
-    this.isBool = cond
+    this.dtype = dtype
     this.kind = ColKind.DFFUNC
     this.col_name = get_name(left.col_name, right, opt)
+    this.org_name = this.col_name
     if (left.isAGG) throw new java.lang.UnsupportedOperationException(
                     this.col_name +  ": is not supported with aggregator!")
 
@@ -279,44 +302,76 @@ class FrovedisColumn extends java.io.Serializable {
     if (info != "") throw new java.rmi.ServerException(info)
   }
 
-  def to_datetime(opt: Short): FrovedisColumn = {
-    val ret = new FrovedisColumn()
-    ret.opType = opt
-    ret.isBool = false
-    ret.kind = ColKind.DFFUNC
-    ret.col_name = get_name(this.col_name, "", opt)
-    if (this.isAGG) throw new java.lang.UnsupportedOperationException(
-                    ret.col_name +  ": is not supported with aggregator!")
+  /*
+   * --- for operations with right-argument as int ---
+   * supported opt:  OPTYPE.ADDDATE, OPTYPE.ADDMONTHS, OPTYPE.SUBDATE, 
+   *                 OPTYPE.NEXTDAY, OPTYPE.REPEAT
+   *                 
+   */
+  def this(left: FrovedisColumn, right: Int, opt: Short, dtype: Short) = {
+    this()
+    this.opType = opt
+    this.dtype = dtype
+    this.kind = ColKind.DFFUNC
+    this.col_name = get_name(left.col_name, right.toString, opt)
+    this.org_name = this.col_name
+    if (left.isAGG) throw new java.lang.UnsupportedOperationException(
+                    this.col_name +  ": is not supported with aggregator!")
 
-    val rev_op = false
-    val right = opt match {
-      case OPTYPE.TODATE => TMAPPER.spk2frov_namedDT("DateType")
-      case OPTYPE.TOTIMESTAMP => TMAPPER.spk2frov_namedDT("TimestampType")
-      case _ => throw new IllegalArgumentException("Unsupported opt-type: " + opt)
-    }
     val fs = FrovedisServer.getServerInstance()
-    ret.proxy = JNISupport.getOptImmedDFfunc(fs.master_node, this.proxy,
-                                             right, DTYPE.STRING,
-                                             OPTYPE.CAST, ret.col_name, rev_op)
+    this.proxy = JNISupport.getOptIntImmedDFfunc(fs.master_node, left.proxy,
+                                                 right, opt, col_name)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+  }
+
+  def concat_multi(cols: Array[FrovedisColumn],
+                   sep: String, with_sep: Boolean): FrovedisColumn = {
+    val ret = new FrovedisColumn()
+    ret.opType = OPTYPE.CONCAT
+    ret.dtype = DTYPE.STRING
+    ret.kind = ColKind.DFFUNC
+    var name = ""
+    for (i <- 0 until (cols.size - 1)) name += cols(i).col_name + ", "
+    if (cols.size > 0) name += cols(0).col_name
+    if (with_sep) name = "concat_ws(" + sep + ", " + name + ")"
+    else          name = "concat(" + name + ")"
+    ret.col_name = name
+    ret.org_name = ret.col_name
+    val fs = FrovedisServer.getServerInstance()
+    val proxies = cols.map(x => x.proxy)
+    ret.proxy = JNISupport.getOptConcat(fs.master_node, proxies, 
+                                        proxies.size, sep, with_sep, name)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return ret
   }
 
-  def to_datetime(fmt: String, opt: Short): FrovedisColumn = {
+  def to_datetime(opt: Short, format: String, dtype: Short): FrovedisColumn = {
     val ret = new FrovedisColumn()
     ret.opType = opt
-    ret.isBool = false
+    ret.dtype = dtype
     ret.kind = ColKind.DFFUNC
-    ret.col_name = get_name(this.col_name, fmt, opt)
+    var to_type = ""
+
+    if (opt == OPTYPE.TODATE) {
+      ret.col_name = get_name(this.col_name, "", opt)
+      to_type = TMAPPER.spk2frov_namedDT("DateType")
+    } else if (opt == OPTYPE.TOTIMESTAMP) {
+      ret.col_name = get_name(this.col_name, "", opt)
+      to_type = TMAPPER.spk2frov_namedDT("TimestampType")
+    } else { // with format
+      ret.col_name = get_name(this.col_name, format, opt)
+      to_type = "datetime:" + DateTimeUtils.parse_format(format)
+    }
+    ret.org_name = ret.col_name
     if (this.isAGG) throw new java.lang.UnsupportedOperationException(
                     ret.col_name +  ": is not supported with aggregator!")
 
     val rev_op = false
-    val right = "datetime:" + DateTimeUtils.parse_format(fmt)
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getOptImmedDFfunc(fs.master_node, this.proxy,
-                                             right, DTYPE.STRING,
+                                             to_type, DTYPE.STRING,
                                              OPTYPE.CAST, ret.col_name, rev_op)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
@@ -331,8 +386,8 @@ class FrovedisColumn extends java.io.Serializable {
       this.col_name = n.toString()
       this.dtype = DTYPE.detect(n)
     }
+    this.org_name = this.col_name
     this.value = n
-    this.isBool = (dtype == DTYPE.BOOL)
     this.opType = OPTYPE.ID
     this.kind = ColKind.DFSCALAR
     val fs = FrovedisServer.getServerInstance()
@@ -342,11 +397,14 @@ class FrovedisColumn extends java.io.Serializable {
     this
   }
 
-  def get_agg(agg: Short, ignoreNulls: Boolean = true): FrovedisColumn = {
+  def get_agg(agg: Short, dtype: Short, 
+              ignoreNulls: Boolean = true): FrovedisColumn = {
     val ret = new FrovedisColumn()
     ret.opType = agg
+    ret.dtype = dtype
     ret.kind = ColKind.DFAGG
     ret.col_name = get_name(this.col_name, "", agg)
+    ret.org_name = ret.col_name
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getDFagg(fs.master_node, this.proxy,
                                     agg, ret.col_name, ignoreNulls)
@@ -357,12 +415,12 @@ class FrovedisColumn extends java.io.Serializable {
 
   private def get_name(left: String, right: String, opt: Short): String = {
     val int_to_day = Map(1 -> "Sunday",
-                        2 -> "Monday",
-                        3 -> "Tuesday",
-                        4 -> "Wednesday",
-                        5 -> "Thursday",
-                        6 -> "Friday",
-                        7 -> "Saturday")
+                         2 -> "Monday",
+                         3 -> "Tuesday",
+                         4 -> "Wednesday",
+                         5 -> "Thursday",
+                         6 -> "Friday",
+                         7 -> "Saturday")
     return opt match {
       // --- conditional ---
       case OPTYPE.EQ => "(" + left + " = " + right + ")"
@@ -396,11 +454,15 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.SUBDATE => "date_sub(" + left + ", " + right + ")"
       case OPTYPE.DATEDIFF => "datediff(" + left + ", " + right + ")" 
       case OPTYPE.MONTHSBETWEEN => "months_between(" + left + ", " + right + ")" 
-      case OPTYPE.NEXTDAY => "next_day(" + left + ", " + int_to_day(right.toInt) + ")"
+      case OPTYPE.NEXTDAY => "next_day(" + left + ", " + right + ")"
       case OPTYPE.TRUNCMONTH => "trunc(" + left + ", Month)"
       case OPTYPE.TRUNCYEAR => "trunc(" + left + ", Year)"
       case OPTYPE.TRUNCWEEK => "trunc(" + left + ", Week)"
       case OPTYPE.TRUNCQUARTER => "trunc(" + left + ", Quarter)"
+      case OPTYPE.TRUNCHOUR => "date_trunc(Hour, " + left + ")"
+      case OPTYPE.TRUNCMINUTE => "date_trunc(Minute, " + left + ")"
+      case OPTYPE.TRUNCSECOND => "date_trunc(Second, " + left + ")"      
+      case OPTYPE.DATEFORMAT => "date_format(" + left + ", " + right + ")"
       case OPTYPE.CAST => "CAST(" + left + " AS " + TMAPPER.castedName(right) + ")"
       case OPTYPE.TODATE => "to_date(" + left + ")"
       case OPTYPE.TODATEWS => "to_date(" + left + ", " + right + ")"
@@ -445,6 +507,8 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.LOWER   => "lower(" + left + ")"
       case OPTYPE.LEN     => "length(" + left + ")"
       case OPTYPE.CHARLEN => "char_length(" + left + ")"
+      case OPTYPE.ASCII   => "ascii(" + left + ")"
+      case OPTYPE.REPEAT  => "repeat(" + left + ", " + right + ")"
       case OPTYPE.REV     => "reverse(" + left + ")"
       case OPTYPE.TRIM    => "trim(" + left + ")"
       case OPTYPE.TRIMWS  => "TRIM(BOTH " + right + " FROM " + left + ")"
@@ -456,24 +520,27 @@ class FrovedisColumn extends java.io.Serializable {
     }
   }
 
-  def >   (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.GT, true) 
-  def >=  (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.GE, true) 
-  def <   (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.LT, true) 
-  def <=  (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.LE, true) 
-  def === (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.EQ, true) 
-  def !== (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE, true) 
-  def =!= (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE, true)
+  def >   (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.GT, DTYPE.BOOL) 
+  def >=  (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.GE, DTYPE.BOOL) 
+  def <   (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.LT, DTYPE.BOOL) 
+  def <=  (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.LE, DTYPE.BOOL) 
+  def === (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.EQ, DTYPE.BOOL) 
+  def !== (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE, DTYPE.BOOL) 
+  def =!= (arg: Any) = new FrovedisColumn(this, arg, OPTYPE.NE, DTYPE.BOOL)
  
   def cast(to: DataType): FrovedisColumn = {
-    val dt = TMAPPER.spk2frov_namedDT(to.toString)
-    new FrovedisColumn(this, dt, OPTYPE.CAST, dt.equals("boolean"))
+    val to_str = to.toString()
+    return new FrovedisColumn(this, TMAPPER.spk2frov_namedDT(to_str),
+                              OPTYPE.CAST, TMAPPER.string2id(to_str))
   }
   def cast(to: String): FrovedisColumn = cast(CatalystSqlParser.parseDataType(to))
 
   def substr(startPos: Int, len: Int): FrovedisColumn = {
     val ret = new FrovedisColumn()
     ret.col_name = "substring(" + this.col_name + ", " + startPos + ", " + len + ")"
+    ret.org_name = ret.col_name
     ret.opType = OPTYPE.SUBSTR
+    ret.dtype = DTYPE.STRING
     ret.kind = ColKind.DFFUNC
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getImmedSubstrFunc(fs.master_node, this.proxy, 
@@ -490,7 +557,9 @@ class FrovedisColumn extends java.io.Serializable {
     val ret = new FrovedisColumn()
     ret.col_name = "substring(" + this.col_name + ", " + 
                    startPos.col_name + ", " + len.col_name + ")"
+    ret.org_name = ret.col_name
     ret.opType = OPTYPE.SUBSTR
+    ret.dtype = DTYPE.STRING
     ret.kind = ColKind.DFFUNC
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getColSubstrFunc(fs.master_node, this.proxy,
@@ -503,11 +572,55 @@ class FrovedisColumn extends java.io.Serializable {
   def substr_index(delim: String, count: Int): FrovedisColumn = {
     val ret = new FrovedisColumn()
     ret.col_name = "substring_index(" + this.col_name + ", " + delim + ", " + count + ")"
+    ret.org_name = ret.col_name
     ret.opType = OPTYPE.SUBSTRINDX
+    ret.dtype = DTYPE.STRING
     ret.kind = ColKind.DFFUNC
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getImmedSubstrIndexFunc(fs.master_node, this.proxy,
                                                    delim, count, ret.col_name)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return ret
+  }
+
+  def pad_col(len: Int, value: String, is_left: Boolean): FrovedisColumn = {
+    val ret = new FrovedisColumn()
+    if (is_left) {
+      ret.opType = OPTYPE.LPAD 
+      ret.col_name = "lpad(" + this.col_name + ", " + len + ", " + value + ")"
+    } else {
+      ret.opType = OPTYPE.RPAD 
+      ret.col_name = "rpad(" + this.col_name + ", " + len + ", " + value + ")"
+    }
+    ret.org_name = ret.col_name
+    ret.dtype = DTYPE.STRING
+    ret.kind = ColKind.DFFUNC
+    val fs = FrovedisServer.getServerInstance()
+    ret.proxy = JNISupport.getImmedPadFunc(fs.master_node, this.proxy,
+                                           len, value, ret.col_name, is_left)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return ret
+  }
+
+  def locate(substr: String, pos: Int, opt: Short): FrovedisColumn = {
+    val name = "locate(" + substr + ", " + this.col_name + ", " + pos + ")"
+    if (pos < 1) return functions.lit(0).as(name) // quick return case
+
+    val ret = new FrovedisColumn()
+    ret.opType = opt
+    if (opt == OPTYPE.LOCATE) {
+      ret.col_name = name
+    } else {
+      ret.col_name = "instr(" + this.col_name + ", " + substr + ")"
+    }
+    ret.org_name = ret.col_name
+    ret.dtype = DTYPE.INT
+    ret.kind = ColKind.DFFUNC
+    val fs = FrovedisServer.getServerInstance()
+    ret.proxy = JNISupport.getImmedLocateFunc(fs.master_node, this.proxy,
+                                              substr, pos, ret.col_name)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return ret
@@ -519,8 +632,9 @@ class FrovedisColumn extends java.io.Serializable {
       s"when() can only be applied on a Column previously generated by when()")
     }
     val fs = FrovedisServer.getServerInstance()
-    val ret = new FrovedisColumn(left, arg, OPTYPE.IF, true) // constructs a IF clause
+    val ret = new FrovedisColumn(left, arg, OPTYPE.IF, DTYPE.BOOL) // constructs a IF clause
     ret.col_name = get_name(this.col_name, ret.col_name, OPTYPE.ELIF) // updates name
+    ret.org_name = ret.col_name
     ret.opType = OPTYPE.ELIF // updates opType
     ret.proxy = JNISupport.appendWhenCondition(fs.master_node, this.proxy, // updates proxy
                                                ret.proxy, ret.col_name)
@@ -534,75 +648,141 @@ class FrovedisColumn extends java.io.Serializable {
       throw new IllegalArgumentException(
       s"otherwise() can only be applied on a Column previously generated by when()")
     }
-    return new FrovedisColumn(this, arg, OPTYPE.ELSE, true)
+    return new FrovedisColumn(this, arg, OPTYPE.ELSE, DTYPE.BOOL)
   }
 
-  def &&  (arg: FrovedisColumn) = new FrovedisColumn(this, arg, OPTYPE.AND, true) 
-  def and (arg: FrovedisColumn) = new FrovedisColumn(this, arg, OPTYPE.AND, true) 
-  def ||  (arg: FrovedisColumn) = new FrovedisColumn(this, arg, OPTYPE.OR, true) 
-  def or  (arg: FrovedisColumn) = new FrovedisColumn(this, arg, OPTYPE.OR, true) 
+  def &&  (arg: FrovedisColumn) = 
+    new FrovedisColumn(this, arg, OPTYPE.AND, DTYPE.BOOL) 
+  def and (arg: FrovedisColumn) = 
+    new FrovedisColumn(this, arg, OPTYPE.AND, DTYPE.BOOL) 
+  def ||  (arg: FrovedisColumn) = 
+    new FrovedisColumn(this, arg, OPTYPE.OR, DTYPE.BOOL) 
+  def or  (arg: FrovedisColumn) = 
+    new FrovedisColumn(this, arg, OPTYPE.OR, DTYPE.BOOL) 
 
-  def like       (arg: String) = new FrovedisColumn(this, arg, OPTYPE.LIKE, true) 
-  def not_like   (arg: String) = new FrovedisColumn(this, arg, OPTYPE.NLIKE, true) // added specially
-  def startsWith (arg: String) = new FrovedisColumn(this, arg + "%", OPTYPE.LIKE, true)
-  def endsWith   (arg: String) = new FrovedisColumn(this, "%" + arg, OPTYPE.LIKE, true)
-  def contains   (arg: String) = new FrovedisColumn(this, "%" + arg + "%", OPTYPE.LIKE, true)
+  def like (arg: String) = 
+    new FrovedisColumn(this, arg, OPTYPE.LIKE, DTYPE.BOOL) 
+  def not_like (arg: String) = 
+    new FrovedisColumn(this, arg, OPTYPE.NLIKE, DTYPE.BOOL) // added specially
+  def startsWith (arg: String) = 
+    new FrovedisColumn(this, arg + "%", OPTYPE.LIKE, DTYPE.BOOL)
+  def endsWith (arg: String) = 
+    new FrovedisColumn(this, "%" + arg, OPTYPE.LIKE, DTYPE.BOOL)
+  def contains (arg: String) = 
+    new FrovedisColumn(this, "%" + arg + "%", OPTYPE.LIKE, DTYPE.BOOL)
 
-  def unary_!   = new FrovedisColumn(this, OPTYPE.NOT, true)
-  def isNull    = new FrovedisColumn(this, OPTYPE.ISNULL, true)
-  def isNotNull = new FrovedisColumn(this, OPTYPE.ISNOTNULL, true)
-  def isNaN     = new FrovedisColumn(this, OPTYPE.ISNAN, true)
+  def unary_!    = new FrovedisColumn(this, OPTYPE.NOT, DTYPE.BOOL)
+  def isNull     = new FrovedisColumn(this, OPTYPE.ISNULL, DTYPE.BOOL)
+  def isNotNull  = new FrovedisColumn(this, OPTYPE.ISNOTNULL, DTYPE.BOOL)
+  def isNaN      = new FrovedisColumn(this, OPTYPE.ISNAN, DTYPE.BOOL)
+  def year       = new FrovedisColumn(this, OPTYPE.GETYEAR, DTYPE.INT)
+  def month      = new FrovedisColumn(this, OPTYPE.GETMONTH, DTYPE.INT)
+  def dayofmonth = new FrovedisColumn(this, OPTYPE.GETDAYOFMONTH, DTYPE.INT)
+  def hour       = new FrovedisColumn(this, OPTYPE.GETHOUR, DTYPE.INT)
+  def minute     = new FrovedisColumn(this, OPTYPE.GETMINUTE, DTYPE.INT)
+  def second     = new FrovedisColumn(this, OPTYPE.GETSECOND, DTYPE.INT)
+  def quarter    = new FrovedisColumn(this, OPTYPE.GETQUARTER, DTYPE.INT)
+  def dayofweek  = new FrovedisColumn(this, OPTYPE.GETDAYOFWEEK, DTYPE.INT)
+  def dayofyear  = new FrovedisColumn(this, OPTYPE.GETDAYOFYEAR, DTYPE.INT)
+  def weekofyear = new FrovedisColumn(this, OPTYPE.GETWEEKOFYEAR, DTYPE.INT)
+
+  // TODO: Fix APIs of date_add, add_months, date_sub, months_between, next_day
+  def date_add  (right: Int) = 
+    new FrovedisColumn(this, right, OPTYPE.ADDDATE, DTYPE.DATETIME)
+  def date_add  (right: FrovedisColumn) = 
+    new FrovedisColumn(this, right, OPTYPE.ADDDATE, DTYPE.DATETIME)
+  def add_months  (right: Int) = 
+    new FrovedisColumn(this, right, OPTYPE.ADDMONTHS, DTYPE.DATETIME) 
+  def add_months  (right: FrovedisColumn) = 
+    new FrovedisColumn(this, right, OPTYPE.ADDMONTHS, DTYPE.DATETIME)
+  def date_sub  (right: Int) = 
+    new FrovedisColumn(this, right, OPTYPE.SUBDATE, DTYPE.DATETIME)
+  def date_sub  (right: FrovedisColumn) = 
+    new FrovedisColumn(this, right, OPTYPE.SUBDATE, DTYPE.DATETIME)
+  def months_between  (right: FrovedisColumn) = 
+    new FrovedisColumn(this, right, OPTYPE.MONTHSBETWEEN, DTYPE.DOUBLE)
+  def datediff  (right: FrovedisColumn) = 
+    new FrovedisColumn(this, right, OPTYPE.DATEDIFF, DTYPE.INT) 
   
-  def year       = new FrovedisColumn(this, OPTYPE.GETYEAR, false)
-  def month      = new FrovedisColumn(this, OPTYPE.GETMONTH, false)
-  def dayofmonth = new FrovedisColumn(this, OPTYPE.GETDAYOFMONTH, false)
-  def hour       = new FrovedisColumn(this, OPTYPE.GETHOUR, false)
-  def minute     = new FrovedisColumn(this, OPTYPE.GETMINUTE, false)
-  def second     = new FrovedisColumn(this, OPTYPE.GETSECOND, false)
-  def quarter    = new FrovedisColumn(this, OPTYPE.GETQUARTER, false)
-  def dayofweek  = new FrovedisColumn(this, OPTYPE.GETDAYOFWEEK, false)
-  def dayofyear  = new FrovedisColumn(this, OPTYPE.GETDAYOFYEAR, false)
-  def weekofyear = new FrovedisColumn(this, OPTYPE.GETWEEKOFYEAR, false)
-
-  // TODO: Fix APIs of date_add, add_months, datre_sub, months_between, next_day
-  def date_add  (right: Any) = new FrovedisColumn(this, right, OPTYPE.ADDDATE)
-  def add_months  (right: Any) = new FrovedisColumn(this, right, OPTYPE.ADDMONTHS) 
-  def date_sub  (right: Any) = new FrovedisColumn(this, right, OPTYPE.SUBDATE)
-  def datediff  (right: FrovedisColumn) = new FrovedisColumn(this, right, OPTYPE.DATEDIFF) 
-  def months_between  (right: Any) = new FrovedisColumn(this, right, OPTYPE.MONTHSBETWEEN)
-  def next_day  (right: String) = {
-    val day_to_int = Map("sunday" -> 1, "sun" -> 1,
-                        "monday" -> 2, "mon" -> 2,
-                        "tuesday" -> 3, "tue" -> 3,
-                        "wednesday" -> 4, "wed" -> 4,
-                        "thursday" -> 5, "thu" -> 5,
-                        "friday" -> 6, "fri" -> 6,
-                        "saturday" -> 7, "sat" -> 7)
-    if (!day_to_int.contains(right.toLowerCase()))
-      throw new IllegalArgumentException("next_day: Invalid value for day provided : " + right + " !\n")
-    new FrovedisColumn(this, day_to_int(right.toLowerCase()), OPTYPE.NEXTDAY)
-  }  
-
-  def trunc(format: String) : FrovedisColumn = {
-    return format.toLowerCase() match {
-      case "year" | "yyyy" | "yy"  =>
-        new FrovedisColumn(this, OPTYPE.TRUNCYEAR, false)
-      case "month" | "mon" | "mm"  =>
-        new FrovedisColumn(this, OPTYPE.TRUNCMONTH, false)
-      case "week"    => new FrovedisColumn(this, OPTYPE.TRUNCWEEK, false)
-      case "quarter" => new FrovedisColumn(this, OPTYPE.TRUNCQUARTER, false)
-      case _ =>  throw new IllegalArgumentException(
-                "trunc: Invalid value for format provided: " + format + "!\n")
+  def next_day(dayOfWeek: String): FrovedisColumn = {
+    val day_to_int = Map("sun" -> 1, "mon" -> 2, "tue" -> 3,
+                         "wed" -> 4, "thu" -> 5, "fri" -> 6, 
+                         "sat" -> 7)
+    val res_name  = "next_day(" + this.col_name + ", " + dayOfWeek + ")" 
+    val sub = dayOfWeek.toLowerCase().substring(0, 3)
+    if (!day_to_int.contains(sub)) {
+      return functions.lit(null).as(res_name)
+    } else {
+      return new FrovedisColumn(this, day_to_int(sub), 
+             OPTYPE.NEXTDAY, DTYPE.DATETIME).as(res_name)
     }
   }
 
+  def next_day(dayOfWeek: FrovedisColumn): FrovedisColumn= {
+    require(!dayOfWeek.isAGG, "next_day: 'dayOfWeek' cannot be an aggregate function!")
+    val res_name = "next_day(" + this.col_name + ", " + dayOfWeek.col_name + ")"
+    val subcol = functions.lower(dayOfWeek).substr(0, 3)
+    val num_col =  functions.when(subcol === "sun", 1)
+                            .when(subcol === "mon", 2)
+                            .when(subcol === "tue", 3)
+                            .when(subcol === "wed", 4)
+                            .when(subcol === "thu", 5)
+                            .when(subcol === "fri", 6)
+                            .when(subcol === "sat", 7)
+    return new FrovedisColumn(this, num_col, 
+      OPTYPE.NEXTDAY, DTYPE.DATETIME).as(res_name)
+  }
+
+  private def get_trunc_opt(format: String): Short = {
+    return format.toLowerCase() match {
+      case "year" | "yyyy" | "yy"  => OPTYPE.TRUNCYEAR
+      case "month" | "mon" | "mm"  => OPTYPE.TRUNCMONTH
+      case "week"    => OPTYPE.TRUNCWEEK
+      case "quarter" => OPTYPE.TRUNCQUARTER
+      case "hour"    => OPTYPE.TRUNCHOUR
+      case "minute"  => OPTYPE.TRUNCMINUTE
+      case "second"  => OPTYPE.TRUNCSECOND
+      case _         => OPTYPE.NONE
+    }
+  }
+
+  def trunc(format: String): FrovedisColumn = {
+    val res_name = "trunc(" + this.col_name + ", " + format +  ")"
+    val opt = get_trunc_opt(format)
+    if (opt == OPTYPE.NONE) {
+      return functions.lit(null).as(res_name)
+    } else {
+      return new FrovedisColumn(this, opt, DTYPE.DATETIME).as(res_name)
+    }
+  }
+
+  def date_trunc(format: String): FrovedisColumn = {
+    val res_name = "date_trunc(" + format + ", "+  this.col_name + ")"
+    val opt = get_trunc_opt(format)
+    if (opt == OPTYPE.NONE) {
+      return functions.lit(null).as(res_name)
+    } else {
+      return new FrovedisColumn(this, opt, DTYPE.TIMESTAMP).as(res_name)
+    }
+  }
+
+  def date_format(format: String) = 
+    new FrovedisColumn(this, DateTimeUtils.parse_format(format), 
+                       OPTYPE.DATEFORMAT, DTYPE.STRING)
+
+  def last_day(): FrovedisColumn = {
+    val res_name = "last_day(" + this.col_name + ")"
+    return add_months(1).trunc("month").date_sub(1).as(res_name)
+  }
+
   // TODO: support other mathematical operators like abs() etc.
-  def + (right: Any)  = new FrovedisColumn(this, right, OPTYPE.ADD)
-  def - (right: Any)  = new FrovedisColumn(this, right, OPTYPE.SUB)
-  def * (right: Any)  = new FrovedisColumn(this, right, OPTYPE.MUL)
-  def / (right: Any)  = new FrovedisColumn(this, right, OPTYPE.FDIV)
-  def % (right: Any)  = new FrovedisColumn(this, right, OPTYPE.MOD)
-  def **(right: Any)  = new FrovedisColumn(this, right, OPTYPE.POW)
+  // dtype cannot be detected for these operators
+  def + (right: Any)  = new FrovedisColumn(this, right, OPTYPE.ADD, DTYPE.NONE)
+  def - (right: Any)  = new FrovedisColumn(this, right, OPTYPE.SUB, DTYPE.NONE)
+  def * (right: Any)  = new FrovedisColumn(this, right, OPTYPE.MUL, DTYPE.NONE)
+  def / (right: Any)  = new FrovedisColumn(this, right, OPTYPE.FDIV, DTYPE.NONE)
+  def % (right: Any)  = new FrovedisColumn(this, right, OPTYPE.MOD, DTYPE.NONE)
+  def **(right: Any)  = new FrovedisColumn(this, right, OPTYPE.POW, DTYPE.NONE)
 
   def unary_- : FrovedisColumn = { // special case
     val ret = new FrovedisColumn()
@@ -610,15 +790,17 @@ class FrovedisColumn extends java.io.Serializable {
     ret.kind = ColKind.DFFUNC
     val right_str = "-1"
     ret.col_name = "(- " + this.toString + ")"
+    ret.org_name = ret.col_name
     val is_rev = false
     val fs = FrovedisServer.getServerInstance()
     ret.proxy = JNISupport.getOptImmedDFfunc(fs.master_node, this.proxy, 
                                              right_str, DTYPE.INT,
-                                             OPTYPE.MUL, col_name, is_rev)
+                                             OPTYPE.MUL, ret.col_name, is_rev)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return ret
   }
+
   def as(new_name: String): this.type = {
     this.col_name = new_name
     val fs = FrovedisServer.getServerInstance()
@@ -647,15 +829,12 @@ class FrovedisColumn extends java.io.Serializable {
   }
   def get()    = proxy
   def colName  = col_name 
-  def isBOOL   = isBool
+  def orgName  = org_name 
   def isID     = (kind == ColKind.DFID)
   def isFUNC   = (kind == ColKind.DFFUNC)
   def isAGG    = (kind == ColKind.DFAGG)
   def isSCALAR = (kind == ColKind.DFSCALAR)
-  def get_dtype(): Short = {
-    if (isSCALAR) return dtype
-    else throw new IllegalArgumentException("get_dtype: cannot detect dtype for non-literals!\n")
-  }
+  def get_dtype() = dtype
   def get_value(): Any = {
     if (isSCALAR) return value
     else throw new IllegalArgumentException("get_value: can only be obtained for literals!\n")
@@ -683,86 +862,122 @@ object functions extends java.io.Serializable {
   def desc(col: String)        = new FrovedisColumn(col).desc
   def lit(x: Any)              = new FrovedisColumn().as_immed(x)
   def when(left: FrovedisColumn, right: Any) = 
-    new FrovedisColumn(left, right, OPTYPE.IF, true)
+    new FrovedisColumn(left, right, OPTYPE.IF, DTYPE.BOOL)
 
-  def max      (col: String) = new FrovedisColumn(col).get_agg(OPTYPE.aMAX)
-  def min      (col: String) = new FrovedisColumn(col).get_agg(OPTYPE.aMIN)
-  def sum      (col: String) = new FrovedisColumn(col).get_agg(OPTYPE.aSUM)
-  def avg      (col: String) = new FrovedisColumn(col).get_agg(OPTYPE.aAVG)
-  def variance (col: String) = new FrovedisColumn(col).get_agg(OPTYPE.aVAR)
-  def sem      (col: String) = new FrovedisColumn(col).get_agg(OPTYPE.aSEM)
-  def stddev   (col: String) = new FrovedisColumn(col).get_agg(OPTYPE.aSTD)
-  def mad      (col: String) = new FrovedisColumn(col).get_agg(OPTYPE.aMAD)
+  def max      (col: String) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aMAX, DTYPE.NONE)
+  def min      (col: String) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aMIN, DTYPE.NONE)
+  def sum      (col: String) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aSUM, DTYPE.NONE)
+  def avg      (col: String) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aAVG, DTYPE.DOUBLE)
+  def variance (col: String) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aVAR, DTYPE.DOUBLE)
+  def sem      (col: String) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aSEM, DTYPE.DOUBLE)
+  def stddev   (col: String) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aSTD, DTYPE.DOUBLE)
+  def mad      (col: String) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aMAD, DTYPE.DOUBLE)
   def count    (col: String): FrovedisColumn = {
-    if (col.equals("*")) return new FrovedisColumn(col).get_agg(OPTYPE.aSIZE)
-    else                 return new FrovedisColumn(col).get_agg(OPTYPE.aCNT)
+    // server side result is of ULONG type, but since spark doesn't support
+    // ULONG, the same is casted back to LONG in 
+    // FrovedisDateFrame constructor with dummy input
+    if (col.equals("*")) {
+      return new FrovedisColumn(col).get_agg(OPTYPE.aSIZE, DTYPE.LONG)
+    } else {
+      return new FrovedisColumn(col).get_agg(OPTYPE.aCNT, DTYPE.LONG)
+    }
   }
 
-  def first    (col: String) = new FrovedisColumn(col)
-                                             .get_agg(OPTYPE.aFST, false)
-  def last     (col: String) = new FrovedisColumn(col)
-                                             .get_agg(OPTYPE.aLST, false)
-  def first    (col: String, ignoreNulls: Boolean) = new FrovedisColumn(col)
-                                             .get_agg(OPTYPE.aFST, ignoreNulls)
-  def last     (col: String, ignoreNulls: Boolean) = new FrovedisColumn(col)
-                                             .get_agg(OPTYPE.aLST, ignoreNulls)
+  def first (col: String) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aFST, DTYPE.NONE, false)
+  def last  (col: String) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aLST, DTYPE.NONE, false)
+  def first (col: String, ignoreNulls: Boolean) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aFST, DTYPE.NONE, ignoreNulls)
+  def last  (col: String, ignoreNulls: Boolean) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aLST, DTYPE.NONE, ignoreNulls)
 
-  def sumDistinct   (col: String) = new FrovedisColumn(col)
-                                             .get_agg(OPTYPE.aDSUM)
-  def countDistinct (col: String) = new FrovedisColumn(col)
-                                             .get_agg(OPTYPE.aDCNT)
+  def sumDistinct   (col: String) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aDSUM, DTYPE.NONE)
+  def countDistinct (col: String) = 
+    new FrovedisColumn(col).get_agg(OPTYPE.aDCNT, DTYPE.LONG)
 
-  def max      (col: FrovedisColumn) = col.get_agg(OPTYPE.aMAX)
-  def min      (col: FrovedisColumn) = col.get_agg(OPTYPE.aMIN)
-  def sum      (col: FrovedisColumn) = col.get_agg(OPTYPE.aSUM)
-  def avg      (col: FrovedisColumn) = col.get_agg(OPTYPE.aAVG)
-  def variance (col: FrovedisColumn) = col.get_agg(OPTYPE.aVAR)
-  def sem      (col: FrovedisColumn) = col.get_agg(OPTYPE.aSEM)
-  def stddev   (col: FrovedisColumn) = col.get_agg(OPTYPE.aSTD)
-  def mad      (col: FrovedisColumn) = col.get_agg(OPTYPE.aMAD)
-  def count    (col: FrovedisColumn) = col.get_agg(OPTYPE.aCNT)
+  def max      (col: FrovedisColumn) = col.get_agg(OPTYPE.aMAX, col.get_dtype())
+  def min      (col: FrovedisColumn) = col.get_agg(OPTYPE.aMIN, col.get_dtype())
+  def sum      (col: FrovedisColumn) = col.get_agg(OPTYPE.aSUM, col.get_dtype())
+  def avg      (col: FrovedisColumn) = col.get_agg(OPTYPE.aAVG, DTYPE.DOUBLE)
+  def variance (col: FrovedisColumn) = col.get_agg(OPTYPE.aVAR, DTYPE.DOUBLE)
+  def sem      (col: FrovedisColumn) = col.get_agg(OPTYPE.aSEM, DTYPE.DOUBLE)
+  def stddev   (col: FrovedisColumn) = col.get_agg(OPTYPE.aSTD, DTYPE.DOUBLE)
+  def mad      (col: FrovedisColumn) = col.get_agg(OPTYPE.aMAD, DTYPE.DOUBLE)
+  def count    (col: FrovedisColumn) = col.get_agg(OPTYPE.aCNT, DTYPE.LONG)
 
-  def first    (col: FrovedisColumn) = col.get_agg(OPTYPE.aFST, false)
-  def last     (col: FrovedisColumn) = col.get_agg(OPTYPE.aLST, false)
+  def first    (col: FrovedisColumn) = 
+    col.get_agg(OPTYPE.aFST, col.get_dtype(), false)
+  def last     (col: FrovedisColumn) = 
+    col.get_agg(OPTYPE.aLST, col.get_dtype(), false)
   def first    (col: FrovedisColumn, ignoreNulls: Boolean) = 
-    col.get_agg(OPTYPE.aFST, ignoreNulls)
+    col.get_agg(OPTYPE.aFST, col.get_dtype(), ignoreNulls)
   def last     (col: FrovedisColumn, ignoreNulls: Boolean) = 
-    col.get_agg(OPTYPE.aLST, ignoreNulls)
+    col.get_agg(OPTYPE.aLST, col.get_dtype(), ignoreNulls)
 
-  def sumDistinct   (col: FrovedisColumn) = col.get_agg(OPTYPE.aDSUM)
-  def countDistinct (col: FrovedisColumn) = col.get_agg(OPTYPE.aDCNT)
+  def sumDistinct   (col: FrovedisColumn) = 
+    col.get_agg(OPTYPE.aDSUM, col.get_dtype())
+  def countDistinct (col: FrovedisColumn) = 
+    col.get_agg(OPTYPE.aDCNT, DTYPE.LONG)
 
   def isnull(e: FrovedisColumn) = e.isNull
   def isnan(e: FrovedisColumn)  = e.isNaN
 
   // --- date/time related functions ---
-  def year(e: FrovedisColumn)  = e.year
-  def month(e: FrovedisColumn)  = e.month
-  def dayofmonth(e: FrovedisColumn)  = e.dayofmonth
-  def hour(e: FrovedisColumn)  = e.hour
-  def minute(e: FrovedisColumn)  = e.minute
-  def second(e: FrovedisColumn)  = e.second
-  def quarter(e: FrovedisColumn)  = e.quarter
-  def dayofweek(e: FrovedisColumn)  = e.dayofweek
-  def dayofyear(e: FrovedisColumn)  = e.dayofyear
-  def weekofyear(e: FrovedisColumn)  = e.weekofyear
+  def year(e: FrovedisColumn)         = e.year
+  def month(e: FrovedisColumn)        = e.month
+  def dayofmonth(e: FrovedisColumn)   = e.dayofmonth
+  def hour(e: FrovedisColumn)         = e.hour
+  def minute(e: FrovedisColumn)       = e.minute
+  def second(e: FrovedisColumn)       = e.second
+  def quarter(e: FrovedisColumn)      = e.quarter
+  def dayofweek(e: FrovedisColumn)    = e.dayofweek
+  def dayofyear(e: FrovedisColumn)    = e.dayofyear
+  def weekofyear(e: FrovedisColumn)   = e.weekofyear
 
-  // TODO: Fix APIs of date_add, add_months, datre_sub, months_between, next_day
-  def date_add(e: FrovedisColumn, right: Any)  = e.date_add(right)
-  def add_months(e: FrovedisColumn, right: Any)  = e.add_months(right)
-  def date_sub(e: FrovedisColumn, right: Any)  = e.date_sub(right)
-  def datediff(e: FrovedisColumn, right: FrovedisColumn)  = e.datediff(right)
-  def months_between(e: FrovedisColumn, right: Any)  = e.months_between(right)
-  def next_day(e: FrovedisColumn, right: String)  = e.next_day(right)
+  // TODO: Fix APIs of date_add, add_months, date_sub, months_between
+  def date_add(e: FrovedisColumn, right: Int) = e.date_add(right)
+  def date_add(e: FrovedisColumn, right: FrovedisColumn) = e.date_add(right)
+  def add_months(e: FrovedisColumn, right: Int) = e.add_months(right)
+  def add_months(e: FrovedisColumn, right: FrovedisColumn) = e.add_months(right)
+  def date_sub(e: FrovedisColumn, right: Int) = e.date_sub(right)
+  def date_sub(e: FrovedisColumn, right: FrovedisColumn) = e.date_sub(right)
+  def months_between(e: FrovedisColumn, right: FrovedisColumn) = e.months_between(right)
+  def datediff(e: FrovedisColumn, right: FrovedisColumn) = e.datediff(right)
+  def next_day(e: FrovedisColumn, dayOfWeek: String) = e.next_day(dayOfWeek)
+  def next_day(e: FrovedisColumn, dayOfWeek: FrovedisColumn) = e.next_day(dayOfWeek)
   def trunc(e: FrovedisColumn, format: String) = e.trunc(format)
-
-  def to_date(e: FrovedisColumn) = e.to_datetime(OPTYPE.TODATE) 
+  def date_trunc(format: String, e: FrovedisColumn) = e.date_trunc(format)
+  def date_format(e: FrovedisColumn, format: String) = e.date_format(format)
+  def last_day(e: FrovedisColumn) = e.last_day
+  def current_timestamp(): FrovedisColumn = {
+    val ts = (System.currentTimeMillis() + 
+              TimeZone.getDefault().getRawOffset()) * 1000000L
+    return lit(ts).cast("timestamp").as("current_timestamp()")
+  }
+  def current_date(): FrovedisColumn = {
+    val numdays = LocalDate.now().toEpochDay()
+    val ts = numdays * 24L * 3600 * 1000 * 1000 * 1000
+    return lit(ts).cast("date").as("current_date()")
+  }
+  def to_date(e: FrovedisColumn) = 
+    e.to_datetime(OPTYPE.TODATE, "", DTYPE.DATETIME)
   def to_date(e: FrovedisColumn, fmt: String) = 
-    e.to_datetime(fmt, OPTYPE.TODATEWS)
+    e.to_datetime(OPTYPE.TODATEWS, fmt, DTYPE.DATETIME)
 
-  def to_timestamp(e: FrovedisColumn) = e.to_datetime(OPTYPE.TOTIMESTAMP)
+  def to_timestamp(e: FrovedisColumn) = 
+    e.to_datetime(OPTYPE.TOTIMESTAMP, "", DTYPE.TIMESTAMP)
   def to_timestamp(e: FrovedisColumn, fmt: String) = 
-    e.to_datetime(fmt, OPTYPE.TOTIMESTAMPWS)
+    e.to_datetime(OPTYPE.TOTIMESTAMPWS, fmt, DTYPE.TIMESTAMP)
 
   // --- alias aggregate functions ---
   def mean(col: String)                = avg(col)
@@ -781,24 +996,53 @@ object functions extends java.io.Serializable {
                       delim: String, 
                       count: Int) = str.substr_index(delim, count)
 
-  def upper(e: FrovedisColumn)   = new FrovedisColumn(e, OPTYPE.UPPER, false) 
-  def lower(e: FrovedisColumn)   = new FrovedisColumn(e, OPTYPE.LOWER, false)
-  def reverse(e: FrovedisColumn) = new FrovedisColumn(e, OPTYPE.REV, false)
-  def char_length(e: FrovedisColumn) = new FrovedisColumn(e, OPTYPE.CHARLEN, false)
+  def upper(e: FrovedisColumn)   = new FrovedisColumn(e, OPTYPE.UPPER, DTYPE.STRING)
+  def lower(e: FrovedisColumn)   = new FrovedisColumn(e, OPTYPE.LOWER, DTYPE.STRING)
+  def reverse(e: FrovedisColumn) = new FrovedisColumn(e, OPTYPE.REV, DTYPE.STRING)
+  def char_length(e: FrovedisColumn) = new FrovedisColumn(e, OPTYPE.CHARLEN, DTYPE.INT)
   def length(e: FrovedisColumn)  = char_length(e) // returns no. of characters
   // returns no. of bytes (3 bytes for 1 Japanese character)
-  //def length(e: FrovedisColumn)  = new FrovedisColumn(e, OPTYPE.LEN, false) 
+  //def length(e: FrovedisColumn)  = new FrovedisColumn(e, OPTYPE.LEN, DTYPE.INT) 
+  def ascii(e: FrovedisColumn)   = new FrovedisColumn(e, OPTYPE.ASCII, DTYPE.INT) 
+  def repeat(e: FrovedisColumn, 
+             n: Int) = new FrovedisColumn(e, n, OPTYPE.REPEAT, DTYPE.STRING) 
 
-  def trim(e: FrovedisColumn) = new FrovedisColumn(e, OPTYPE.TRIM, false)
+  def trim(e: FrovedisColumn) = 
+    new FrovedisColumn(e, OPTYPE.TRIM, DTYPE.STRING)
   def trim(e: FrovedisColumn, trimString: String) = 
-    new FrovedisColumn(e, trimString, OPTYPE.TRIMWS, false)
+    new FrovedisColumn(e, trimString, OPTYPE.TRIMWS, DTYPE.STRING)
 
-  def ltrim(e: FrovedisColumn) = new FrovedisColumn(e, OPTYPE.LTRIM, false)
+  def ltrim(e: FrovedisColumn) = 
+    new FrovedisColumn(e, OPTYPE.LTRIM, DTYPE.STRING)
   def ltrim(e: FrovedisColumn, trimString: String) = 
-    new FrovedisColumn(e, trimString, OPTYPE.LTRIMWS, false)
+    new FrovedisColumn(e, trimString, OPTYPE.LTRIMWS, DTYPE.STRING)
 
-  def rtrim(e: FrovedisColumn) = new FrovedisColumn(e, OPTYPE.RTRIM, false)
+  def rtrim(e: FrovedisColumn) = 
+    new FrovedisColumn(e, OPTYPE.RTRIM, DTYPE.STRING)
   def rtrim(e: FrovedisColumn, trimString: String) = 
-    new FrovedisColumn(e, trimString, OPTYPE.RTRIMWS, false)
+    new FrovedisColumn(e, trimString, OPTYPE.RTRIMWS, DTYPE.STRING)
+
+  def concat(e: FrovedisColumn*): FrovedisColumn = {
+    return new FrovedisColumn().concat_multi(e.toArray, "", false)
+  }
+
+  def concat_ws(sep: String, e: FrovedisColumn*): FrovedisColumn = {
+    return new FrovedisColumn().concat_multi(e.toArray, sep, true)
+  }
+
+  def lpad(e: FrovedisColumn, 
+           len: Int, pad: String) = e.pad_col(len, pad, true)
+  def lpad(e: FrovedisColumn, len: Int) = e.pad_col(len, " ", true)
+
+  def rpad(e: FrovedisColumn, 
+           len: Int, pad: String) = e.pad_col(len, pad, false)
+  def rpad(e: FrovedisColumn, len: Int) = e.pad_col(len, " ", false)
+
+  def instr (e: FrovedisColumn, 
+             substr: String) = e.locate(substr, 1, OPTYPE.INSTR)
+  def locate(substr: String, e: FrovedisColumn, 
+             pos: Int) = e.locate(substr, pos, OPTYPE.LOCATE)
+  def locate(substr: String, e: FrovedisColumn): FrovedisColumn =
+             locate(substr, e, 1)
 }
 

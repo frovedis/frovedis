@@ -369,12 +369,10 @@ class FrovedisDataFrame extends java.io.Serializable {
     val c_arr = c.toArray
     val size = c_arr.size
     val funcs = new Array[Long](size)
-    val bool_cols_id = new ArrayBuffer[Int]()
     var aggcnt = 0
     for (i <- 0 until size) { 
       val tmp = c_arr(i)
       funcs(i) = tmp.get()
-      if (tmp.isBOOL) bool_cols_id += i
       aggcnt = aggcnt + (if (tmp.isAGG) 1 else 0)
     }
     val fs = FrovedisServer.getServerInstance()
@@ -384,15 +382,20 @@ class FrovedisDataFrame extends java.io.Serializable {
         throw new IllegalArgumentException(
         "select: few non-aggregator functions are detected!")
       dummy = JNISupport.executeFrovedisAgg(fs.master_node, get(), funcs, size)
-      val info = JNISupport.checkServerException()
-      if (info != "") throw new java.rmi.ServerException(info)
     } else {
       dummy = JNISupport.fselectFrovedisDataframe(fs.master_node, get(),
                                                   funcs, size)
-      val info = JNISupport.checkServerException()
-      if (info != "") throw new java.rmi.ServerException(info)
-      // update types for bool columns
-      for (i <- 0 until bool_cols_id.size) dummy.types(bool_cols_id(i)) = DTYPE.BOOL 
+    }
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+
+    // --- update column types ---
+    val name_type_map = this.dtypes_as_map
+    for (i <- 0 until size) {
+      val org_nm = c_arr(i).orgName
+      val dtype = c_arr(i).get_dtype()
+      if (dtype != DTYPE.NONE) dummy.types(i) = dtype
+      else if (name_type_map.contains(org_nm)) dummy.types(i) = name_type_map(org_nm)
     }
     return new FrovedisDataFrame(dummy)
   } 
@@ -841,16 +844,18 @@ class FrovedisDataFrame extends java.io.Serializable {
   }
 
   // for internal purpose
-  private def mark_boolean_and_timestamp_columns(dt: mMap[String, Short], 
-                                   dummy: DummyDftable): Unit = {
+  private def mark_boolean_and_timestamp_columns(
+   dt: mMap[String, Short], dummy: DummyDftable): Unit = {
     val bool_id = DTYPE.BOOL
     val timestamp_id = DTYPE.TIMESTAMP
     
     val ncol = dummy.names.size
     for (i <- 0 until ncol) {
       val c = dummy.names(i)
-      if (dt.contains(c) && dt(c) == bool_id) dummy.types(i) = bool_id
-      if (dt.contains(c) && dt(c) == timestamp_id) dummy.types(i) = timestamp_id
+      if (dt.contains(c)) {
+        if (dt(c) == bool_id) dummy.types(i) = bool_id
+        else if (dt(c) == timestamp_id) dummy.types(i) = timestamp_id
+      }
     }
   }
 
@@ -1148,9 +1153,9 @@ class FrovedisDataFrame extends java.io.Serializable {
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     mark_boolean_and_timestamp_columns(this.dtypes_as_map, dummy)
-    if (op.isBOOL) { // mark newly added column (cname) as BOOL
+    if (op.get_dtype() != DTYPE.NONE) { // mark newly added column dtype correctly
       val ncol = dummy.names.size
-      dummy.types(ncol - 1) = DTYPE.BOOL
+      dummy.types(ncol - 1) = op.get_dtype()
     }
     return new FrovedisDataFrame(dummy)
   }
@@ -1221,8 +1226,7 @@ class FrovedisDataFrame extends java.io.Serializable {
     val dummy = JNISupport.limitDF(fs.master_node, get(), n)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
-    mark_boolean_and_timestamp_columns(this.dtypes_as_map, dummy)
-    return new FrovedisDataFrame(dummy)
+    return new FrovedisDataFrame(dummy.dfptr, cols, types)
   }
 
   // not full-proof definition (just for proxy check) 

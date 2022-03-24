@@ -47,9 +47,6 @@ object DateTimeUtils extends java.io.Serializable {
 def parse_format(format: String): String = {
   val pattern = DateTimeFormatter.ofPattern(format).toString
   val items = pattern.split("'")
-  if (items.length > 11) throw new IllegalArgumentException(
-    "Unsupported date format is specified!")
-
   var ret: String = ""
   for (i <- 0 until items.length) {
     val e = items(i)

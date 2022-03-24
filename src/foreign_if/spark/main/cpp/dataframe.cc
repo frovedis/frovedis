@@ -745,6 +745,42 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getColSubstrFunc
   return (jlong) ret_proxy;
 }
 
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getImmedPadFunc
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong proxy, jint len, jstring value, 
+   jstring colname, jboolean is_left) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto colProxy = (exrpc_ptr_t) proxy;
+  auto cname = to_cstring(env, colname);
+  auto pad = to_cstring(env, value);
+  bool left = (bool) is_left;
+  exrpc_ptr_t ret_proxy = 0;
+  try {
+    ret_proxy = exrpc_async(fm_node, get_immed_pad, colProxy,
+                            len, pad, cname, left).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) ret_proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getImmedLocateFunc
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong proxy, jstring substr, jint pos, jstring colname) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto colProxy = (exrpc_ptr_t) proxy;
+  auto cname = to_cstring(env, colname);
+  auto str = to_cstring(env, substr);
+  exrpc_ptr_t ret_proxy = 0;
+  try {
+    ret_proxy = exrpc_async(fm_node, get_immed_locate, colProxy,
+                            str, pos, cname).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) ret_proxy;
+}
+
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_appendWhenCondition
   (JNIEnv *env, jclass thisCls, jobject master_node, 
    jlong left, jlong right, jstring colname) {
@@ -788,6 +824,41 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getOptImmedDFfun
       default:     REPORT_ERROR(USER_ERROR,
                   "Unsupported datatype is encountered for immediate value!\n");
     }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getOptIntImmedDFfunc
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong left, jint right, jshort opt, jstring colname) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto leftp = (exrpc_ptr_t) left;
+  auto cname = to_cstring(env, colname);
+  exrpc_ptr_t proxy = 0;
+  try {
+    proxy = exrpc_async(fm_node, get_immed_int_dffunc_opt,
+                        leftp, right, opt, cname).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) proxy;
+}
+
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getOptConcat
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlongArray proxies, jint size, jstring sep, jboolean with_sep,
+   jstring colname) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto cols = to_exrpc_vector(env, proxies, size);
+  auto sep_ = to_cstring(env, sep);
+  auto cname = to_cstring(env, colname);
+  bool ws = (bool) with_sep;
+  exrpc_ptr_t proxy = 0;
+  try {
+    proxy = exrpc_async(fm_node, get_col_concat_multi,
+                        cols, cname, sep_, ws).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) proxy;
