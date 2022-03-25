@@ -1611,6 +1611,12 @@ void replace(const std::vector<int>& chars,
              std::vector<size_t>& ret_lens,
              const std::string& from,
              const std::string& to) {
+  if(starts.size() == 0) {
+    ret_chars.resize(0);
+    ret_starts.resize(0);
+    ret_lens.resize(0);
+    return;
+  }
   std::vector<size_t> idx, pos;
   search(chars, starts, lens, from, idx, pos);
 
