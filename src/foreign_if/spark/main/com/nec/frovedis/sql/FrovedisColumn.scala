@@ -120,6 +120,7 @@ object OPTYPE extends java.io.Serializable {
   val RPAD:       Short = 119
   val LOCATE:     Short = 120
   val INSTR:      Short = 121
+  val REPLACE:    Short = 122
   // --- date ---
   val GETYEAR:       Short = 201
   val GETMONTH:      Short = 202
@@ -414,13 +415,6 @@ class FrovedisColumn extends java.io.Serializable {
   }
 
   private def get_name(left: String, right: String, opt: Short): String = {
-    val int_to_day = Map(1 -> "Sunday",
-                         2 -> "Monday",
-                         3 -> "Tuesday",
-                         4 -> "Wednesday",
-                         5 -> "Thursday",
-                         6 -> "Friday",
-                         7 -> "Saturday")
     return opt match {
       // --- conditional ---
       case OPTYPE.EQ => "(" + left + " = " + right + ")"
@@ -438,6 +432,16 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.ISNULL => "(" + left + " IS NULL)"
       case OPTYPE.ISNOTNULL => "(" + left + " IS NOT NULL)"
       case OPTYPE.ISNAN => "isnan(" + left + ")"
+      case OPTYPE.IF   => "CASE WHEN " + left + " THEN " + right + " END"
+      case OPTYPE.ELIF => {
+        val left2  = left.substring(0, left.length() - 4)
+        val right2 = right.substring(4, right.length())
+        left2 + right2
+      }
+      case OPTYPE.ELSE => {
+        val left2 = left.substring(0, left.length() - 4)
+        left2 + " ELSE " + right + " END"
+      } 
       // --- date ---
       case OPTYPE.GETYEAR => "year(" + left + ")"
       case OPTYPE.GETMONTH => "month(" + left + ")"
@@ -463,21 +467,12 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.TRUNCMINUTE => "date_trunc(Minute, " + left + ")"
       case OPTYPE.TRUNCSECOND => "date_trunc(Second, " + left + ")"      
       case OPTYPE.DATEFORMAT => "date_format(" + left + ", " + right + ")"
+      // --- cast ---
       case OPTYPE.CAST => "CAST(" + left + " AS " + TMAPPER.castedName(right) + ")"
       case OPTYPE.TODATE => "to_date(" + left + ")"
       case OPTYPE.TODATEWS => "to_date(" + left + ", " + right + ")"
       case OPTYPE.TOTIMESTAMP => "to_timestamp(" + left + ")"
       case OPTYPE.TOTIMESTAMPWS => "to_timestamp(" + left + ", " + right + ")"
-      case OPTYPE.IF   => "CASE WHEN " + left + " THEN " + right + " END"
-      case OPTYPE.ELIF => {
-        val left2  = left.substring(0, left.length() - 4)
-        val right2 = right.substring(4, right.length())
-        left2 + right2
-      }
-      case OPTYPE.ELSE => {
-        val left2 = left.substring(0, left.length() - 4)
-        left2 + " ELSE " + right + " END"
-      } 
       // --- mathematical ---
       case OPTYPE.ADD => "(" + left + " + " + right + ")"
       case OPTYPE.SUB => "(" + left + " - " + right + ")"
@@ -502,7 +497,7 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.aFST  => "first(" + left + ")"
       case OPTYPE.aLST  => "last(" + left + ")"
       // --- string ---
-      // substring, substring_index etc. are defined separately...
+      // few string functions like substring, substring_index etc. are defined separately...
       case OPTYPE.UPPER   => "upper(" + left + ")"
       case OPTYPE.LOWER   => "lower(" + left + ")"
       case OPTYPE.LEN     => "length(" + left + ")"
@@ -626,6 +621,21 @@ class FrovedisColumn extends java.io.Serializable {
     return ret
   }
 
+  def replace(from: String, to: String): FrovedisColumn = {
+    val ret = new FrovedisColumn()
+    ret.col_name = "replace(" + this.col_name + ", " + from + ", " + to + ")"
+    ret.org_name = ret.col_name
+    ret.opType = OPTYPE.REPLACE
+    ret.dtype = DTYPE.STRING
+    ret.kind = ColKind.DFFUNC
+    val fs = FrovedisServer.getServerInstance()
+    ret.proxy = JNISupport.getImmedReplaceFunc(fs.master_node, this.proxy,
+                                               from, to, ret.col_name)
+    val info = JNISupport.checkServerException()
+    if (info != "") throw new java.rmi.ServerException(info)
+    return ret
+  }
+
   def when (left: FrovedisColumn, arg: Any): FrovedisColumn = { // else-if when case
     if (this.opType != OPTYPE.IF && this.opType != OPTYPE.ELIF) {
       throw new IllegalArgumentException(
@@ -686,7 +696,6 @@ class FrovedisColumn extends java.io.Serializable {
   def dayofyear  = new FrovedisColumn(this, OPTYPE.GETDAYOFYEAR, DTYPE.INT)
   def weekofyear = new FrovedisColumn(this, OPTYPE.GETWEEKOFYEAR, DTYPE.INT)
 
-  // TODO: Fix APIs of date_add, add_months, date_sub, months_between, next_day
   def date_add  (right: Int) = 
     new FrovedisColumn(this, right, OPTYPE.ADDDATE, DTYPE.DATETIME)
   def date_add  (right: FrovedisColumn) = 
@@ -701,7 +710,11 @@ class FrovedisColumn extends java.io.Serializable {
     new FrovedisColumn(this, right, OPTYPE.SUBDATE, DTYPE.DATETIME)
   def months_between  (right: FrovedisColumn) = 
     new FrovedisColumn(this, right, OPTYPE.MONTHSBETWEEN, DTYPE.DOUBLE)
+  def months_between  (right: String) = // added specially
+    new FrovedisColumn(this, right, OPTYPE.MONTHSBETWEEN, DTYPE.DOUBLE)
   def datediff  (right: FrovedisColumn) = 
+    new FrovedisColumn(this, right, OPTYPE.DATEDIFF, DTYPE.INT) 
+  def datediff  (right: String) =  // added specially
     new FrovedisColumn(this, right, OPTYPE.DATEDIFF, DTYPE.INT) 
   
   def next_day(dayOfWeek: String): FrovedisColumn = {
@@ -711,7 +724,7 @@ class FrovedisColumn extends java.io.Serializable {
     val res_name  = "next_day(" + this.col_name + ", " + dayOfWeek + ")" 
     val sub = dayOfWeek.toLowerCase().substring(0, 3)
     if (!day_to_int.contains(sub)) {
-      return functions.lit(null).as(res_name)
+      return functions.lit(null).as(res_name) // TODO: make null of DATETIME
     } else {
       return new FrovedisColumn(this, day_to_int(sub), 
              OPTYPE.NEXTDAY, DTYPE.DATETIME).as(res_name)
@@ -750,7 +763,7 @@ class FrovedisColumn extends java.io.Serializable {
     val res_name = "trunc(" + this.col_name + ", " + format +  ")"
     val opt = get_trunc_opt(format)
     if (opt == OPTYPE.NONE) {
-      return functions.lit(null).as(res_name)
+      return functions.lit(null).as(res_name) // TODO: make null of DATETIME
     } else {
       return new FrovedisColumn(this, opt, DTYPE.DATETIME).as(res_name)
     }
@@ -760,7 +773,7 @@ class FrovedisColumn extends java.io.Serializable {
     val res_name = "date_trunc(" + format + ", "+  this.col_name + ")"
     val opt = get_trunc_opt(format)
     if (opt == OPTYPE.NONE) {
-      return functions.lit(null).as(res_name)
+      return functions.lit(null).as(res_name) // TODO: make null of DATETIME
     } else {
       return new FrovedisColumn(this, opt, DTYPE.TIMESTAMP).as(res_name)
     }
@@ -944,17 +957,21 @@ object functions extends java.io.Serializable {
   def dayofyear(e: FrovedisColumn)    = e.dayofyear
   def weekofyear(e: FrovedisColumn)   = e.weekofyear
 
-  // TODO: Fix APIs of date_add, add_months, date_sub, months_between
   def date_add(e: FrovedisColumn, right: Int) = e.date_add(right)
   def date_add(e: FrovedisColumn, right: FrovedisColumn) = e.date_add(right)
   def add_months(e: FrovedisColumn, right: Int) = e.add_months(right)
   def add_months(e: FrovedisColumn, right: FrovedisColumn) = e.add_months(right)
   def date_sub(e: FrovedisColumn, right: Int) = e.date_sub(right)
   def date_sub(e: FrovedisColumn, right: FrovedisColumn) = e.date_sub(right)
-  def months_between(e: FrovedisColumn, right: FrovedisColumn) = e.months_between(right)
+  def months_between(e: FrovedisColumn, 
+                     right: String) = e.months_between(right)
+  def months_between(e: FrovedisColumn, 
+                     right: FrovedisColumn) = e.months_between(right)
+  def datediff(e: FrovedisColumn, right: String) = e.datediff(right)
   def datediff(e: FrovedisColumn, right: FrovedisColumn) = e.datediff(right)
   def next_day(e: FrovedisColumn, dayOfWeek: String) = e.next_day(dayOfWeek)
-  def next_day(e: FrovedisColumn, dayOfWeek: FrovedisColumn) = e.next_day(dayOfWeek)
+  def next_day(e: FrovedisColumn, 
+               dayOfWeek: FrovedisColumn) = e.next_day(dayOfWeek)
   def trunc(e: FrovedisColumn, format: String) = e.trunc(format)
   def date_trunc(format: String, e: FrovedisColumn) = e.date_trunc(format)
   def date_format(e: FrovedisColumn, format: String) = e.date_format(format)
@@ -996,14 +1013,18 @@ object functions extends java.io.Serializable {
                       delim: String, 
                       count: Int) = str.substr_index(delim, count)
 
-  def upper(e: FrovedisColumn)   = new FrovedisColumn(e, OPTYPE.UPPER, DTYPE.STRING)
-  def lower(e: FrovedisColumn)   = new FrovedisColumn(e, OPTYPE.LOWER, DTYPE.STRING)
-  def reverse(e: FrovedisColumn) = new FrovedisColumn(e, OPTYPE.REV, DTYPE.STRING)
-  def char_length(e: FrovedisColumn) = new FrovedisColumn(e, OPTYPE.CHARLEN, DTYPE.INT)
+  def upper(e: FrovedisColumn) = 
+    new FrovedisColumn(e, OPTYPE.UPPER, DTYPE.STRING)
+  def lower(e: FrovedisColumn) = 
+    new FrovedisColumn(e, OPTYPE.LOWER, DTYPE.STRING)
+  def reverse(e: FrovedisColumn) = 
+    new FrovedisColumn(e, OPTYPE.REV, DTYPE.STRING)
+  def char_length(e: FrovedisColumn) = 
+    new FrovedisColumn(e, OPTYPE.CHARLEN, DTYPE.INT)
   def length(e: FrovedisColumn)  = char_length(e) // returns no. of characters
   // returns no. of bytes (3 bytes for 1 Japanese character)
-  //def length(e: FrovedisColumn)  = new FrovedisColumn(e, OPTYPE.LEN, DTYPE.INT) 
-  def ascii(e: FrovedisColumn)   = new FrovedisColumn(e, OPTYPE.ASCII, DTYPE.INT) 
+  //def length(e: FrovedisColumn) = new FrovedisColumn(e, OPTYPE.LEN, DTYPE.INT)
+  def ascii(e: FrovedisColumn) = new FrovedisColumn(e, OPTYPE.ASCII, DTYPE.INT)
   def repeat(e: FrovedisColumn, 
              n: Int) = new FrovedisColumn(e, n, OPTYPE.REPEAT, DTYPE.STRING) 
 
@@ -1044,5 +1065,8 @@ object functions extends java.io.Serializable {
              pos: Int) = e.locate(substr, pos, OPTYPE.LOCATE)
   def locate(substr: String, e: FrovedisColumn): FrovedisColumn =
              locate(substr, e, 1)
+
+  def replace(e: FrovedisColumn, 
+              from: String, to: String) = e.replace(from, to)
 }
 

@@ -149,6 +149,7 @@ enum OPTYPE {
   RPAD = 119,
   LOCATE = 120,
   INSTR = 121,
+  REPLACE = 122,
   // --- date ---
   GETYEAR = 201,
   GETMONTH = 202,

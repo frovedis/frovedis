@@ -169,6 +169,7 @@ void expose_frovedis_dataframe_functions() {
   expose(get_col_concat_multi);
   expose(get_immed_pad);
   expose(get_immed_locate);
+  expose(get_immed_replace);
   // -----------------------
   expose(append_when_condition);
   expose(frov_get_bool_mask);

@@ -2421,6 +2421,16 @@ exrpc_ptr_t get_immed_pad(exrpc_ptr_t& colp,
   return reinterpret_cast<exrpc_ptr_t> (retp);
 }
 
+exrpc_ptr_t get_immed_replace(exrpc_ptr_t& colp,
+                              std::string& from,
+                              std::string& to,
+                              std::string& cname) {
+  auto& col = *reinterpret_cast<std::shared_ptr<dffunction>*>(colp);
+  auto retp = new std::shared_ptr<dffunction>(
+                replace_im_as(col, from, to, cname));
+  return reinterpret_cast<exrpc_ptr_t> (retp);
+}
+
 exrpc_ptr_t get_dffunc_agg(exrpc_ptr_t& leftp,
                            short& opt_id,
                            std::string& cname,

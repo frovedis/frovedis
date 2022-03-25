@@ -781,6 +781,24 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getImmedLocateFu
   return (jlong) ret_proxy;
 }
 
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getImmedReplaceFunc
+  (JNIEnv *env, jclass thisCls, jobject master_node,
+   jlong proxy, jstring from, jstring to, jstring colname) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  auto colProxy = (exrpc_ptr_t) proxy;
+  auto cname = to_cstring(env, colname);
+  auto from_ = to_cstring(env, from);
+  auto to_ = to_cstring(env, to);
+  exrpc_ptr_t ret_proxy = 0;
+  try {
+    ret_proxy = exrpc_async(fm_node, get_immed_replace, colProxy,
+                            from_, to_, cname).get();
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+  return (jlong) ret_proxy;
+}
+
 JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_appendWhenCondition
   (JNIEnv *env, jclass thisCls, jobject master_node, 
    jlong left, jlong right, jstring colname) {
