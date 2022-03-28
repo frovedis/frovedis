@@ -20,6 +20,13 @@ class dfoperator(object):
         self.__proxy = proxy
         self.__mask = None
 
+    def __nonzero__(self):
+        raise ValueError("The truth value of a dfoperator is ambiguous.\n" + \
+                         "Suggestion: In case you are using and, or; " + \
+                         "use logical &, | operators instead.")
+
+    __bool__ = __nonzero__ # for python 3.x
+
     @check_association
     def __and__(self, opt):
         """logical AND operator"""
