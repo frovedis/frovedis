@@ -3022,7 +3022,7 @@ class DataFrame(object):
                 if len(bloc) != 1:
                     raise ValueError("Cannot get slice bound for " \
                                      "non-unique label '%s'" % (b))
-                b_int = int(bloc[0])
+                b_int = int(bloc[0]) + 1
         else:
             # integer slice
             a_int = int(a) if a is not None else 0
