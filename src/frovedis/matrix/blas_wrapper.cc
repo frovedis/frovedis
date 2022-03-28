@@ -666,7 +666,6 @@ void gemm(const sliced_colmajor_matrix_local<float>& inMat1,
     float* xptr = inMat1.data;
     float* yptr = inMat2.data;
 
-    outMat.debug_print();
     sgemm_(&TRANS_M1, &TRANS_M2,
            &M, &N, &K,
            &alpha,
@@ -674,7 +673,6 @@ void gemm(const sliced_colmajor_matrix_local<float>& inMat1,
            yptr, &LDY,
            &beta,
            mptr, &LDM);
-    outMat.debug_print();
 }
 
 template<>
