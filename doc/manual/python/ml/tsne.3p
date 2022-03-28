@@ -1,0 +1,555 @@
+.TH "t\-Distributed Stochastic Neighbor Embedding" "" "" "" ""
+.SH NAME
+.PP
+TSNE \- It\[aq]s full form is T\-distributed Stochastic Neighbor
+Embedding.
+It is an unsupervised algorithm primarily used for data exploration and
+visualizing high\-dimensional data.
+.SH SYNOPSIS
+.IP
+.nf
+\f[C]
+frovedis.mllib.manifold.tsne(n_components=2,\ perplexity=30.0,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ early_exaggeration=12.0,\ learning_rate=200.0,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n_iter=1000,\ n_iter_without_progress=300,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ min_grad_norm=1e\-7,\ metric="euclidean",\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ init="random",\ verbose=0,\ random_state=None,\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ method="exact",\ angle=0.5,\ n_jobs=None)
+\f[]
+.fi
+.SS Public Member Functions
+.PP
+fit(X, y = None)
+.PD 0
+.P
+.PD
+fit_transform(X, y = None)
+.PD 0
+.P
+.PD
+get_params(deep = True)
+.PD 0
+.P
+.PD
+set_params(**params)
+.SH DESCRIPTION
+.PP
+It is a nonlinear dimensionality reduction technique well\-suited for
+embedding high\-dimensional data for visualization in a low\-dimensional
+space of two or three dimensions.
+Specifically, it models each high\-dimensional object by a two or three
+dimensional point in such a way that similar objects are modeled by
+nearby points and dissimilar objects are modeled by distant points with
+high probability.
+.PP
+This module provides a client\-server implementation, where the client
+application is a normal python program.
+The frovedis interface is almost same as Scikit\-learn TSNE interface,
+but it doesn\[aq]t have any dependency with Scikit\-learn.
+It can be used simply even if the system doesn\[aq]t have Scikit\-learn
+installed.
+Thus in this implementation, a python client can interact with a
+frovedis server sending the required python data for training at
+frovedis side.
+Python data is converted into frovedis compatible data internally and
+the python ML call is linked with the respective frovedis ML call to get
+the job done at frovedis server.
+.PP
+Python side calls for TSNE on the frovedis server.
+Once the training is completed with the input data at the frovedis
+server, it returns an abstract model with a unique model ID to the
+client python program.
+.PP
+When tranform\-like request would be made on the trained model, python
+program will send the same request to the frovedis server.
+After the request is served at the frovedis server, the output would be
+sent back to the python client.
+.SS Detailed Description
+.SS 1. TSNE()
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_components\f[]\f[]: It is an integer parameter that
+specifies the dimension of the embedded space.
+(Default: 2)
+.PD 0
+.P
+.PD
+Currently, it supports \f[B]\[aq]n_components = 2\[aq]\f[] only as
+parameter value.
+.PD 0
+.P
+.PD
+\f[B]\f[I]perplexity\f[]\f[]: It must be a positive double (float64)
+parameter that specifies the number of nearest neighbors.
+Larger datasets usually require a larger perplexity.
+Consider selecting a value between 5 and 50.
+Different values can result in significantly different results.
+(Default: 30.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]early_exaggeration\f[]\f[]: It must be a positive double
+(float64) parameter that controls how tight natural clusters in the
+original space are in the embedded space and how much space will be
+between them.
+For larger values, the space between natural clusters will be larger in
+the embedded space.
+(Default: 12.0)
+.PD 0
+.P
+.PD
+\f[B]\f[I]learning_rate\f[]\f[]: It accepts the word \[aq]auto\[aq] or a
+positive double (float64) as parameter value that controls the step size
+of the gradient updates.
+It is usually in the range \f[B][10.0, 1000.0]\f[].
+\f[B]Currently, \[aq]auto\[aq] as parameter value cannot be used.\f[]
+(Default: 200.0)
+.IP \[bu] 2
+\f[B]If the \[aq]learning_rate\[aq] is too high\f[]: then the data may
+look like a \f[B]\[aq]ball\[aq]\f[] when plotted on a graph with any
+point approximately equidistant from its nearest neighbours.
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]If the \[aq]learning_rate\[aq] is too low\f[]: then most data
+points may look compressed in a \f[B]dense cloud\f[] with few outliers
+when plotted on a graph.
+.PP
+\f[B]\f[I]n_iter\f[]\f[]: It must be a positive integer value that
+specifies the maximum number of iterations for the optimization.
+It must be atleast 250.
+(Default: 1000)
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_iter_without_progress\f[]\f[]: It is an integer parameter
+that specifies the maximum number of iterations without progress before
+we abort the optimization.
+(Default: 300)
+.PD 0
+.P
+.PD
+\f[B]\f[I]min_grad_norm\f[]\f[]: It is a double (float64) parameter that
+specifies whether in case the gradient norm is below this threshold,
+then the optimization will be stopped.
+(Default: 1e\-7)
+.PD 0
+.P
+.PD
+\f[B]\f[I]metric\f[]\f[]: It is a string object parameter that specifies
+the metric to use when calculating distance between instances in a
+feature array.
+It supports \f[B]\[aq]euclidean\[aq]\f[] or
+\f[B]\[aq]precomputed\[aq]\f[] distances.
+(Default: \[aq]euclidean\[aq])
+.PD 0
+.P
+.PD
+\f[B]\f[I]init\f[]\f[]: It is a string object parameter that specifies
+the initialization of embedding.
+(Default: \[aq]random\[aq])
+.PD 0
+.P
+.PD
+\f[B]Currently, only random initialization is supported for this method
+in frovedis\f[].
+.PD 0
+.P
+.PD
+\f[B]\f[I]verbose\f[]\f[]: An integer parameter specifying the log level
+to use.
+Its value is set as 0 by default (for INFO mode).
+But it can be set to 1 (for DEBUG mode) or 2 (for TRACE mode) for
+getting training time logs from frovedis server.
+.PD 0
+.P
+.PD
+\f[B]\f[I]random_state\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PD 0
+.P
+.PD
+\f[B]\f[I]method\f[]\f[]: It is a string object parameter that specifies
+the t\-SNE implementation method to use.
+(Default: \[aq]exact\[aq])
+.IP \[bu] 2
+\f[B]\[aq]exact\[aq]\f[]: it calculates the pair\-wise distance between
+every pair of data points.
+\f[B]Currently, only exact implementation of tsne is supported in
+frovedis.\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]\[aq]barnes_hut\[aq]\f[]: it calculates the distance between each
+data point and its closest neighboring points only.
+\f[B]Currently, this implementation of tsne is not supported in
+frovedis.\f[]
+.PP
+\f[B]\f[I]angle\f[]\f[]: This is an unused parameter.
+(Default: 0.5)
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_jobs\f[]\f[]: This is an unused parameter.
+(Default: None)
+.PP
+\f[B]Attributes\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]n_iter_\f[]\f[]: It is a positive integer value that specifies
+the number of iterations run.
+.PD 0
+.P
+.PD
+\f[B]\f[I]kl_divergence_\f[]\f[]: It is a double (float64) type value
+that specifies the Kullback\-Leibler divergence after optimization.
+.PD 0
+.P
+.PD
+\f[B]\f[I]embedding_\f[]\f[]: It is a numpy ndarray of double (float64)
+type values or FrovedisRowmajorMatrix instance, having shape
+\f[B](n_samples, n_components)\f[], where \f[B]n_samples\f[] is the
+number of samples in the input matrix (X).
+It stores the embedding vectors.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It initializes a TSNE object with the given parameters.
+.PP
+The parameters: "random_state", "angle", "n_jobs" are simply kept in to
+make the interface uniform to the Scikit\-learn TSNE module.
+They are not used anywhere within the frovedis implementation.
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 2. fit(X, y = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object of int, float or double (float64) type values.
+It can also be an instance of FrovedisCRSMatrix for sparse data and
+FrovedisRowmajorMatrix for dense data of float or double (float64) type.
+It has shape \f[B](n_samples, n_features)\f[].
+\f[B]If metric = \[aq]precomputed\[aq]\f[], then input matrix (X) is
+assumed to be a \f[B]squared distance matrix\f[].
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: None or any python array\-like object (any shape).
+It is simply ignored in frovedis implementation, like in Scikit\-learn.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will fit input matrix (X) into an embedded space.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ numpy\ dense\ data\ \ \ \ 
+import\ numpy\ as\ np
+mat\ =\ np.matrix([[0,\ 0,\ 0,\ 0],\ [0,\ 1,\ 1,\ 1],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1,\ 0,\ 1,\ 0],\ [1,\ 1,\ 1,\ 0],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1,\ 1,\ 1,\ 1]],\ dtype\ =\ np.float64)
+
+#\ fitting\ input\ matrix\ and\ label\ on\ TSNE\ object\ \ 
+from\ frovedis.mllib.manifold\ import\ TSNE
+tsne\ =\ TSNE().fit(mat)\ \ 
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ numpy\ dense\ data\ \ \ \ 
+import\ numpy\ as\ np
+mat\ =\ np.matrix([[0,\ 0,\ 0,\ 0],\ [0,\ 1,\ 1,\ 1],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1,\ 0,\ 1,\ 0],\ [1,\ 1,\ 1,\ 0],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1,\ 1,\ 1,\ 1]],\ dtype\ =\ np.float64)\ \ \ \ 
+
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ \ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.\ \ 
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix\ \ 
+rmat\ =\ FrovedisRowmajorMatrix(mat)\ \ 
+
+#\ TSNE\ with\ pre\-constructed\ frovedis\-like\ inputs\ \ 
+from\ frovedis.mllib.manifold\ import\ TSNE
+tsne\ =\ TSNE().fit(rmat)\ \ 
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.SS 3. fit_transform(X, y = None)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[B]\f[I]X\f[]\f[]: A numpy dense or scipy sparse matrix or any python
+array\-like object of int, float or double (float64) type values.
+It can also be an instance of FrovedisCRSMatrix for sparse data and
+FrovedisRowmajorMatrix for dense data of float or double (float64) type.
+It has shape \f[B](n_samples, n_features)\f[].
+\f[B]If metric = \[aq]precomputed\[aq]\f[], then input matrix (X) is
+assumed to be a \f[B]squared distance matrix\f[].
+.PD 0
+.P
+.PD
+\f[B]\f[I]y\f[]\f[]: None or any python array\-like object (any shape).
+It is simply ignored in frovedis implementation, like in Scikit\-learn.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+It will fit input matrix (X) into an embedded space and will return the
+transformed output.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ numpy\ dense\ data\ \ \ \ 
+import\ numpy\ as\ np
+mat\ =\ np.matrix([[0,\ 0,\ 0,\ 0],\ [0,\ 1,\ 1,\ 1],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1,\ 0,\ 1,\ 0],\ [1,\ 1,\ 1,\ 0],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1,\ 1,\ 1,\ 1]],\ dtype\ =\ np.float64)
+
+#\ fitting\ input\ matrix\ and\ label\ on\ TSNE\ object\ \ 
+from\ frovedis.mllib.manifold\ import\ TSNE
+tsne\ =\ TSNE()
+print(tsne.fit_transform(mat))
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+[[\ \-15.15708437\ \-218.36584687]
+\ [\ \ 31.18096218\ \ \ 62.89769738]
+\ [\ \-79.72509032\ \ \-59.56844016]
+\ [\ 129.59496966\ \-137.71666144]
+\ [\ 195.56724491\ \ \ 14.28454464]]
+\f[]
+.fi
+.PP
+When native python data is provided, it is converted to frovedis\-like
+inputs and sent to frovedis server which consumes some data transfer
+time.
+Pre\-constructed frovedis\-like inputs can be used to speed up the
+training time, especially when same data would be used for multiple
+executions.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+#\ loading\ a\ sample\ numpy\ dense\ data\ \ \ \ 
+import\ numpy\ as\ np
+mat\ =\ np.matrix([[0,\ 0,\ 0,\ 0],\ [0,\ 1,\ 1,\ 1],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1,\ 0,\ 1,\ 0],\ [1,\ 1,\ 1,\ 0],\ 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [1,\ 1,\ 1,\ 1]],\ dtype\ =\ np.float64)\ \ \ \ 
+
+#\ Since\ "mat"\ is\ numpy\ dense\ data,\ we\ have\ created\ FrovedisRowmajorMatrix.\ \ 
+#\ For\ scipy\ sparse\ data,\ FrovedisCRSMatrix\ should\ be\ used\ instead.\ \ 
+from\ frovedis.matrix.dense\ import\ FrovedisRowmajorMatrix\ \ 
+rmat\ =\ FrovedisRowmajorMatrix(mat)\ \ 
+
+#\ TSNE\ with\ pre\-constructed\ frovedis\-like\ inputs\ \ 
+from\ frovedis.mllib.manifold\ import\ TSNE
+embedding\ =\ TSNE().fit_transform(rmat))\ \ \ 
+embedding.debug_print()
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+matrix:
+num_row\ =\ 5,\ num_col\ =\ 2
+node\ 0
+node\ =\ 0,\ local_num_row\ =\ 5,\ local_num_col\ =\ 2,\ val\ =\ \-15.1571\ \-218.366\ 31.181\ 62.8977\ \-79.7251\ 
+\-59.5684\ 129.595\ \-137.717\ 195.567\ 14.2845
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.IP \[bu] 2
+\f[B]When X is python native input:\f[]
+.PD 0
+.P
+.PD
+It returns a python ndarray of shape \f[B](n_samples, n_components)\f[]
+and double (float64) type values.
+It contains the embedding of the training data in low\-dimensional
+space.
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]When X is frovedis\-like input:\f[]
+.PD 0
+.P
+.PD
+It returns a FrovedisRowmajorMatrix instance of shape \f[B](n_samples,
+n_components)\f[] and double (float64) type values, containing the
+embedding of the training data in low\-dimensional space.
+.SS 4. get_params(deep = True)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]deep\f[]\f[]: A boolean parameter, used to get parameters and
+their values for an estimator.
+If True, it will return the parameters for an estimator and contained
+subobjects that are estimators.
+(Default: True)
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by TSNE.
+It is used to get parameters and their values of TSNE class.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print(tsne.get_params())\ \ 
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+{\[aq]angle\[aq]:\ 0.5,\ \[aq]early_exaggeration\[aq]:\ 12.0,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]learning_rate\[aq]:\ 200.0,\ 
+\[aq]method\[aq]:\ \[aq]exact\[aq],\ \[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ \[aq]min_grad_norm\[aq]:\ 1e\-07,\ \[aq]n_components\[aq]:\ 2,\ 
+\[aq]n_iter\[aq]:\ 1000,\ \[aq]n_iter_without_progress\[aq]:\ 300,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]perplexity\[aq]:\ 30.0,\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+A dictionary of parameter names mapped to their values.
+.SS 5. set_params(**params)
+.PP
+\f[B]Parameters\f[]
+.PD 0
+.P
+.PD
+\f[I]\f[B]**params\f[]\f[]: All the keyword arguments are passed to this
+function as dictionary.
+This dictionary contains parameters of an estimator with its given
+values to set.
+.PP
+\f[B]Purpose\f[]
+.PD 0
+.P
+.PD
+This method belongs to the BaseEstimator class inherited by TSNE, used
+to set parameter values.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print("get\ parameters\ before\ setting:")\ 
+print(tsne.get_params())
+#\ User\ just\ needs\ to\ provide\ the\ arguments\ and\ internally\ it\ will\ create\ a\ 
+dictionary\ over\ the\ arguments\ given\ by\ user
+tsne.set_params(perplexity\ =\ 15,\ metric\ =\ \[aq]precomputed\[aq])\ \ 
+print("get\ parameters\ after\ setting:")\ 
+print(tsne.get_params())
+\f[]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+get\ parameters\ before\ setting:
+{\[aq]angle\[aq]:\ 0.5,\ \[aq]early_exaggeration\[aq]:\ 12.0,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]learning_rate\[aq]:\ 200.0,\ 
+\[aq]method\[aq]:\ \[aq]exact\[aq],\ \[aq]metric\[aq]:\ \[aq]euclidean\[aq],\ \[aq]min_grad_norm\[aq]:\ 1e\-07,\ \[aq]n_components\[aq]:\ 2,\ 
+\[aq]n_iter\[aq]:\ 1000,\ \[aq]n_iter_without_progress\[aq]:\ 300,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]perplexity\[aq]:\ 30.0,\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+get\ parameters\ after\ setting:
+{\[aq]angle\[aq]:\ 0.5,\ \[aq]early_exaggeration\[aq]:\ 12.0,\ \[aq]init\[aq]:\ \[aq]random\[aq],\ \[aq]learning_rate\[aq]:\ 200.0,\ 
+\[aq]method\[aq]:\ \[aq]exact\[aq],\ \[aq]metric\[aq]:\ \[aq]precomputed\[aq],\ \[aq]min_grad_norm\[aq]:\ 1e\-07,\ \[aq]n_components\[aq]:\ 2,\ 
+\[aq]n_iter\[aq]:\ 1000,\ \[aq]n_iter_without_progress\[aq]:\ 300,\ \[aq]n_jobs\[aq]:\ None,\ \[aq]perplexity\[aq]:\ 15.0,\ 
+\[aq]random_state\[aq]:\ None,\ \[aq]verbose\[aq]:\ 0}
+\f[]
+.fi
+.PP
+\f[B]Return Value\f[]
+.PD 0
+.P
+.PD
+It simply returns "self" reference.
+.PP
+\f[B]Note: In order to release the embedding vector from the server
+(generated by TSNE algorithm in frovedis), we can use release() of
+FrovedisRowmajorMatrix class.\f[]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+tsne.embedding_.release()
+\f[]
+.fi
+.PP
+This will remove the embedding vector from the server side memory.
+.SH SEE ALSO
+.IP \[bu] 2
+\f[B]Spectral Embedding in frovedis (./spectral_embedding.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DVector (./dvector.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]FrovedisCRSMatrix (./crs_matrix.md)\f[]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]FrovedisRowmajorMatrix (./rowmajor_matrix.md)\f[]
