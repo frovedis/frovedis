@@ -30,5 +30,11 @@ int main(int argc, char* argv[]){
   t.fselect({substring_index_im(c2,"パ",1)}).show();
   t.fselect({concat_col(c1,c2)}).show();
   t.fselect({concat_ws("_",c1,c2)}).show();
+  t.fselect({concat_multi_col({c1,c2,c3})}).show();
+  t.fselect({concat_multi_ws("_",{c1,c2,c3})}).show();
   t.fselect({upper_col(c1)}).show();
+  t.fselect({repeat_im(c1,3)}).show();
+  t.fselect({lpad_im(c1,10)}).show();
+  t.fselect({rpad_im(c2,10,"＊")}).show();
+  t.fselect({ascii_col(c1)}).show();
 }

@@ -3272,6 +3272,30 @@ the separator can be added to the value). It should produce output like:
     grape_葡萄
     grapefruit_グレープフルーツ
 
+You can also use concat_multi_col and concat_multi_ws, which are
+multi-columns version of concat and concat_ws. 
+
+    t.fselect({concat_multi_col({c1,c2,c3})}).show();
+    t.fselect({concat_multi_ws("_",{c1,c2,c3},)}).show();
+
+should produce output like:
+
+    concat(c1,c2,c3)
+    apple林檎www.google.com
+    applepieりんごパイwww.apple.com
+    orangeオレンジjp.nec.com
+    orangepieオレンジパイwww.apache.org
+    grape葡萄github.com
+    grapefruitグレープフルーツwww.facebook.com
+
+    concat_ws(_,c1,c2,c3)
+    apple_林檎_www.google.com
+    applepie_りんごパイ_www.apple.com
+    orange_オレンジ_jp.nec.com
+    orangepie_オレンジパイ_www.apache.org
+    grape_葡萄_github.com
+    grapefruit_グレープフルーツ_www.facebook.com
+
 Next functions are `lower` and `upper`, which changes ASCII characters
 to lower or upper case.
 
@@ -3286,6 +3310,69 @@ should produce output like:
     ORANGEPIE
     GRAPE
     GRAPEFRUIT
+
+Next function is `repeat`, which repeats the string.
+
+    t.fselect({repeat_im(c1,3)}).show();
+
+should produce output like:
+
+    repeat(c1,3)
+    appleappleapple
+    applepieapplepieapplepie
+    orangeorangeorange
+    orangepieorangepieorangepie
+    grapegrapegrape
+    grapefruitgrapefruitgrapefruit
+
+Next function is `lpad` and `rpad`, which add specified character to
+make the length of the words specified size.
+
+    t.fselect({lpad_im(c1,10)}).show();
+
+should produce output like:
+
+    lpad(c1,10)
+         apple
+      applepie
+        orange
+     orangepie
+         grape
+    grapefruit
+
+In this case, character is not specified, so space is used by default.
+Since the function is `lpad`, spaces are added to the left.
+
+    t.fselect({rpad_im(c2,10,"＊")}).show();
+
+should produce output like:
+
+    rpad(c2,10,＊)
+    林檎＊＊＊＊＊＊＊＊
+    りんごパイ＊＊＊＊＊
+    オレンジ＊＊＊＊＊＊
+    オレンジパイ＊＊＊＊
+    葡萄＊＊＊＊＊＊＊＊
+    グレープフルーツ＊＊
+
+In this case, `＊` is specified as the padding character. Since the
+function is `rpad`, it is added to the right. As you can see, this
+function can be used for non-ascii strings.
+
+Next function is `ascii`. It extracts ascii code of the first
+character of the string.
+
+    t.fselect({ascii_col(c1)}).show();
+
+should produce output like:
+
+    ascii(c1)
+    97
+    97
+    111
+    111
+    103
+    103
 
 There is special kind of function called `when`, which can be used to
 specify the if-then-else like condition.
