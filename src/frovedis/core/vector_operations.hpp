@@ -6,6 +6,7 @@
 #include "utility.hpp"
 #include "exceptions.hpp"
 #include "set_operations.hpp"
+#include "vector_fill.hpp"
 #include "mpihelper.hpp"
 #include "find_condition.hpp"
 #include "../text/float_to_words.hpp" // for number_to_words() etc.
@@ -1706,6 +1707,12 @@ vector_reverse(const std::vector<T>& vec) {
     rp[mid] = vp[mid];
   }
   return ret;
+}
+
+template <class T>
+std::vector<T> 
+vector_ffill(const std::vector<T>& vec, T target) {
+  return ffill(vec, target);
 }
 
 }
