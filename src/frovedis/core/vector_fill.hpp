@@ -37,32 +37,78 @@ size_t adjust_start_end_ffill(size_t* start_idx, size_t* end_idx,
 }
 
 template <class T>
-std::vector<T>
-simple_ffill_impl(const std::vector<T>& vec, T target) {
-  auto size = vec.size();
-  std::vector<T> ret = vec;
-  if (size == 0) return ret;
+void simple_ffill_inplace(T* vptr_in, size_t size, T target) {
+  if (size == 0) return;
 
-  auto vptr = vec.data();
-  auto rptr = ret.data();
+  // to avoid initial targets which cannot be filled...
+  size_t k = 0;
+  if (vptr_in[0] == target) {
+    for(; k < size; ++k) if (vptr_in[k] != target) break;
+  }
+  auto vptr = vptr_in + k;
+  size -= k;
   auto tmax = std::numeric_limits<T>::max();
   auto non_target = tmax;
+
+/*
+  size_t i = 0;
+  while(i < size) {
+    auto val = vptr[i];
+    if (val == target) {
+      for(; i < size; ++i) { // vectorized loop possibly with very poor vector-length  
+        if (vptr[i] != target) break;
+        vptr[i] = non_target;
+      }
+    } else{
+      non_target = val;
+      i++;
+    }
+  }
+*/
+
   for(size_t i = 0; i < size; ++i) {
     auto val = vptr[i];
     if (val == target) {
-      if (non_target != tmax) rptr[i] = non_target;
+      vptr[i] = non_target;
     } else{
       non_target = val;
     }
   }
+}
+
+template <class T>
+std::vector<T>
+simple_ffill(const T* vptr, size_t size, T target) {
+  std::vector<T> ret(size);
+  auto rptr = ret.data();
+  for(size_t i = 0; i < size; ++i) rptr[i] = vptr[i];
+  simple_ffill_inplace(rptr, size, target);
   return ret;
 }
 
 template <class T>
 std::vector<T>
-ffill(const std::vector<T>& vec, T target) {
-  auto size = vec.size();
-  if (size < FILL_VLEN) return simple_ffill_impl(vec, target);
+simple_ffill(const std::vector<T>& vec, T target) {
+  return simple_ffill(vec.data(), vec.size(), target);
+}
+
+template <class T>
+void simple_ffill_inplace(std::vector<T>& vec, T target) {
+  simple_ffill_inplace(vec.data(), vec.size(), target);
+}
+
+template <class T>
+void ffill_inplace(T* vptr_in, size_t size, T target) {
+  if (size == 0) return;
+
+  // to avoid initial targets which cannot be filled...
+  size_t k = 0;
+  if (vptr_in[0] == target) {
+    for(; k < size; ++k) if (vptr_in[k] != target) break;
+  }
+  auto vptr = vptr_in + k;
+  size -= k;
+  if (size < FILL_VLEN) return simple_ffill_inplace(vptr, size, target);
 
   size_t each = ceil_div(size, size_t(FILL_VLEN));
   if (each % 2 == 0) each++;
@@ -83,7 +129,6 @@ ffill(const std::vector<T>& vec, T target) {
     end_idx[i] = end < size ? end : size;
   }
 
-  auto vptr = vec.data();
   auto max = adjust_start_end_ffill(start_idx, end_idx, vptr, size, target);
   auto tmax = std::numeric_limits<T>::max();
   for(size_t i = 0; i < FILL_VLEN; ++i) {
@@ -91,8 +136,6 @@ ffill(const std::vector<T>& vec, T target) {
     cur_non_target[i] = tmax;
   }
 
-  std::vector<T> ret = vec;
-  auto rptr = ret.data();
   for (size_t i = 0; i < max; ++i) {
 #pragma cdir nodep
 #pragma _NEC ivdep
@@ -101,8 +144,7 @@ ffill(const std::vector<T>& vec, T target) {
         auto idx = cur_idx[j];
         auto val = vptr[idx];
         if (val == target) {
-          // very initial values might be same as targets...
-          if (cur_non_target[j] != tmax) rptr[idx] = cur_non_target[j];
+          vptr[idx] = cur_non_target[j];
         } else {
           cur_non_target[j] = val;
         }
@@ -110,10 +152,28 @@ ffill(const std::vector<T>& vec, T target) {
       }
     }
   }
+}
 
+template <class T>
+std::vector<T>
+ffill(const T* vptr, size_t size, T target) {
+  std::vector<T> ret(size);
+  auto rptr = ret.data();
+  for(size_t i = 0; i < size; ++i) rptr[i] = vptr[i];
+  ffill_inplace(rptr, size, target);
   return ret;
 }
 
+template <class T>
+std::vector<T>
+ffill(const std::vector<T>& vec, T target) {
+  return ffill(vec.data(), vec.size(), target);
+}
+
+template <class T>
+void ffill_inplace(std::vector<T>& vec, T target) {
+  ffill_inplace(vec.data(), vec.size(), target);
+}
 
 } // end of namespace
 #endif
