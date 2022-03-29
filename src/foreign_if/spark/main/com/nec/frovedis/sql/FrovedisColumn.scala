@@ -332,17 +332,26 @@ class FrovedisColumn extends java.io.Serializable {
     ret.opType = OPTYPE.CONCAT
     ret.dtype = DTYPE.STRING
     ret.kind = ColKind.DFFUNC
-    var name = ""
-    for (i <- 0 until (cols.size - 1)) name += cols(i).col_name + ", "
-    if (cols.size > 0) name += cols(0).col_name
-    if (with_sep) name = "concat_ws(" + sep + ", " + name + ")"
-    else          name = "concat(" + name + ")"
-    ret.col_name = name
+    if (with_sep) {
+      var name = "concat_ws(" + sep
+      for (i <- 0 until cols.size) name += ", " + cols(i).col_name
+      name += ")"
+      ret.col_name = name
+    } else {
+      var name = "concat("
+      for (i <- 0 until cols.size) {
+        if (i == 0) name += cols(i).col_name
+        else        name += ", " + cols(i).col_name
+      }
+      name += ")"
+      ret.col_name = name
+    }
     ret.org_name = ret.col_name
     val fs = FrovedisServer.getServerInstance()
     val proxies = cols.map(x => x.proxy)
     ret.proxy = JNISupport.getOptConcat(fs.master_node, proxies, 
-                                        proxies.size, sep, with_sep, name)
+                                        proxies.size, sep, with_sep, 
+                                        ret.col_name)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return ret

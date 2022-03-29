@@ -2395,7 +2395,7 @@ exrpc_ptr_t get_col_concat_multi(std::vector<exrpc_ptr_t>& cols,
                                  std::string& sep, bool& with_sep) {
   auto funcs = to_dffunction(cols);
   auto retp = new std::shared_ptr<dffunction>(
-                with_sep ? concat_multi_col_ws_as(funcs, sep, as)
+                with_sep ? concat_multi_ws_as(sep, funcs, as)
                          : concat_multi_col_as(funcs, as)
               );
   return reinterpret_cast<exrpc_ptr_t> (retp);
