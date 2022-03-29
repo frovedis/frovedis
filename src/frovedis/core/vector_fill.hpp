@@ -9,7 +9,7 @@ template <class T>
 size_t adjust_start_end_ffill(size_t* start_idx, size_t* end_idx,
                               const T* vptr, size_t size, T target) {
 
-  // step1: advance if start element of next partition is the target
+  // step1: advance, if the first element of next the partition is the target
   int anyvalid = true;
   while(anyvalid) {
     anyvalid = false;
@@ -27,7 +27,7 @@ size_t adjust_start_end_ffill(size_t* start_idx, size_t* end_idx,
   // step2: adjust start as per the modified end
   for(size_t i = 1; i < FILL_VLEN; ++i) start_idx[i] = end_idx[i - 1];
 
-  // step3: find max of each partition
+  // step3: find max of all partition lengths
   auto max = end_idx[0] - start_idx[0];
   for(size_t i = 1; i < FILL_VLEN; ++i) {
     auto cur = end_idx[i] - start_idx[i];
@@ -55,7 +55,7 @@ void simple_ffill_inplace(T* vptr_in, size_t size, T target) {
   while(i < size) {
     auto val = vptr[i];
     if (val == target) {
-      for(; i < size; ++i) { // vectorized loop possibly with very poor vector-length  
+      for(; i < size; ++i) { // vectorized-loop, possibly with very poor vector-length  
         if (vptr[i] != target) break;
         vptr[i] = non_target;
       }
@@ -97,6 +97,7 @@ void simple_ffill_inplace(std::vector<T>& vec, T target) {
   simple_ffill_inplace(vec.data(), vec.size(), target);
 }
 
+// loop-raking version...
 template <class T>
 void ffill_inplace(T* vptr_in, size_t size, T target) {
   if (size == 0) return;
@@ -108,17 +109,20 @@ void ffill_inplace(T* vptr_in, size_t size, T target) {
   }
   auto vptr = vptr_in + k;
   size -= k;
-  if (size < FILL_VLEN) return simple_ffill_inplace(vptr, size, target);
+  if (size < FILL_VLEN) {
+    simple_ffill_inplace(vptr, size, target);
+    return;
+  }
 
   size_t each = ceil_div(size, size_t(FILL_VLEN));
   if (each % 2 == 0) each++;
 
   size_t start_idx[FILL_VLEN];
   size_t end_idx[FILL_VLEN];
+  size_t end_idx_vreg[FILL_VLEN];
   size_t cur_idx[FILL_VLEN];
   T cur_non_target[FILL_VLEN];
-#pragma _NEC vreg(start_idx)
-#pragma _NEC vreg(end_idx)
+#pragma _NEC vreg(end_idx_vreg)
 #pragma _NEC vreg(cur_idx)
 #pragma _NEC vreg(cur_non_target)
 
@@ -132,15 +136,18 @@ void ffill_inplace(T* vptr_in, size_t size, T target) {
   auto max = adjust_start_end_ffill(start_idx, end_idx, vptr, size, target);
   auto tmax = std::numeric_limits<T>::max();
   for(size_t i = 0; i < FILL_VLEN; ++i) {
+    end_idx_vreg[i] = end_idx[i];
     cur_idx[i] = start_idx[i];
     cur_non_target[i] = tmax;
   }
 
+#pragma _NEC vob
   for (size_t i = 0; i < max; ++i) {
 #pragma cdir nodep
 #pragma _NEC ivdep
+#pragma _NEC vovertake
     for(size_t j = 0; j < FILL_VLEN; ++j) {
-      if (cur_idx[j] < end_idx[j]) {
+      if (cur_idx[j] < end_idx_vreg[j]) {
         auto idx = cur_idx[j];
         auto val = vptr[idx];
         if (val == target) {
