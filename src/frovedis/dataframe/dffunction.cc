@@ -2863,6 +2863,54 @@ make_datetime_col_as(const std::shared_ptr<dffunction>& year,
                                                     hour, minute, second, as);
 }
 
+// ----- iinitcap -----
+std::shared_ptr<dfcolumn>
+dffunction_initcap::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->initcap();
+}
+
+std::shared_ptr<dfcolumn> dffunction_initcap::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  return left_column->initcap();
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_initcap::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->initcap();
+}
+
+std::shared_ptr<dffunction>
+initcap_col(const std::string& left) {
+  return std::make_shared<dffunction_initcap>(id_col(left));
+}
+
+std::shared_ptr<dffunction>
+initcap_col(const std::shared_ptr<dffunction>& left) {
+  return std::make_shared<dffunction_initcap>(left);
+}
+
+std::shared_ptr<dffunction>
+initcap_col_as(const std::string& left, const std::string& as) {
+  return std::make_shared<dffunction_initcap>(id_col(left), as);
+}
+
+std::shared_ptr<dffunction>
+initcap_col_as(const std::shared_ptr<dffunction>& left,
+               const std::string& as) {
+  return std::make_shared<dffunction_initcap>(left, as);
+}
+
 // ----- ascii -----
 std::shared_ptr<dfcolumn>
 dffunction_ascii::execute(dftable_base& t) const {
@@ -3696,28 +3744,34 @@ concat_multi_col_helper(const std::vector<std::shared_ptr<dffunction>>& cols,
 }
 
 std::shared_ptr<dffunction>
-concat_multi_col_ws_helper(const std::vector<std::shared_ptr<dffunction>>& cols,
-                           int start, int end,
-                           const std::string& sep) {
+concat_multi_ws_helper(const std::string& sep,
+                       const std::vector<std::shared_ptr<dffunction>>& cols,
+                       int start, int end) {
   auto ncol = end - start;
   if(ncol == 0) {
     return dic_string_im(""); // to handle case: empty string of length 0
   } else if (ncol == 1) {
     return cols[start];
   } else if (ncol == 2) {
-    return concat_col(concat_im(cols[start], sep), cols[start + 1]);
+    return concat_ws(sep, cols[start], cols[start + 1]);
   } else {
     int half = start + (ncol / 2);
-    return concat_col(
-      concat_im(concat_multi_col_ws_helper(cols, start, half, sep), sep),
-      concat_multi_col_ws_helper(cols, half, end, sep)
+    return concat_ws(sep, 
+      concat_multi_ws_helper(sep, cols, start, half), 
+      concat_multi_ws_helper(sep, cols, half, end)
     );
   }
 }
 
 std::shared_ptr<dffunction>
 concat_multi_col(const std::vector<std::shared_ptr<dffunction>>& left) {
-  return concat_multi_col_helper(left, 0, left.size())->as("concat_multi()");
+  std::string asname = "concat(";
+  for(size_t i = 0; i < left.size(); ++i) {
+    if (i == 0) asname += left[i]->get_as();
+    else        asname += "," + left[i]->get_as();
+  }
+  asname += ")";
+  return concat_multi_col_helper(left, 0, left.size())->as(asname);
 }
 
 std::shared_ptr<dffunction>
@@ -3727,16 +3781,19 @@ concat_multi_col_as(const std::vector<std::shared_ptr<dffunction>>& left,
 }
 
 std::shared_ptr<dffunction>
-concat_multi_col_ws(const std::vector<std::shared_ptr<dffunction>>& left,
-                    const std::string& sep) {
-  return concat_multi_col_ws_helper(left, 0, left.size(), sep)->as("concat_multi_ws()");
+concat_multi_ws(const std::string& sep, 
+                const std::vector<std::shared_ptr<dffunction>>& left) {
+  std::string asname = "concat_ws(" + sep;
+  for(size_t i = 0; i < left.size(); ++i) asname += "," + left[i]->get_as();
+  asname += ")";
+  return concat_multi_ws_helper(sep, left, 0, left.size())->as(asname);
 }
 
 std::shared_ptr<dffunction>
-concat_multi_col_ws_as(const std::vector<std::shared_ptr<dffunction>>& left,
-                       const std::string& sep,
-                       const std::string& as) {
-  return concat_multi_col_ws_helper(left, 0, left.size(), sep)->as(as);
+concat_multi_ws_as(const std::string& sep,
+                   const std::vector<std::shared_ptr<dffunction>>& left,
+                   const std::string& as) {
+  return concat_multi_ws_helper(sep, left, 0, left.size())->as(as);
 }
 
 // ----- repeat -----

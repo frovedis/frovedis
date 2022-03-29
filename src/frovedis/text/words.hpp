@@ -190,6 +190,13 @@ void reverse(const std::vector<int>& chars,
              const std::vector<size_t>& lens,
              std::vector<int>& ret_chars,
              std::vector<size_t>& ret_starts); // lens are the same
+void initcap(const std::vector<int>& chars,
+             const std::vector<size_t>& starts,
+             const std::vector<size_t>& lens,
+             std::vector<int>& ret_chars); // lens, starts are the same
+std::vector<int> ascii(const std::vector<int>& chars,
+                       const std::vector<size_t>& starts,
+                       const std::vector<size_t>& lens);
 void tolower(const std::vector<int>& chars,
              std::vector<int>& ret_chars);
 void toupper(const std::vector<int>& chars,
@@ -288,6 +295,14 @@ struct words {
   void toupper() { // destructive
     std::vector<int> ret_chars;
     frovedis::toupper(chars, ret_chars);
+    chars.swap(ret_chars);
+  }
+  std::vector<int> ascii() { // returns ascii of initial character
+    return frovedis::ascii(chars, starts, lens);
+  }
+  void initcap() { // destructive
+    std::vector<int> ret_chars;
+    frovedis::initcap(chars, starts, lens, ret_chars);
     chars.swap(ret_chars);
   }
   void utf8_to_utf32() { // destructive

@@ -150,6 +150,7 @@ enum OPTYPE {
   LOCATE = 120,
   INSTR = 121,
   REPLACE = 122,
+  INITCAP = 123,
   // --- date ---
   GETYEAR = 201,
   GETMONTH = 202,

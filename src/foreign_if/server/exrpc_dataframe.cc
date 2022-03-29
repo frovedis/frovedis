@@ -2196,6 +2196,7 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
     case LTRIM:     opt = new std::shared_ptr<dffunction>(ltrim_im_as(left, cname)); break;
     case RTRIM:     opt = new std::shared_ptr<dffunction>(rtrim_im_as(left, cname)); break;
     case ASCII:     opt = new std::shared_ptr<dffunction>(ascii_col_as(left, cname)); break;
+    case INITCAP:   opt = new std::shared_ptr<dffunction>(initcap_col_as(left, cname)); break;
     // -- date --
     case GETYEAR:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::year, cname)); break;
     case GETMONTH:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::month, cname)); break;

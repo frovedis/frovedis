@@ -1061,18 +1061,33 @@ std::shared_ptr<dfcolumn> dfcolumn::substr(int pos) {
   }
 }
 
+std::shared_ptr<dfcolumn> dfcolumn::initcap() {
+  auto ws = as_words();
+  ws.mapv(+[](words& ws) { ws.initcap(); });
+  auto nulls = get_nulls();
+  if(dtype() == "string") {
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  }
+}
+
 // returns ascii of the first character in each word
 std::shared_ptr<dfcolumn> dfcolumn::ascii() {
   auto ws = as_words();
   auto nulls = get_nulls();
   auto len = ws.map(+[](words& ws, std::vector<size_t>& nulls){
-      auto size = ws.starts.size();
-      std::vector<int> ret(size);
+      auto ret = ws.ascii();
       auto retp = ret.data();
-      auto charsp = ws.chars.data();
-      auto startsp = ws.starts.data();
-#pragma _NEC ivdep
-      for(size_t i = 0; i < size; i++) retp[i] = charsp[startsp[i]];
       auto nullsp = nulls.data();
       auto nulls_size = nulls.size();
       auto max = std::numeric_limits<int>::max();

@@ -121,6 +121,7 @@ object OPTYPE extends java.io.Serializable {
   val LOCATE:     Short = 120
   val INSTR:      Short = 121
   val REPLACE:    Short = 122
+  val INITCAP:    Short = 123
   // --- date ---
   val GETYEAR:       Short = 201
   val GETMONTH:      Short = 202
@@ -251,7 +252,8 @@ class FrovedisColumn extends java.io.Serializable {
    * --- for unary operations ---
    * supported opt:  OPTYPE.NOT, OPTYPE.ISNULL, OPTYPE.ISNOTNULL, 
    *                 OPTYPE.ISNAN, OPTYPE.UPPER, OPTYPE.LOWER, 
-   *                 OPTYPE.LEN, OPTYPE.CHARLEN,
+   *                 OPTYPE.LEN, OPTYPE.CHARLEN, 
+   *                 OPTYPE.ASCII, OPTYPE.INITCAP,
    *                 OPTYPE.REV, OPTYPE.TRIM, OPTYPE.LTRIM, OPTYPE.RTRIM,
    *                 OPTYPE.GETYEAR, OPTYPE.GETMONTH, OPTYPE.GETDAYOFMONTH,
    *                 OPTYPE.GETHOUR, OPTYPE.GETMINUTE, OPTYPE.GETSECOND, 
@@ -512,6 +514,7 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.LEN     => "length(" + left + ")"
       case OPTYPE.CHARLEN => "char_length(" + left + ")"
       case OPTYPE.ASCII   => "ascii(" + left + ")"
+      case OPTYPE.INITCAP => "initcap(" + left + ")"
       case OPTYPE.REPEAT  => "repeat(" + left + ", " + right + ")"
       case OPTYPE.REV     => "reverse(" + left + ")"
       case OPTYPE.TRIM    => "trim(" + left + ")"
@@ -1028,6 +1031,8 @@ object functions extends java.io.Serializable {
     new FrovedisColumn(e, OPTYPE.LOWER, DTYPE.STRING)
   def reverse(e: FrovedisColumn) = 
     new FrovedisColumn(e, OPTYPE.REV, DTYPE.STRING)
+  def initcap(e: FrovedisColumn) = 
+    new FrovedisColumn(e, OPTYPE.INITCAP, DTYPE.STRING)
   def char_length(e: FrovedisColumn) = 
     new FrovedisColumn(e, OPTYPE.CHARLEN, DTYPE.INT)
   def length(e: FrovedisColumn)  = char_length(e) // returns no. of characters

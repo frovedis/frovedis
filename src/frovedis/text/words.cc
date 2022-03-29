@@ -2301,4 +2301,61 @@ vector<int> utf8_to_utf32(const std::string& str) {
   return tmp2.chars;
 }
 
+std::vector<int> 
+ascii(const std::vector<int>& chars,
+      const std::vector<size_t>& starts,
+      const std::vector<size_t>& lens) {
+  auto size = lens.size();
+  std::vector<int> ret(size);
+  auto retp = ret.data();
+  auto lensp = lens.data();
+  auto charsp = chars.data();
+  auto startsp = starts.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < size; i++) {
+    retp[i] = lensp[i] ? charsp[startsp[i]] : 0;
+  }
+  return ret;
+}
+
+void initcap(const std::vector<int>& chars,
+             const std::vector<size_t>& starts,
+             const std::vector<size_t>& lens,
+             std::vector<int>& ret_chars) {
+  tolower(chars, ret_chars);
+  auto len = lens.size();
+  auto cptr = ret_chars.data();
+  auto lptr = lens.data();
+  auto sptr = starts.data();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < len; ++i) {
+    if (lptr[i]) {
+      auto sidx = sptr[i];
+      auto initchar = cptr[sidx];
+      if (initchar >= 'a' && initchar <= 'z') cptr[sidx] -= 32; // toUpper
+    }
+  }
+
+  int space = ' ';
+  auto pos = vector_find_eq(chars, space);
+  auto pos_ptr = pos.data();
+  auto pos_size = pos.size();
+  if (pos_size == 0) return;
+
+  auto tsize = pos_size;
+  // last character itself can be a space
+  auto charsize = chars.size();
+  if (pos[pos_size - 1] == (charsize - 1)) tsize--;
+
+#pragma _NEC ivdep
+  for(size_t i = 0; i < tsize; ++i) {
+    auto nextchar = cptr[pos_ptr[i] + 1];
+    if (nextchar >= 'a' && nextchar <= 'z') cptr[pos_ptr[i] + 1] -= 32; // toUpper
+  }
+}
+
 }
