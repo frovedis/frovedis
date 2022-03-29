@@ -101,7 +101,7 @@ void datetime_to_words(const datetime_t* srcp, size_t src_size,
   if(yearpos != string::npos) {
     auto pos = yearpos;
     if(pos > abbmonthpos) pos += 1;
-    size_t fill_last_pos = yearpos + 3;
+    size_t fill_last_pos = pos + 3;
     year_from_datetime(srcp, src_size, valuep);
     auto value_words = int_to_words(valuep, src_size);
     datetime_to_words_fill_helper(charsp, entry_size, src_size, fill_last_pos,
