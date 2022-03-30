@@ -101,5 +101,5 @@ FrovedisGroupedDataFrame provides a lot of utilities to perform various operatio
 10. **var()** - it computes variance of groups, excluding missing values.  
 
 # SEE ALSO  
-- **[Using aggregate functions on FrovedisGroupedDataFrame](./Grouped_Dataframe_AggregateFunctions.md)**  
-- **[Introduction to frovedis DataFrame](./DataFrame_Introduction.md)**  
+- **[Using aggregate functions on FrovedisGroupedDataFrame](./grouped_df_agg_func.md)**  
+- **[Introduction to frovedis DataFrame](./df_intro.md)**  

@@ -1,35 +1,99 @@
-% DataFrame Binary Operator Functions  
+% DataFrame Math Functions  
 
 # NAME  
 
-DataFrame Binary Operator Functions - this manual contains methods for carrying out binary operations like add(), sub(), etc and related functions like radd(), rsub(), etc. for carrying out reverse binary operations.  
+DataFrame Math Functions - this manual contains all the methods for carrying out mathematical operations.  
 
-# SYNOPSIS  
-    
-    frovedis.dataframe.df.DataFrame(df = None, is_series = False)  
-    
+## DESCRIPTION  
+
+Frovedis dataframe has several math functions defined for performing operations like add(), sub(), mul(), etc. between two dataframes or between scalar value and dataframe. These functions return a new frovedis DataFrame instance as a result.  
+
+Also, it contains reverse operations such as radd(), rsub(), rmul(), etc.  
+
 ## Public Member Functions  
 
-    1. add(other, axis = 'columns', level = None, fill_value = None)  
-    2. div(other, axis = 'columns', level = None, fill_value = None)  
-    3. floordiv(other, axis = 'columns', level = None, fill_value = None)  
-    4. mod(other, axis = 'columns', level = None, fill_value = None)  
-    5. mul(other, axis = 'columns', level = None, fill_value = None)  
-    6. pow(other, axis = 'columns', level = None, fill_value = None)  
-    7. sub(other, axis = 'columns', level = None, fill_value = None)  
-    8. truediv(other, axis = 'columns', level = None, fill_value = None)  
-    9. radd(other, axis = 'columns', level = None, fill_value = None)  
-    10. rdiv(other, axis = 'columns', level = None, fill_value = None)  
-    11. rfloordiv(other, axis = 'columns', level = None, fill_value = None)  
-    12. rmod(other, axis = 'columns', level = None, fill_value = None)  
-    13. rmul(other, axis = 'columns', level = None, fill_value = None)  
-    14. rpow(other, axis = 'columns', level = None, fill_value = None)  
-    15. rsub(other, axis = 'columns', level = None, fill_value = None)  
-    16. rtruediv(other, axis = 'columns', level = None, fill_value = None)  
+    1. abs()
+    2. add(other, axis = 'columns', level = None, fill_value = None)
+    3. div(other, axis = 'columns', level = None, fill_value = None)  
+    4. floordiv(other, axis = 'columns', level = None, fill_value = None)  
+    5. mod(other, axis = 'columns', level = None, fill_value = None)  
+    6. mul(other, axis = 'columns', level = None, fill_value = None)  
+    7. pow(other, axis = 'columns', level = None, fill_value = None)  
+    8. sub(other, axis = 'columns', level = None, fill_value = None)  
+    9. truediv(other, axis = 'columns', level = None, fill_value = None)  
+    10. radd(other, axis = 'columns', level = None, fill_value = None)  
+    11. rdiv(other, axis = 'columns', level = None, fill_value = None)  
+    12. rfloordiv(other, axis = 'columns', level = None, fill_value = None)  
+    13. rmod(other, axis = 'columns', level = None, fill_value = None)  
+    14. rmul(other, axis = 'columns', level = None, fill_value = None)  
+    15. rpow(other, axis = 'columns', level = None, fill_value = None)  
+    16. rsub(other, axis = 'columns', level = None, fill_value = None)  
+    17. rtruediv(other, axis = 'columns', level = None, fill_value = None)  
 
 ## Detailed Description  
 
-### 1. add(other, axis = 'columns', level = None, fill_value = None)  
+### 1. abs()  
+
+__Purpose__  
+It computes absolute numeric value of each element.  
+
+This function only applies to elements that are all numeric.  
+
+For example,  
+
+    import pandas as pd
+    import numpy as np
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    tempDF = {
+                'City': ['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad',
+                         'Kanpur', 'Kanpur', 'Kanpur'],
+                'Temperature': [-2, 10, 18, 34, -8, -4, 36, 45]
+               }
+    
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(tempDF)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output
+
+    index   City       Temperature
+    0       Nagpur     -2
+    1       Kanpur     10
+    2       Allahabad  18
+    3       Kannuaj    34
+    4       Allahabad  -8
+    5       Kanpur     -4
+    6       Kanpur     36
+    7       Kanpur     45
+
+For example,
+
+    # abs() demo
+    print(fdf1['Temperature'].abs())
+
+Output
+
+    index   Temperature
+    0       2
+    1       10
+    2       18
+    3       34
+    4       8
+    5       4
+    6       36
+    7       45
+
+__Return Value__  
+It returns a frovedis DataFrame instance.  
+
+### 2. add(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -257,7 +321,7 @@ added with the fill_value = 10 (exluding missing values) in resultant dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 2. div(other, axis = 'columns', level = None, fill_value = None)  
+### 3. div(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -487,7 +551,7 @@ elements are divided with the fill_value = 10 (excluding the missing values) in 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 3. floordiv(other, axis = 'columns', level = None, fill_value = None)  
+### 4. floordiv(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -716,7 +780,7 @@ divided with the fill_value = 10 (excluding the missing values) in resultant dat
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 4. mod(other, axis = 'columns', level = None, fill_value = None)
+### 5. mod(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -944,7 +1008,7 @@ is performed on other column elements using the value 10 (excluding the missing 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 5. mul(other, axis = 'columns', level = None, fill_value = None)
+### 6. mul(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -965,7 +1029,7 @@ perform multiplication operation along the indices or by column labels. (Default
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
 When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
 the result will be missing (contains NaNs).   
-s
+
 __Purpose__  
 It performs multiplication operation between two dataframes or dtaframe and scalar value. It is 
 equivalent to **'dataframe * other'**.  
@@ -1172,7 +1236,7 @@ column elements are multiplied with the value 10 (excluding the missing values) 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 6. pow(other, axis = 'columns', level = None, fill_value = None)
+### 7. pow(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -1402,7 +1466,7 @@ the value 10 (excluding the missing values) in resultant dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 7. sub(other, axis = 'columns', level = None, fill_value = None)
+### 8. sub(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -1630,7 +1694,7 @@ column elements are subtracted with the value 10 (excluding the missing values) 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 8. truediv(other, axis = 'columns', level = None, fill_value = None)
+### 9. truediv(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -1858,8 +1922,7 @@ column elements are divided with the value 10 (excluding the missing values) in 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-
-### 9. radd(other, axis = 'columns', level = None, fill_value = None)  
+### 10. radd(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -2066,8 +2129,7 @@ is added to both column values in the dataframe (excluding the missing values) a
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-
-### 10. rdiv(other, axis = 'columns', level = None, fill_value = None)  
+### 11. rdiv(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -2275,7 +2337,7 @@ is used to divide over column values in other dataframe (excluding the missing v
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 11. rfloordiv(other, axis = 'columns', level = None, fill_value = None)
+### 12. rfloordiv(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -2482,7 +2544,7 @@ is used to divide over column values in other dataframe (excluding the missing v
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 12. rmod(other, axis = 'columns', level = None, fill_value = None)  
+### 13. rmod(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -2689,7 +2751,7 @@ and stored in new dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 13. rmul(other, axis = 'columns', level = None, fill_value = None)  
+### 14. rmul(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -2897,7 +2959,7 @@ stored in new dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 14. rpow(other, axis = 'columns', level = None, fill_value = None)  
+### 15. rpow(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -3106,7 +3168,7 @@ in other dataframe (excluding the missing values) and stored in new dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 15. rsub(other, axis = 'columns', level = None, fill_value = None)  
+### 16. rsub(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -3132,7 +3194,7 @@ __Purpose__
 It performs reverse subtraction operation between two dataframes or dataframe and scalar value. It is 
 equivalent to **'other - dataframe'**.  
 
-**Currently, it does not perform reverse subtraction of scalar using operator version. Only method version is supported.*8  
+**Currently, it does not perform reverse subtraction of scalar using operator version. Only method version is supported.**  
 
 For example,  
 
@@ -3313,7 +3375,7 @@ stored in new dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 16. rtruediv(other, axis = 'columns', level = None, fill_value = None)  
+### 17. rtruediv(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -3521,8 +3583,8 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 # SEE ALSO
 
-- **[DataFrame - Introduction](./DataFrame_Introduction.md)**  
-- **[DataFrame - Selection and Combinations](./DataFrame_SelectionAndCombinations.md)**  
-- **[DataFrame - Conversion, Missing data handling, Sorting Functions](./DataFrame_ConversionAndSorting.md)**  
-- **[DataFrame - Function Application, Groupby](./DataFrame_FunctionApplicationGroupby.md)**  
-- **[DataFrame - Aggregate Functions](./DataFrame_AggregateFunctions.md)**  
+- **[DataFrame - Introduction](./df_intro.md)**  
+- **[DataFrame - Generic Functions](./df_generic_func.md)**  
+- **[DataFrame - Conversion Functions](./df_conversion.md)**  
+- **[DataFrame - Sorting Functions](./df_sorting.md)**  
+- **[DataFrame - Aggregate Functions](./df_agg_func.md)**   

@@ -1,25 +1,32 @@
 % FrovedisGroupedDataFrame Aggregate Functions
   
-# NAME
+# NAME  
 
 FrovedisGroupedDataFrame Aggregate Functions - aggregate operations performed on grouped dataframe are being illustrated here.  
   
-## SYNOPSIS  
-    
-    frovedis.dataframe.grouped_df.FrovedisGroupedDataframe(df = None)  
-  
+## DESCRIPTION  
+
+Once FrovedisGroupedDataframe instance is created, several aggregation operations can be performed on it such as max(), min(), sem(), var(), etc.  
+
+The aggregation operation will basically compute summary for each group. Some examples:  
+- Compute group sums or means.  
+- Compute group sizes / counts.  
+
+Also, aggregation functions can be chained along with groupby() calls in frovedis.  
+
 ## Public Member Functions  
 
     1. agg(func, \*args, \*\*kwargs)
     2. aggregate(func, \*args, \*\*kwargs)
     3. count(numeric_only = True)
-    4. max(numeric_only = True, min_count = -1)
-    5. mean(numeric_only = True)
-    6. min(numeric_only = True, min_count = -1)
-    7. sem(ddof = 1.0)
-    8. size(numeric_only = True)
-    9. sum(numeric_only = True, min_count = 0)
-    10. var(ddof = 1.0)
+    4. groupby()
+    5. max(numeric_only = True, min_count = -1)
+    6. mean(numeric_only = True)
+    7. min(numeric_only = True, min_count = -1)
+    8. sem(ddof = 1.0)
+    9. size(numeric_only = True)
+    10. sum(numeric_only = True, min_count = 0)
+    11. var(ddof = 1.0)
 
 ## Detailed Description  
   
@@ -270,7 +277,106 @@ of groups **'B.Tech'** and **'Phd'**.
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 4. max(numeric_only = True, min_count = -1)  
+### 4. groupby(by = None, axis = 0, level = None, as_index = True, sort = True, group_keys = True, squeeze = False, observed = False, dropna = True)  
+
+__Parameters__  
+**_by_**: It accepts a string object or an iterable to determine the groups on which groupby operation will 
+be applied. Currently, gropuby operation will be applied along the index levels. It must be provided, otherwise 
+it will raise an exception. (Default: None)  
+**_axis_**: It accepts an integer as parameter. It is used to decide whether to perform groupby operation along 
+the indices or by column labels. (Default: 0)  
+**Currently, axis = 0 is supported by this method.**  
+**_level_**: This is an unused parameter. (Default: None)  
+_**as\_index**_: This is an unused parameter. (Default: True)  
+_**sort**_: This is an unused parameter. (Default: True)  
+_**group\_keys**_: This is an unused parameter. (Default: True)  
+_**squeeze**_: This is an unused parameter. (Default: False)  
+_**observed**_: This is an unused parameter. (Default: False)  
+_**dropna**_: It accepts a boolean parameter. It is used to remove missing values (NaNs) from the frovedis 
+DataFrame during groupby operation. Currently, it removes missing values along the index levels. (Default: True)  
+
+__Purpose__  
+This method can be used to group large amounts of data and compute operations on these groups.  
+
+The parameters: "level", "as_index", "sort", "group_keys", "squeeze" and "observed" is simply kept in to make the interface uniform to the pandas DataFrame.groupby(). This is not used anywhere within the frovedis implementation.  
+
+For example,  
+
+    import pandas as pd
+    import numpy as np
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    peopleDF = {
+                'Name': ['Jai', 'Anuj', 'Jai', 'Princi', 'Gaurav', 'Anuj', 'Princi', 'Abhi'],
+                'Age': [27, 24, 22, 32, 33, 36, 27, 32],
+                'City': ['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad', 
+                         'Kanpur', 'Kanpur', 'Kanpur'],
+                'Qualification': ['B.Tech', 'Phd', 'B.Tech', np.nan, 'Phd', 'B.Tech', 'Phd', np.nan],
+                'Score': [23, 34, 35, 45, np.nan, 50, 52, np.nan]
+               }
+
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(peopleDF)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+        
+Output  
+
+    index   Name    Age   City       Qualification  Score
+    0       Jai     27    Nagpur     B.Tech         23
+    1       Anuj    24    Kanpur     Phd            34
+    2       Jai     22    Allahabad  B.Tech         35
+    3       Princi  32    Kannuaj    NULL           45
+    4       Gaurav  33    Allahabad  Phd            NULL
+    5       Anuj    36    Kanpur     B.Tech         50
+    6       Princi  27    Kanpur     Phd            52
+    7       Abhi    32    Kanpur     NULL           NULL
+
+For example,  
+
+    # groupby() demo
+    fdf1.groupby('Qualification')
+    
+This will perform groupby operation on the dataframe over **'Qualification'** column data.  
+
+For example,  
+
+    # groupby() demo to perform aggregation on resultant grouped dataframe
+    # Also, dropna = True by default
+    fdf1.groupby('Qualification', dropna = True).agg({'Score': 'count'})
+
+Output  
+
+    Qualification   count_Score
+    B.Tech  3
+    Phd     2
+    
+Here, it excludes **NULL** group since missing values were dropped during groupby().  
+
+For example,  
+
+    # groupby() demo to perform aggregation on resultant grouped dataframe
+    # Also, dropna = False
+    fdf1.groupby('Qualification', dropna = False).agg({'Score': 'count'})
+
+Output  
+
+    Qualification   count_Score
+    B.Tech  3
+    Phd     2
+    NULL    1
+    
+Here, it includes **NULL** as new group since missing values were not dropped during groupby().  
+
+__Return Value__  
+It returns a FrovedisGroupedDataFrame instance. This instance is then further used to perform aggregate operations.  
+
+### 5. max(numeric_only = True, min_count = -1)  
 
 __Parameters__  
 **_numeric\_only_**: It accepts a boolean parameter that specifies whether or not to use only numeric 
@@ -338,7 +444,7 @@ It displays a frovedis dataframe containing numeric column(s) with newly compute
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 5. mean(numeric_only = True)  
+### 6. mean(numeric_only = True)  
  
 __Parameters__  
 **_numeric\_only_**: It accepts a boolean parameter that specifies whether or not to use only numeric 
@@ -404,7 +510,7 @@ of groups **'B.Tech'** and **'Phd'**.
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 6. min(numeric_only = True, min_count = -1)  
+### 7. min(numeric_only = True, min_count = -1)  
 
 __Parameters__  
 **_numeric\_only_**: It accepts a boolean parameter that specifies whether or not to use only numeric 
@@ -471,7 +577,7 @@ It displays a frovedis dataframe containing numeric column(s) with newly compute
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 7. sem(ddof = 1.0)  
+### 8. sem(ddof = 1.0)  
 
 __Parameters__  
 **_ddof_**: It accepts an integer parameter that specifies the delta degrees of freedom. (Default: 1.0)  
@@ -548,7 +654,7 @@ Output
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 8. size(numeric_only = True)  
+### 9. size(numeric_only = True)  
 
 __Parameters__  
 **_numeric\_only_**: It accepts a boolean parameter that specifies whether or not to use only numeric 
@@ -611,7 +717,7 @@ Also, it does not exclude the missings values while computing group size.
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 9. sum(numeric_only = True, min_count = 0)  
+### 10. sum(numeric_only = True, min_count = 0)  
 
 __Parameters__  
 **_numeric\_only_**: It accepts a boolean parameter that specifies whether or not to use only numeric 
@@ -678,7 +784,7 @@ It displays a frovedis dataframe containing numeric column(s) with newly compute
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 10. var(ddof = 1.0)  
+### 11. var(ddof = 1.0)  
 
 __Parameters__  
 **_ddof_**: It accepts an integer parameter that specifies the delta degrees of freedom. (Default: 1.0)  
@@ -755,7 +861,7 @@ Output
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-# SEE ALSO
+# SEE ALSO  
 
-- **[Introduction to FrovedisGroupedDataFrame](./Grouped_Dataframe_Introduction.md)**  
-- **[Introduction to frovedis DataFrame](./DataFrame_Introduction.md)**  
+- **[Introduction to FrovedisGroupedDataFrame](./grouped_df_intro.md)**  
+- **[Introduction to frovedis DataFrame](./df_intro.md)**  

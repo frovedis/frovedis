@@ -1,41 +1,53 @@
-% DataFrame  Selection and Combinations Functions
+% DataFrame Generic Functions
   
 # NAME
   
-DataFrame Selection and Combinations Functions - the functions used for selection and combinations are illustrated here.  
+DataFrame Generic Functions - it contains list of all generally used functions with frovedis dataframe.  
   
-## SYNOPSIS  
+## DESCRIPTION  
   
-    frovedis.dataframe.df.DataFrame(df = None, is_series = False)  
+Frovedis dataframe provides various functions which are generally/frequently used with it to perform operations:
+- Selecting / Filtering / Modifying data in frovedis dataframe.
+- Combining two frovedis dataframes.
+- Dropping data from rows or columns ina frovedis dataframe.
+- Display frovedis dataframe (full/partially)
 
 ## Public Member Functions  
     1. add_index(name)
     2. append(other, ignore_index = False, verify_integrity = False, sort = False)
-    3. between(left, right, inclusive="both")
-    4. drop(labels = None, axis = 0, index = None, columns = None, level = None, 
+    3. astype(dtype, copy = True, errors = 'raise', check_bool_like_string = False)
+    4. between(left, right, inclusive="both")
+    5. copy(deep = True)
+    6. countna()
+    7. describe()        
+    8. drop(labels = None, axis = 0, index = None, columns = None, level = None, 
             inplace = False, errors = 'raise')
-    5. drop_cols(targets, inplace = False)
-    6. drop_duplicates(subset = None, keep = 'first', inplace = False, ignore_index = False)
-    7. drop_rows(targets, inplace = False)
-    8. filter(items = None, like = None, regex = None, axis = None)
-    9. get_index_loc(value)
-    10. head(n = 5)
-    11. insert(loc, column, value, allow_duplicates = False)
-    12. join(right, on, how = 'inner', lsuffix = '\_left', rsuffix = '\_right', 
+    9. drop_cols(targets, inplace = False)
+    10. drop_duplicates(subset = None, keep = 'first', inplace = False, ignore_index = False)
+    11. dropna(axis = 0, how = 'any', thresh = None, subset = None, inplace = False)
+    12. drop_rows(targets, inplace = False)
+    13. fillna(value = None, method = None, axis = None, inplace = False, limit = None, downcast = None)
+    14. filter(items = None, like = None, regex = None, axis = None)
+    15. get_index_loc(value)
+    16. head(n = 5)
+    17. insert(loc, column, value, allow_duplicates = False)
+    18. isna()
+    19. isnull()
+    20. join(right, on, how = 'inner', lsuffix = '_left', rsuffix = '_right', 
              sort = False, join_type = 'bcast')
-    13. merge(right, on = None, how = 'inner', left_on = None, right_on = None, 
-              left_index = False, right_index = False, sort = False, suffixes = ('\_x', '\_y'), 
+    21. merge(right, on = None, how = 'inner', left_on = None, right_on = None, 
+              left_index = False, right_index = False, sort = False, suffixes = ('_x', '_y'), 
               copy = True, indicator = False, join_type = 'bcast')
-    14. rename(columns, inplace = False)
-    15. rename_index(new_name, inplace = False)
-    16. reset_index(drop = False, inplace = False)
-    17. set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
-    18. show()
-    19. tail(n = 5)
-    20. update_index(value, key = None, verify_integrity = False, inplace = False) 
+    22. rename(columns, inplace = False)
+    23. rename_index(new_name, inplace = False)
+    24. reset_index(drop = False, inplace = False)
+    25. set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
+    26. show()
+    27. tail(n = 5)
+    28. update_index(value, key = None, verify_integrity = False, inplace = False) 
 
 ## Detailed Description   
-  
+
 ### 1. add_index(name)  
 
 __Parameters__  
@@ -60,7 +72,7 @@ For example:
 	# create a pandas dataframe
     pd_df = pd.DataFrame(peopleDF)
     
-	# create a frovedis dataFrame
+	# create a frovedis dataframe
     fd_df = fdf.DataFrame(pd_df)
 	
     # display the frovedis dataframe
@@ -87,7 +99,7 @@ Output,
 
 __Return Value__  
 It returns a self reference.  
-  
+
 ### 2. append(other, ignore_index = False, verify_integrity = False, sort = False)   
 
 __Parameters__  
@@ -109,7 +121,7 @@ For example:
     # creating a pandas dataframe
     pd_df1 = pd.DataFrame([[1, 2], [3, 4]], columns = list('AB'), index = ['x', 'y'])
 	
-    # create a frovedis dataframe from pandas dataframe
+    # create a frovedis dataframe
     fd_df1 = fdf.DataFrame(pd_df1)
     
     # display frovedis dataframe
@@ -279,7 +291,152 @@ Output,
 __Return Value__  
 It returns a new Frovedis DataFrame consisting of the rows of original DataFrame object and the rows of other DataFrame object.  
 
-### 3. between(left, right, inclusive = "both")  
+### 3. astype(dtype, copy = True, errors = 'raise', check_bool_like_string = False)  
+
+__Parameters__  
+**_dtype_**: It accepts a string, numpy.dtype or a dict of column labels to cast entire DataFrame object to same type or one or more columns to column-specific types.  
+**_copy_**: It accepts a boolean parameter and returns a new DataFrame object when it is True. Currently this parameter will always return a copy. The original DataFrame is not modified. (Default: True)  
+**_errors_**: This is an unused parameter. (Default: 'raise')  
+**_check\_bool\_like\_string_**: A boolean parameter which when set to True will cast string columns having boolean like case-insensitive strings (True, False, yes, No, On, Off, Y, N, T, F) to boolean columns. (Default: False)  
+
+__Purpose__  
+It cast an entire Frovedis DataFrame or selected columns of Frovedis DataFrame to the specified dtype.  
+
+The parameter: "errors" is simply kept in to make the interface uniform to the pandas DataFrame.astype().  
+This is not used anywhere within the frovedis implementation.  
+
+For example,  
+
+    # example of using astype on a particular column
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+
+	# a dictionary
+	peopleDF = {
+				'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'],
+				'Age' : [29, 30, 27, 19, 31],
+				'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
+				'isMale': [False, False, False, False, True]
+			   }
+	# converting to pandas dataframe  
+	pd_df = pd.DataFrame(peopleDF)
+	# converting to frovedis dataframe
+	fd_df = fdf.DataFrame(pd_df)
+	
+	# display the datatype of object
+	print(fd_df.dtypes)
+    
+    # display the datatype of object after conversion of 'Age' column
+	print(fd_df.astype({'Age':'int32'}).dtypes)
+    
+Output  
+
+	Ename      object
+	Age         int64
+	Country    object
+	isMale       bool
+	dtype: object
+	
+	Ename      object
+	Age         int32
+	Country    object
+	isMale      int32
+	dtype: object
+
+For example,  
+
+	# example of using astype on object as a whole
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+	# creating a dataFrame
+	pd_df =  pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+	fd_df1 = fdf.DataFrame(pf1)
+	
+    # displaying dataframe
+	print(fd_df1.dtypes)
+
+	# cast all columns to int32:
+	fd_df2 = fd_df1.astype('int32')
+    
+    # display dataframe after conversion
+	print(fd_df2.dtypes)
+    
+Output  
+
+	col1    int64
+	col2    int64
+	dtype: object
+	
+	col1    int32
+	col2    int32
+	dtype: object
+
+For example,  
+
+    # example with parameter 'check_bool_like_string'
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+
+	# a dictionary
+	peopleDF = {
+				'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'],
+				'Age' : [29, 30, 27, 19, 31],
+				'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
+				'isMale': ['F', 'No', 'Off', False, 'Y']
+			   }
+	# converting to pandas dataframe  
+	pd_df = pd.DataFrame(peopleDF)
+	# converting to frovedis dataframe
+	fd_df = fdf.DataFrame(pd_df)
+    
+    # display the dataframes
+    fd_df.show()
+    
+    # display the datatype
+	print(fd_df.dtypes)
+    
+    # display the dataframes
+    fd_df.astype({'isMale':'bool'}, check_bool_like_string = True).show()
+    
+    # display the datatype
+    print(fd_df.astype({'isMale':'bool'}, check_bool_like_string = True).dtypes)
+    
+Output  
+
+	index   Ename   Age     Country isMale
+    0       Michael 29      USA     F
+    1       Andy    30      England No
+    2       Tanaka  27      Japan   Off
+    3       Raul    19      France  False
+    4       Yuta    31      Japan   Y
+    
+    Ename      object
+    Age         int64
+    Country    object
+    isMale     object
+    dtype: object
+    
+    index   Ename   Age     Country isMale
+    0       Michael 29      USA     0
+    1       Andy    30      England 0
+    2       Tanaka  27      Japan   0
+    3       Raul    19      France  0
+    4       Yuta    31      Japan   1
+    
+    Ename      object
+    Age         int64
+    Country    object
+    isMale       bool
+    dtype: object
+
+__Return Value__  
+It returns a new DataFrame object with dtype converted as specified.  
+
+### 4. between(left, right, inclusive = "both")  
 
 __Parameters__  
 **_left_**: It accepts scalar values as parameter.  
@@ -295,7 +452,7 @@ bounds as open or closed. (Default: 'both')
 __Purpose__  
 This method performs filtering of rows according to the specified bound over a single column at a time.  
 
-**Currently, this medthod filters data for numeric column data only.**  
+**Currently, this method filters data for numeric column data only.**  
 
 For example,  
 
@@ -409,7 +566,233 @@ Output
 __Return Value__  
 It returns a dfoperator instance.  
 
-### 4. drop(labels = None, axis = 0, index = None, columns = None, level = None, inplace = False, errors = 'raise')  
+### 5. copy(deep = True)  
+
+__Parameters__  
+**_deep_**: A boolean parameter to decide the type of copy operation. When this parameter is True, it creates a deep copy i.e. the copy includes copy of the original DataFrame's data and the indices. Currently this parameter doesn't support shallow copy (deep = False). (Default: True)  
+  
+__Purpose__  
+It creates a deep copy of the Frovedis DataFrame object’s indices and data.  
+
+For example,  
+
+	# example to create a deep copy and changes on copy doesn't affect original object
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+	peopleDF = {
+				'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'],
+				'Age' : [29, 30, 27, 19, 31],
+				'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
+				'isMale': [False, False, False, False, True]
+			   }
+	pd_df = pd.DataFrame(peopleDF)
+	fd_df = fdf.DataFrame(pd_df)
+    
+	# creating a deep copy
+	fd_df_copy = fd_df.copy()
+	
+    print('displaying original dataframe object')
+	fd_df.show()
+	
+    print('displaying copied dataframe object')
+	fd_df_copy.show()
+    
+    # changing column Age to Age2 for the copied object
+    fd_df_copy.rename({'Age':'Age2', inplace = True}
+    
+    print('displaying original dataframe object')
+	fd_df.show()
+	
+    print('displaying copied dataframe object')
+	fd_df_copy.show()
+    
+Output  
+
+    displaying original dataframe object
+	index   Ename   Age     Country isMale
+	0       Michael 29      USA     0
+	1       Andy    30      England 0
+	2       Tanaka  27      Japan   0
+	3       Raul    19      France  0
+	4       Yuta    31      Japan   1
+
+	displaying copied dataframe object
+    index   Ename   Age     Country isMale
+	0       Michael 29      USA     0
+	1       Andy    30      England 0
+	2       Tanaka  27      Japan   0
+	3       Raul    19      France  0
+	4       Yuta    31      Japan   1
+    
+    displaying original dataframe object
+	index   Ename   Age     Country isMale
+	0       Michael 29      USA     0
+	1       Andy    30      England 0
+	2       Tanaka  27      Japan   0
+	3       Raul    19      France  0
+	4       Yuta    31      Japan   1
+
+	displaying copied dataframe object
+    index   Ename   Age2     Country isMale
+	0       Michael 29      USA     0
+	1       Andy    30      England 0
+	2       Tanaka  27      Japan   0
+	3       Raul    19      France  0
+	4       Yuta    31      Japan   1
+
+**NOTE: changes are reflected only in copied DataFrame instance but not in original DataFrame instance.**  
+
+__Return Value__  
+It returns a deep copy of the DataFrame object of the same type.  
+
+### 6. countna(axis = 0)  
+
+__Parameters__  
+**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
+count missing values along the indices or by column labels. (Default: 0)  
+- **0 or 'index'**: count missing values along the indices.  
+- **1 or 'columns'**: count missing values along the columns.  
+
+__Purpose__  
+It counts number of missing values in the given axis.  
+
+For example,  
+
+    import pandas as pd
+    import numpy as np
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    peopleDF = {
+                'Name':['Jai', 'Anuj', 'Jai', 'Princi', 'Gaurav', 'Anuj', 'Princi', 'Abhi'],
+                'Age':[27, 24, 22, 32, 33, 36, 27, 32],
+                'City':['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad', 
+                        'Kanpur', 'Kanpur', 'Kanpur'],
+                'Qualification':['B.Tech', 'Phd', 'B.Tech', 'Phd', 'Phd', 'B.Tech', 'Phd', 'B.Tech'],
+                'Score': [23, 34, 35, 45, np.nan, 50, 52, np.nan]
+                }
+    
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(peopleDF)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output
+
+    index   Name    Age     City       Qualification  Score
+    0       Jai     27      Nagpur     B.Tech         23
+    1       Anuj    24      Kanpur     Phd            34
+    2       Jai     22      Allahabad  B.Tech         35
+    3       Princi  32      Kannuaj    Phd            45
+    4       Gaurav  33      Allahabad  Phd            NULL
+    5       Anuj    36      Kanpur     B.Tech         50
+    6       Princi  27      Kanpur     Phd            52
+    7       Abhi    32      Kanpur     B.Tech         NULL
+
+For example,
+
+    # countna() demo
+    fdf1.countna().show()
+
+Output
+
+    index   count
+    Name    0
+    Age     0
+    City    0
+    Qualification   0
+    Score   2
+    
+For example,
+
+    # countna() demo using axis = 1
+    fdf1.countna(axis = 1).show()
+    
+Output
+
+    index   count
+    0       0
+    1       0
+    2       0
+    3       0
+    4       1
+    5       0
+    6       0
+    7       1
+
+__Return Value__  
+It returns a frovedis DataFrame instance.  
+
+### 7. describe()  
+
+__Purpose__  
+It generates descriptive statistics. Descriptive statistics include count, mean, median, etc, excluding missing values.  
+
+For example,  
+
+    import pandas as pd
+    import numpy as np
+    import frovedis.dataframe as fdf
+    
+    # a dictionary
+    peopleDF = {
+                'Name':['Jai', 'Anuj', 'Jai', 'Princi', 'Gaurav', 'Anuj', 'Princi', 'Abhi'],
+                'Age':[27, 24, 22, 32, 33, 36, 27, 32],
+                'City':['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad', 
+                        'Kanpur', 'Kanpur', 'Kanpur'],
+                'Qualification':['B.Tech', 'Phd', 'B.Tech', 'Phd', 'Phd', 'B.Tech', 'Phd', 'B.Tech'],
+                'Score': [23, 34, 35, 45, np.nan, 50, 52, np.nan]
+                }
+    
+    # create pandas dataframe
+    pdf1 = pd.DataFrame(peopleDF)
+    
+    # create frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf1)
+    
+    # display the frovedis dataframe
+    fdf1.show()
+
+Output  
+
+    index   Name    Age     City       Qualification  Score
+    0       Jai     27      Nagpur     B.Tech         23
+    1       Anuj    24      Kanpur     Phd            34
+    2       Jai     22      Allahabad  B.Tech         35
+    3       Princi  32      Kannuaj    Phd            45
+    4       Gaurav  33      Allahabad  Phd            NULL
+    5       Anuj    36      Kanpur     B.Tech         50
+    6       Princi  27      Kanpur     Phd            52
+    7       Abhi    32      Kanpur     B.Tech         NULL
+
+For example,  
+
+    print(fdf1.describe())
+
+Output  
+
+                   Age       Score
+    count     8.000000    6.000000
+    mean     29.125000   39.833333
+    median   29.500000   40.000000
+    var      23.553571  123.766667
+    mad       4.125000    9.166667
+    std       4.853202   11.125047
+    sem       1.715866    4.541781
+    sum     233.000000  239.000000
+    min      22.000000   23.000000
+    max      36.000000   52.000000
+
+__Return Value__  
+It returns a pandas DataFrame instance with the result of the specified aggregate operation.  
+
+### 8. drop(labels = None, axis = 0, index = None, columns = None, level = None, inplace = False, errors = 'raise')  
 
 __Parameters__  
 **_labels_**: It takes an integer or string type as argument. It represents column labels and integer represent index values of rows to be dropped. If any of the label is not found in the selected axis, it will raise an exception. (Default: None)  
@@ -438,10 +821,11 @@ For example:
     import numpy as np
     import frovedis.dataframe as fdf
     
-    pd_df = pd.DataFrame(np.arange(12).reshape(3, 4),
-                      columns = ['A', 'B', 'C', 'D'])
+    pd_df = pd.DataFrame(np.arange(12).reshape(3, 4), columns = ['A', 'B', 'C', 'D'])
     
+    # creating a frovedis dataframe
     fd_df = fdf.DataFrame(pd_df).
+    
     # display frovedis dataframe
     fd_df.show()
     
@@ -468,9 +852,12 @@ For example:
     import numpy as np
     import frovedis.dataframe as fdf
     
-    pd_df = pd.DataFrame(np.arange(12).reshape(3, 4),
-                      columns = ['A', 'B', 'C', 'D'])
+    pd_df = pd.DataFrame(np.arange(12).reshape(3, 4), columns = ['A', 'B', 'C', 'D'])
+    
+    # creating a frovedis dataframe
     fd_df = fdf.DataFrame(pd_df)
+    
+    #display 
     fd_df.show()   
     
     fd_df.drop(columns = ['B', 'C']).show()
@@ -517,7 +904,7 @@ __Return Value__
 1. It returns a new of Frovedis DataFrame having remaining entries.  
 2. It returns None when parameter 'inplace' = True.  
 
-### 5. drop_cols(targets, inplace = False)
+### 9. drop_cols(targets, inplace = False)
 
 __Parameters__  
 **_targets_**: It accepts a string or a list of strings as parameter. It is list of names of column labels to drop from the dataframe.  
@@ -618,7 +1005,7 @@ __Return Value__
 1. It returns a new of Frovedis DataFrame having remaining entries.  
 2. It returns None when parameter 'inplace' = True.  
 
-### 6. drop_duplicates(subset = None, keep = 'first', inplace = False, ignore_index = False)
+### 10. drop_duplicates(subset = None, keep = 'first', inplace = False, ignore_index = False)
 
 __Parameters__  
 **_subset_**:  It accepts a string object or a list of strings which only consider certain columns for identifying duplicates. (Default: None)  
@@ -735,7 +1122,236 @@ __Return Value__
 1. It returns a new of Frovedis DataFrame having remaining entries.  
 2. It returns None when parameter 'inplace' = True.  
 
-### 7. drop_rows(targets, inplace = False)
+### 11. dropna(axis = 0, how = 'any', thresh = None, subset = None, inplace = False)  
+
+__Parameters__  
+**_axis_**: It accepts an integer value that can be 0 or 1. This parameter is used to determine whether rows or columns containing missing values are to be removed. (Default: 0)  
+    - 0 : Drop rows which contain missing values.  
+    - 1 : Drop columns which contain missing values.  
+**_how_**: It accepts a string object to determine if row or column is removed from DataFrame, when we have at least one 'NaN' or all 'NaN'. (Default: 'any')  
+    - 'any' : If any NaN values are present, drop that row or column.  
+    - 'all' : If all values are NaN, drop that row or column.  
+**_thresh_**: It accepts an integer as parameter which is the number of NaN values required for rows/columns to be dropped. (Default: None)  
+**_subset_**: It accepts a python ndarray. It is the name of the labels along the other axis which is being considered.  
+For example, if you are dropping rows, then these would be a list of columns. (Default: None)  
+**_inplace_**: This parameter accepts a boolean value. When it is set to True, then it performs operation on the original Frovedis DataFrame object itself otherwise operation is performed on a new Frovedis DataFrame object. (Default: False)  
+
+__Purpose__  
+It is used to remove missing values from the Frovedis DataFrame.  
+
+For example,  
+
+	# example of using dropna with default values
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+	# creating a pandas dataframe
+	pd_df = pd.DataFrame({"name": ['Alfred', 'Batman', 'Catwoman'],
+					   "toy": [np.nan, 'Batmobile', 'Bullwhip'],
+					   "born": [np.nan, "1940-04-25", np.nan]})
+	
+    # creating a frovedis dataframe from pandas dataframe
+	fd_df = fdf.DataFrame(pd_df)
+	
+    # display frovedis dataframe
+	print("Before dropping nan values")
+	fd_df.show()
+	
+	# drop the rows where at least one element is missing.
+	print("After dropping nan values")
+	fd_df.dropna().show()
+    
+Output  
+
+	Before dropping nan values
+	index   name            toy             born
+	0       Alfred          NULL            NULL
+	1       Batman          Batmobile       1940-04-25
+	2       Catwoman        Bullwhip        NULL
+
+	After dropping nan values
+	index   name    toy             born
+	1       Batman  Batmobile       1940-04-25
+
+For example,  
+
+    # example of using dropna along axis = 1
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+	# creating a pandas dataframe
+	pd_df = pd.DataFrame({"name": ['Alfred', 'Batman', 'Catwoman'],
+					   "toy": [np.nan, 'Batmobile', 'Bullwhip'],
+					   "born": [np.nan, "1940-04-25", np.nan]})
+	
+    # creating a frovedis dataframe from pandas dataframe
+	fd_df = fdf.DataFrame(pd_df)
+	
+    # display frovedis dataframe
+	print("Before dropping nan values")
+	fd_df.show()
+    
+	# drop the columns where at least one nan value is present
+	fd_df.dropna(axis=1)
+    
+Output  
+	
+	Before dropping nan values
+	index   name            toy             born
+	0       Alfred          NULL            NULL
+	1       Batman          Batmobile       1940-04-25
+	2       Catwoman        Bullwhip        NULL
+    
+    index   name
+	0       Alfred
+	1       Batman
+	2       Catwoman
+
+For example,  
+
+	# example of using dropna with parameter 'how' = 'all'
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+	# creating a pandas dataframe
+	pd_df = pd.DataFrame({"name": [np.nan, 'Batman', 'Catwoman'],
+					   "toy": [np.nan, 'Batmobile', 'Bullwhip'],
+					   "born": [np.nan, "1940-04-25", np.nan]})
+	
+    # creating a frovedis dataframe from pandas dataframe
+	fd_df = fdf.DataFrame(pd_df)
+	
+    # display frovedis dataframe
+	print("Before dropping nan values")
+	fd_df.show()
+    
+    # drop the rows where all elements are missing.
+	fd_df.dropna(how='all').show()
+    
+Output  
+
+	Before dropping nan values
+	index   name            toy             born
+	0       NULL            NULL            NULL
+	1       Batman          Batmobile       1940-04-25
+	2       Catwoman        Bullwhip        NULL
+    
+    index   name            toy             born
+	1       Batman          Batmobile       1940-04-25
+	2       Catwoman        Bullwhip        NULL
+
+For example,  
+
+    # example of using drop with parameter 'thresh'
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+	# creating a pandas dataframe
+	pd_df = pd.DataFrame({"name": ['Alfred', 'Batman', 'Catwoman'],
+					   "toy": [np.nan, 'Batmobile', 'Bullwhip'],
+					   "born": [np.nan, "1940-04-25", np.nan]})
+	
+    # creating a frovedis dataframe from pandas dataframe
+	fd_df = fdf.DataFrame(pd_df)
+    
+	# display frovedis dataframe
+	print("Before dropping nan values")
+	fd_df.show()
+
+	# to keep only rows with at least 2 non-NA values.
+	fd_df.dropna(thresh=2).show()
+
+Output  
+
+	Before dropping nan values
+	index   name            toy             born
+	0       Alfred          NULL            NULL
+	1       Batman          Batmobile       1940-04-25
+	2       Catwoman        Bullwhip        NULL
+    
+    index   name            toy             born
+	1       Batman          Batmobile       1940-04-25
+	2       Catwoman        Bullwhip        NULL
+
+**NOTE: Since row 0 had 2 NaN values, so it was dropped, but other rows are not dropped.**
+    
+For example,  
+
+    # example of using dropna with parameter 'subset'
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+	# creating a pandas dataframe
+	pd_df = pd.DataFrame({"name": ['Alfred', 'Batman', 'Catwoman'],
+					   "toy": [np.nan, 'Batmobile', 'Bullwhip'],
+					   "born": [np.nan, "1940-04-25", np.nan]})
+                       
+	# creating a frovedis dataframe from pandas dataframe
+	fd_df = fdf.DataFrame(pd_df)
+    
+	# display frovedis dataframe
+	print("Before dropping nan values")
+	fd_df.show()
+    
+	# to drop missing values only from specified columns
+	fd_df.dropna(subset=[1, 2], axis = 1).show()
+    
+Output  
+    
+    Before dropping nan values
+	index   name            toy             born
+	0       Alfred          NULL            NULL
+	1       Batman          Batmobile       1940-04-25
+	2       Catwoman        Bullwhip        NULL
+    
+	index   name            toy
+    0       Alfred          NULL
+    1       Batman          Batmobile
+    2       Catwoman        Bullwhip
+
+For example,  
+
+    # example of using dropna with parameter 'inplace' = True
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+	# creating a pandas dataframe
+	pd_df = pd.DataFrame({"name": ['Alfred', 'Batman', 'Catwoman'],
+					   "toy": [np.nan, 'Batmobile', 'Bullwhip'],
+					   "born": [np.nan, "1940-04-25", np.nan]})
+	# creating a frovedis dataframe from pandas dataframe
+	fd_df = fdf.DataFrame(pd_df)
+    
+	# display frovedis dataframe
+	print("Before dropping nan values")
+	fd_df.show()
+
+	# to modify the original dataframe having only valid entries
+	fd_df.dropna(inplace=True)
+	fd_df.show()
+    
+Output  
+	
+	Before dropping nan values
+	index   name            toy     born
+	0       Alfred          NULL    NULL
+	1       Batman          Batmobile       1940-04-25
+	2       Catwoman        Bullwhip        NULL
+    
+    index   name    toy             born
+	1       Batman  Batmobile       1940-04-25
+
+__Return Value__  
+1. If inplace = False, it returns a new Frovedis DataFrame with NA entries dropped.  
+2. If inplace = True, it returns None.  
+
+### 12. drop_rows(targets, inplace = False)
 
 __Parameters__  
 **_targets_**: It accepts a integer or string type as parameter. It is the name of the indices to drop from the dataframe.  
@@ -832,7 +1448,99 @@ __Return Value__
 1. It returns a new of Frovedis DataFrame having remaining entries.  
 2. It returns None when parameter 'inplace' = True.  
 
-### 8. filter(items = None, like = None, regex = None, axis = None)
+### 13. fillna(value = None, method = None, axis = None, inplace = False, limit = None, downcast = None)  
+ 
+__Parameters__  
+**_value_**: It accepts a numeric type as parameter which is used to replace all NA values (e.g. 0, NULL). (Default: None)  
+When it is None (not specified explicitly), it must be NaN value or numeric, non-numeric value otherwise it will raise an exception.  
+**_method_**: This is an unused parameter. (Default: None)  
+**_axis_**: It accepts an integer or string object as parameter. It decides the axis along which missing values will be filled. (Default: None)  
+- 0 or 'index': Operation will be carried out on rows. Currently only axis = 0 is supported in Frovedis DataFrame.   
+**_inplace_**: This parameter accepts a boolean value. When it is set to True, then it performs operation on the original Frovedis DataFrame object itself otherwise operation is performed on a new Frovedis DataFrame object. (Default: False)  
+**_limit_**: This is an unused parameter. (Default: None)  
+**_downcast_**: This is an unused parameter. (Default: None)  
+
+__Purpose__  
+It replaces NA/NaN values with the specified value provided in 'value' parameter in the Frovedis DataFrame.  
+
+The parameters: "method", "limit" and "downcast" are simply kept in to make the interface uniform to the pandas DataFrame.fillna().  
+This is not used anywhere within the frovedis implementation.  
+
+For example,  
+
+	# example of using fillna to replace NaN with 0 and other default parameters
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+	
+    pd_df = pd.DataFrame([[np.nan, 2, np.nan, 0],
+					   [3, 4, np.nan, 1],
+					   [np.nan, np.nan, np.nan, 5],
+					   [np.nan, 3, np.nan, 4]],
+					  columns=list("ABCD"))
+	fd_df = fdf.DataFrame(pd_df)
+	
+    # display frovedis dataframe
+	fd_df.show()
+    
+    # replace all NaN elements with 0s.
+	fd_df.fillna(0).show()
+    
+Output  
+
+	index   A       B       C       D
+	0       NULL    2       NULL    0
+	1       3       4       NULL    1
+	2       NULL    NULL    NULL    5
+	3       NULL    3       NULL    4
+
+	index   A       B       C       D
+	0       0       2       0       0
+	1       3       4       0       1
+	2       0       0       0       5
+	3       0       3       0       4
+
+For example,  
+
+	# example to use fillna with negative value and inplace = True
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+	
+    pd_df = pd.DataFrame([[np.nan, 2, np.nan, 0],
+					   [3, 4, np.nan, 1],
+					   [np.nan, np.nan, np.nan, 5],
+					   [np.nan, 3, np.nan, 4]],
+					  columns=list("ABCD"))
+	fd_df = fdf.DataFrame(pd_df)
+	# display frovedis dataframe
+	fd_df.show()
+    
+    # replace all NaN elements with -1s and inplace = True
+	fd_df.fillna(-1, inplace = True)
+    
+    # display after modifying the original object
+    fd_df.show()
+    
+Output  
+
+	index   A       B       C       D
+	0       NULL    2       NULL    0
+	1       3       4       NULL    1
+	2       NULL    NULL    NULL    5
+	3       NULL    3       NULL    4
+
+	index   A       B       C       D
+    0       -1      2       -1      0
+    1       3       4       -1      1
+    2       -1      -1      -1      5
+    3       -1      3       -1      4
+
+__Return Value__  
+1. It returns a Frovedis DataFrame object with missing values replaced when 'inplace' parameter is False.  
+2. It returns None when 'inplace' parameter is set to True.  
+
+### 14. filter(items = None, like = None, regex = None, axis = None)
 
 __Parameters__  
 **_items_**: It accepts a list of string as parameter. It filters only those labels which are mentioned. (Default: None)  
@@ -934,13 +1642,15 @@ Output,
 __Return Value__  
 It returns a new Frovedis DataFrame with the column labels that matches the given conditions.  
 
-### 9. get_index_loc(value)  
+### 15. get_index_loc(value)  
 
 __Parameters__  
 **_value_**: It accepts an integer or string parameter. It is the index value whose location is to be determined.  
 
 __Purpose__  
 It provides integer location, slice or boolean mask for requested label.  
+
+**It is present only in frovedis**.  
 
 For example:
 
@@ -1044,11 +1754,11 @@ Output,
 
 __Return Value__  
 It returns the following values:  
-1. integer: when there is a unique index  
-2. slice: when there is a monotonic index i.e. repetitive values in index  
-3. mask: it returns a list of boolean values otherwise  
+1. **integer:** when there is a unique index.  
+2. **slice:** when there is a monotonic index i.e. repetitive values in index.  
+3. **mask:** it returns a list of boolean values.  
 
-### 10. head(n = 5)
+### 16. head(n = 5)
 
 __Parameters__  
 **_n_**: It accepts an integer parameter which represents the number of rows to select. (Default: 5)  
@@ -1056,7 +1766,7 @@ __Parameters__
 __Purpose__   
 This function returns the first n rows for the object based on position. It is useful for quickly testing if your object has the right type of data in it.  
 
-For negative values of n, this function returns all rows except the last n rows, equivalent to **df[:-n]**.  
+**For negative values of n, this function returns all rows except the last n rows, equivalent to df[:-n]**.  
 
 For example:  
  
@@ -1065,10 +1775,12 @@ For example:
     import pandas as pd
     import frovedis.dataframe as fdf
     
-    # Creating the dataframe    
+    # creating the dataframe    
 	pd_df = pd.DataFrame({'animal': ['alligator', 'bee', 'falcon', 'lion',
-                   'monkey', 'parrot', 'shark', 'whale', 'zebra']})
-	fd_df = fdf.DataFrame(pd_df)
+                          'monkey', 'parrot', 'shark', 'whale', 'zebra']
+                         })
+    #creating frovedis dataframe
+    fd_df = fdf.DataFrame(pd_df)
     
     # display frovedis dataframe
     fd_df.show()
@@ -1172,7 +1884,7 @@ __Return Value__
 1. It n is positive integer, it returns a new DataFrame with the first n rows.  
 2. If n is negative integer, it returns a new DataFrame with all rows except last n rows.  
 
-### 11. insert(loc, column, value, allow_duplicates = False)
+### 17. insert(loc, column, value, allow_duplicates = False)
 
 __Parameters__  
 **_loc_**: It accepts an integer as parameter which represents the Insertion index. It must be in range 0 to n-1 where n is number of columns in DataFrame.  
@@ -1239,8 +1951,168 @@ Output,
 __Return Value__  
 It returns a self reference.  
 
+### 18. isna()  
 
-### 12. join(right, on, how = 'inner', lsuffix = '\_left', rsuffix = '\_right', sort = False, join_type = 'bcast')  
+__Purpose__  
+This method is used to detect missing values in the Frovedis DataFrame.
+
+It returns a boolean same-sized object indicating if the values are NA. NA values, such as None or numpy.NaN, gets mapped to True values. Everything else gets mapped to False values. Characters such as empty strings '' or numpy.inf are not considered NA values.  
+
+For example,  
+
+	# example of using isna() on a pandas DataFrame converted to Frovedis DataFrame
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+    # show which entries in a DataFrame are NA.
+	peopleDF = {
+            'Ename' : ['Michael', None, 'Tanaka', 'Raul', ''],
+            'Age' : [29, 30, 27, 19, 0],
+            'Country' : ['USA', np.inf, 'Japan', np.nan, 'Japan'],
+            'isMale': [False, False, False, False, True]
+           }
+
+	pd_df = pd.DataFrame(peopleDF)
+    
+	# creating a frovedis dataframe
+	fd_df = fdf.DataFrame(pd_df)
+    
+	# to display frovedis dataframe
+	fd_df.show()
+    
+	# to display fields which are only NA
+	fd_df.isna().show()
+    
+Output  
+
+	index   Ename   Age     Country isMale
+	0       Michael 29      USA     0
+	1       NULL    30      inf     0
+	2       Tanaka  27      Japan   0
+	3       Raul    19      NULL    0
+	4               0       Japan   1
+
+	index   Ename   Age     Country isMale
+	0       0       0       0       0
+	1       1       0       0       0
+	2       0       0       0       0
+	3       0       0       1       0
+	4       0       0       0       0
+
+For example,  
+
+    # example of using isna() on a Series object converted to Frovedis DataFrame object
+    
+	import pandas as pd
+	import frovedis.dataframe as fdf
+    
+    # frovedis dataframe from a Series object.
+	ser = pd.Series([5, 6, np.NaN])
+	fd_df = fdf.DataFrame(ser)
+    
+	# display frovedis dataframe
+	fd_df.show()
+	
+    # display na values mapped to corresponding dataframe
+	fd_df.isna().show()
+    
+Output  
+
+	index   0
+	0       5
+	1       6
+	2       NULL
+
+	index   0
+	0       0
+	1       0
+	2       1
+
+__Return Value__  
+It returns a new Frovedis DataFrame having all boolean values (0, 1) corresponding to each of the Frovedis DataFrame values depending on  whether it is a valid NaN (True i.e. 1) value or not (False i.e. 0).  
+
+### 19. isnull()  
+
+__Purpose__  
+This method is used to detect missing values in the Frovedis DataFrame. It is an alias of isna().
+
+It returns a boolean same-sized object indicating if the values are NA. NA values, such as None or numpy.NaN, gets mapped to True values. Everything else gets mapped to False values. Characters such as empty strings '' or numpy.inf are not considered NA values.  
+
+For example,  
+
+	# example to use isnull
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+    # show which entries in a DataFrame are NA.
+	peopleDF = {
+				'Ename' : ['Michael', None, 'Tanaka', 'Raul', ''],
+				'Age' : [29, 30, 27, 19, 0],
+				'Country' : ['USA', 'England', 'Japan', np.nan, 'Japan'],
+				'isMale': [False, False, False, False, True]
+			   }
+	pd_df = pd.DataFrame(peopleDF)
+    
+	# convert to frovedis dataframe
+	fd_df = fdf.DataFrame(pd_df)
+	
+    # display frovedis dataframe
+	fd_df.show()
+	
+    # displya na values mapped to corresponding dataframe
+	fd_df.isnull().show()
+    
+Output  
+
+	index   Ename   Age     Country isMale
+	0       Michael 29      USA     0
+	1       NULL    30      England 0
+	2       Tanaka  27      Japan   0
+	3       Raul    19      NULL    0
+	4               0       Japan   1
+
+	index   Ename   Age     Country isMale
+	0       0       0       0       0
+	1       1       0       0       0
+	2       0       0       0       0
+	3       0       0       1       0
+	4       0       0       0       0
+
+For example,  
+	
+	# example to use isnull on a frovedis dataframe converted from Series object
+    
+    import pandas as pd
+	import frovedis.dataframe as fdf
+    
+    # frovedis dataframe from a Series object.
+	ser = pd.Series([5, 6, np.NaN])
+	fd_df = fdf.DataFrame(ser)
+    
+	# display frovedis dataframe
+	fd_df.show()
+	
+    # display na values mapped to corresponding dataframe
+	fd_df.isnull().show()
+    
+Output  
+
+	index   0
+	0       5
+	1       6
+	2       NULL
+
+	index   0
+	0       0
+	1       0
+	2       1
+
+__Return Value__  
+It returns a Frovedis DataFrame having boolean values (0, 1) corresponding to each of the Frovedis DataFrame value depending of whether it is a valid NaN (True i.e. 1) value or not (False i.e. 0).  
+
+### 20. join(right, on, how = 'inner', lsuffix = '\_left', rsuffix = '\_right', sort = False, join_type = 'bcast')  
 
 __Parameters__  
 **_right_**: It accepts a Frovedis DataFrame or a pandas DataFrame or a list of DataFrame objects as parameter. Index should be similar to one of the columns in this one. If a Series is passed, its name attribute must be set, and that will be used as the column name in the resulting joined DataFrame.  
@@ -1391,7 +2263,7 @@ Output,
 __Return Value__  
 It returns a new Frovedis DataFrame containing columns from both the DataFrame instances.  
 
-### 13. merge(right, on = None, how = 'inner', left_on = None, right_on = None, left_index = False, right_index = False, sort = False, suffixes = ('\_x', '\_y'), copy = True, indicator = False, join_type = 'bcast')  
+### 21. merge(right, on = None, how = 'inner', left_on = None, right_on = None, left_index = False, right_index = False, sort = False, suffixes = ('\_x', '\_y'), copy = True, indicator = False, join_type = 'bcast')  
 
 __Parameters__  
 **_right_**: It accepts a Frovedis DataFrame or a pandas DataFrame or a list of Frovedis DataFrame objects as parameter. Index should be similar to one of the columns in this one. If a Series is passed, its name attribute must be set, and that will be used as the column name in the resulting joined DataFrame.  
@@ -1676,7 +2548,7 @@ Output,
 __Return Value__  
 It returns a new Frovedis DataFrame with the merged entries of the two DataFrame instances.  
 
-### 14. rename(columns, inplace = False)  
+### 22. rename(columns, inplace = False)  
 
 __Parameters__  
 **_columns_**: It accepts a dictionary object as parameter. It contains the key as the name of the labels to be renamed and values as the final names.  
@@ -1745,7 +2617,7 @@ __Return Value__
 2. It returns None when 'inplace' parameter is set to True.  
 
 
-### 15. rename_index(new_name, inplace = False)  
+### 23. rename_index(new_name, inplace = False)  
 
 __Parameters__  
 **_new\_name_**: It accepts a string object as parameter. It renames the index for which the value is provided.  
@@ -1794,8 +2666,7 @@ __Return Value__
 1. It returns a new Frovedis DataFrame with the updated label for the Index label.  
 2. It returns None when inplace parameter is set to True.  
 
-
-### 16. reset_index(drop = False, inplace = False)  
+### 24. reset_index(drop = False, inplace = False)  
 
 __Parameters__  
 **_drop_**: It accepts a boolean value as parameter. Do not try to insert index into dataframe columns. This resets the index to the default integer index. (Default: False)  
@@ -1891,7 +2762,7 @@ __Return Value__
 1. It returns a new Frovedis DataFrame with the default sequence in Index label.  
 2. It returns None if 'inplace' parameter is set to True.  
   
-### 17. set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)  
+### 25. set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)  
 
 __Parameters__  
 **_keys_**: It accepts a string object as parameter. This parameter can be a single column key.  
@@ -1975,8 +2846,7 @@ __Return Value__
 1. It returns a new Frovedis DataFrame where the Index column label is replace with specified column label.  
 2. It returns None when 'inplace' parameter is set to True.  
 
-
-### 18. show()  
+### 26. show()  
 
 __Purpose__  
 This method is used to display the Frovedis DataFrame on the console. It can display full dataframe or some selected columns of the DataFrame (single or multi-column).  
@@ -2062,7 +2932,7 @@ Output,
 __Return Value__  
 It return nothing.  
 
-### 19. tail(n = 5)  
+### 27. tail(n = 5)  
 
 __Parameters__  
 **_n_**: It accepts an integer as parameter. It represents the number of rows which is to be selected. (Default: 5)  
@@ -2195,7 +3065,7 @@ Output,
 __Return Value__   
 It returns a new Frovedis DataFrame instance with last **n** rows.  
 
-### 20. update_index(value, key = None, verify_integrity = False, inplace = False)  
+### 28. update_index(value, key = None, verify_integrity = False, inplace = False)  
 
 __Parameters__  
 **_value_**: It accepts a list-like object (list or tuple) as parameter. It contains the entries of the new index label.  
@@ -2274,11 +3144,10 @@ __Return Value__
 1. It returns a new Frovedis DataFrame with updated row values for index field along with specified label.  
 2. It returns None when 'inplace' parameter is set to True.  
 
-
 # SEE ALSO  
 
-- **[DataFrame - Introduction](./DataFrame_Introduction.md)**  
-- **[DataFrame - Conversion, Missing data handling, Sorting Functions](./DataFrame_ConversionAndSorting.md)**  
-- **[DataFrame - Function Application, Groupby](./DataFrame_FunctionApplicationGroupby.md)**  
-- **[DataFrame - Binary Operators](./DataFrame_BinaryOperators.md)**  
-- **[DataFrame - Aggregate Functions](./DataFrame_AggregateFunctions.md)**  
+- **[DataFrame - Introduction](./df_intro.md)**  
+- **[DataFrame - Conversion Functions](./df_conversion.md)**  
+- **[DataFrame - Sorting Functions](./df_sort.md)**  
+- **[DataFrame - Math Functions](./df_math_func.md)**  
+- **[DataFrame - Aggregate Functions](./df_agg_func.md)**  

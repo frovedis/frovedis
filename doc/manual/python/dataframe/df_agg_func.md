@@ -4,51 +4,67 @@
 
 DataFrame Aggregate Functions - list of all functions related to aggregate operations on frovedis dataframe are illustrated here.  
   
-## SYNOPSIS  
-    
-    frovedis.dataframe.df.DataFrame(df = None, is_series = False)  
+## DESCRIPTION  
+An essential piece of analysis of large data is efficient summarization: computing aggregations like sum(), mean(), median(), min(), and max(), which gives insight into the nature of a potentially large dataset. In this section, we'll explore list of all such aggregation operations done on frovedis dataframe.  
+
+Aggregation can be performed in **two ways** on frovedis dataframe:
+
+- Either using agg()  
+- Or using aggregation functions such as min(), max() median(), mode(), etc. on frovedis dataframe  
+
     
 ## Public Member Functions  
-    1. abs()  
-    2. countna(axis = 0)  
+    1. agg(func)  
+    2. apply(func, axis = 0, raw = False, result_type = None, args = (), **kwds)
     3. cov((min_periods = None, ddof = 1.0, low_memory = True, other = None)
-    4. describe()  
-    5. mad(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-    6. max(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-    7. mean(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-    8. median(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-    9. min(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-    10. mode(axis = 0, numeric_only = False, dropna = True)
-    11. sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
-    12. std(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
-    13. sum(axis = None, skipna = None, level = None, numeric_only = None, 
+    4. mad(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+    5. max(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+    6. mean(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+    7. median(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+    8. min(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+    9. mode(axis = 0, numeric_only = False, dropna = True)
+    10. sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
+    11. std(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
+    12. sum(axis = None, skipna = None, level = None, numeric_only = None, 
             min_count = 0, **kwargs)
-    14. var(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
+    13. var(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
 
 ## Detailed Description  
 
-### 1. abs()  
+### 1. agg(func)  
+
+__Parameters__  
+**_func_**: Names of functions to use for aggregating the data. The input to be used with the function must 
+be a frovedis DataFrame instance having atleast one numeric column.  
+Accepted combinations for this parameter are:
+- A string function name such as 'max', 'min', etc.  
+- list of functions and/or function names, For example, ['max', 'mean'].  
+- dictionary with keys as column labels and values as function name or list of such functions.  
+For Example, {'Age': ['max','min','mean'], 'Ename': ['count']}  
 
 __Purpose__  
-It computes absolute numeric value of each element.  
+It computes an aggregate operation based on the condition specified in 'func'.  
 
-This function only applies to elements that are all numeric.  
+**Currently, this method will perform aggregation operation along the rows.**  
 
 For example,  
-
+    
     import pandas as pd
     import numpy as np
     import frovedis.dataframe as fdf
     
     # a dictionary
-    tempDF = {
-                'City': ['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad',
-                         'Kanpur', 'Kanpur', 'Kanpur'],
-                'Temperature': [-2, 10, 18, 34, -8, -4, 36, 45]
-               }
+    peopleDF = {
+                'Name':['Jai', 'Anuj', 'Jai', 'Princi', 'Gaurav', 'Anuj', 'Princi', 'Abhi'],
+                'Age':[27, 24, 22, 32, 33, 36, 27, 32],
+                'City':['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad', 
+                        'Kanpur', 'Kanpur', 'Kanpur'],
+                'Qualification':['B.Tech', 'Phd', 'B.Tech', 'Phd', 'Phd', 'B.Tech', 'Phd', 'B.Tech'],
+                'Score': [23, 34, 35, 45, np.nan, 50, 52, np.nan]
+                }
     
     # create pandas dataframe
-    pdf1 = pd.DataFrame(tempDF)
+    pdf1 = pd.DataFrame(peopleDF)
     
     # create frovedis dataframe
     fdf1 = fdf.DataFrame(pdf1)
@@ -56,48 +72,94 @@ For example,
     # display the frovedis dataframe
     fdf1.show()
 
-Output
+Output  
+    
+    index   Name    Age     City       Qualification  Score
+    0       Jai     27      Nagpur     B.Tech         23
+    1       Anuj    24      Kanpur     Phd            34
+    2       Jai     22      Allahabad  B.Tech         35
+    3       Princi  32      Kannuaj    Phd            45
+    4       Gaurav  33      Allahabad  Phd            NULL
+    5       Anuj    36      Kanpur     B.Tech         50
+    6       Princi  27      Kanpur     Phd            52
+    7       Abhi    32      Kanpur     B.Tech         NULL
 
-    index   City       Temperature
-    0       Nagpur     -2
-    1       Kanpur     10
-    2       Allahabad  18
-    3       Kannuaj    34
-    4       Allahabad  -8
-    5       Kanpur     -4
-    6       Kanpur     36
-    7       Kanpur     45
+For example,  
+
+    # agg() demo with func as a function string name 
+    print(fdf1.agg('max'))
+    
+Output  
+
+    Name             nan
+    Age               36
+    City             nan
+    Qualification    nan
+    Score             52
+    Name: max, dtype: object
+
+It displays a pandas dataframe containing numeric column(s) with newly computed aggregates of each groups.  
 
 For example,
 
-    # abs() demo
-    print(fdf1['Temperature'].abs())
+    # agg() demo with func as a dictionary 
+    print(fdf1.agg({"Age": ["std", "mean"]}))
 
 Output
 
-    index   Temperature
-    0       2
-    1       10
-    2       18
-    3       34
-    4       8
-    5       4
-    6       36
-    7       45
+                Age
+    mean  29.125000
+    std    4.853202
+
+For example,  
+    
+    # agg() demo where func is a list of functions 
+    print(fdf1['Age'].agg(['max','min','mean'])
+
+Output  
+
+             Age
+    max   36.000
+    min   22.000
+    mean  29.125
 
 __Return Value__  
-It returns a frovedis DataFrame instance.  
+1. **If one 'func' provided and 'func' is a string:**  
+     - It returns a pandas Series instance with numeric column(s) only, after aggregation function is completed.  
+2. **If one or more 'func' provided and 'func' is list/dict of string:**  
+     - It returns a pandas DataFrame instance with numeric column(s) only, after aggregation function is completed.  
 
-### 2. countna(axis = 0)  
+
+### 2. apply(func, axis = 0, raw = False, result_type = None, args = (), \*\*kwds)  
 
 __Parameters__  
-**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
-count missing values along the indices or by column labels. (Default: 0)  
-- **0 or 'index'**: count missing values along the indices.  
-- **1 or 'columns'**: count missing values along the columns.  
+**_func_**: Names of functions to be applied on the data. The input to be used with the function must 
+be a frovedis DataFrame instance having atleast one numeric column.  
+Accepted combinations for this parameter are:  
+- A string function name such as 'max', 'min', etc.  
+- list of functions and/or function names, For example, ['max', 'mean'].  
+- dictionary with keys as column labels and values as function name or list of such functions.  
+For Example, {'Age': ['max','min','mean'], 'Ename': ['count']}  
+
+**_axis_**: It accepts an integer as parameter. It is used to decide whether to perform aggregate operation along the 
+columns or rows. (Default: 0)  
+_**raw**_: It accepts boolean as parameter. When set to True, the row/column will be passed as an ndarray. (Default: False)  
+_**result\_type**_: It accepts string object as parameter. It specifies how the result will be returned. (Default: None)  
+These only act when **axis = 1 (columns)**:  
+- **expand** : list-like results will be turned into columns.  
+- **reduce** : returns a Series if possible rather than expanding list-like results. This is the opposite of 'expand'.  
+- **broadcast** : results will be broadcast to the original shape of the DataFrame, the original index and columns will be retained.  
+
+The default behaviour (None) depends on the return value of the applied function. List-like results will be returned 
+as a Series of those. However if the apply function returns a Series these are expanded to columns.  
+_**args**_: Positional arguments to pass to 'func'. (Default: ())  
+_**\*\*kwds**_: This is an unused parameter.  
 
 __Purpose__  
-It counts number of missing values in the given axis.  
+Apply a function along an axis of the DataFrame.  
+
+The parameter: "\*\*kwds" is simply kept in to make the interface uniform to the pandas DataFrame.apply().  
+This is not used anywhere within the frovedis implementation.  
 
 For example,  
 
@@ -136,39 +198,71 @@ Output
     6       Princi  27      Kanpur     Phd            52
     7       Abhi    32      Kanpur     B.Tech         NULL
 
-For example,
+For example,  
 
-    # countna() demo
-    fdf1.countna().show()
-
-Output
-
-    index   count
-    Name    0
-    Age     0
-    City    0
-    Qualification   0
-    Score   2
+    # apply() demo using string function name
+    print(fdf1.apply('max'))
     
-For example,
+Output  
 
-    # countna() demo using axis = 1
-    fdf1.countna(axis = 1).show()
+    Name             8
+    Age              8
+    City             8
+    Qualification    8
+    Score            6
+    dtype: int64
+
+For example,  
+
+    # apply() demo using axis = 1
+    print(fdf1.apply('max', axis = 1))
     
-Output
+Output  
 
-    index   count
-    0       0
-    1       0
-    2       0
-    3       0
-    4       1
-    5       0
-    6       0
-    7       1
+    index
+    0    27.0
+    1    34.0
+    2    35.0
+    3    45.0
+    4    33.0
+    5    50.0
+    6    52.0
+    7    32.0
+    dtype: float64
+
+For example,  
+
+    # apply() demo using raw = True
+    print(fdf1.apply('max', raw = True))
+    
+Output  
+
+    Name             Princi
+    Age                  36
+    City             Nagpur
+    Qualification       Phd
+    Score                52
+    dtype: object
+
+For example,  
+
+    # apply() demo using result_type = 'expand'
+    print(fdf1.apply('max', result_type = 'expand'))
+    
+Output  
+
+    Name             Princi
+    Age                  36
+    City             Nagpur
+    Qualification       Phd
+    Score                52
+    dtype: object
 
 __Return Value__  
-It returns a frovedis DataFrame instance.  
+1. **If only one 'func' provided:**  
+     - It returns a pandas Series instance with numeric column(s) only, after aggregation function is completed.  
+2. **If more than one 'func' provided:**  
+     - It returns a pandas DataFrame instance with numeric column(s) only, after aggregation function is completed.  
 
 ### 3. cov(min_periods = None, ddof = 1.0, low_memory = True, other = None)  
 
@@ -280,70 +374,7 @@ It returns a covariance matrix represented as frovedis DataFrame instance.
 - **If other != None:**  
 It returns covariance as scalar value.  
 
-### 4. describe()  
-
-__Purpose__  
-It generates descriptive statistics. Descriptive statistics include count, mean, median, etc, excluding missing values.  
-
-For example,  
-
-    import pandas as pd
-    import numpy as np
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    peopleDF = {
-                'Name':['Jai', 'Anuj', 'Jai', 'Princi', 'Gaurav', 'Anuj', 'Princi', 'Abhi'],
-                'Age':[27, 24, 22, 32, 33, 36, 27, 32],
-                'City':['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad', 
-                        'Kanpur', 'Kanpur', 'Kanpur'],
-                'Qualification':['B.Tech', 'Phd', 'B.Tech', 'Phd', 'Phd', 'B.Tech', 'Phd', 'B.Tech'],
-                'Score': [23, 34, 35, 45, np.nan, 50, 52, np.nan]
-                }
-    
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(peopleDF)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output  
-
-    index   Name    Age     City       Qualification  Score
-    0       Jai     27      Nagpur     B.Tech         23
-    1       Anuj    24      Kanpur     Phd            34
-    2       Jai     22      Allahabad  B.Tech         35
-    3       Princi  32      Kannuaj    Phd            45
-    4       Gaurav  33      Allahabad  Phd            NULL
-    5       Anuj    36      Kanpur     B.Tech         50
-    6       Princi  27      Kanpur     Phd            52
-    7       Abhi    32      Kanpur     B.Tech         NULL
-
-For example,  
-
-    print(fdf1.describe())
-
-Output  
-
-                   Age       Score
-    count     8.000000    6.000000
-    mean     29.125000   39.833333
-    median   29.500000   40.000000
-    var      23.553571  123.766667
-    mad       4.125000    9.166667
-    std       4.853202   11.125047
-    sem       1.715866    4.541781
-    sum     233.000000  239.000000
-    min      22.000000   23.000000
-    max      36.000000   52.000000
-
-__Return Value__  
-It returns a pandas DataFrame instance with the result of the specified aggregate operation.  
-
-### 5. mad(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
+### 4. mad(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -351,7 +382,9 @@ perform mean absolute deviation along the columns or rows. (Default: None)
 - **0 or 'index'**: perform mean absolute deviation along the indices.  
 - **1 or 'columns'**: perform mean absolute deviation along the columns.  
 When it is None (not specified explicitly), it performs mean absolute deviation along the rows.  
-_**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while computing the result. (Default: None)  
+
+_**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while computing the 
+result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during mean absolute deviation computation.  
 _**level**_: This is an unused parameter. (Default: None)  
 _**numeric\_only**_: This is an unsed parameter. (Default: None)  
@@ -468,7 +501,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance with the result of the specified aggregate operation.  
 
-### 6. max(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
+### 5. max(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -476,7 +509,9 @@ perform maximum operation along the columns or rows. (Default: None)
 - **0 or 'index'**: perform maximum operation along the indices to get the maximum value.  
 - **1 or 'columns'**: perform maximum operation along the columns to get the maximum value.  
 When it is None (not specified explicitly), it performs maximum operation along the rows.  
-_**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while computing the result. (Default: None)  
+
+_**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while computing the 
+result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during maximum value computation.  
 _**level**_: This is an unused parameter. (Default: None)  
 _**numeric\_only**_: This is an unsed parameter. (Default: None)  
@@ -592,7 +627,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance with the result of the specified aggregate operation.  
 
-### 7. mean(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
+### 6. mean(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -600,6 +635,7 @@ perform mean along the columns or rows. (Default: None)
 - **0 or 'index'**: perform mean along the indices.  
 - **1 or 'columns'**: perform mean along the columns.  
 When it is None (not specified explicitly), it performs mean operation along the rows.  
+
 _**skipna**_: It is a boolean parameter. When set to True, it will exclude missing values while computing the result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during mean computation.  
 _**level**_: This is an unused parameter. (Default: None)  
@@ -716,7 +752,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance.  
 
-### 8. median(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
+### 7. median(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -724,6 +760,7 @@ perform median operation along the columns or rows. (Default: None)
 - **0 or 'index'**: perform median operation along the indices.  
 - **1 or 'columns'**: perform median operation along the columns.  
 When it is None (not specified explicitly), it performs median operation along the rows.  
+
 _**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while computing 
 the result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during median computation.  
@@ -841,7 +878,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance.  
 
-### 9. min(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
+### 8. min(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -849,6 +886,7 @@ perform minimum operation along the columns or rows. (Default: None)
 - **0 or 'index'**: perform minimum operation along the indices to get the minimum value.  
 - **1 or 'columns'**: perform minimum operation along the columns to get the minimum value.  
 When it is None (not specified explicitly), it performs minimum operation along the rows.  
+
 _**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while computing 
 the result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during minimum value computation.  
@@ -966,12 +1004,13 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance with the result of the specified aggregate operation.  
 
-### 10. mode(axis = 0, numeric_only = False, dropna = True)  
+### 9. mode(axis = 0, numeric_only = False, dropna = True)  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform standard error of the mean along the columns or rows. (Default: 0)  
 - **0 or 'index'**: perform mode along the indices.  
 - **1 or 'columns'**: perform mode along the columns.  
 When it is None (not specified explicitly), it performs standard error of the mean along the rows.  
+
 _**numeric\_only**_: It accepts string object as parameter. If True, mode operation will result in a dataframe having only numeric columns. Otherwise, it will result in a dataframe having both numeric and non-numeric columns. (Default: False)  
 _**dropna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while 
 computing the result of mode operation. (Default: True)  
@@ -1143,7 +1182,7 @@ It returns a frovedis DataFrame instance having both numeric and non-numeric col
 - **If numeric_only = True**:  
 It returns a frovedis DataFrame instance having only numeric columns.  
 
-### 11. sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, \*\*kwargs)  
+### 10. sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -1151,6 +1190,7 @@ perform standard error of the mean along the columns or rows. (Default: None)
 - **0 or 'index'**: perform standard error of the mean along the indices.  
 - **1 or 'columns'**: perform standard error of the mean along the columns.  
 When it is None (not specified explicitly), it performs standard error of the mean along the rows.  
+
 _**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while 
 computing the result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during standard error of the 
@@ -1278,7 +1318,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance with the result of the specified aggregate operation.  
 
-### 12. std(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, \*\*kwargs)  
+### 11. std(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -1286,8 +1326,10 @@ perform standard deviation along the columns or rows. (Default: None)
 - **0 or 'index'**: perform standard deviation along the indices.  
 - **1 or 'columns'**: perform standard deviation along the columns.  
 When it is None (not specified explicitly), it performs standard deviation along the rows.  
-_**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while computing the result. (Default: None)  
+_**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while computing the 
+result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during standard deviation computation.  
+
 _**level**_: This is an unused parameter. (Default: None)  
 **_ddof_**: It accepts an integer parameter that specifies the delta degrees of freedom. (Default: 1)  
 _**numeric\_only**_: This is an unsed parameter. (Default: None)  
@@ -1411,7 +1453,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 13. sum(axis = None, skipna = None, level = None, numeric_only = None, min_count = 0, \*\*kwargs)  
+### 12. sum(axis = None, skipna = None, level = None, numeric_only = None, min_count = 0, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -1419,8 +1461,10 @@ perform summation operation along the columns or rows. (Default: None)
 - **0 or 'index'**: perform summation operation along the indices.  
 - **1 or 'columns'**: perform summation operation along the columns.  
 When it is None (not specified explicitly), it performs summation operation along the rows.  
-_**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while computing the result. (Default: None)  
+_**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while computing the 
+result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during summation computation.  
+
 _**level**_: This is an unused parameter. (Default: None)  
 _**numeric\_only**_: This is an unsed parameter. (Default: None)  
 _**min\_count**_: It is an integer, float or double (float64) parameter that specifies the minimum number of values that needs to be present to perform the action. (Default: 0)  
@@ -1537,7 +1581,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 14. var(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, \*\*kwargs)  
+### 13. var(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -1545,8 +1589,10 @@ perform variance along the columns or rows. (Default: None)
 - **0 or 'index'**: perform variance along the indices.  
 - **1 or 'columns'**: perform variance along the columns.  
 When it is None (not specified explicitly), it performs variance along the rows.  
-_**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while computing the result. (Default: None)  
+_**skipna**_: It accepts boolean as parameter. When set to True, it will exclude missing values while computing the 
+result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during variance computation.  
+
 _**level**_: This is an unused parameter. (Default: None)  
 **_ddof_**: It accepts an integer parameter that specifies the delta degrees of freedom. (Default: 1)  
 _**numeric\_only**_: This is an unsed parameter. (Default: None)  
@@ -1674,10 +1720,8 @@ It returns a frovedis DataFrame instance with the result of the specified aggreg
 
 # SEE ALSO  
 
-- **[DataFrame - Introduction](./DataFrame_Introduction.md)**  
-- **[DataFrame - Selection and Combinations](./DataFrame_SelectionAndCombinations.md)**  
-- **[DataFrame - Conversion, Missing data handling, Sorting Functions](./DataFrame_ConversionAndSorting.md)**  
-- **[DataFrame - Function Application, Groupby](./DataFrame_FunctionApplicationGroupby.md)**  
-- **[DataFrame - Binary Operators](./DataFrame_BinaryOperators.md)**  
-
-
+- **[DataFrame - Introduction](./df_intro.md)**  
+- **[DataFrame - Generic Fucntions](./df_generic_func.md)**  
+- **[DataFrame - Conversion Functions](./df_conversion.md)**  
+- **[DataFrame - Sorting Functions](./df_sort.md)**  
+- **[DataFrame - Math Functions](./df_math_func.md)**  
