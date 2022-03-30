@@ -3541,6 +3541,74 @@ class DataFrame(object):
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         return ret
+    
+    @property
+    def loc(self):
+        return Loc_handler(self)
+
+    def loc_scalar(self, key):
+        """
+        DESC: Implementation for handling scalar key type for loc.
+        PARAM: key -> Input data, can be:
+                                  - string, int, float
+        EXAMPLE: df.loc[<row key>]
+        """
+        ret = self[self.index == key]
+        return ret #df
+
+    def loc_tuple(self, key):
+        """
+        DESC: Implementation for handling tuple key type for loc.
+              Modified row slices [row_slice, :] are also handled.
+        PARAM: key -> Input data, can be:
+                                  - tuple of row(scalar/slice/list) key and 
+                                             column(scalar/slice/list) key
+        EXAMPLE: df.loc[<row key>, <col key>]
+                 df.loc[<row key1>:<row key2>, <col key>]
+                 df.loc[<row key>, <col key1>:<col key2>]
+                 df.loc[<row key>, [<col key1>,<col key2>]]
+                 df.loc[<row key1>:<row key2>, <col key1>:<col key2>]
+        """
+        res = None
+        if isinstance(key[0], slice):
+            start = self.get_index_loc(key[0].start)
+            if not isinstance(start, (str, int, float)):
+                raise \
+                KeyError("Cannot get left slice bound for non-unique" + \
+                         " label:", key[0].start)
+            stop = self.get_index_loc(key[0].stop) + 1
+            if not isinstance(stop, (str, int, float)):
+                raise \
+                KeyError("Cannot get right slice bound for non-unique" + \
+                         " label:", key[0].stop)
+            step = key[0].step
+            res = self[start : stop : step]
+        elif (isinstance(key[0], list)):
+            ret = (self.index == key[0][0])
+            for i in range(1, len(key[0])):
+                ret = ret | (self.index == key[0][i])
+            res = self[ret]
+        else:
+            res = self[self.index == key[0]]
+        if isinstance(key[1], slice):
+            try:
+                start = self.columns.index(key[1].start)
+            except ValueError:
+                start = 0
+            try:
+                stop = self.columns.index(key[1].stop)
+            except ValueError:
+                stop = len(self.columns) - 1
+            step = key[1].step
+            filtered_cols = self.columns[start : stop + 1 : step]
+            ret = res[filtered_cols]
+        else:
+            ret = res[key[1]]
+        if isinstance(key[1], str):
+            ret.is_series = True
+        else:
+            ret.is_series = False
+        return ret
 
     def __setattr__(self, key, value):
         """ sets the specified attribute """
@@ -3602,3 +3670,28 @@ class DataFrame(object):
         return self
 
 FrovedisDataframe = DataFrame
+
+class Loc_handler():
+    """Loc handler"""
+    def __init__(self, df):
+        self.df = df
+    def __getitem__(self, key):
+        """
+        __getitem__
+        """
+        if isinstance(key, (str,int,float)):
+            return self.df.loc_scalar(key)
+        elif isinstance(key, list):
+            return self.df.loc[key, :]
+        elif isinstance(key, tuple):
+            if len(key) == 2:
+                res = self.df.loc_tuple(key)
+                if isinstance(key[0], (str,int,float)) \
+                    and isinstance(key[1], (str,int,float)):
+                    if len(res) == 1:
+                        res = res.to_pandas().to_numpy()[0]
+                return res
+            raise IndexingError("Too many indexers")
+        elif isinstance(key, slice):
+            return self.df.loc[key, :]
+        raise ("Unexpected key received!")
