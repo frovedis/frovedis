@@ -730,11 +730,12 @@ class FrovedisColumn extends java.io.Serializable {
     new FrovedisColumn(this, right, OPTYPE.DATEDIFF, DTYPE.INT) 
   
   def next_day(dayOfWeek: String): FrovedisColumn = {
-    val day_to_int = Map("sun" -> 1, "mon" -> 2, "tue" -> 3,
-                         "wed" -> 4, "thu" -> 5, "fri" -> 6, 
-                         "sat" -> 7)
+    val day_to_int = Map("sun" -> 1, "sunday" -> 1, "mon" -> 2, "monday" -> 2,
+                         "tue" -> 3, "tuesday" -> 3, "wed" -> 4, "wednesday" -> 4, 
+                         "thu" -> 5, "thursday" -> 5, "fri" -> 6, "friday" -> 6, 
+                         "sat" -> 7, "saturday" -> 7)
     val res_name  = "next_day(" + this.col_name + ", " + dayOfWeek + ")" 
-    val sub = dayOfWeek.toLowerCase().substring(0, 3)
+    val sub = dayOfWeek.toLowerCase()
     if (!day_to_int.contains(sub)) {
       return functions.lit(null).as(res_name) // TODO: make null of DATETIME
     } else {
@@ -746,14 +747,14 @@ class FrovedisColumn extends java.io.Serializable {
   def next_day(dayOfWeek: FrovedisColumn): FrovedisColumn= {
     require(!dayOfWeek.isAGG, "next_day: 'dayOfWeek' cannot be an aggregate function!")
     val res_name = "next_day(" + this.col_name + ", " + dayOfWeek.col_name + ")"
-    val subcol = functions.lower(dayOfWeek).substr(0, 3)
-    val num_col =  functions.when(subcol === "sun", 1)
-                            .when(subcol === "mon", 2)
-                            .when(subcol === "tue", 3)
-                            .when(subcol === "wed", 4)
-                            .when(subcol === "thu", 5)
-                            .when(subcol === "fri", 6)
-                            .when(subcol === "sat", 7)
+    val subcol = functions.lower(dayOfWeek)
+    val num_col =  functions.when(subcol === "sun" || subcol === "sunday", 1)
+                            .when(subcol === "mon" || subcol === "monday", 2)
+                            .when(subcol === "tue" || subcol === "tuesday", 3)
+                            .when(subcol === "wed" || subcol === "wednesday" , 4)
+                            .when(subcol === "thu" || subcol === "thursday" , 5)
+                            .when(subcol === "fri" || subcol === "friday", 6)
+                            .when(subcol === "sat" || subcol === "saturday", 7)
     return new FrovedisColumn(this, num_col, 
       OPTYPE.NEXTDAY, DTYPE.DATETIME).as(res_name)
   }
@@ -791,9 +792,11 @@ class FrovedisColumn extends java.io.Serializable {
     }
   }
 
-  def date_format(format: String) = 
+  def date_format(format: String) = {
+    val res_name = "date_trunc(" + this.col_name + ", "+  format + ")"
     new FrovedisColumn(this, DateTimeUtils.parse_format(format), 
-                       OPTYPE.DATEFORMAT, DTYPE.STRING)
+                       OPTYPE.DATEFORMAT, DTYPE.STRING).as(res_name)
+  }
 
   def last_day(): FrovedisColumn = {
     val res_name = "last_day(" + this.col_name + ")"
