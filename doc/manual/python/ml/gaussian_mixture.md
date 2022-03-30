@@ -627,5 +627,7 @@ is used before training the model, then it can prompt the user to train the mode
 __Return Value__  
 It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
 
-## SEE ALSO  
-rowmajor_matrix, crs_matrix, kmeans
+# SEE ALSO  
+- **[Introduction to FrovedisRowmajorMatrix](../matrix/rowmajor_matrix.md)**  
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[KMeans in Frovedis](./kmeans.md)**  

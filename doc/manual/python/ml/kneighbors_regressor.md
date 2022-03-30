@@ -540,4 +540,7 @@ __Return Value__
 It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
 
 # SEE ALSO  
-rowmajor_matrix, crs_matrix, dvector, kneighbors_classifier  
+- **[Introduction to FrovedisRowmajorMatrix](../matrix/rowmajor_matrix.md)**  
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
+- **[KNeighbors Classifier in Frovedis](./kneighbors_classifier.md)**  

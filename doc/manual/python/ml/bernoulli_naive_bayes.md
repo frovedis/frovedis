@@ -421,4 +421,7 @@ __Return Value__
 It returns 'True', if the model is already fitted, otherwise, it returns 'False'.
 
 # SEE ALSO  
-multinomial_naive_bayes, rowmajor_matrix, dvector, crs_matrix   
+- **[Introduction to FrovedisRowmajorMatrix](../matrix/rowmajor_matrix.md)**  
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
+- **[Multinomial Naive Bayes in Frovedis](./multinomial_naive_bayes.md)**  

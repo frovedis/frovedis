@@ -413,4 +413,9 @@ __Return Value__
 It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
 
 # SEE ALSO  
-lasso_regression, ridge_regression, dvector, crs_matrix, colmajor_matrix, rowmajor_matrix  
+- **[Introduction to FrovedisRowmajorMatrix](../matrix/rowmajor_matrix.md)**  
+- **[Introduction to FrovedisColmajorMatrix](../matrix/colmajor_matrix.md)**  
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
+- **[Lasso Regression in Frovedis](./lasso_regression.md)**  
+- **[Ridge Regression in Frovedis](./ridge_regression.md)**  

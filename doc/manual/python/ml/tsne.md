@@ -103,7 +103,7 @@ For example,
                      [1, 0, 1, 0], [1, 1, 1, 0], 
                      [1, 1, 1, 1]], dtype = np.float64)
     
-    # fitting input matrix and label on TSNE object  
+    # fitting input matrix on TSNE object  
     from frovedis.mllib.manifold import TSNE
     tsne = TSNE().fit(mat)  
 
@@ -150,7 +150,7 @@ For example,
                      [1, 0, 1, 0], [1, 1, 1, 0], 
                      [1, 1, 1, 1]], dtype = np.float64)
     
-    # fitting input matrix and label on TSNE object  
+    # fitting input matrix on TSNE object and perform transform 
     from frovedis.mllib.manifold import TSNE
     tsne = TSNE()
     print(tsne.fit_transform(mat))
@@ -180,7 +180,7 @@ For example,
     from frovedis.matrix.dense import FrovedisRowmajorMatrix  
     rmat = FrovedisRowmajorMatrix(mat)  
     
-    # TSNE with pre-constructed frovedis-like inputs  
+    # TSNE with pre-constructed frovedis-like inputs and perform transform 
     from frovedis.mllib.manifold import TSNE
     embedding = TSNE().fit_transform(rmat))   
     embedding.debug_print()
@@ -267,8 +267,8 @@ For example,
 This will remove the embedding vector from the server side memory.  
 
 # SEE ALSO  
-
+- **[Intorduction to FrovedisRowmajorMatrix](../matrix/rowmajor_matrix.md)** 
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
 - **[Spectral Embedding in frovedis](./spectral_embedding.md)**  
-- **[DVector](./dvector.md)**  
-- **[FrovedisCRSMatrix](./crs_matrix.md)**  
-- **[FrovedisRowmajorMatrix](./rowmajor_matrix.md)**  
+ 

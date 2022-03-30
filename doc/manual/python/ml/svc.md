@@ -440,4 +440,9 @@ __Return Value__
 It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
 
 # SEE ALSO  
-dvector, crs_matrix, rowmajor_matrix, colmajor_matrix, linear_svc, linear_svr
+- **[Introduction to FrovedisRowmajorMatrix](../matrix/rowmajor_matrix.md)**  
+- **[Introduction to FrovedisColmajorMatrix](../matrix/colmajor_matrix.md)**  
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
+- **[LinearSVC in Frovedis](./linear_svc.md)**  
+- **[LinearSVR in Frovedis](./linear_svr.md)**  

@@ -326,5 +326,9 @@ model first.
 __Return Value__  
 It returns ‘True’, if the model is already fitted otherwise, it returns ‘False’.  
 
-## SEE ALSO  
-rowmajor_matrix, crs_matrix, agglomerative_clustering, spectral_clustering, kmeans
+# SEE ALSO  
+- **[Introduction to FrovedisRowmajorMatrix](../matrix/rowmajor_matrix.md)**  
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Agglomerative Clustering in Frovedis](./agglomerative_clustering.md)**  
+- **[Spectral Clustering in Frovedis](./spectral_clustering.md)**  
+- **[KMeans in Frovedis](./kmeans.md)**  

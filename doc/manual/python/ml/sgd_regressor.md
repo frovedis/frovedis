@@ -440,4 +440,8 @@ __Return Value__
 It returns 'True', if the model is already fitted otherwise, it returns 'False'.
 
 # SEE ALSO  
-rowmajor_matrix, colmajor_matrix, dvector, crs_matrix, sgd_classifier   
+- **[Introduction to FrovedisRowmajorMatrix](../matrix/rowmajor_matrix.md)**  
+- **[Introduction to FrovedisColmajorMatrix](../matrix/colmajor_matrix.md)**  
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
+- **[SGDRegressor in Frovedis](./sgd_regressor.md)**  

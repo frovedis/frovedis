@@ -107,7 +107,7 @@ the frovedis server, the output would be sent back to the python client.
 ### 1. LogisticRegression()   
 
 __Parameters__  
-**_penalty_**: A string object containing the regularizer type to use. Currenlty
+**_penalty_**: A string object containing the regularizer type to use. Currenlty 
 none, l1 and l2 are supported by Frovedis. (Default: 'l2')  
 **_dual_**: A boolean parameter. (unused)  
 **_tol_**: A double (float64) type value specifying the convergence tolerance value.
@@ -495,4 +495,8 @@ __Return Value__
 It returns 'True', if the model is already fitted otherwise, it returns 'False'.
 
 # SEE ALSO  
-linear_regression, dvector, crs_matrix, colmajor_matrix, rowmajor_matrix   
+- **[Introduction to FrovedisRowmajorMatrix](../matrix/rowmajor_matrix.md)**  
+- **[Introduction to FrovedisColmajorMatrix](../matrix/colmajor_matrix.md)**  
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
+- **[Linear Regression in Frovedis](./linear_regression.md)**  

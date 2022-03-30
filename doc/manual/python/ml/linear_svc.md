@@ -408,7 +408,11 @@ predict() is used before training the model, then it can prompt the user to
 train the model first.
 
 __Return Value__  
-It returns 'True', if the model is already fitted otherwise, it returns 'False'.
+It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
 
 # SEE ALSO  
-logistic_regression, dvector, crs_matrix, fm_classifier, decision_tree_classifier   
+- **[Introduction to FrovedisRowmajorMatrix](../matrix/rowmajor_matrix.md)**  
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
+- **[LinearSVR in Frovedis](./linear_svr.md)**  
+- **[SVC in Frovedis](./svc.md)**  

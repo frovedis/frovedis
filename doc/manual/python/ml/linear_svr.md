@@ -401,5 +401,11 @@ train the model first.
 __Return Value__  
 It returns 'True', if the model is already fitted otherwise, it returns 'False'.
 
+
 # SEE ALSO  
-svm, linear_svc, dvector, rowmajor_matrix, colmajor_matrix, crs_matrix
+- **[Introduction to FrovedisRowmajorMatrix](../matrix/rowmajor_matrix.md)**  
+- **[Introduction to FrovedisColmajorMatrix](../matrix/colmajor_matrix.md)**  
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
+- **[LinearSVC in Frovedis](./linear_svc.md)**  
+- **[SVC in Frovedis](./svc.md)**  

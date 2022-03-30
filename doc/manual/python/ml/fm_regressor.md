@@ -358,4 +358,6 @@ __Return Value__
 It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
 
 # SEE ALSO  
-crs_matrix, dvector, fm_classifier
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
+- **[Factorization Machine Classifier in Frovedis](./fm_classifier.md)**  

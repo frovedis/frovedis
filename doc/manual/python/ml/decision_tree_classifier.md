@@ -478,5 +478,9 @@ It can be used to confirm if the model is already fitted or not.
 __Return Value__  
 It returns 'True', if the model is already fitted, otherwise, it returns 'False'.  
 
-# SEE ALSO
-dvector, crs_matrix, rowmajor_matrix, colmajor_matrix, decision_tree_regressor
+# SEE ALSO  
+- **[Introduction to FrovedisRowmajorMatrix](../matrix/rowmajor_matrix.md)**  
+- **[Introduction to FrovedisColmajorMatrix](../matrix/colmajor_matrix.md)**  
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
+- **[Decision Tree Regressor in Frovedis](./decision_tree_regressor.md)**  

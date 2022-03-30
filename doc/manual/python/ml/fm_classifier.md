@@ -365,4 +365,6 @@ __Return Value__
 It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
 
 # SEE ALSO  
-crs_matrix, dvector, fm_regressor
+- **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
+- **[Factorization Machine Regressor in Frovedis](./fm_regressor.md)**  
