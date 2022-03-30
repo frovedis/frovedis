@@ -181,5 +181,8 @@ Output
 __Return Value__    
 It returns a dictionary of nodes with PageRank as value.  
 
-## SEE ALSO  
-graph, bfs, connected_components, single_source_shortest_path  
+# SEE ALSO  
+- **[Graph in Frovedis](./graph.md)**  
+- **[Breadth First Search in Frovedis](./bfs.md)**  
+- **[Connected Components  in Frovedis](./connected_components.md)**  
+- **[Single Source Shortest Path in Frovedis](./sssp.md)**  

@@ -126,5 +126,8 @@ Output
 __Return Value__  
 It returns a dictionary of lists containing shortest path from source to all other nodes.  
 
-## SEE ALSO  
-graph, bfs, connected_components, pagerank  
+# SEE ALSO  
+- **[Graph in Frovedis](./graph.md)**  
+- **[Breadth First Search in Frovedis](./bfs.md)**  
+- **[Connected Components  in Frovedis](./connected_components.md)**  
+- **[PageRank in Frovedis](./pagerank.md)**  

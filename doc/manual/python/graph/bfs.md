@@ -507,5 +507,8 @@ Output
 __Return Value__  
 It returns an instance of Set having the descendants of source in graph 'G' at the given distance from source.   
 
-## SEE ALSO  
-graph, pagerank, connected_components, single_source_shortest_path  
+# SEE ALSO  
+- **[Graph in Frovedis](./graph.md)**  
+- **[Connected Components in Frovedis](./connected_components.md)**  
+- **[Single Source Shortest Path in Frovedis](./sssp.md)**  
+- **[PageRank in Frovedis](./pagerank.md)**  
