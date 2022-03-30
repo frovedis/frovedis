@@ -1802,6 +1802,54 @@ words replace(const words& w, const std::string& from, const std::string& to) {
   return ret;
 }
 
+void translate(const std::vector<int>& chars,
+               const std::vector<size_t>& starts,
+               const std::vector<size_t>& lens,
+               std::vector<int>& ret_chars,
+               std::vector<size_t>& ret_starts,
+               std::vector<size_t>& ret_lens,
+               const std::string& from,
+               const std::string& to) {
+  ret_lens = lens;
+  ret_starts = starts;
+  ret_chars = chars;
+  auto rptr = ret_chars.data();
+
+  size_t i = 0;
+  auto from_len = from.length();
+  auto to_len = to.length();
+  for(; i < from_len && i < to_len; ++i) {
+    int from_char = from[i];
+    int to_char = to[i];
+    auto pos = vector_find_eq(ret_chars, from_char);
+    auto pos_ptr = pos.data();
+    auto pos_size = pos.size();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+    for(size_t j = 0; j < pos_size; ++j) rptr[pos_ptr[j]] = to_char;
+  }
+
+  // remove remaining characters...
+  for(size_t k = i ; k < from_len; ++k) {
+    std::string from_str(1, from[k]);
+    std::string to_str = "";
+    words tmp;
+    frovedis::replace(ret_chars, ret_starts, ret_lens, 
+                      tmp.chars, tmp.starts, tmp.lens,
+                      from_str, to_str);
+    ret_chars.swap(tmp.chars);
+    ret_starts.swap(tmp.starts);
+    ret_lens.swap(tmp.lens);
+  }
+}
+
+words translate(const words& w, const std::string& from, const std::string& to) {
+  words ret;
+  translate(w.chars, w.starts, w.lens, ret.chars, ret.starts, ret.lens, from, to);
+  return ret;
+}
+
 void prepend(const std::vector<int>& chars,
              const std::vector<size_t>& starts,
              const std::vector<size_t>& lens,
@@ -2320,6 +2368,10 @@ ascii(const std::vector<int>& chars,
   return ret;
 }
 
+std::vector<int> ascii(const words& ws) {
+  return frovedis::ascii(ws.chars, ws.starts, ws.lens);
+}
+
 void initcap(const std::vector<int>& chars,
              const std::vector<size_t>& starts,
              const std::vector<size_t>& lens,
@@ -2356,6 +2408,15 @@ void initcap(const std::vector<int>& chars,
     auto nextchar = cptr[pos_ptr[i] + 1];
     if (nextchar >= 'a' && nextchar <= 'z') cptr[pos_ptr[i] + 1] -= 32; // toUpper
   }
+}
+
+words initcap(const words& ws) {
+  words ret;
+  std::vector<int> ret_chars;
+  frovedis::initcap(ws.chars, ws.starts, ws.lens, ret.chars);
+  ret.starts = ws.starts;
+  ret.lens = ws.lens;
+  return ret;
 }
 
 }
