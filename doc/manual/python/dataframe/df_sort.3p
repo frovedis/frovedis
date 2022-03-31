@@ -81,7 +81,7 @@ means selecting more than \f[B]n\f[R] items.
 .PD 0
 .P
 .PD
-It is used to return the top \f[B]n\f[R] rows ordered by the specified
+It is used to return the \f[B]top n rows\f[R] ordered by the specified
 columns in descending order.
 The columns that are not specified are returned as well, but not used
 for ordering.
@@ -93,27 +93,48 @@ For example,
 .IP
 .nf
 \f[C]
-# example to use nlargest with default parameters with n = 3 and columns = \[aq]population\[aq]
-
 import pandas as pd
 import frovedis.dataframe as fdf
 
-# In the following example, we will use nlargest() to select the three rows having the largest values in column \[lq]population\[rq].
 pd_df = pd.DataFrame({\[aq]population\[aq]: [59000000, 65000000, 434000, 434000, 
                                     434000, 337000, 11300, 11300, 11300],
-                    \[aq]GDP\[aq]: [1937894, 2583560 , 12011, 4520, 12128,
-                            17036, 182, 38, 311],
-                    \[aq]alpha-2\[aq]: [\[dq]IT\[dq], \[dq]FR\[dq], \[dq]MT\[dq], \[dq]MV\[dq], \[dq]BN\[dq],
-                                \[dq]IS\[dq], \[dq]NR\[dq], \[dq]TV\[dq], \[dq]AI\[dq]]},
-                    index=[\[dq]Italy\[dq], \[dq]France\[dq], \[dq]Malta\[dq],
-                            \[dq]Maldives\[dq], \[dq]Brunei\[dq], \[dq]Iceland\[dq],
-                            \[dq]Nauru\[dq], \[dq]Tuvalu\[dq], \[dq]Anguilla\[dq]])
+                      \[aq]GDP\[aq]: [1937894, 2583560 , 12011, 4520, 12128,
+                              17036, 182, 38, 311],
+                      \[aq]alpha-2\[aq]: [\[dq]IT\[dq], \[dq]FR\[dq], \[dq]MT\[dq], \[dq]MV\[dq], \[dq]BN\[dq],
+                                  \[dq]IS\[dq], \[dq]NR\[dq], \[dq]TV\[dq], \[dq]AI\[dq]]},
+                      index=[\[dq]Italy\[dq], \[dq]France\[dq], \[dq]Malta\[dq],
+                             \[dq]Maldives\[dq], \[dq]Brunei\[dq], \[dq]Iceland\[dq],
+                             \[dq]Nauru\[dq], \[dq]Tuvalu\[dq], \[dq]Anguilla\[dq]])
+# create a frovedis dataframe
 fd_df = fdf.DataFrame(pd_df)
 
 # to display frovedis dataframe
 fd_df.show()
-
-# to display n largest rows according to given column
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index       population      GDP       alpha-2
+Italy       59000000        1937894   IT
+France      65000000        2583560   FR
+Malta       434000          12011     MT
+Maldives    434000          4520      MV
+Brunei      434000          12128     BN
+Iceland     337000          17036     IS
+Nauru       11300           182       NR
+Tuvalu      11300           38        TV
+Anguilla    11300           311       AI
+\f[R]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# nlargest() demo to select the 3 rows having the largest values in column \[lq]population\[rq]
 fd_df.nlargest(3, \[aq]population\[aq]).show()
 \f[R]
 .fi
@@ -122,21 +143,10 @@ Output
 .IP
 .nf
 \f[C]
-index           population      GDP     alpha-2
-Italy           59000000        1937894 IT
-France          65000000        2583560 FR
-Malta           434000          12011   MT
-Maldives        434000          4520    MV
-Brunei          434000          12128   BN
-Iceland         337000          17036   IS
-Nauru           11300           182     NR
-Tuvalu          11300           38      TV
-Anguilla        11300           311     AI
-
-index           population      GDP     alpha-2
-France          65000000        2583560 FR
-Italy           59000000        1937894 IT
-Malta           434000          12011   MT
+index      population      GDP       alpha-2
+France     65000000        2583560   FR
+Italy      59000000        1937894   IT
+Malta      434000          12011     MT
 \f[R]
 .fi
 .PP
@@ -144,26 +154,7 @@ For example,
 .IP
 .nf
 \f[C]
-# example to show the behavior of nlargest with keep = \[aq]last\[aq]
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# When using keep=\[aq]last\[aq], it will show the row only having last occurrence of the duplicate :
-pd_df = pd.DataFrame({\[aq]population\[aq]: [59000000, 65000000, 434000, 434000, 
-                                    434000, 337000, 11300, 11300, 11300],
-                    \[aq]GDP\[aq]: [1937894, 2583560 , 12011, 4520, 12128,
-                            17036, 182, 38, 311],
-                    \[aq]alpha-2\[aq]: [\[dq]IT\[dq], \[dq]FR\[dq], \[dq]MT\[dq], \[dq]MV\[dq], \[dq]BN\[dq],
-                                \[dq]IS\[dq], \[dq]NR\[dq], \[dq]TV\[dq], \[dq]AI\[dq]]},
-                    index=[\[dq]Italy\[dq], \[dq]France\[dq], \[dq]Malta\[dq],
-                            \[dq]Maldives\[dq], \[dq]Brunei\[dq], \[dq]Iceland\[dq],
-                            \[dq]Nauru\[dq], \[dq]Tuvalu\[dq], \[dq]Anguilla\[dq]])
-fd_df = fdf.DataFrame(pd_df)
-
-# to display frovedis dataframe
-fd_df.show()
-
+# nlargest() demo with keep = \[aq]last\[aq]    
 fd_df.nlargest(3, \[aq]population\[aq], keep=\[aq]last\[aq]).show()
 \f[R]
 .fi
@@ -172,21 +163,10 @@ Output
 .IP
 .nf
 \f[C]
-index           population      GDP     alpha-2
-Italy           59000000        1937894 IT
-France          65000000        2583560 FR
-Malta           434000          12011   MT
-Maldives        434000          4520    MV
-Brunei          434000          12128   BN
-Iceland         337000          17036   IS
-Nauru           11300           182     NR
-Tuvalu          11300           38      TV
-Anguilla        11300           311     AI
-
-index           population      GDP     alpha-2
-France          65000000        2583560 FR
-Italy           59000000        1937894 IT
-Brunei  -       434000          12128   BN
+index       population     GDP       alpha-2
+France      65000000       2583560   FR
+Italy       59000000       1937894   IT
+Brunei      434000         12128     BN
 \f[R]
 .fi
 .PP
@@ -194,26 +174,7 @@ For example,
 .IP
 .nf
 \f[C]
-# example to show the behavior of nlargest with keep = \[aq]all\[aq]
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# When using keep=\[aq]all\[aq], all duplicate items are maintained:
-pd_df = pd.DataFrame({\[aq]population\[aq]: [59000000, 65000000, 434000, 434000, 
-                                    434000, 337000, 11300, 11300, 11300],
-                    \[aq]GDP\[aq]: [1937894, 2583560 , 12011, 4520, 12128,
-                            17036, 182, 38, 311],
-                    \[aq]alpha-2\[aq]: [\[dq]IT\[dq], \[dq]FR\[dq], \[dq]MT\[dq], \[dq]MV\[dq], \[dq]BN\[dq],
-                                \[dq]IS\[dq], \[dq]NR\[dq], \[dq]TV\[dq], \[dq]AI\[dq]]},
-                    index=[\[dq]Italy\[dq], \[dq]France\[dq], \[dq]Malta\[dq],
-                            \[dq]Maldives\[dq], \[dq]Brunei\[dq], \[dq]Iceland\[dq],
-                            \[dq]Nauru\[dq], \[dq]Tuvalu\[dq], \[dq]Anguilla\[dq]])
-fd_df = fdf.DataFrame(pd_df)
-
-# to display frovedis dataframe
-fd_df.show()
-
+# nlargest() demo with keep = \[aq]all\[aq]
 fdf.nlargest(3, \[aq]population\[aq], keep=\[aq]all\[aq]).show()
 \f[R]
 .fi
@@ -222,23 +183,12 @@ Output
 .IP
 .nf
 \f[C]
-index           population      GDP     alpha-2
-Italy           59000000        1937894 IT
-France          65000000        2583560 FR
-Malta           434000          12011   MT
-Maldives        434000          4520    MV
-Brunei          434000          12128   BN
-Iceland         337000          17036   IS
-Nauru           11300           182     NR
-Tuvalu          11300           38      TV
-Anguilla        11300           311     AI
-
-index           population      GDP     alpha-2
-France          65000000        2583560 FR
-Italy           59000000        1937894 IT
-Malta           434000          12011   MT
-Maldives        434000          4520    MV
-Brunei          434000          12128   BN
+index       population     GDP       alpha-2
+France      65000000       2583560   FR
+Italy       59000000       1937894   IT
+Malta       434000         12011     MT
+Maldives    434000         4520      MV
+Brunei      434000         12128     BN
 \f[R]
 .fi
 .PP
@@ -246,26 +196,7 @@ For example,
 .IP
 .nf
 \f[C]
-# example to show use of list of columns with nlargest
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# To order by the largest values in column \[lq]population\[rq] and then \[lq]GDP\[rq]
-pd_df = pd.DataFrame({\[aq]population\[aq]: [59000000, 65000000, 434000, 434000, 
-                                    434000, 337000, 11300, 11300, 11300],
-                    \[aq]GDP\[aq]: [1937894, 2583560 , 12011, 4520, 12128,
-                            17036, 182, 38, 311],
-                    \[aq]alpha-2\[aq]: [\[dq]IT\[dq], \[dq]FR\[dq], \[dq]MT\[dq], \[dq]MV\[dq], \[dq]BN\[dq],
-                                \[dq]IS\[dq], \[dq]NR\[dq], \[dq]TV\[dq], \[dq]AI\[dq]]},
-                    index=[\[dq]Italy\[dq], \[dq]France\[dq], \[dq]Malta\[dq],
-                            \[dq]Maldives\[dq], \[dq]Brunei\[dq], \[dq]Iceland\[dq],
-                            \[dq]Nauru\[dq], \[dq]Tuvalu\[dq], \[dq]Anguilla\[dq]])
-fd_df = fdf.DataFrame(pd_df)
-
-# to display frovedis dataframe
-fd_df.show()
-
+# nlargest() demo with use of list of columns
 fd_df.nlargest(3, [\[aq]population\[aq], \[aq]GDP\[aq]]).show()
 \f[R]
 .fi
@@ -274,21 +205,10 @@ Output
 .IP
 .nf
 \f[C]
-index           population      GDP     alpha-2
-Italy           59000000        1937894 IT
-France          65000000        2583560 FR
-Malta           434000          12011   MT
-Maldives        434000          4520    MV
-Brunei          434000          12128   BN
-Iceland         337000          17036   IS
-Nauru           11300           182     NR
-Tuvalu          11300           38      TV
-Anguilla        11300           311     AI
-
-index           population      GDP     alpha-2
-France          65000000        2583560 FR
-Italy           59000000        1937894 IT
-Brunei          434000          12128   BN
+index       population     GDP       alpha-2
+France      65000000       2583560   FR
+Italy       59000000       1937894   IT
+Brunei      434000         12128     BN
 \f[R]
 .fi
 .PP
@@ -296,8 +216,8 @@ Brunei          434000          12128   BN
 .PD 0
 .P
 .PD
-It returns a Frovedis DataFrame object with \f[B]n\f[R] rows ordered by
-the specified columns in descending order.
+It returns a Frovedis DataFrame instance with \f[B]n\f[R] rows ordered
+by the specified columns in descending order.
 .SS 2. nsmallest(n, columns, keep = `first')
 .PP
 \f[B]Parameters\f[R]
@@ -338,7 +258,7 @@ selecting more than \f[B]n\f[R] items.
 .PD 0
 .P
 .PD
-It is used to return the top \f[B]n\f[R] rows ordered by the specified
+It is used to return the \f[B]top n rows\f[R] ordered by the specified
 columns in ascending order.
 .PP
 It returns the first n rows with the smallest values in columns, in
@@ -353,26 +273,50 @@ For example
 .IP
 .nf
 \f[C]
-# example to use nsmallest with default values on columns = \[aq]population\[aq]
-
 import pandas as pd
 import frovedis.dataframe as fdf
 
-# to display n smallest rows according to given column
 pd_df = pd.DataFrame({\[aq]population\[aq]: [59000000, 65000000, 434000,
-                                  434000, 434000, 337000, 11300,
-                                  11300, 11300],
-                   \[aq]GDP\[aq]: [1937894, 2583560 , 12011, 4520, 12128,
-                           17036, 182, 38, 311],
-                   \[aq]alpha-2\[aq]: [\[dq]IT\[dq], \[dq]FR\[dq], \[dq]MT\[dq], \[dq]MV\[dq], \[dq]BN\[dq],
-                               \[dq]IS\[dq], \[dq]NR\[dq], \[dq]TV\[dq], \[dq]AI\[dq]]},
-                    index=[\[dq]Italy\[dq], \[dq]France\[dq], \[dq]Malta\[dq],
-                         \[dq]Maldives\[dq], \[dq]Brunei\[dq], \[dq]Iceland\[dq],
-                         \[dq]Nauru\[dq], \[dq]Tuvalu\[dq], \[dq]Anguilla\[dq]])
+                                    434000, 434000, 337000, 11300,
+                                    11300, 11300],
+                      \[aq]GDP\[aq]: [1937894, 2583560 , 12011, 4520, 12128,
+                              17036, 182, 38, 311],
+                      \[aq]alpha-2\[aq]: [\[dq]IT\[dq], \[dq]FR\[dq], \[dq]MT\[dq], \[dq]MV\[dq], \[dq]BN\[dq],
+                                  \[dq]IS\[dq], \[dq]NR\[dq], \[dq]TV\[dq], \[dq]AI\[dq]]},
+                      index=[\[dq]Italy\[dq], \[dq]France\[dq], \[dq]Malta\[dq],
+                             \[dq]Maldives\[dq], \[dq]Brunei\[dq], \[dq]Iceland\[dq],
+                             \[dq]Nauru\[dq], \[dq]Tuvalu\[dq], \[dq]Anguilla\[dq]])
+
+# create a frovedis dataframe
 fd_df = fdf.DataFrame(pd_df)
+
 # to display frovedis dataframe
 fd_df.show()
-
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index       population     GDP       alpha-2
+Italy       59000000       1937894   IT
+France      65000000       2583560   FR
+Malta       434000         12011     MT
+Maldives    434000         4520      MV
+Brunei      434000         12128     BN
+Iceland     337000         17036     IS
+Nauru       11300          182       NR
+Tuvalu      11300          38        TV
+Anguilla    11300          311       AI
+\f[R]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# nsmallest() demo to select the 3 rows having the smallest values in column \[lq]population\[rq]
 fd_df.nsmallest(3, \[aq]population\[aq]).show()
 \f[R]
 .fi
@@ -381,21 +325,10 @@ Output
 .IP
 .nf
 \f[C]
-index           population      GDP     alpha-2
-Italy           59000000        1937894 IT
-France          65000000        2583560 FR
-Malta           434000          12011   MT
-Maldives        434000          4520    MV
-Brunei          434000          12128   BN
-Iceland         337000          17036   IS
-Nauru           11300           182     NR
-Tuvalu          11300           38      TV
-Anguilla        11300           311     AI
-
-index           population      GDP     alpha-2
-Nauru           11300           182     NR
-Tuvalu          11300           38      TV
-Anguilla        11300           311     AI
+index       population     GDP      alpha-2
+Nauru       11300          182      NR
+Tuvalu      11300          38       TV
+Anguilla    11300          311      AI
 \f[R]
 .fi
 .PP
@@ -403,26 +336,7 @@ For example,
 .IP
 .nf
 \f[C]
-# example to use nsmallest with keep = \[aq]last\[aq] parameter
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# When using keep=\[aq]last\[aq], duplicates are resolved in reverse order:
-pd_df = pd.DataFrame({\[aq]population\[aq]: [59000000, 65000000, 434000,
-                                  434000, 434000, 337000, 11300,
-                                  11300, 11300],
-                   \[aq]GDP\[aq]: [1937894, 2583560 , 12011, 4520, 12128,
-                           17036, 182, 38, 311],
-                   \[aq]alpha-2\[aq]: [\[dq]IT\[dq], \[dq]FR\[dq], \[dq]MT\[dq], \[dq]MV\[dq], \[dq]BN\[dq],
-                               \[dq]IS\[dq], \[dq]NR\[dq], \[dq]TV\[dq], \[dq]AI\[dq]]},
-                    index=[\[dq]Italy\[dq], \[dq]France\[dq], \[dq]Malta\[dq],
-                         \[dq]Maldives\[dq], \[dq]Brunei\[dq], \[dq]Iceland\[dq],
-                         \[dq]Nauru\[dq], \[dq]Tuvalu\[dq], \[dq]Anguilla\[dq]])
-fd_df = fdf.DataFrame(pd_df)
-# to display frovedis dataframe
-fd_df.show()
-
+# nsmallest() demo with keep = \[aq]last\[aq] parameter
 fd_df.nsmallest(3, \[aq]population\[aq], keep=\[aq]last\[aq]).show()
 \f[R]
 .fi
@@ -431,21 +345,10 @@ Output
 .IP
 .nf
 \f[C]
-index           population      GDP     alpha-2
-Italy           59000000        1937894 IT
-France          65000000        2583560 FR
-Malta           434000          12011   MT
-Maldives        434000          4520    MV
-Brunei          434000          12128   BN
-Iceland         337000          17036   IS
-Nauru           11300           182     NR
-Tuvalu          11300           38      TV
-Anguilla        11300           311     AI
-
-index           population      GDP     alpha-2
-Anguilla        11300           311     AI
-Tuvalu          11300           38      TV
-Nauru           11300           182     NR
+index       population     GDP      alpha-2
+Anguilla    11300          311      AI
+Tuvalu      11300          38       TV
+Nauru       11300          182      NR
 \f[R]
 .fi
 .PP
@@ -454,26 +357,6 @@ For example
 .nf
 \f[C]
 # example to use nsmallest with keep = \[aq]all\[aq] parameter
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# When using keep=\[aq]all\[aq], all duplicate items are maintained:
-pd_df = pd.DataFrame({\[aq]population\[aq]: [59000000, 65000000, 434000,
-                                  434000, 434000, 337000, 11300,
-                                  11300, 11300],
-                   \[aq]GDP\[aq]: [1937894, 2583560 , 12011, 4520, 12128,
-                           17036, 182, 38, 311],
-                   \[aq]alpha-2\[aq]: [\[dq]IT\[dq], \[dq]FR\[dq], \[dq]MT\[dq], \[dq]MV\[dq], \[dq]BN\[dq],
-                               \[dq]IS\[dq], \[dq]NR\[dq], \[dq]TV\[dq], \[dq]AI\[dq]]},
-                    index=[\[dq]Italy\[dq], \[dq]France\[dq], \[dq]Malta\[dq],
-                         \[dq]Maldives\[dq], \[dq]Brunei\[dq], \[dq]Iceland\[dq],
-                         \[dq]Nauru\[dq], \[dq]Tuvalu\[dq], \[dq]Anguilla\[dq]])
-fd_df = fdf.DataFrame(pd_df)
-
-# to display frovedis dataframe
-fd_df.show()
-
 fd_df.nsmallest(3, \[aq]population\[aq], keep=\[aq]all\[aq]).show()
 \f[R]
 .fi
@@ -482,21 +365,10 @@ Output
 .IP
 .nf
 \f[C]
-index           population      GDP     alpha-2
-Italy           59000000        1937894 IT
-France          65000000        2583560 FR
-Malta           434000          12011   MT
-Maldives        434000          4520    MV
-Brunei          434000          12128   BN
-Iceland         337000          17036   IS
-Nauru           11300           182     NR
-Tuvalu          11300           38      TV
-Anguilla        11300           311     AI
-
-index           population      GDP     alpha-2
-Nauru           11300           182     NR
-Tuvalu          11300           38      TV
-Anguilla        11300           311     AI
+index       population     GDP      alpha-2
+Nauru       11300          182      NR
+Tuvalu      11300          38       TV
+Anguilla    11300          311      AI
 \f[R]
 .fi
 .PP
@@ -504,29 +376,7 @@ For example,
 .IP
 .nf
 \f[C]
-# example to use nsmallest on a list of columns names
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# To order by the smallest values in column \[lq]population\[rq] and then \[lq]GDP\[rq], 
-# we can specify multiple columns like in the next example.
-pd_df = pd.DataFrame({\[aq]population\[aq]: [59000000, 65000000, 434000,
-                                  434000, 434000, 337000, 11300,
-                                  11300, 11300],
-                   \[aq]GDP\[aq]: [1937894, 2583560 , 12011, 4520, 12128,
-                           17036, 182, 38, 311],
-                   \[aq]alpha-2\[aq]: [\[dq]IT\[dq], \[dq]FR\[dq], \[dq]MT\[dq], \[dq]MV\[dq], \[dq]BN\[dq],
-                               \[dq]IS\[dq], \[dq]NR\[dq], \[dq]TV\[dq], \[dq]AI\[dq]]},
-                    index=[\[dq]Italy\[dq], \[dq]France\[dq], \[dq]Malta\[dq],
-                         \[dq]Maldives\[dq], \[dq]Brunei\[dq], \[dq]Iceland\[dq],
-                         \[dq]Nauru\[dq], \[dq]Tuvalu\[dq], \[dq]Anguilla\[dq]])
-fd_df = fdf.DataFrame(pd_df)
-
-# to display frovedis dataframe
-fd_df.show()
-
-# display smallest 3 row from population and then GDP columns
+# nsmallest() demo with using a list of columns names    
 fd_df.nsmallest(3, [\[aq]population\[aq], \[aq]GDP\[aq]])
 \f[R]
 .fi
@@ -535,21 +385,10 @@ Output
 .IP
 .nf
 \f[C]
-index           population      GDP     alpha-2
-Italy           59000000        1937894 IT
-France          65000000        2583560 FR
-Malta           434000          12011   MT
-Maldives        434000          4520    MV
-Brunei          434000          12128   BN
-Iceland         337000          17036   IS
-Nauru           11300           182     NR
-Tuvalu          11300           38      TV
-Anguilla        11300           311     AI
-
-index           population      GDP     alpha-2
-Tuvalu          11300           38      TV
-Nauru           11300           182     NR
-Anguilla        11300           311     AI
+index       population     GDP      alpha-2
+Tuvalu      11300          38       TV
+Nauru       11300          182      NR
+Anguilla    11300          311      AI
 \f[R]
 .fi
 .PP
@@ -583,8 +422,8 @@ and it will raise an exception.
 .P
 .PD
 \f[B]\f[BI]axis\f[B]\f[R]: It accepts an integer or a string object as
-parameter.To perform sorting along rows or columns is selected by this
-parameter.
+parameter.To perform sorting along rows or columns, it is selected by
+this parameter.
 (Default: 0)
 .PD 0
 .P
@@ -609,23 +448,24 @@ order to descending, explicitly pass it as False.
 \f[B]\f[BI]inplace\f[B]\f[R]: It accepts a boolean value as parameter.
 When it is explicitly set to True, it modifies the original object
 directly instead of creating a copy of DataFrame object.
-(Default: False)
-.PP
-\f[B]NOTE: Currently, `inplace' = True is not supported by this Frovedis
-DataFrame method.\f[R]
-.PP
+\f[B]Currently, `inplace' = True is not supported by this Frovedis
+DataFrame method.\f[R] (Default: False)
+.PD 0
+.P
+.PD
 \f[B]\f[BI]kind\f[B]\f[R]: It accepts a string object as parameter to
 select the type of sorting algorithm.
+\f[B]Currently, Frovedis supports only `radixsort' and other values for
+`kind' parameter will be ignored internally with a warning.\f[R]
 (Default: `radixsort')
-.PP
-\f[B]NOTE: Currently Frovedis supports only `radixsort' and other `kind'
-parameters will be ignored internally with a warning.\f[R]
-.PP
+.PD 0
+.P
+.PD
 \f[B]\f[BI]na_position\f[B]\f[R]: It accepts a string object as
 parameter.
 It decides the position of NaNs after sorting.
 When it is set to `last', it puts NaNs at the end.
-Currently, Frovedis only supports `na_position' = `last'.
+\f[B]Currently, Frovedis only supports `na_position' = `last'\f[R].
 (Default: `last')
 .PD 0
 .P
@@ -650,8 +490,6 @@ For example,
 .IP
 .nf
 \f[C]
-# example to sort a column with other default parameters
-
 import pandas as pd
 import frovedis.dataframe as fdf
 
@@ -660,13 +498,34 @@ pd_df = pd.DataFrame({
                     \[aq]col2\[aq]: [2, 1, 9, 8, 7, 4],
                     \[aq]col3\[aq]: [0, 1, 9, 4, 2, 3],
                     \[aq]col4\[aq]: [\[aq]a\[aq], \[aq]B\[aq], \[aq]c\[aq], \[aq]D\[aq], \[aq]e\[aq], \[aq]F\[aq]] })
+
 # create a frovedis dataframe from pandas dataframe
 fd_df = fdf.DataFrame(pd_df)
 
 # display frovedis dataframe
 fd_df.show()
-
-# Sort by \[aq]col1\[aq] and display
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   col1    col2    col3    col4
+0       A       2       0       a
+1       A       1       1       B
+2       B       9       9       c
+3       NULL    8       4       D
+4       D       7       2       e
+5       C       4       3       F
+\f[R]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# Sort dataframe by \[aq]col1\[aq]
 fd_df.sort(\[aq]col1\[aq]).show()
 \f[R]
 .fi
@@ -679,14 +538,6 @@ index   col1    col2    col3    col4
 0       A       2       0       a
 1       A       1       1       B
 2       B       9       9       c
-3       NULL    8       4       D
-4       D       7       2       e
-5       C       4       3       F
-
-index   col1    col2    col3    col4
-0       A       2       0       a
-1       A       1       1       B
-2       B       9       9       c
 5       C       4       3       F
 4       D       7       2       e
 3       NULL    8       4       D
@@ -697,23 +548,7 @@ For example,
 .IP
 .nf
 \f[C]
-# example to sort a list of columns
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-pd_df = pd.DataFrame({
-                    \[aq]col1\[aq]: [\[aq]A\[aq], \[aq]A\[aq], \[aq]B\[aq], np.nan, \[aq]D\[aq], \[aq]C\[aq]],
-                    \[aq]col2\[aq]: [2, 1, 9, 8, 7, 4],
-                    \[aq]col3\[aq]: [0, 1, 9, 4, 2, 3],
-                    \[aq]col4\[aq]: [\[aq]a\[aq], \[aq]B\[aq], \[aq]c\[aq], \[aq]D\[aq], \[aq]e\[aq], \[aq]F\[aq]] })
-# create a frovedis dataframe from pandas dataframe
-fd_df = fdf.DataFrame(pd_df)
-
-# display frovedis dataframe
-fd_df.show()    
-
-# Sort by multiple columns and display
+# Sort dataframe by multiple columns
 fd_df.sort([\[aq]col1\[aq], \[aq]col2\[aq]]).show()
 \f[R]
 .fi
@@ -723,14 +558,6 @@ Output
 .nf
 \f[C]
 index   col1    col2    col3    col4
-0       A       2       0       a
-1       A       1       1       B
-2       B       9       9       c
-3       NULL    8       4       D
-4       D       7       2       e
-5       C       4       3       F
-
-index   col1    col2    col3    col4
 1       A       1       1       B
 0       A       2       0       a
 2       B       9       9       c
@@ -740,31 +567,16 @@ index   col1    col2    col3    col4
 \f[R]
 .fi
 .PP
-NOTE: In the above example, in case of multiple columns sorting, `col1'
-will be sorted first and the `col2' will only be considered for sorting
-in case of duplicate entries present in `col1'.
+\f[B]NOTE:\f[R] In the above example, in case of multiple columns
+sorting, \f[B]`col1'\f[R] will be sorted first and \f[B]`col2'\f[R] will
+only be considered for sorting in case of duplicate entries present in
+\f[B]`col1'\f[R].
 .PP
 For example,
 .IP
 .nf
 \f[C]
-# example to sort in descending order
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-pd_df = pd.DataFrame({
-                    \[aq]col1\[aq]: [\[aq]A\[aq], \[aq]A\[aq], \[aq]B\[aq], np.nan, \[aq]D\[aq], \[aq]C\[aq]],
-                    \[aq]col2\[aq]: [2, 1, 9, 8, 7, 4],
-                    \[aq]col3\[aq]: [0, 1, 9, 4, 2, 3],
-                    \[aq]col4\[aq]: [\[aq]a\[aq], \[aq]B\[aq], \[aq]c\[aq], \[aq]D\[aq], \[aq]e\[aq], \[aq]F\[aq]] })
-# create a frovedis dataframe from pandas dataframe
-fd_df = fdf.DataFrame(pd_df)
-
-# display frovedis dataframe
-fd_df.show()
-
-# Sort in descending order and display
+# Sort datafrme in descending order
 fd_df.sort(\[aq]col1\[aq], ascending = False).show()
 \f[R]
 .fi
@@ -773,14 +585,6 @@ Output
 .IP
 .nf
 \f[C]
-index   col1    col2    col3    col4
-0       A       2       0       a
-1       A       1       1       B
-2       B       9       9       c
-3       NULL    8       4       D
-4       D       7       2       e
-5       C       4       3       F
-
 index   col1    col2    col3    col4
 3       NULL    8       4       D
 4       D       7       2       e
@@ -810,15 +614,18 @@ It is the axis along which the sorting will be performed.
 .P
 .PD
 When axis = 0 or axis = `index', operation will be performed on rows.
-Currently only axis = 0 or axis = `index' is supported.
+\f[B]Currently only axis = 0 or axis = `index' is supported\f[R].
 .PD 0
 .P
 .PD
 \f[B]\f[BI]ascending\f[B]\f[R]: It accepts a boolean value as parameter.
 This parameter decides the order to sort the data.
+(Default: True)
+.PD 0
+.P
+.PD
 When this parameter is explicitly passed as False, it sorts the data
 into descending order.
-(Default: True)
 .PD 0
 .P
 .PD
@@ -826,11 +633,11 @@ into descending order.
 To modify the original DataFrame object, argument is explicitly passed
 as True.
 Otherwise operation is performed on a copy of Frovedis DataFrame object.
+\f[B]Currently `inplace' = True is not supported by this method.\f[R]
 (Default: False)
-.PP
-\f[B]NOTE: Currently `inplace' = True is not supported by this
-method.\f[R]
-.PP
+.PD 0
+.P
+.PD
 \f[B]\f[BI]kind\f[B]\f[R]: It accepts a string object as parameter.
 This parameter is used to select the sorting algorithms.
 (Default: `quicksort')
@@ -846,37 +653,58 @@ end.
 .P
 .PD
 When na_position = `last', it puts NaNs at the end.
-Currently only na_position = `last' is supported.
+\f[B]Currently, na_position = `last' is only supported for this
+method.\f[R]
 .PP
-\f[B]Purpose\f[R] It is used to sort Frovedis DataFrame according to
-index values.
+\f[B]Purpose\f[R]
+.PD 0
+.P
+.PD
+It is used to sort Frovedis DataFrame according to index values.
 It creates a new sorted DataFrame by the specified label.
 .PP
-\f[B]NOTE: Currently it only supports `radixsort' and other kind of
-sorting techniques are ignored internally along with a warning.\f[R]
+\f[B]Currently it only supports `radixsort' and other values for `kind'
+parameter are ignored internally along with a warning.\f[R]
 .PP
-\f[B]NOTE: Currently Frovedis DataFrame doesn\[cq]t support
-MultiIndex\f[R]
+\f[B]Also, Frovedis DataFrame doesn\[cq]t support MultiIndex\f[R]
 .PP
 For example,
 .IP
 .nf
 \f[C]
-# example to sort index using default values
-
 import pandas as pd
 import frovedis.dataframe as fdf
 
 # creating a pandas dataframe
-pd_df = pd.DataFrame([1, 2, 3, 4, 5], index=[100, 29, 234, 1, 150],
-                  columns=[\[aq]A\[aq]])
+pd_df = pd.DataFrame([1, 2, 3, 4, 5], 
+                     index=[100, 29, 234, 1, 150],
+                     columns=[\[aq]A\[aq]])
                   
 # creating frovedis dataframe from pandas dataframe
 fd_df = fdf.DataFrame(pd_df)
 
 # to display frovedis dataframe
 fd_df.show()
-
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   A
+100     1
+29      2
+234     3
+1       4
+150     5
+\f[R]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
 # to display sorted dataframe by index
 fd_df.sort_index().show()
 \f[R]
@@ -887,13 +715,6 @@ Output
 .nf
 \f[C]
 index   A
-100     1
-29      2
-234     3
-1       4
-150     5
-
-index   A
 1       4
 29      2
 100     1
@@ -906,22 +727,7 @@ For example,
 .IP
 .nf
 \f[C]
-# example to sort_index in decending order
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# creating a pandas dataframe
-pd_df = pd.DataFrame([1, 2, 3, 4, 5], index=[100, 29, 234, 1, 150],
-                  columns=[\[aq]A\[aq]])
-                  
-# creating frovedis dataframe from pandas dataframe
-fd_df = fdf.DataFrame(pd_df)
-
-# to display frovedis dataframe
-fd_df.show()
-
-# To sort in descending order, use ascending=False
+# Sort in descending order, use ascending=False
 fd_df.sort_index(ascending=False)
 \f[R]
 .fi
@@ -930,13 +736,6 @@ Output
 .IP
 .nf
 \f[C]
-index   A
-100     1
-29      2
-234     3
-1       4
-150     5
-
 index   A
 234     3
 150     5
@@ -950,7 +749,7 @@ index   A
 .PD 0
 .P
 .PD
-It returns a new Frovedis DataFrame sorted by the labels.
+It returns a new Frovedis DataFrame instance sorted by the labels.
 .SS 5. sort_values(by, axis = 0, ascending = True, inplace = False, kind = `radixsort', na_position = `last')
 .PP
 \f[B]Parameters\f[R]
@@ -964,20 +763,23 @@ sorting will be applied.
 .PD
 If axis is 0 or `index', then `by' should contain index levels and/or
 column labels.
-.PP
-\f[B]NOTE: Currently axis = 1 or axis = `columns' is not supported.\f[R]
-.PP
+\f[B]Currently axis = 1 or axis = `columns' is not supported.\f[R]
+.PD 0
+.P
+.PD
 \f[B]\f[BI]axis\f[B]\f[R]: It accepts an integer or a string object as
 parameter.
-To perform sorting along rows or columns is selected by this parameter.
+To perform sorting along rows or columns, it is selected by this
+parameter.
 (Default: 0)
 .PD 0
 .P
 .PD
 If axis is 0 or `index', sorting is performed along the row.
-.PP
-\f[B]NOTE: Currently axis = 1 or axis = `columns' is not supported.\f[R]
-.PP
+\f[B]Currently axis = 1 or axis = `columns' is not supported.\f[R]
+.PD 0
+.P
+.PD
 \f[B]\f[BI]ascending\f[B]\f[R]: It accepts a boolean value or a list of
 boolean values as parameter.
 The order of sorting is decided by this parameter.
@@ -994,18 +796,19 @@ order to descending, explicitly pass it as False.
 To modify the original DataFrame object, argument is explicitly passed
 as True.
 Otherwise operation is performed on a copy of Frovedis DataFrame object.
+\f[B]Currently `inplace' = True is not supported by this method.\f[R]
 (Default: False)
-.PP
-\f[B]NOTE: Currently `inplace' = True is not supported by this
-method.\f[R]
-.PP
+.PD 0
+.P
+.PD
 \f[B]\f[BI]kind\f[B]\f[R]: It accepts a string object as parameter.
 The type of sorting algorithm is decided from this parameter.
-(Default: `radixsort')
-.PP
-\f[B]NOTE: Currently it only supports `radixsort' and other kind of
-sorting techniques are ignored internally along with a warning.\f[R]
-.PP
+\f[B]Currently it only supports `radixsort' and other values for `kind'
+parameter are ignored internally along with a warning.\f[R] (Default:
+`radixsort')
+.PD 0
+.P
+.PD
 \f[B]\f[BI]na_position\f[B]\f[R]: It accepts a string object as
 parameter.
 It is used to decide where to puts NaNs i.e at the beginning or at the
@@ -1015,7 +818,7 @@ end.
 .P
 .PD
 When na_position = `last', it puts NaNs at the end.
-Currently it only supports na_position = `last'.
+\f[B]Currently, it only supports na_position = `last'.\f[R]
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -1027,17 +830,15 @@ For example,
 .IP
 .nf
 \f[C]
-# example of using sort_values on a column label
-
 import pandas as pd
 import frovedis.dataframe as fdf
 
 # creating a pandas dataframe
 pd_df = pd.DataFrame({
-                        \[aq]col1\[aq]: [\[aq]A\[aq], \[aq]A\[aq], \[aq]B\[aq], np.nan, \[aq]D\[aq], \[aq]C\[aq]],
-                        \[aq]col2\[aq]: [2, 1, 9, 8, 7, 4],
-                        \[aq]col3\[aq]: [0, 1, 9, 4, 2, 3],
-                        \[aq]col4\[aq]: [\[aq]a\[aq], \[aq]B\[aq], \[aq]c\[aq], \[aq]D\[aq], \[aq]e\[aq], \[aq]F\[aq]]
+                       \[aq]col1\[aq]: [\[aq]A\[aq], \[aq]A\[aq], \[aq]B\[aq], np.nan, \[aq]D\[aq], \[aq]C\[aq]],
+                       \[aq]col2\[aq]: [2, 1, 9, 8, 7, 4],
+                       \[aq]col3\[aq]: [0, 1, 9, 4, 2, 3],
+                       \[aq]col4\[aq]: [\[aq]a\[aq], \[aq]B\[aq], \[aq]c\[aq], \[aq]D\[aq], \[aq]e\[aq], \[aq]F\[aq]]
                     })
                     
 # creating a frovedis dataframe
@@ -1045,7 +846,27 @@ fd_df = fdf.DataFrame(pd_df)
 
 # displaying the frovedis dataframe
 fd_df.show()
-
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   col1    col2    col3    col4
+0       A       2       0       a
+1       A       1       1       B
+2       B       9       9       c
+3       NULL    8       4       D
+4       D       7       2       e
+5       C       4       3       F
+\f[R]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
 # sorting \[aq]col1\[aq] by values on frovedis dataframe
 fd_df.sort_values(by=[\[aq]col1\[aq]]).show() #Sort by col1
 \f[R]
@@ -1059,14 +880,6 @@ index   col1    col2    col3    col4
 0       A       2       0       a
 1       A       1       1       B
 2       B       9       9       c
-3       NULL    8       4       D
-4       D       7       2       e
-5       C       4       3       F
-
-index   col1    col2    col3    col4
-0       A       2       0       a
-1       A       1       1       B
-2       B       9       9       c
 5       C       4       3       F
 4       D       7       2       e
 3       NULL    8       4       D
@@ -1077,25 +890,7 @@ For example,
 .IP
 .nf
 \f[C]
-# example of using sort_values with parameters \[aq]by\[aq] and \[aq]ascending\[aq] as list
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# creating a pandas dataframe
-pd_df = pd.DataFrame({
-                        \[aq]col1\[aq]: [\[aq]A\[aq], \[aq]A\[aq], \[aq]B\[aq], np.nan, \[aq]D\[aq], \[aq]C\[aq]],
-                        \[aq]col2\[aq]: [2, 1, 9, 8, 7, 4],
-                        \[aq]col3\[aq]: [0, 1, 9, 4, 2, 3],
-                        \[aq]col4\[aq]: [\[aq]a\[aq], \[aq]B\[aq], \[aq]c\[aq], \[aq]D\[aq], \[aq]e\[aq], \[aq]F\[aq]]
-                    })
-# creating a frovedis dataframe
-fd_df = fdf.DataFrame(pd_df)
-
-# displaying the frovedis dataframe
-fd_df.show()
-
-# Sorting multiple columns
+# Sorting dataframe by multiple columns
 fd_df.sort_values(by=[\[aq]col1\[aq], \[aq]col2\[aq]], ascending = [True, True]).show()
 \f[R]
 .fi
@@ -1105,14 +900,6 @@ Output
 .nf
 \f[C]
 index   col1    col2    col3    col4
-0       A       2       0       a
-1       A       1       1       B
-2       B       9       9       c
-3       NULL    8       4       D
-4       D       7       2       e
-5       C       4       3       F
-
-index   col1    col2    col3    col4
 1       A       1       1       B
 0       A       2       0       a
 2       B       9       9       c
@@ -1126,25 +913,6 @@ For example,
 .IP
 .nf
 \f[C]
-# example with parameter ascending = False
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# creating a pandas dataframe
-pd_df = pd.DataFrame({
-                        \[aq]col1\[aq]: [\[aq]A\[aq], \[aq]A\[aq], \[aq]B\[aq], np.nan, \[aq]D\[aq], \[aq]C\[aq]],
-                        \[aq]col2\[aq]: [2, 1, 9, 8, 7, 4],
-                        \[aq]col3\[aq]: [0, 1, 9, 4, 2, 3],
-                        \[aq]col4\[aq]: [\[aq]a\[aq], \[aq]B\[aq], \[aq]c\[aq], \[aq]D\[aq], \[aq]e\[aq], \[aq]F\[aq]]
-                    })
-                    
-# creating a frovedis dataframe
-fd_df = fdf.DataFrame(pd_df)
-
-# displaying the frovedis dataframe
-fd_df.show()
-
 # Sort in descending order
 fd_df.sort_values(by=\[aq]col1\[aq], ascending=False).show()
 \f[R]
@@ -1154,14 +922,6 @@ Output
 .IP
 .nf
 \f[C]
-index   col1    col2    col3    col4
-0       A       2       0       a
-1       A       1       1       B
-2       B       9       9       c
-3       NULL    8       4       D
-4       D       7       2       e
-5       C       4       3       F
-
 index   col1    col2    col3    col4
 3       NULL    8       4       D
 4       D       7       2       e
@@ -1177,628 +937,6 @@ index   col1    col2    col3    col4
 .P
 .PD
 It returns a new Frovedis DataFrame with sorted values.
-.SS 6. to_dict(orient = \[lq]dict\[rq], into = dict)
-.PP
-\f[B]Parameters\f[R]
-.PD 0
-.P
-.PD
-\f[B]\f[BI]orient\f[B]\f[R]: It accepts a string object as parameter.
-It is used to determine the type of the values of the dictionary.
-(Default: `dict')
-.PD 0
-.P
-.PD
-1.
-\f[I]`dict'\f[R] : dict like {column -> {index -> value}}
-.PD 0
-.P
-.PD
-2.
-\f[I]`list'\f[R] : dict like {column -> [values]}
-\f[B]\f[BI]into\f[B]\f[R]: This parameter is used for mapping in the
-return value.
-(Default: dict)
-.PD 0
-.P
-.PD
-NOTE: Currently it only supports OrderedDict as return type.
-.PP
-\f[B]Purpose\f[R]
-.PD 0
-.P
-.PD
-It is used to convert the Frovedis DataFrame to a dictionary.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# example of using to_dict with default values
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# a pandas dataframe
-pd_df = pd.DataFrame({\[aq]col1\[aq]: [1, 2],
-                   \[aq]col2\[aq]: [0.5, 0.75]},
-                  index=[\[aq]row1\[aq], \[aq]row2\[aq]])
-# a frovedis dataframe
-fd_df = fdf.DataFrame(pd_df)
-
-# to display frovedis dataframe
-fd_df.show()
-
-# to display converted object using to_dict
-print(fd_df.to_dict())
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   col1    col2
-row1    1       0.5
-row2    2       0.75
-
-OrderedDict([(\[aq]col1\[aq], {\[aq]row1\[aq]: 1, \[aq]row2\[aq]: 2}), (\[aq]col2\[aq], {\[aq]row1\[aq]: 0.5, \[aq]row2\[aq]: 0.75})])
-\f[R]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# example of using to_dict with orient = \[aq]list\[aq]
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# a pandas dataframe
-pd_df = pd.DataFrame({\[aq]col1\[aq]: [1, 2],
-                   \[aq]col2\[aq]: [0.5, 0.75]},
-                  index=[\[aq]row1\[aq], \[aq]row2\[aq]])
-# a frovedis dataframe
-fd_df = fdf.DataFrame(pd_df)
-
-# to display frovedis dataframe
-fd_df.show()
-
-# to display converted object using to_dict
-print(fd_df.to_dict(orient = \[aq]list\[aq]))
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   col1    col2
-row1    1       0.5
-row2    2       0.75
-
-OrderedDict([(\[aq]index\[aq], array([\[aq]row1\[aq], \[aq]row2\[aq]], dtype=\[aq]<U4\[aq])), (\[aq]col1\[aq], array([1, 2])), (\[aq]col2\[aq], array([0.5 , 0.75]))])
-\f[R]
-.fi
-.PP
-\f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-It returns a dictionary representing the Frovedis DataFrame.
-The resulting transformation depends on the `orient' parameter.
-.SS 7. to_numpy(dtype = None, copy = False, na_value = None)
-.PP
-\f[B]Parameters\f[R]
-.PD 0
-.P
-.PD
-\f[B]\f[BI]dtype\f[B]\f[R] : It accepts the dtype parameter which
-decides the datatype of numpy ndarray.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it will be set as double
-(float64).
-.PD 0
-.P
-.PD
-\f[B]\f[BI]copy\f[B]\f[R] : This is an unused parameter.
-(Default: False)
-.PD 0
-.P
-.PD
-\f[B]\f[BI]na_value\f[B]\f[R] : This is an unused parameter.
-(Default: None)
-.PP
-\f[B]Purpose\f[R]
-.PD 0
-.P
-.PD
-This method is used to convert a frovedis dataframe into a numpy array.
-.PP
-The parameters: \[lq]copy\[rq] and \[lq]na_value\[rq] are simply kept in
-to make the interface uniform to the pandas DataFrame.to_numpy().
-.PD 0
-.P
-.PD
-This is not used anywhere within the frovedis implementation.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# example to convert a frovedis dataframe into numpy
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# a python dict
-peopleDF = {
-            \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]],
-            \[aq]Age\[aq] : [29, 30, 27, 19, 31],
-            \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
-            \[aq]isMale\[aq]: [False, False, False, False, True]
-           }
-
-# a pandas dataframe object from dict
-pd_df = pd.DataFrame(peopleDF)
-# to create a frovedis dataframe object
-fd_df = fdf.DataFrame(pd_df)
-
-# below will display a Frovedis dataframe type
-print(type(fd_df))
-
-# display frovedis dataframe
-fd_df.show()
-
-# below will display a numpy array type
-print(type(fd_df.to_numpy()))
-
-# below will display a numpy array type
-print(fd_df.to_numpy())
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-<class \[aq]frovedis.dataframe.df.DataFrame\[aq]>
-
-index   Ename   Age     Country isMale
-0       Michael 29      USA     0
-1       Andy    30      England 0
-2       Tanaka  27      Japan   0
-3       Raul    19      France  0
-4       Yuta    31      Japan   1
-
-<<class \[aq]numpy.ndarray\[aq]>
-
-[[\[aq]Michael\[aq] \[aq]29\[aq] \[aq]USA\[aq] \[aq]0\[aq]]
- [\[aq]Andy\[aq] \[aq]30\[aq] \[aq]England\[aq] \[aq]0\[aq]]
- [\[aq]Tanaka\[aq] \[aq]27\[aq] \[aq]Japan\[aq] \[aq]0\[aq]]
- [\[aq]Raul\[aq] \[aq]19\[aq] \[aq]France\[aq] \[aq]0\[aq]]
- [\[aq]Yuta\[aq] \[aq]31\[aq] \[aq]Japan\[aq] \[aq]1\[aq]]]
-\f[R]
-.fi
-.PP
-\f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-It returns a numpy ndarray that represents a Frovedis DataFrame.
-It has shape (nRows , nCols).
-.SS 8. to_pandas()
-.PP
-\f[B]Purpose\f[R]
-.PD 0
-.P
-.PD
-It converts a Frovedis DataFrame instance into a pandas dataframe
-instance.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# example to convert frovedis dataframe to pandas dataframe
-
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# a python dictionary
-peopleDF = {
-            \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]],
-            \[aq]Age\[aq] : [29, 30, 27, 19, 31],
-            \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
-            \[aq]isMale\[aq]: [False, False, False, False, True]
-           }
-# creating a pandas dataframe from python dict
-pd_df = pd.DataFrame(peopleDF)
-
-# creating a Frovedis dataframe from pandas dataframe
-fd_df = fdf.DataFrame(pd_df)
-
-# below will display a Frovedis dataframe type
-print(type(fd_df))
-
-# below will display a Frovedis dataframe
-fd_df.show()
-
-# below will display a pandas dataframe type after conversion
-print(type(fd_df.to_pandas()))
-
-# below will display a pandas dataframe after conversion
-print(fd_df.to_pandas())
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-<class \[aq]frovedis.dataframe.df.DataFrame\[aq]>
-
-index   Ename   Age     Country isMale
-0       Michael 29      USA     0
-1       Andy    30      England 0
-2       Tanaka  27      Japan   0
-3       Raul    19      France  0
-4       Yuta    31      Japan   1   
-
-<class \[aq]pandas.core.frame.DataFrame\[aq]>
-
-index  Ename  Age  Country  isMale
-0      Michael   29      USA   False
-1         Andy   30  England   False
-2       Tanaka   27    Japan   False
-3         Raul   19   France   False
-4         Yuta   31    Japan    True  
-\f[R]
-.fi
-.PP
-\f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-It returns a pandas dataframe instance after suitable conversion.
-.SS 9. to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)
-.PP
-\f[B]Parameters\f[R]
-.PD 0
-.P
-.PD
-\f[B]\f[BI]t_cols\f[B]\f[R]: It accepts a list of string type argument
-where each of the member of the list is the name of the column labels.
-.PD 0
-.P
-.PD
-\f[B]\f[BI]dtype\f[B]\f[R]: It accepts a dtype type argument which is
-the type of the resultant values.
-.PD 0
-.P
-.PD
-Currently only float32 and float64 types are supported.
-(Default: np.float32)
-.PP
-\f[B]Purpose\f[R]
-.PD 0
-.P
-.PD
-This method is used to convert a Frovedis DataFrame into
-FrovedisRowmajorMatrix instance.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# example to convert frovedis dataframe into frovedis row major matrix
-
-import frovedis.dataframe as fdf
-import numpy as np
-
-# read_csv demo to get values
-df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names = [\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]])
-
-# display frovedis dataframe
-df.show()
-
-row_mat = df.to_frovedis_rowmajor_matrix([\[aq]one\[aq], \[aq]two\[aq]], dtype = np.float64)
-
-# display row_mat (row major matrix)
-row_mat.debug_print()
-
-# display type of row_mat
-print(type(row_mat))
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   one     two     three   four
-0       10      10.23   F       0
-1       12      12.2    F       0
-2       13      34.8999 D       1
-3       15      100.12  A       2
-
-<class \[aq]frovedis.matrix.dense.FrovedisRowmajorMatrix\[aq]>
-
-matrix:
-num_row = 4, num_col = 2
-node 0
-node = 0, local_num_row = 4, local_num_col = 2, val = 10 10.23 12 12.2 13 34.9 15 100.12
-\f[R]
-.fi
-.PP
-\f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-It returns a FrovedisRowmajorMatrix instance after suitable conversion.
-.SS 10. to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)
-.PP
-\f[B]Parameters\f[R]
-.PD 0
-.P
-.PD
-\f[B]\f[BI]t_cols\f[B]\f[R]: It accepts a list of string type argument
-where each of the member of the list is the name of the column labels.
-.PD 0
-.P
-.PD
-\f[B]\f[BI]dtype\f[B]\f[R]: It accepts a dtype type argument which is
-the type of the resultant values.
-.PD 0
-.P
-.PD
-Currently only float32 and float64 types are supported.
-(Default: np.float32)
-.PP
-\f[B]Purpose\f[R]
-.PD 0
-.P
-.PD
-This method converts a frovedis dataframe to FrovedisColmajorMatrix.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# example to use to_frovedis_colmajor_matrix
-
-import frovedis.dataframe as fdf
-
-# read_csv demo
-df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names=[\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]])
-df.show()
-
-col_mat = df.to_frovedis_colmajor_matrix([\[aq]one\[aq], \[aq]two\[aq]]) # default dtype = np.float32
-
-# display type of col_mat
-print(type(col_mat))
-
-# display col_mat
-col_mat.debug_print()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   one     two     three   four
-0       10      10.23   F       0
-1       12      12.2    F       0
-2       13      34.8999 D       1
-3       15      100.12  A       2
-
-<class \[aq]frovedis.matrix.dense.FrovedisColmajorMatrix\[aq]>
-
-matrix:
-num_row = 4, num_col = 2
-node 0
-node = 0, local_num_row = 4, local_num_col = 2, val = 10 12 13 15 10.23 12.2 34.9 100.12
-\f[R]
-.fi
-.PP
-\f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-It returns a FrovedisColmajorMatrix instance after converting the
-original Frovedis DataFrame.
-.SS 11. to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32, need_info = False)
-.PP
-\f[B]Parameters\f[R]
-.PD 0
-.P
-.PD
-\f[B]\f[BI]t_cols\f[B]\f[R]: It accepts a list of string type argument
-where each of the member of the list is the name of the column labels.
-.PD 0
-.P
-.PD
-\f[B]\f[BI]cat_cols\f[B]\f[R]: It accepts a list of strings as parameter
-where strings are the column names.
-It stands for categorical columns.
-It represents how the repetitive values are distributed in the specified
-column.
-It adds number of columns corresponding to number of distinct values in
-the specified column to the matrix.
-And values corresponding to the value of the specicified column is set
-to 1 and remaining values are set to 0.
-.PD 0
-.P
-.PD
-\f[B]\f[BI]dtype\f[B]\f[R]: It accepts a dtype type argument which is
-the type of the resultant values.
-.PD 0
-.P
-.PD
-Currently only float32 and float64 types are supported.
-(Default: np.float32)
-.PD 0
-.P
-.PD
-\f[B]\f[BI]need_info\f[B]\f[R]: It accepts a boolean value as parameter.
-When this is explicitly set to True, it returns an additional value of
-type `df_to_sparse_info'.
-(Default: False)
-.PP
-\f[B]Purpose\f[R]
-.PD 0
-.P
-.PD
-It converts a Frovedis DataFrame object to FrovedisCRSMatrix instance.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# example to use to_frovedis_crs_matrix
-
-import frovedis.dataframe as fdf
-import numpy as np
-
-# read_csv demo
-df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names = [\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]])
-df.show()
-
-crs_mat,info = df.to_frovedis_crs_matrix([\[aq]one\[aq], \[aq]two\[aq], \[aq]four\[aq]],
-                                         [\[aq]three\[aq]], need_info = True) # default dtype = float32
-
-# display type of crs_mat
-print(type(crs_mat))
-
-# display crs_mat on console
-crs_mat.debug_print()
-
-# converting crs_mat to display it in better form
-mat_t = crs_mat.to_scipy_matrix().todense()
-
-# display matrix
-print(mat_t)
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   one     two     three   four
-0       10      10.23   F       0
-1       12      12.2    F       0
-2       13      34.8999 D       1
-3       15      100.12  A       2
-
-Active Elements:  12
-
-<class \[aq]frovedis.matrix.crs.FrovedisCRSMatrix\[aq]>
-
-matrix:
-num_row = 4, num_col = 5
-node 0
-local_num_row = 4, local_num_col = 5
-val : 10 10.23 1 12 12.2 1 13 34.9 1 15 100.12 1
-idx : 0 1 2 0 1 2 0 1 3 0 1 4
-off : 0 3 6 9 12
-
-[[ 10.    10.23   0.     0.     1.  ]
- [ 12.    12.2    0.     0.     1.  ]
- [ 13.    34.9    0.     1.     0.  ]
- [ 15.   100.12   1.     0.     0.  ]]
-\f[R]
-.fi
-.PP
-\f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-It returns a FrovedisCRSMatrix instance after converting the original
-Frovedis DataFrame.
-.SS 12. to_frovedis_crs_matrix_using_info(info, dtype = np.float32)
-.PP
-\f[B]Parameters\f[R]
-.PD 0
-.P
-.PD
-\f[B]\f[BI]info\f[B]\f[R]: It accepts an instance of `df_to_sparse_info'
-type.
-.PD 0
-.P
-.PD
-\f[B]\f[BI]dtype\f[B]\f[R]: It accepts a dtype type argument which is
-the type of the resultant values.
-.PD 0
-.P
-.PD
-Currently only float32 and float64 types are supported.
-(Default: np.float32)
-.PP
-\f[B]Purpose\f[R]
-.PD 0
-.P
-.PD
-It converts a frovedis dataframe to FrovedisCRSMatrix provided an info
-object of df_to_sparse_info class.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# example to use to_frovedis_crs_matrix_using_info
-
-import frovedis.dataframe as fdf
-
-# read_csv demo
-df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names=[\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]])
-df.show()
-
-crs_mat,info = df.to_frovedis_crs_matrix([\[aq]one\[aq], \[aq]two\[aq], \[aq]four\[aq]],
-                                         [\[aq]four\[aq]], need_info=True) # default dtype = np.float32
-print(type(info))
-
-crs_mat2 = df.to_frovedis_crs_matrix_using_info(info)
-print(type(crs_mat2))
-crs_mat2.debug_print()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   one     two     three   four
-0       10      10.23   F       0
-1       12      12.2    F       0
-2       13      34.8999 D       1
-3       15      100.12  A       2
-
-<class \[aq]frovedis.dataframe.info.df_to_sparse_info\[aq]>
-
-<class \[aq]frovedis.matrix.crs.FrovedisCRSMatrix\[aq]>
-
-Active Elements:  12
-matrix:
-num_row = 4, num_col = 5
-node 0
-local_num_row = 4, local_num_col = 5
-val : 10 10.23 1 12 12.2 1 13 34.9 1 15 100.12 1
-idx : 0 1 2 0 1 2 0 1 3 0 1 4
-off : 0 3 6 9 12
-\f[R]
-.fi
-.PP
-\f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-It returns a FrovedisCRSMatrix after converting Frovedis DataFrame.
 .SH SEE ALSO
 .IP \[bu] 2
 \f[B]DataFrame - Introduction\f[R]
