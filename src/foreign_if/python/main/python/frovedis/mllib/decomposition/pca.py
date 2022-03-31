@@ -80,10 +80,7 @@ class PCA(BaseEstimator):
         x_dtype = inp_data.get_dtype()
         #x_itype = inp_data.get_itype()
         self.__dtype = TypeUtil.to_numpy_dtype(x_dtype)
-        dense = inp_data.is_dense()
         mvbl = False # auto-handled by python ref-count
-        if not dense:
-            raise ValueError("PCA supports only dense input for fit")
         (host, port) = FrovedisServer.getServerInstance()
         res = compute_pca(host, port, input_x.get(), self.n_components,
                           self.whiten, x_dtype, self.copy, mvbl)
@@ -231,8 +228,9 @@ class PCA(BaseEstimator):
         """transform"""
         if self.pca_res_ is None:
             raise AttributeError("transform: PCA object is not fitted!")
-        inp_data = FrovedisFeatureData(X, dense_kind='rowmajor', \
-                                       dtype=self.__dtype)
+        inp_data = FrovedisFeatureData(X, \
+                     caller = "[" + self.__class__.__name__ + "] transform: ",\
+                     dense_kind='rowmajor', densify=True, dtype=self.__dtype)
         input_x = inp_data.get()
         x_dtype = inp_data.get_dtype()
         if x_dtype != self.pca_res_.get_dtype():
@@ -262,8 +260,9 @@ class PCA(BaseEstimator):
         if self.pca_res_ is None:
             raise AttributeError(\
                 "inverse_transform: PCA object is not fitted!")
-        inp_data = FrovedisFeatureData(X, dense_kind='rowmajor',\
-                                       dtype=self.__dtype)
+        inp_data = FrovedisFeatureData(X, \
+           caller = "[" + self.__class__.__name__ + "] inverse_transform: ",\
+           dense_kind='rowmajor', densify=True, dtype=self.__dtype)
         input_x = inp_data.get()
         x_dtype = inp_data.get_dtype()
         if x_dtype != self.pca_res_.get_dtype():
