@@ -12,7 +12,7 @@ TARGETS := libfrovedis_ml.a
 INCLUDES := -I../../../third_party/cereal-1.2.2/include/ -I../../../third_party/yas-7.0.5/include/ -I../../../third_party/include -I../..
 CXXFLAGS := ${CXXFLAGS_COMMON} ${INCLUDES}
 LIBS := -L../matrix -lfrovedis_matrix -L../core -lfrovedis_core ${LIBS_COMMON}
-VPATH := glm recommendation tree w2v fm utility fpm kernel
+VPATH := tsa glm recommendation tree w2v fm utility fpm kernel
 
 targets: ${TARGETS}
 
@@ -43,6 +43,8 @@ install: ${TARGETS}
 	cp -r dnn/tiny_dnn ${INSTALLPATH}/include
 	cp dnn/*.hpp ${INSTALLPATH}/include/frovedis/ml/dnn
 	cp dnn/LICENSE.tiny-dnn ${INSTALLPATH}/licenses/third_party/
+	install -d ${INSTALLPATH}/include/frovedis/ml/tsa
+	cp glm/*.hpp ${INSTALLPATH}/include/frovedis/ml/tsa
 ifeq (${IS_VE},true)
 	install -d ${INSTALLPATH}/include/vednn
 	cp dnn/vednn/vednn.h ${INSTALLPATH}/include/vednn/vednn.h
@@ -83,4 +85,4 @@ fp_growth_model.o: fp_growth_model.cc fp_growth_model.hpp
 fp_growth.o: fp_growth.cc fp_growth.hpp fp_growth_model.hpp
 
 clean:
-	${RM} ${TO_CLEAN} glm/*~ recommendation/*~ fm/*~ fpm/*~ clustering/*~ ${TARGETS} 
+	${RM} ${TO_CLEAN} tsa/*~ glm/*~ recommendation/*~ fm/*~ fpm/*~ clustering/*~ ${TARGETS} 
