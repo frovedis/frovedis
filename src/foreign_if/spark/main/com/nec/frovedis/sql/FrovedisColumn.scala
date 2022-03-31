@@ -122,6 +122,8 @@ object OPTYPE extends java.io.Serializable {
   val INSTR:      Short = 121
   val REPLACE:    Short = 122
   val INITCAP:    Short = 123
+  val TRANSLATE:  Short = 124
+  val LEVENDIST:  Short = 125
   // --- date ---
   val GETYEAR:       Short = 201
   val GETMONTH:      Short = 202
@@ -523,6 +525,7 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.LTRIMWS => "TRIM(LEADING " + right + " FROM " + left + ")"
       case OPTYPE.RTRIM   => "rtrim(" + left + ")"
       case OPTYPE.RTRIMWS => "TRIM(TRAILING " + right + " FROM " + left + ")"
+      case OPTYPE.LEVENDIST => "levenshtein(" + left + ", " + right + ")"
       case _ => throw new IllegalArgumentException("Unsupported opt-type: " + opt)
     }
   }
@@ -633,16 +636,23 @@ class FrovedisColumn extends java.io.Serializable {
     return ret
   }
 
-  def replace(from: String, to: String): FrovedisColumn = {
+  def from_to_opt(from: String, to: String, opt: Short): FrovedisColumn = {
     val ret = new FrovedisColumn()
-    ret.col_name = "replace(" + this.col_name + ", " + from + ", " + to + ")"
+    if (opt == OPTYPE.REPLACE) {
+      ret.col_name = "replace(" + this.col_name + ", " + from + ", " + to + ")"
+    } else if (opt == OPTYPE.TRANSLATE) {
+      ret.col_name = "translate(" + this.col_name + ", " + from + ", " + to + ")"
+    } else {
+      throw new IllegalArgumentException(
+      s"Unsupported from->to conversion method is detected!")
+    }
     ret.org_name = ret.col_name
-    ret.opType = OPTYPE.REPLACE
+    ret.opType = opt
     ret.dtype = DTYPE.STRING
     ret.kind = ColKind.DFFUNC
     val fs = FrovedisServer.getServerInstance()
-    ret.proxy = JNISupport.getImmedReplaceFunc(fs.master_node, this.proxy,
-                                               from, to, ret.col_name)
+    ret.proxy = JNISupport.getImmedFromToFunc(fs.master_node, this.proxy,
+                                              from, to, opt, ret.col_name)
     val info = JNISupport.checkServerException()
     if (info != "") throw new java.rmi.ServerException(info)
     return ret
@@ -793,7 +803,7 @@ class FrovedisColumn extends java.io.Serializable {
   }
 
   def date_format(format: String) = {
-    val res_name = "date_trunc(" + this.col_name + ", "+  format + ")"
+    val res_name = "date_format(" + this.col_name + ", "+  format + ")"
     new FrovedisColumn(this, DateTimeUtils.parse_format(format), 
                        OPTYPE.DATEFORMAT, DTYPE.STRING).as(res_name)
   }
@@ -1083,7 +1093,13 @@ object functions extends java.io.Serializable {
   def locate(substr: String, e: FrovedisColumn): FrovedisColumn =
              locate(substr, e, 1)
 
-  def replace(e: FrovedisColumn, 
-              from: String, to: String) = e.replace(from, to)
+  def replace(e: FrovedisColumn, from: String, to: String) = 
+    e.from_to_opt(from, to, OPTYPE.REPLACE)
+
+  def translate(e: FrovedisColumn, from: String, to: String) = 
+    e.from_to_opt(from, to, OPTYPE.TRANSLATE)
+
+  def levenshtein(left: FrovedisColumn, right: FrovedisColumn) = 
+    new FrovedisColumn(left, right, OPTYPE.LEVENDIST, DTYPE.INT)
 }
 
