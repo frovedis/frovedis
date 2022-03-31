@@ -1,0 +1,10 @@
+TARGETS := arima
+include ../Makefile.in.ve
+include ../Makefile.common
+
+TO_INSTALL := arima.cc
+DIR := arima
+ARCH := ve
+
+arima: arima.o
+	${LINK} -o arima arima.o ${LIBS}

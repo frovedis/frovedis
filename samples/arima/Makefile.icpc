@@ -1,0 +1,10 @@
+TARGETS := arima
+include ../Makefile.in.icpc
+include ../Makefile.common
+
+TO_INSTALL := arima.cc
+DIR := arima
+ARCH := icpc
+
+arima: arima.o
+	${LINK} -o arima arima.o ${LIBS}

@@ -1,0 +1,10 @@
+TARGETS := arima
+include ../Makefile.in.x86
+include ../Makefile.common
+
+TO_INSTALL := arima.cc
+DIR := arima
+ARCH := x86
+
+arima: arima.o
+	${MPICXX} ${CXXFLAGS} -o arima arima.o ${LIBS}
