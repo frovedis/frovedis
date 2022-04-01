@@ -44,7 +44,7 @@ Inplace sorting is not supported yet.\f[R]
 \f[R]
 .fi
 .SS Detailed Description
-.SS 1. nlargest(n, columns, keep = `first')
+.SS 1. DataFrame.nlargest(n, columns, keep = `first')
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -218,7 +218,7 @@ Brunei      434000         12128     BN
 .PD
 It returns a Frovedis DataFrame instance with \f[B]n\f[R] rows ordered
 by the specified columns in descending order.
-.SS 2. nsmallest(n, columns, keep = `first')
+.SS 2. DataFrame.nsmallest(n, columns, keep = `first')
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -398,7 +398,7 @@ Anguilla    11300          311      AI
 .PD
 It returns a Frovedis DataFrame object with \f[B]n\f[R] rows ordered by
 the specified columns in ascending order.
-.SS 3. sort(columns = None, axis = 0, ascending = True, inplace = False, kind = `radixsort', na_position = `last', **kwargs)
+.SS 3. DataFrame.sort(columns = None, axis = 0, ascending = True, inplace = False, kind = `radixsort', na_position = `last', **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -600,7 +600,7 @@ index   col1    col2    col3    col4
 .P
 .PD
 It returns a new Frovedis DataFrame with sorted values.
-.SS 4. sort_index(axis = 0, ascending = True, inplace = False, kind = `quicksort', na_position = `last')
+.SS 4. DataFrame.sort_index(axis = 0, ascending = True, inplace = False, kind = `quicksort', na_position = `last')
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -750,7 +750,7 @@ index   A
 .P
 .PD
 It returns a new Frovedis DataFrame instance sorted by the labels.
-.SS 5. sort_values(by, axis = 0, ascending = True, inplace = False, kind = `radixsort', na_position = `last')
+.SS 5. DataFrame.sort_values(by, axis = 0, ascending = True, inplace = False, kind = `radixsort', na_position = `last')
 .PP
 \f[B]Parameters\f[R]
 .PD 0

@@ -14,13 +14,12 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "DataFrame Conversion and Sorting Functions" "" "" "" ""
+.TH "DataFrame Conversion Functions" "" "" "" ""
 .hy
 .SH NAME
 .PP
-DataFrame Conversion and Sorting Functions - this manual contains all
-functions related to conversion of datatypes with respect to frovedis
-dataframe.
+DataFrame Conversion Functions - this manual contains all functions
+related to conversion of datatypes with respect to frovedis dataframe.
 .SS DESCRIPTION
 .PP
 In frovedis during data pre-processing and manipulation, there might be
@@ -44,7 +43,7 @@ various conversion functions like asDF(), to_dict(), to_numpy(),etc.
 \f[R]
 .fi
 .SS Detailed Description
-.SS 1. asDF(df)
+.SS 1. DataFrame.asDF(df)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -132,7 +131,7 @@ display type after conversion to frovedis dataframe
 .P
 .PD
 It returns a Frovedis DataFrame instance after suitable conversion
-.SS 2. to_dict(orient = \[lq]dict\[rq], into = dict)
+.SS 2. DataFrame.to_dict(orient = \[lq]dict\[rq], into = dict)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -236,7 +235,7 @@ OrderedDict([(\[aq]index\[aq], array([\[aq]row1\[aq], \[aq]row2\[aq]], dtype=\[a
 .PD
 It returns a dictionary representing the Frovedis DataFrame instance.
 The resulting transformation depends on the `orient' parameter.
-.SS 3. to_numpy(dtype = None, copy = False, na_value = None)
+.SS 3. DataFrame.to_numpy(dtype = None, copy = False, na_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -352,7 +351,7 @@ Output
 It returns a numpy ndarray that represents a Frovedis DataFrame
 instance.
 It has shape \f[B](nRows , nCols)\f[R].
-.SS 4. to_pandas()
+.SS 4. DataFrame.to_pandas()
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -437,7 +436,7 @@ index  Ename  Age  Country  isMale
 .P
 .PD
 It returns a pandas DataFrame instance after suitable conversion.
-.SS 5. to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)
+.SS 5. DataFrame.to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -515,7 +514,7 @@ node = 0, local_num_row = 4, local_num_col = 2, val = 10 10.23 12 12.2 13 34.9 1
 .P
 .PD
 It returns a FrovedisRowmajorMatrix instance after suitable conversion.
-.SS 6. to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)
+.SS 6. DataFrame.to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -593,7 +592,7 @@ node = 0, local_num_row = 4, local_num_col = 2, val = 10 12 13 15 10.23 12.2 34.
 .PD
 It returns a FrovedisColmajorMatrix instance after converting the
 original Frovedis DataFrame instance.
-.SS 7. to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32, need_info = False)
+.SS 7. DataFrame.to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32, need_info = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -705,7 +704,7 @@ off : 0 3 6 9 12
 .PD
 It returns a FrovedisCRSMatrix instance after converting the original
 Frovedis DataFrame instance.
-.SS 8. to_frovedis_crs_matrix_using_info(info, dtype = np.float32)
+.SS 8. DataFrame.to_frovedis_crs_matrix_using_info(info, dtype = np.float32)
 .PP
 \f[B]Parameters\f[R]
 .PD 0

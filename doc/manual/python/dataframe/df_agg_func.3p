@@ -44,23 +44,22 @@ on frovedis dataframe
 .nf
 \f[C]
 1. agg(func)  
-2. apply(func, axis = 0, raw = False, result_type = None, args = (), **kwds)
-3. cov((min_periods = None, ddof = 1.0, low_memory = True, other = None)
-4. mad(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-5. max(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-6. mean(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-7. median(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-8. min(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-9. mode(axis = 0, numeric_only = False, dropna = True)
-10. sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
-11. std(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
-12. sum(axis = None, skipna = None, level = None, numeric_only = None, 
+2. cov((min_periods = None, ddof = 1.0, low_memory = True, other = None)
+3. mad(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+4. max(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+5. mean(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+6. median(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+7. min(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+8. mode(axis = 0, numeric_only = False, dropna = True)
+9. sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
+10. std(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
+11. sum(axis = None, skipna = None, level = None, numeric_only = None, 
         min_count = 0, **kwargs)
-13. var(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
+12. var(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
 \f[R]
 .fi
 .SS Detailed Description
-.SS 1. agg(func)
+.SS 1. DataFrame.agg(func)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -230,260 +229,7 @@ string:\f[R]
 .PD
 - It returns a pandas DataFrame instance with numeric column(s) only,
 after aggregation function is completed.
-.SS 2. apply(func, axis = 0, raw = False, result_type = None, args = (), **kwds)
-.PP
-\f[B]Parameters\f[R]
-.PD 0
-.P
-.PD
-\f[B]\f[BI]func\f[B]\f[R]: Names of functions to be applied on the data.
-The input to be used with the function must be a frovedis DataFrame
-instance having atleast one numeric column.
-.PD 0
-.P
-.PD
-Accepted combinations for this parameter are:
-.PD 0
-.P
-.PD
-- A string function name such as `max', `min', etc.
-.PD 0
-.P
-.PD
-- list of functions and/or function names, For example, [`max', `mean'].
-.PD 0
-.P
-.PD
-- dictionary with keys as column labels and values as function name or
-list of such functions.
-.PD 0
-.P
-.PD
-For Example, {`Age': [`max',`min',`mean'], `Ename': [`count']}
-.PP
-\f[B]\f[BI]axis\f[B]\f[R]: It accepts an integer as parameter.
-It is used to decide whether to perform aggregate operation along the
-columns or rows.
-(Default: 0)
-.PD 0
-.P
-.PD
-\f[I]\f[BI]raw\f[I]\f[R]: It accepts boolean as parameter.
-When set to True, the row/column will be passed as an ndarray.
-(Default: False)
-.PD 0
-.P
-.PD
-\f[I]\f[BI]result_type\f[I]\f[R]: It accepts string object as parameter.
-It specifies how the result will be returned.
-(Default: None)
-.PD 0
-.P
-.PD
-These only act when \f[B]axis = 1 (columns)\f[R]:
-.PD 0
-.P
-.PD
-- \f[B]expand\f[R] : list-like results will be turned into columns.
-.PD 0
-.P
-.PD
-- \f[B]reduce\f[R] : returns a Series if possible rather than expanding
-list-like results.
-This is the opposite of `expand'.
-.PD 0
-.P
-.PD
-- \f[B]broadcast\f[R] : results will be broadcast to the original shape
-of the DataFrame, the original index and columns will be retained.
-.PP
-The default behaviour (None) depends on the return value of the applied
-function.
-List-like results will be returned as a Series of those.
-However if the apply function returns a Series these are expanded to
-columns.
-.PD 0
-.P
-.PD
-\f[I]\f[BI]args\f[I]\f[R]: Positional arguments to pass to `func'.
-(Default: ())
-.PD 0
-.P
-.PD
-\f[I]\f[BI]**kwds\f[I]\f[R]: This is an unused parameter.
-.PP
-\f[B]Purpose\f[R]
-.PD 0
-.P
-.PD
-Apply a function along an axis of the DataFrame.
-.PP
-The parameter: \[lq]**kwds\[rq] is simply kept in to make the interface
-uniform to the pandas DataFrame.apply().
-.PD 0
-.P
-.PD
-This is not used anywhere within the frovedis implementation.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import pandas as pd
-import numpy as np
-import frovedis.dataframe as fdf
-
-# a dictionary
-peopleDF = {
-            \[aq]Name\[aq]:[\[aq]Jai\[aq], \[aq]Anuj\[aq], \[aq]Jai\[aq], \[aq]Princi\[aq], \[aq]Gaurav\[aq], \[aq]Anuj\[aq], \[aq]Princi\[aq], \[aq]Abhi\[aq]],
-            \[aq]Age\[aq]:[27, 24, 22, 32, 33, 36, 27, 32],
-            \[aq]City\[aq]:[\[aq]Nagpur\[aq], \[aq]Kanpur\[aq], \[aq]Allahabad\[aq], \[aq]Kannuaj\[aq], \[aq]Allahabad\[aq], 
-                    \[aq]Kanpur\[aq], \[aq]Kanpur\[aq], \[aq]Kanpur\[aq]],
-            \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq], \[aq]Phd\[aq], \[aq]B.Tech\[aq], \[aq]Phd\[aq], \[aq]Phd\[aq], \[aq]B.Tech\[aq], \[aq]Phd\[aq], \[aq]B.Tech\[aq]],
-            \[aq]Score\[aq]: [23, 34, 35, 45, np.nan, 50, 52, np.nan]
-            }
-
-# create pandas dataframe
-pdf1 = pd.DataFrame(peopleDF)
-
-# create frovedis dataframe
-fdf1 = fdf.DataFrame(pdf1)
-
-# display the frovedis dataframe
-fdf1.show()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   Name    Age     City       Qualification  Score
-0       Jai     27      Nagpur     B.Tech         23
-1       Anuj    24      Kanpur     Phd            34
-2       Jai     22      Allahabad  B.Tech         35
-3       Princi  32      Kannuaj    Phd            45
-4       Gaurav  33      Allahabad  Phd            NULL
-5       Anuj    36      Kanpur     B.Tech         50
-6       Princi  27      Kanpur     Phd            52
-7       Abhi    32      Kanpur     B.Tech         NULL
-\f[R]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# apply() demo using string function name
-print(fdf1.apply(\[aq]max\[aq]))
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-Name             8
-Age              8
-City             8
-Qualification    8
-Score            6
-dtype: int64
-\f[R]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# apply() demo using axis = 1
-print(fdf1.apply(\[aq]max\[aq], axis = 1))
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index
-0    27.0
-1    34.0
-2    35.0
-3    45.0
-4    33.0
-5    50.0
-6    52.0
-7    32.0
-dtype: float64
-\f[R]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# apply() demo using raw = True
-print(fdf1.apply(\[aq]max\[aq], raw = True))
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-Name             Princi
-Age                  36
-City             Nagpur
-Qualification       Phd
-Score                52
-dtype: object
-\f[R]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# apply() demo using result_type = \[aq]expand\[aq]
-print(fdf1.apply(\[aq]max\[aq], result_type = \[aq]expand\[aq]))
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-Name             Princi
-Age                  36
-City             Nagpur
-Qualification       Phd
-Score                52
-dtype: object
-\f[R]
-.fi
-.PP
-\f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
-\f[B]If only one `func' provided:\f[R]
-.PD 0
-.P
-.PD
-- It returns a pandas Series instance with numeric column(s) only, after
-aggregation function is completed.
-.PD 0
-.P
-.PD
-2.
-\f[B]If more than one `func' provided:\f[R]
-.PD 0
-.P
-.PD
-- It returns a pandas DataFrame instance with numeric column(s) only,
-after aggregation function is completed.
-.SS 3. cov(min_periods = None, ddof = 1.0, low_memory = True, other = None)
+.SS 2. DataFrame.cov(min_periods = None, ddof = 1.0, low_memory = True, other = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -647,7 +393,7 @@ For example,
 \f[C]
 # create another dataframe
 pdf2 = pd.DataFrame({\[aq]Score\[aq]: [51, 34, 33, 45, 12, 82, 67, 91]})
-fdf2 = fdf.DataFrame(pdf2, is_series = True)
+fdf2 = fdf.DataFrame(pdf2)
 
 # cov() demo using \[aq]other\[aq] parameter 
 print(fdf1[\[aq]Score\[aq]].cov(other = fdf2[\[aq]Score\[aq]]))
@@ -687,7 +433,7 @@ instance.
 .P
 .PD
 It returns covariance as scalar value.
-.SS 4. mad(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)
+.SS 3. DataFrame.mad(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -902,7 +648,7 @@ index   mad
 .PD
 It returns a frovedis DataFrame instance with the result of the
 specified aggregate operation.
-.SS 5. max(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)
+.SS 4. DataFrame.max(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1116,7 +862,7 @@ index   max
 .PD
 It returns a frovedis DataFrame instance with the result of the
 specified aggregate operation.
-.SS 6. mean(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)
+.SS 5. DataFrame.mean(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1326,7 +1072,7 @@ index   mean
 .P
 .PD
 It returns a frovedis DataFrame instance.
-.SS 7. median(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)
+.SS 6. DataFrame.median(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1537,7 +1283,7 @@ index   median
 .P
 .PD
 It returns a frovedis DataFrame instance.
-.SS 8. min(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)
+.SS 7. DataFrame.min(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1751,7 +1497,7 @@ index   min
 .PD
 It returns a frovedis DataFrame instance with the result of the
 specified aggregate operation.
-.SS 9. mode(axis = 0, numeric_only = False, dropna = True)
+.SS 8. DataFrame.mode(axis = 0, numeric_only = False, dropna = True)
 .PP
 \f[B]\f[BI]axis\f[B]\f[R]: It accepts an integer or string object as
 parameter.
@@ -2037,7 +1783,7 @@ non-numeric columns (if any).
 .P
 .PD
 It returns a frovedis DataFrame instance having only numeric columns.
-.SS 10. sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)
+.SS 9. DataFrame.sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2270,7 +2016,7 @@ index   sem
 .PD
 It returns a frovedis DataFrame instance with the result of the
 specified aggregate operation.
-.SS 11. std(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)
+.SS 10. DataFrame.std(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2502,7 +2248,7 @@ Score   12.4381
 .PD
 It returns a frovedis DataFrame instance with the result of the
 specified aggregate functions.
-.SS 12. sum(axis = None, skipna = None, level = None, numeric_only = None, min_count = 0, **kwargs)
+.SS 11. DataFrame.sum(axis = None, skipna = None, level = None, numeric_only = None, min_count = 0, **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2722,7 +2468,7 @@ index   sum
 .PD
 It returns a frovedis DataFrame instance with the result of the
 specified aggregate functions.
-.SS 13. var(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)
+.SS 12. DataFrame.var(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0

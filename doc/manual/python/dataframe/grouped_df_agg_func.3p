@@ -57,7 +57,7 @@ frovedis.
 \f[R]
 .fi
 .SS Detailed Description
-.SS 1. agg(func, *args, **kwargs)
+.SS 1. FrovedisGroupedDataFrame.agg(func, *args, **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -210,7 +210,7 @@ Phd             24      33      34         52
 .PD
 It returns a new frovedis DataFrame instance with the result of the
 specified aggregate functions.
-.SS 2. aggregate(func, *args, **kwargs)
+.SS 2. FrovedisGroupedDataFrame.aggregate(func, *args, **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -363,7 +363,7 @@ Phd             29        116     43.6666     131
 .PD
 It returns a new frovedis DataFrame instance with the result of the
 specified aggregate functions.
-.SS 3. count(numeric_only = True)
+.SS 3. FrovedisGroupedDataFrame.count(numeric_only = True)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -454,7 +454,7 @@ computing count of groups \f[B]`B.Tech'\f[R] and \f[B]`Phd'\f[R].
 .PD
 It returns a new frovedis DataFrame instance with the result of the
 specified aggregate functions.
-.SS 4. groupby(by = None, axis = 0, level = None, as_index = True, sort = True, group_keys = True, squeeze = False, observed = False, dropna = True)
+.SS 4. DataFrame.groupby(by = None, axis = 0, level = None, as_index = True, sort = True, group_keys = True, squeeze = False, observed = False, dropna = True)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -638,7 +638,7 @@ not dropped during groupby().
 .PD
 It returns a FrovedisGroupedDataFrame instance.
 This instance is then further used to perform aggregate operations.
-.SS 5. max(numeric_only = True, min_count = -1)
+.SS 5. DataFrame.max(numeric_only = True, min_count = -1)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -742,7 +742,7 @@ computed maximum of each groups.
 .PD
 It returns a new frovedis DataFrame instance with the result of the
 specified aggregate functions.
-.SS 6. mean(numeric_only = True)
+.SS 6. FrovedisGroupedDataFrame.mean(numeric_only = True)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -836,7 +836,7 @@ computing mean of groups \f[B]`B.Tech'\f[R] and \f[B]`Phd'\f[R].
 .PD
 It returns a new frovedis DataFrame instance with the result of the
 specified aggregate functions.
-.SS 7. min(numeric_only = True, min_count = -1)
+.SS 7. FrovedisGroupedDataFrame.min(numeric_only = True, min_count = -1)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -936,7 +936,7 @@ computed minimum of each groups.
 .PD
 It returns a new frovedis DataFrame instance with the result of the
 specified aggregate functions.
-.SS 8. sem(ddof = 1.0)
+.SS 8. FrovedisGroupedDataFrame.sem(ddof = 1.0)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1051,7 +1051,7 @@ Phd             2.59807  7.4087
 .PD
 It returns a new frovedis DataFrame instance with the result of the
 specified aggregate functions.
-.SS 9. size(numeric_only = True)
+.SS 9. FrovedisGroupedDataFrame.size(numeric_only = True)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1142,7 +1142,7 @@ size.
 .PD
 It returns a new frovedis DataFrame instance with the result of the
 specified aggregate functions.
-.SS 10. sum(numeric_only = True, min_count = 0)
+.SS 10. FrovedisGroupedDataFrame.sum(numeric_only = True, min_count = 0)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1245,7 +1245,7 @@ computed sum of each groups.
 .PD
 It returns a new frovedis DataFrame instance with the result of the
 specified aggregate functions.
-.SS 11. var(ddof = 1.0)
+.SS 11. FrovedisGroupedDataFrame.var(ddof = 1.0)
 .PP
 \f[B]Parameters\f[R]
 .PD 0

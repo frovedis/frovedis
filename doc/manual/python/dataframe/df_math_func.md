@@ -32,7 +32,7 @@ Also, it contains reverse operations such as radd(), rsub(), rmul(), etc.
 
 ## Detailed Description  
 
-### 1. abs()  
+### 1. DataFrame.abs()  
 
 __Purpose__  
 It computes absolute numeric value of each element.  
@@ -93,7 +93,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance.  
 
-### 2. add(other, axis = 'columns', level = None, fill_value = None)  
+### 2. DataFrame.add(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -112,8 +112,8 @@ perform addition operation along the indices or by column labels. (Default: 'col
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs addition operation between two dataframes or dataframe and scalar value. It is equivalent 
@@ -321,7 +321,7 @@ added with the fill_value = 10 (exluding missing values) in resultant dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 3. div(other, axis = 'columns', level = None, fill_value = None)  
+### 3. DataFrame.div(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -340,8 +340,8 @@ perform division operation along the indices or by column labels. (Default: 'col
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs floating division operation between two dataframes or dataframe and scalar value. It is 
@@ -551,7 +551,7 @@ elements are divided with the fill_value = 10 (excluding the missing values) in 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 4. floordiv(other, axis = 'columns', level = None, fill_value = None)  
+### 4. DataFrame.floordiv(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -570,8 +570,8 @@ perform division operation along the indices or by column labels. (Default: 'col
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs integer division operation between two dataframes or dataframe and scalar value. It is 
@@ -780,7 +780,7 @@ divided with the fill_value = 10 (excluding the missing values) in resultant dat
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 5. mod(other, axis = 'columns', level = None, fill_value = None)
+### 5. DataFrame.mod(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -799,8 +799,8 @@ perform modulo operation along the indices or by column labels. (Default: 'colum
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs modulo operation between two dataframes or dataframe and scalar value. It is equivalent 
@@ -1008,7 +1008,7 @@ is performed on other column elements using the value 10 (excluding the missing 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 6. mul(other, axis = 'columns', level = None, fill_value = None)
+### 6. DataFrame.mul(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -1027,8 +1027,8 @@ perform multiplication operation along the indices or by column labels. (Default
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs multiplication operation between two dataframes or dtaframe and scalar value. It is 
@@ -1236,7 +1236,7 @@ column elements are multiplied with the value 10 (excluding the missing values) 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 7. pow(other, axis = 'columns', level = None, fill_value = None)
+### 7. DataFrame.pow(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -1255,8 +1255,8 @@ perform exponential power operation along the indices or by column labels. (Defa
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs exponential power operation between two dataframes or dataframe and scalar value. It is 
@@ -1466,7 +1466,7 @@ the value 10 (excluding the missing values) in resultant dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 8. sub(other, axis = 'columns', level = None, fill_value = None)
+### 8. DataFrame.sub(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -1485,8 +1485,8 @@ perform subtraction operation along the indices or by column labels. (Default: '
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not, and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs subtraction operation between two dataframes or dtaframe and scalar value. It is 
@@ -1694,7 +1694,7 @@ column elements are subtracted with the value 10 (excluding the missing values) 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 9. truediv(other, axis = 'columns', level = None, fill_value = None)
+### 9. DataFrame.truediv(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -1713,8 +1713,8 @@ perform division operation along the indices or by column labels. (Default: 'col
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs floating division operation between two dataframes or dtaframe and scalar value. It is 
@@ -1922,7 +1922,7 @@ column elements are divided with the value 10 (excluding the missing values) in 
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 10. radd(other, axis = 'columns', level = None, fill_value = None)  
+### 10. DataFrame.radd(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -1941,8 +1941,8 @@ perform reverse addition operation along the indices or by column labels. (Defau
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs reverse addition operation between two dataframes or dataframe and scalar value. It is 
@@ -2129,7 +2129,7 @@ is added to both column values in the dataframe (excluding the missing values) a
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 11. rdiv(other, axis = 'columns', level = None, fill_value = None)  
+### 11. DataFrame.rdiv(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -2148,8 +2148,8 @@ perform reverse division operation along the indices or by column labels. (Defau
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs reverse floating division operation between two dataframes or dataframe and a scalar value. It is 
@@ -2337,7 +2337,7 @@ is used to divide over column values in other dataframe (excluding the missing v
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 12. rfloordiv(other, axis = 'columns', level = None, fill_value = None)
+### 12. DataFrame.rfloordiv(other, axis = 'columns', level = None, fill_value = None)
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -2356,8 +2356,8 @@ perform reverse division operation along the indices or by column labels. (Defau
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs reverse floating division operation between two dataframes or dataframe and scalar value. It is 
@@ -2544,7 +2544,7 @@ is used to divide over column values in other dataframe (excluding the missing v
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 13. rmod(other, axis = 'columns', level = None, fill_value = None)  
+### 13. DataFrame.rmod(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -2563,8 +2563,8 @@ perform reverse modulo operation along the indices or by column labels. (Default
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs reverse modulo operation between two dataframes or dataframe and scalar value. It is equivalent 
@@ -2751,7 +2751,7 @@ and stored in new dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 14. rmul(other, axis = 'columns', level = None, fill_value = None)  
+### 14. DataFrame.rmul(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -2770,8 +2770,8 @@ perform reverse multiplication operation along the indices or by column labels. 
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs reverse multiplication operation between two dataframes or dataframe and scalar value. It is equivalent 
@@ -2959,7 +2959,7 @@ stored in new dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 15. rpow(other, axis = 'columns', level = None, fill_value = None)  
+### 15. DataFrame.rpow(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -2978,8 +2978,8 @@ perform reverse exponential power operation along the indices or by column label
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs reverse exponential power operation between two dataframes or dtaframe and scalar value. It is 
@@ -3168,7 +3168,7 @@ in other dataframe (excluding the missing values) and stored in new dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 16. rsub(other, axis = 'columns', level = None, fill_value = None)  
+### 16. DataFrame.rsub(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -3187,8 +3187,8 @@ perform reverse subtraction operation along the indices or by column labels. (De
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs reverse subtraction operation between two dataframes or dataframe and scalar value. It is 
@@ -3375,7 +3375,7 @@ stored in new dataframe.
 __Return Value__  
 It returns a frovedis DataFrame which contains the result of arithmetic operation.  
 
-### 17. rtruediv(other, axis = 'columns', level = None, fill_value = None)  
+### 17. DataFrame.rtruediv(other, axis = 'columns', level = None, fill_value = None)  
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
@@ -3394,8 +3394,8 @@ perform reverse division operation along the indices or by column labels. (Defau
 **_level_**: This is an unused parameter. (Default: None)  
 **_fill\_value_**: It accepts scalar values or None. It fills existing missing (NaN) values, and any 
 new element needed for successful dataframe alignment, with this value before computation.  (Default: None)  
-When it is either None or not None and if data in both corresponding dataframe locations is missing, then 
-the result will be missing (contains NaNs).   
+Irrespective of the specified value, if data in both corresponding dataframe locations is missing, then 
+the result will be missing (contains NaNs).  
 
 __Purpose__  
 It performs reverse floating division operation between two dataframes or dtaframe and scalar value. It is 

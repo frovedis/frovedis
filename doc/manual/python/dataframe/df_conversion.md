@@ -1,8 +1,8 @@
-% DataFrame Conversion and Sorting Functions
+% DataFrame Conversion Functions
   
 # NAME
   
-DataFrame Conversion and Sorting Functions - this manual contains all functions related to conversion of datatypes with respect to frovedis dataframe.  
+DataFrame Conversion Functions - this manual contains all functions related to conversion of datatypes with respect to frovedis dataframe.  
   
 ## DESCRIPTION  
     
@@ -22,7 +22,7 @@ For this inter-conversion within the variables, frovedis dataframe offer various
 
 ## Detailed Description  
   
-### 1. asDF(df)  
+### 1. DataFrame.asDF(df)  
 
 __Parameters__  
 **_df_**: It takes either a Frovedis DataFrame or a Pandas DataFrame or a Series instance.    
@@ -85,7 +85,7 @@ Output
 __Return Value__  
 It returns a Frovedis DataFrame instance after suitable conversion 
 
-### 2. to_dict(orient = "dict", into = dict)  
+### 2. DataFrame.to_dict(orient = "dict", into = dict)  
 
 __Parameters__  
 **_orient_**: It accepts a string object as parameter. It is used to determine the type of the values of the dictionary. (Default: 'dict')  
@@ -140,7 +140,7 @@ Output
 __Return Value__  
 It returns a dictionary representing the Frovedis DataFrame instance. The resulting transformation depends on the 'orient' parameter.  
 
-### 3. to_numpy(dtype = None, copy = False, na_value = None)  
+### 3. DataFrame.to_numpy(dtype = None, copy = False, na_value = None)  
 
 __Parameters__  
 **_dtype_** : It accepts the dtype parameter which decides the datatype of numpy ndarray. (Default: None)  
@@ -212,7 +212,7 @@ Output
 __Return Value__  
 It returns a numpy ndarray that represents a Frovedis DataFrame instance. It has shape **(nRows , nCols)**.  
 
-### 4. to_pandas()  
+### 4. DataFrame.to_pandas()  
 
 __Purpose__  
 It converts a Frovedis DataFrame instance into a pandas DataFrame instance.  
@@ -275,7 +275,7 @@ Output
 __Return Value__  
 It returns a pandas DataFrame instance after suitable conversion.  
 
-### 5. to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)  
+### 5. DataFrame.to_frovedis_rowmajor_matrix(t_cols, dtype = np.float32)  
 
 __Parameters__  
 **_t\_cols_**: It accepts a list of string type argument where each of the member of the list is the name of the column labels.  
@@ -320,7 +320,7 @@ Output
 __Return Value__  
 It returns a FrovedisRowmajorMatrix instance after suitable conversion.  
 
-### 6. to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)  
+### 6. DataFrame.to_frovedis_colmajor_matrix(t_cols, dtype = np.float32)  
 
 __Parameters__  
 **_t\_cols_**: It accepts a list of string type argument where each of the member of the list is the name of the column labels.  
@@ -365,7 +365,7 @@ Output
 __Return Value__  
 It returns a FrovedisColmajorMatrix instance after converting the original Frovedis DataFrame instance.  
 
-### 7. to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32, need_info = False)  
+### 7. DataFrame.to_frovedis_crs_matrix(t_cols, cat_cols, dtype = np.float32, need_info = False)  
 
 __Parameters__  
 **_t\_cols_**: It accepts a list of string type argument where each of the member of the list is the name of the column labels.  
@@ -428,7 +428,7 @@ Output
 __Return Value__  
 It returns a FrovedisCRSMatrix instance after converting the original Frovedis DataFrame instance.  
 
-### 8. to_frovedis_crs_matrix_using_info(info, dtype = np.float32)  
+### 8. DataFrame.to_frovedis_crs_matrix_using_info(info, dtype = np.float32)  
 
 __Parameters__  
 **_info_**: It accepts an instance of 'df_to_sparse_info' type.  

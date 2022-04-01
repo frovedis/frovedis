@@ -30,7 +30,7 @@ Also, aggregation functions can be chained along with groupby() calls in frovedi
 
 ## Detailed Description  
   
-### 1. agg(func, \*args, \*\*kwargs)  
+### 1. FrovedisGroupedDataFrame.agg(func, \*args, \*\*kwargs)  
 
 __Parameters__  
 **_func_**: Names of functions to use for aggregating the data. The input to be used with the function must 
@@ -121,7 +121,7 @@ Output
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 2. aggregate(func, \*args, \*\*kwargs)  
+### 2. FrovedisGroupedDataFrame.aggregate(func, \*args, \*\*kwargs)  
 
 __Parameters__  
 **_func_**: Names of functions to use for aggregating the data. The input to be used with the function must 
@@ -213,7 +213,7 @@ Output
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 3. count(numeric_only = True)  
+### 3. FrovedisGroupedDataFrame.count(numeric_only = True)  
 
 __Parameters__  
 **_numeric\_only_**: It accepts a boolean parameter that specifies whether or not to use only numeric 
@@ -277,7 +277,7 @@ of groups **'B.Tech'** and **'Phd'**.
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 4. groupby(by = None, axis = 0, level = None, as_index = True, sort = True, group_keys = True, squeeze = False, observed = False, dropna = True)  
+### 4. DataFrame.groupby(by = None, axis = 0, level = None, as_index = True, sort = True, group_keys = True, squeeze = False, observed = False, dropna = True)  
 
 __Parameters__  
 **_by_**: It accepts a string object or an iterable to determine the groups on which groupby operation will 
@@ -376,7 +376,7 @@ Here, it includes **NULL** as new group since missing values were not dropped du
 __Return Value__  
 It returns a FrovedisGroupedDataFrame instance. This instance is then further used to perform aggregate operations.  
 
-### 5. max(numeric_only = True, min_count = -1)  
+### 5. DataFrame.max(numeric_only = True, min_count = -1)  
 
 __Parameters__  
 **_numeric\_only_**: It accepts a boolean parameter that specifies whether or not to use only numeric 
@@ -444,7 +444,7 @@ It displays a frovedis dataframe containing numeric column(s) with newly compute
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 6. mean(numeric_only = True)  
+### 6. FrovedisGroupedDataFrame.mean(numeric_only = True)  
  
 __Parameters__  
 **_numeric\_only_**: It accepts a boolean parameter that specifies whether or not to use only numeric 
@@ -510,7 +510,7 @@ of groups **'B.Tech'** and **'Phd'**.
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 7. min(numeric_only = True, min_count = -1)  
+### 7. FrovedisGroupedDataFrame.min(numeric_only = True, min_count = -1)  
 
 __Parameters__  
 **_numeric\_only_**: It accepts a boolean parameter that specifies whether or not to use only numeric 
@@ -577,7 +577,7 @@ It displays a frovedis dataframe containing numeric column(s) with newly compute
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 8. sem(ddof = 1.0)  
+### 8. FrovedisGroupedDataFrame.sem(ddof = 1.0)  
 
 __Parameters__  
 **_ddof_**: It accepts an integer parameter that specifies the delta degrees of freedom. (Default: 1.0)  
@@ -654,7 +654,7 @@ Output
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 9. size(numeric_only = True)  
+### 9. FrovedisGroupedDataFrame.size(numeric_only = True)  
 
 __Parameters__  
 **_numeric\_only_**: It accepts a boolean parameter that specifies whether or not to use only numeric 
@@ -717,7 +717,7 @@ Also, it does not exclude the missings values while computing group size.
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 10. sum(numeric_only = True, min_count = 0)  
+### 10. FrovedisGroupedDataFrame.sum(numeric_only = True, min_count = 0)  
 
 __Parameters__  
 **_numeric\_only_**: It accepts a boolean parameter that specifies whether or not to use only numeric 
@@ -784,7 +784,7 @@ It displays a frovedis dataframe containing numeric column(s) with newly compute
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 11. var(ddof = 1.0)  
+### 11. FrovedisGroupedDataFrame.var(ddof = 1.0)  
 
 __Parameters__  
 **_ddof_**: It accepts an integer parameter that specifies the delta degrees of freedom. (Default: 1.0)  

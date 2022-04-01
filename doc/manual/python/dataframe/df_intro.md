@@ -25,13 +25,11 @@ Frovedis contains dataframe implementation over a client server architecture (wh
 
 **a) Using DataFrame constructor**  
 
-**DataFrame(df = None, is_series = False)**  
+**DataFrame(df = None)**  
 
 __Parameters__  
 **_df_**: A pandas DataFrame instance or pandas Series instance. (Default: None)  
 When this parameter is not None (specified explicitly), it will load the pandas dataframe (or series) to perform conversion into frovedis dataframe.  
-**_is\_series_**: It is a boolean parameter which when set to true indicates that the dataframe consists of 
-single column. (Default: False)  
 
 __Purpose__  
 It is used to create a Frovedis dataframe from the given pandas dataframe or series.  
@@ -192,7 +190,7 @@ When it is None (not specified explicitly), it will interpret the list of follow
 
 In case we want some other value to be interpreted as missing value, it is explicitly provided.  
 _**verbose**_: It accepts a bollean values as parameter that specifies the log level to use. Its value is **False by 
-default (for INFO mode)** and it can be set to **True (for DEBUG mode)**. This is used for getting the loading time logs from frovedis server. (Default: False)  
+default (for INFO mode)** and it can be set to **True (for DEBUG mode)**. This is used for getting the loading time logs from frovedis server. It is useful for debugging purposes. (Default: False)  
 _**comment**_: This is an unused parameter. (Default: None)  
 _**low\_memory**_: It accepts boolean value as parameter that specifies if the dataframe is to be loaded chunk wise. The chunk size then would be specified by the 'separate_mb' parameter. (Default: True)  
 
@@ -334,38 +332,6 @@ Output
 
 For example,  
 
-    # demo for read_csv() with verbose = True
-    import frovedis.dataframe as fdf
-    df = fdf.read_csv("./input/numbers.csv", names = ['one', 'two', 'three', 'four'], verbose = True)
-    df.show()
-
-Output  
-
-    [rank 0] load_text: MPI_File_read_all time: 0.0063569 sec
-    [rank 0] load_text: find delimiter and align time: 2.01548e-05 sec
-    [rank 0] make_dftable_loadtext::load_csv: 0.00673271 sec
-    [rank 0] parse_words, words_to_number: 1.4253e-05 sec
-    [rank 0] make_dftable_loadtext::parse_words, one: 0.000132132 sec
-    [rank 0] parse_words, words_to_number: 2.76566e-05 sec
-    [rank 0] make_dftable_loadtext::parse_words, two: 6.97458e-05 sec
-    [rank 0] parse_words, extract_compressed_words: 1.748e-05 sec
-    [rank 0] init_compressed, create dict locally: 1.55922e-05 sec
-    [rank 0] init_compressed, merge_dict: 5.33368e-06 sec
-    [rank 0] init_compressed, broadcast dict: 7.31274e-06 sec
-    [rank 0] init_compressed, lookup: 1.22013e-05 sec
-    [rank 0] make_dftable_loadtext::parse_words, three: 0.000158226 sec
-    [rank 0] parse_words, words_to_number: 5.30668e-06 sec
-    [rank 0] make_dftable_loadtext::parse_words, four: 3.63998e-05 sec
-    [rank 0] make_dftable_loadtext: load separated df: 0.00718475 sec
-    [rank 0] make_dftable_loadtext: union tables: 2.9644e-06 sec
-    index   one     two     three   four
-    0       10      10.23   F       0
-    1       12      12.2    NULL    0
-    2       13      34.8999 D       1
-    3       15      100.12  A       2
-
-For example,  
-
     # demo for read_csv() with dtype parameter
     import frovedis.dataframe as fdf
     df = fdf.read_csv("./input/numbers.csv", names = ['one', 'two', 'three', 'four'], 
@@ -504,108 +470,101 @@ DataFrame provides a lot of utilities to perform various operations. For simplic
 **_Basic functions_**, **_Application, groupby functions_**, **_Aggregate functions_** and **_Binary operator functions_**.  
   
 #### a) List of Basic Functions  
-  
-**Basic functions** are further categorized into two sub parts - **_conversion and sorting functions_** and **_selection and combination functions_**. 
+
+**Basic functions** are further categorized into two sub parts - **_conversion and sorting functions_** and **_selection and combination functions_**.  
+
 In the basic functions, we will discuss the common and essential functionalities of dataframe like conversion of dataframes, sorting of data, selection of specified data and combining two or more data.  
-  
-##### Conversion and Sorting Functions:  
-Conversion and sorting functions are essential part of DataFrame which are basically used to perform conversions to other types and to narrow down the data as per specification.  
+
+##### Conversion Functions:  
+Conversion functions are essential part of DataFrame which are basically used to perform conversions to other types and to narrow down the data as per specification.  
 
 1. **asDF()** - Returns a Frovedis DataFrame after suitable conversion from other DataFrame types.  
-2. **astype()** - Cast a selected column to a specified dtype.  
-3. **copy()** - Make a copy of this object's indices and data.  
-4. **dropna()** - Remove missing values.  
-5. **fillna()** - Fill NA/NaN values using specified values.  
-6. **isna()** - Detect missing values.  
-7. **isnull()** - Is an alias of isna().  
-8. **nlargest()** - Return the first n rows ordered by columns in descending order.  
-9. **nsmallest()** - Return the first n rows ordered by columns in ascending order.  
-10. **nsort()** - Return the top **n** rows ordered by the specified columns in ascending or descending order.  
-11. **sort()** - Sort by the values on a column.  
-12. **sort_index()** - Sort dataframes according to index.  
-13. **sort_values()** - Sort by the values along either axis.  
-14. **to_dict()** - Convert the dataframe to a dictionary.  
-15. **to_numpy()** - Converts a frovedis dataframe to numpy array.  
-16. **to_pandas()** - Returns a pandas dataframe object from frovedis dataframe.  
-17. **to_frovedis_rowmajor_matrix()** - Converts a frovedis dataframe to FrovedisRowmajorMatrix.   
-18. **to_frovedis_colmajor_matrix()** - Converts a frovedis dataframe to FrovedisColmajorMatrix.  
-19. **to_frovedis_crs_matrix()** - Converts a frovedis dataframe to FrovedisCRSMatrix.  
-20. **to_frovedis_crs_matrix_using_info()** - Converts a frovedis dataframe to FrovedisCRSMatrix provided an info object of 
+2. **to_dict()** - Convert the dataframe to a dictionary.  
+3. **to_numpy()** - Converts a frovedis dataframe to numpy array.  
+4. **to_pandas()** - Returns a pandas dataframe object from frovedis dataframe.  
+5. **to_frovedis_rowmajor_matrix()** - Converts a frovedis dataframe to FrovedisRowmajorMatrix.   
+6. **to_frovedis_colmajor_matrix()** - Converts a frovedis dataframe to FrovedisColmajorMatrix.  
+7. **to_frovedis_crs_matrix()** - Converts a frovedis dataframe to FrovedisCRSMatrix.  
+8. **to_frovedis_crs_matrix_using_info()** - Converts a frovedis dataframe to FrovedisCRSMatrix provided an info object of 
 df_to_sparse_info class.  
 
+##### Sorting Functions:  
+Sorting functions are essential part of DataFrame.  
 
-##### Selection and Combination Functions:  
+1. **nlargest()** - Return the first n rows ordered by columns in descending order.  
+2. **nsmallest()** - Return the first n rows ordered by columns in ascending order.  
+3. **sort()** - Sort by the values on a column.  
+4. **sort_index()** - Sort dataframes according to index.  
+5. **sort_values()** - Sort by the values along either axis.  
+
+##### Generic Functions:  
 DataFrame provides various facilities to easily select and combine together specified values and support join/merge operations.  
-  
+
 1. **add_index()** - Adds index column to the dataframe in-place.  
 2. **append()** - Union of dataframes according to rows.  
-3. **between()** - Filters rows according to the specified bound over a single column at a time.  
-4. **drop()** - Drop specified labels from rows or columns.  
-5. **drop_cols()** - Drop specified columns.  
-6. **drop_duplicates()** - Return DataFrame with duplicate rows removed.  
-7. **drop_rows()** - Drop specified rows.  
-8. **filter()** - Subset the dataframe rows or columns according to the specified index labels.  
-9. **get_index_loc()** - Returns integer location, slice or boolean mask for specified value in index column.  
-10. **head()** - Return the first n rows.  
-11. **insert()** - Insert column into DataFrame at specified location.  
-12. **join()** - Join columns of another DataFrame.  
-13. **merge()** - Merge dataframes according to specified parameters.  
-14. **rename()** - Used to rename column.  
-15. **rename_index()** - Renames index field (inplace).  
-16. **reset_index()** - Reset the index.  
-17. **set_index()** - Set the DataFrame index using existing columns.  
-18. **show()** - Displays the selected dataframe values on console.  
-19. **tail()** - Return the last n rows.  
-20. **update_index()** - Updates/sets index values.  
+3. **apply()** - Apply a function along an axis of the DataFrame.  
+4. **astype()** - Cast a selected column to a specified dtype.  
+5. **between()** - Filters rows according to the specified bound over a single column at a time.  
+6. **copy()** - Make a copy of this object's indices and data.  
+7. **countna()** - Count NA values for each column/row.  
+8. **describe()** - Generate descriptive statistics.  
+9. **drop()** - Drop specified labels from rows or columns.  
+10. **drop_duplicates()** - Return DataFrame with duplicate rows removed.  
+11. **dropna()** - Remove missing values.  
+12. **fillna()** - Fill NA/NaN values using specified values.  
+13. **filter()** - Subset the dataframe rows or columns according to the specified index labels.  
+14. **get_index_loc()** - Returns integer location, slice or boolean mask for specified value in index column.  
+15. **head()** - Return the first n rows.  
+16. **insert()** - Insert column into DataFrame at specified location.  
+17. **isna()** - Detect missing values.  
+18. **isnull()** - Is an alias of isna().  
+19. **join()** - Join columns of another DataFrame.  
+20. **merge()** - Merge dataframes according to specified parameters.  
+21. **rename()** - Used to rename column.  
+22. **rename_index()** - Renames index field (inplace).  
+23. **reset_index()** - Reset the index.  
+24. **set_index()** - Set the DataFrame index using existing columns.  
+25. **show()** - Displays the selected dataframe values on console.  
+26. **tail()** - Return the last n rows.  
+27. **update_index()** - Updates/sets index values.  
 
-#### b) Application, groupby Functions  
-Such functions are used to perform operations like agg(), groupby() operations on frovedis dataframe.  
-
-1. **agg()** - Aggregate using the specified functions and columns.  
-2. **apply()** - Apply a function along an axis of the DataFrame.  
-3. **groupby()** - Group dataframe using the specified columns.  
-
-
-#### c) List of Aggregate Functions  
+#### b) List of Aggregate Functions  
 Aggregate functions of dataframe help to perform computations on the specified values and helps with efficient summarization of data. 
 The calculated values gives insight into the nature of potential data.  
-  
-1. **abs()** - Return a DataFrame with absolute numeric value of each element.  
-2. **countna()** - Count NA values for each column/row.  
-3. **cov()** - Returns the pairwise covariance of columns, excluding missing values.  
-4. **describe()** - Generate descriptive statistics.  
-5. **mad()** - Returns the mean absolute deviation of the values over the requested axis.  
-6. **max()** - Returns the maximum of the values over the requested axis.  
-7. **mean()** - Returns the mean of the values over the requested axis.  
-8. **median()** - Returns the median of the values over the requested axis.  
-9. **min()** - Returns the minimum of the values over the requested axis.  
-10. **mode()** - Returns the mode(s) of each element along the selected axis.  
-11. **sem()** - Returns the unbiased standard error of the mean over requested axis.  
-12. **std()** - Returns the sample standard deviation over requested axis.  
-13. **sum()** - Returns the sum of the values over the requested axis.  
-14. **var()** - Returns unbiased variance over requested axis.  
 
-  
-#### d) List of Binary Operator Functions  
+1. **agg()** - Aggregate using the specified functions and columns.  
+2. **cov()** - Returns the pairwise covariance of columns, excluding missing values.  
+3. **mad()** - Returns the mean absolute deviation of the values over the requested axis.  
+4. **max()** - Returns the maximum of the values over the requested axis.  
+5. **mean()** - Returns the mean of the values over the requested axis.  
+6. **median()** - Returns the median of the values over the requested axis.  
+7. **min()** - Returns the minimum of the values over the requested axis.  
+8. **mode()** - Returns the mode(s) of each element along the selected axis.  
+9. **sem()** - Returns the unbiased standard error of the mean over requested axis.  
+10. **std()** - Returns the sample standard deviation over requested axis.  
+11. **sum()** - Returns the sum of the values over the requested axis.  
+12. **var()** - Returns unbiased variance over requested axis.  
+
+#### c) List of Math Functions  
 DataFrame has methods for carrying out binary operations like add(), sub(), etc and related functions like radd(), rsub(), etc. for carrying out reverse binary operations.  
-  
-1. **add()** - Get addition of dataframe and other specified value. It is equivalent to dataframe + other.  
-2. **div()** - Get floating division of dataframe and other specified value. It is equivalent to dataframe / other.  
-3. **floordiv()** - Get integer division of dataframe and other specified value. It is equivalent to dataframe // other.  
-4. **mod()** - Get modulo of dataframe and other specified value. It is equivalent to dataframe % other.  
-5. **mul()** - Get multiplication of dataframe and other specified value. It is equivalent to dataframe \* other.  
-6. **pow()** - Get exponential power of dataframe and other specified value. It is equivalent to dataframe \*\* other.  
-7. **sub()** - Get subtraction of dataframe and other specified value. It is equivalent to dataframe - other.  
-8. **truediv()** - Get floating division of dataframe and other specified value. It is equivalent to dataframe / other.  
-9. **radd()** - Get addition of other specified value and dataframe. It is equivalent to other + dataframe.  
-10. **rdiv()** - Get floating division of other specified value and dataframe. It is equivalent to other / dataframe.  
-11. **rfloordiv()** - Get integer division of other specified value and dataframe. It is equivalent to other // dataframe.  
-12. **rmod()** - Get modulo of other specified value and dataframe. It is equivalent to other % dataframe.  
-13. **rmul()** - Get multiplication of other specified value and dataframe. It is equivalent to other \* dataframe.  
-14. **rpow()** - Get exponential power of other specified value and dataframe. It is equivalent to other \*\* dataframe.  
-15. **rsub()** - Get subtraction of other specified value and dataframe. It is equivalent to other - dataframe.  
-16. **rtruediv()** - Get floating division of other specified value and dataframe. It is equivalent to other / dataframe.  
 
+1. **abs()** - Return a DataFrame with absolute numeric value of each element.  
+2. **add()** - Get addition of dataframe and other specified value. It is equivalent to dataframe + other.  
+3. **div()** - Get floating division of dataframe and other specified value. It is equivalent to dataframe / other.  
+4. **floordiv()** - Get integer division of dataframe and other specified value. It is equivalent to dataframe // other.  
+5. **mod()** - Get modulo of dataframe and other specified value. It is equivalent to dataframe % other.  
+6. **mul()** - Get multiplication of dataframe and other specified value. It is equivalent to dataframe \* other.  
+7. **pow()** - Get exponential power of dataframe and other specified value. It is equivalent to dataframe \*\* other.  
+8. **sub()** - Get subtraction of dataframe and other specified value. It is equivalent to dataframe - other.  
+9. **truediv()** - Get floating division of dataframe and other specified value. It is equivalent to dataframe / other.  
+10. **radd()** - Get addition of other specified value and dataframe. It is equivalent to other + dataframe.  
+11. **rdiv()** - Get floating division of other specified value and dataframe. It is equivalent to other / dataframe.  
+12. **rfloordiv()** - Get integer division of other specified value and dataframe. It is equivalent to other // dataframe.  
+13. **rmod()** - Get modulo of other specified value and dataframe. It is equivalent to other % dataframe.  
+14. **rmul()** - Get multiplication of other specified value and dataframe. It is equivalent to other \* dataframe.  
+15. **rpow()** - Get exponential power of other specified value and dataframe. It is equivalent to other \*\* dataframe.  
+16. **rsub()** - Get subtraction of other specified value and dataframe. It is equivalent to other - dataframe.  
+17. **rtruediv()** - Get floating division of other specified value and dataframe. It is equivalent to other / dataframe.  
 
 ### Indexing in frovedis Dataframe  
 
@@ -788,8 +747,8 @@ Output
 
 # SEE ALSO  
 
-- **[DataFrame - Selection and Combinations](./DataFrame_SelectionAndCombinations.md)**  
-- **[DataFrame - Conversion, Missing data handling, Sorting Functions](./DataFrame_ConversionAndSorting.md)**  
-- **[DataFrame - Function Application, Groupby](./DataFrame_FunctionApplicationGroupby.md)**  
-- **[DataFrame - Binary Operators](./DataFrame_BinaryOperators.md)**  
-- **[DataFrame - Aggregate Functions](./DataFrame_AggregateFunctions.md)**  
+- **[DataFrame - Generic Functions](./df_generic_func.md)**  
+- **[DataFrame - Conversion Functions](./df_conversion.md)**  
+- **[DataFrame - Sorting Functions](./df_sort.md)**  
+- **[DataFrame - Math Functions](./df_math_func.md)**  
+- **[DataFrame - Aggregate Functions](./df_agg_func.md)**  

@@ -53,7 +53,7 @@ etc.
 \f[R]
 .fi
 .SS Detailed Description
-.SS 1. abs()
+.SS 1. DataFrame.abs()
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -135,7 +135,7 @@ index   Temperature
 .P
 .PD
 It returns a frovedis DataFrame instance.
-.SS 2. add(other, axis = `columns', level = None, fill_value = None)
+.SS 2. DataFrame.add(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -202,7 +202,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -504,7 +504,7 @@ missing values) in resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 3. div(other, axis = `columns', level = None, fill_value = None)
+.SS 3. DataFrame.div(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -571,7 +571,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -874,7 +874,7 @@ the missing values) in resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 4. floordiv(other, axis = `columns', level = None, fill_value = None)
+.SS 4. DataFrame.floordiv(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -941,7 +941,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -1247,7 +1247,7 @@ the missing values) in resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 5. mod(other, axis = `columns', level = None, fill_value = None)
+.SS 5. DataFrame.mod(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1314,7 +1314,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -1616,7 +1616,7 @@ Modulo is performed on other column elements using the value 10
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 6. mul(other, axis = `columns', level = None, fill_value = None)
+.SS 6. DataFrame.mul(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1684,7 +1684,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -1985,7 +1985,7 @@ missing values) in resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 7. pow(other, axis = `columns', level = None, fill_value = None)
+.SS 7. DataFrame.pow(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2053,7 +2053,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -2355,7 +2355,7 @@ the value 10 (excluding the missing values) in resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 8. sub(other, axis = `columns', level = None, fill_value = None)
+.SS 8. DataFrame.sub(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2423,7 +2423,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not, and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -2724,7 +2724,7 @@ missing values) in resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 9. truediv(other, axis = `columns', level = None, fill_value = None)
+.SS 9. DataFrame.truediv(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2791,7 +2791,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -3092,7 +3092,7 @@ missing values) in resultant dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 10. radd(other, axis = `columns', level = None, fill_value = None)
+.SS 10. DataFrame.radd(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -3160,7 +3160,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -3425,7 +3425,7 @@ The fill_value = 10 is added to both column values in the dataframe
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 11. rdiv(other, axis = `columns', level = None, fill_value = None)
+.SS 11. DataFrame.rdiv(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -3493,7 +3493,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -3760,7 +3760,7 @@ dataframe (excluding the missing values) and stored in new dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 12. rfloordiv(other, axis = `columns', level = None, fill_value = None)
+.SS 12. DataFrame.rfloordiv(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -3828,7 +3828,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -4098,7 +4098,7 @@ dataframe (excluding the missing values) and stored in new dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 13. rmod(other, axis = `columns', level = None, fill_value = None)
+.SS 13. DataFrame.rmod(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -4166,7 +4166,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -4432,7 +4432,7 @@ dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 14. rmul(other, axis = `columns', level = None, fill_value = None)
+.SS 14. DataFrame.rmul(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -4500,7 +4500,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -4765,7 +4765,7 @@ The fill_value = 10 is multiplied with column values in other dataframe
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 15. rpow(other, axis = `columns', level = None, fill_value = None)
+.SS 15. DataFrame.rpow(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -4833,7 +4833,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -5100,7 +5100,7 @@ stored in new dataframe.
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 16. rsub(other, axis = `columns', level = None, fill_value = None)
+.SS 16. DataFrame.rsub(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -5168,7 +5168,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP
@@ -5433,7 +5433,7 @@ The fill_value = 10 is subtracted on column values in other dataframe
 .PD
 It returns a frovedis DataFrame which contains the result of arithmetic
 operation.
-.SS 17. rtruediv(other, axis = `columns', level = None, fill_value = None)
+.SS 17. DataFrame.rtruediv(other, axis = `columns', level = None, fill_value = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -5501,7 +5501,7 @@ successful dataframe alignment, with this value before computation.
 .PD 0
 .P
 .PD
-When it is either None or not None and if data in both corresponding
+Irrespective of the specified value, if data in both corresponding
 dataframe locations is missing, then the result will be missing
 (contains NaNs).
 .PP

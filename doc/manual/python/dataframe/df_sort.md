@@ -22,7 +22,7 @@ These can be used to sort data along rows or columns of frovedis dataframe, eith
 
 ## Detailed Description  
 
-### 1. nlargest(n, columns, keep = 'first')  
+### 1. DataFrame.nlargest(n, columns, keep = 'first')  
 
 __Parameters__  
 **_n_**: It accepts an integer parameter which represents the number of rows to return.  
@@ -124,7 +124,7 @@ Output
 __Return Value__  
 It returns a Frovedis DataFrame instance with **n** rows ordered by the specified columns in descending order.  
 
-### 2. nsmallest(n, columns, keep = 'first')  
+### 2. DataFrame.nsmallest(n, columns, keep = 'first')  
 
 __Parameters__  
 **_n_**: It accepts an integer type argument that represents the number of rows to return.  
@@ -227,7 +227,7 @@ Output
 __Return Value__  
 It returns a Frovedis DataFrame object with **n** rows ordered by the specified columns in ascending order.  
 
-### 3. sort(columns = None, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last', \*\*kwargs)  
+### 3. DataFrame.sort(columns = None, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last', \*\*kwargs)  
 
 __Parameters__  
 **_columns_**: It accepts the name or list of names on which sorting will be applied. (Default: None)  
@@ -324,7 +324,7 @@ Output
 __Return Value__   
 It returns a new Frovedis DataFrame with sorted values.  
 
-### 4. sort_index(axis = 0, ascending = True, inplace = False, kind = 'quicksort', na\_position = 'last')  
+### 4. DataFrame.sort_index(axis = 0, ascending = True, inplace = False, kind = 'quicksort', na\_position = 'last')  
 
 __Parameters__  
 **_axis_**: It accepts an interger or a string object as parameter. It is the axis along which the sorting will be performed. (Default: 0)  
@@ -400,7 +400,7 @@ Output
 __Return Value__  
 It returns a new Frovedis DataFrame instance sorted by the labels.  
 
-### 5. sort_values(by, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last')  
+### 5. DataFrame.sort_values(by, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na\_position = 'last')  
 
 __Parameters__  
 **_by_**: It accepts the name or list of names on which sorting will be applied.  

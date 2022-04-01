@@ -15,23 +15,22 @@ Aggregation can be performed in **two ways** on frovedis dataframe:
     
 ## Public Member Functions  
     1. agg(func)  
-    2. apply(func, axis = 0, raw = False, result_type = None, args = (), **kwds)
-    3. cov((min_periods = None, ddof = 1.0, low_memory = True, other = None)
-    4. mad(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-    5. max(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-    6. mean(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-    7. median(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-    8. min(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
-    9. mode(axis = 0, numeric_only = False, dropna = True)
-    10. sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
-    11. std(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
-    12. sum(axis = None, skipna = None, level = None, numeric_only = None, 
+    2. cov((min_periods = None, ddof = 1.0, low_memory = True, other = None)
+    3. mad(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+    4. max(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+    5. mean(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+    6. median(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+    7. min(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
+    8. mode(axis = 0, numeric_only = False, dropna = True)
+    9. sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
+    10. std(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
+    11. sum(axis = None, skipna = None, level = None, numeric_only = None, 
             min_count = 0, **kwargs)
-    13. var(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
+    12. var(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, **kwargs)  
 
 ## Detailed Description  
 
-### 1. agg(func)  
+### 1. DataFrame.agg(func)  
 
 __Parameters__  
 **_func_**: Names of functions to use for aggregating the data. The input to be used with the function must 
@@ -129,142 +128,7 @@ __Return Value__
 2. **If one or more 'func' provided and 'func' is list/dict of string:**  
      - It returns a pandas DataFrame instance with numeric column(s) only, after aggregation function is completed.  
 
-
-### 2. apply(func, axis = 0, raw = False, result_type = None, args = (), \*\*kwds)  
-
-__Parameters__  
-**_func_**: Names of functions to be applied on the data. The input to be used with the function must 
-be a frovedis DataFrame instance having atleast one numeric column.  
-Accepted combinations for this parameter are:  
-- A string function name such as 'max', 'min', etc.  
-- list of functions and/or function names, For example, ['max', 'mean'].  
-- dictionary with keys as column labels and values as function name or list of such functions.  
-For Example, {'Age': ['max','min','mean'], 'Ename': ['count']}  
-
-**_axis_**: It accepts an integer as parameter. It is used to decide whether to perform aggregate operation along the 
-columns or rows. (Default: 0)  
-_**raw**_: It accepts boolean as parameter. When set to True, the row/column will be passed as an ndarray. (Default: False)  
-_**result\_type**_: It accepts string object as parameter. It specifies how the result will be returned. (Default: None)  
-These only act when **axis = 1 (columns)**:  
-- **expand** : list-like results will be turned into columns.  
-- **reduce** : returns a Series if possible rather than expanding list-like results. This is the opposite of 'expand'.  
-- **broadcast** : results will be broadcast to the original shape of the DataFrame, the original index and columns will be retained.  
-
-The default behaviour (None) depends on the return value of the applied function. List-like results will be returned 
-as a Series of those. However if the apply function returns a Series these are expanded to columns.  
-_**args**_: Positional arguments to pass to 'func'. (Default: ())  
-_**\*\*kwds**_: This is an unused parameter.  
-
-__Purpose__  
-Apply a function along an axis of the DataFrame.  
-
-The parameter: "\*\*kwds" is simply kept in to make the interface uniform to the pandas DataFrame.apply().  
-This is not used anywhere within the frovedis implementation.  
-
-For example,  
-
-    import pandas as pd
-    import numpy as np
-    import frovedis.dataframe as fdf
-    
-    # a dictionary
-    peopleDF = {
-                'Name':['Jai', 'Anuj', 'Jai', 'Princi', 'Gaurav', 'Anuj', 'Princi', 'Abhi'],
-                'Age':[27, 24, 22, 32, 33, 36, 27, 32],
-                'City':['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad', 
-                        'Kanpur', 'Kanpur', 'Kanpur'],
-                'Qualification':['B.Tech', 'Phd', 'B.Tech', 'Phd', 'Phd', 'B.Tech', 'Phd', 'B.Tech'],
-                'Score': [23, 34, 35, 45, np.nan, 50, 52, np.nan]
-                }
-    
-    # create pandas dataframe
-    pdf1 = pd.DataFrame(peopleDF)
-    
-    # create frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf1)
-    
-    # display the frovedis dataframe
-    fdf1.show()
-
-Output
-
-    index   Name    Age     City       Qualification  Score
-    0       Jai     27      Nagpur     B.Tech         23
-    1       Anuj    24      Kanpur     Phd            34
-    2       Jai     22      Allahabad  B.Tech         35
-    3       Princi  32      Kannuaj    Phd            45
-    4       Gaurav  33      Allahabad  Phd            NULL
-    5       Anuj    36      Kanpur     B.Tech         50
-    6       Princi  27      Kanpur     Phd            52
-    7       Abhi    32      Kanpur     B.Tech         NULL
-
-For example,  
-
-    # apply() demo using string function name
-    print(fdf1.apply('max'))
-    
-Output  
-
-    Name             8
-    Age              8
-    City             8
-    Qualification    8
-    Score            6
-    dtype: int64
-
-For example,  
-
-    # apply() demo using axis = 1
-    print(fdf1.apply('max', axis = 1))
-    
-Output  
-
-    index
-    0    27.0
-    1    34.0
-    2    35.0
-    3    45.0
-    4    33.0
-    5    50.0
-    6    52.0
-    7    32.0
-    dtype: float64
-
-For example,  
-
-    # apply() demo using raw = True
-    print(fdf1.apply('max', raw = True))
-    
-Output  
-
-    Name             Princi
-    Age                  36
-    City             Nagpur
-    Qualification       Phd
-    Score                52
-    dtype: object
-
-For example,  
-
-    # apply() demo using result_type = 'expand'
-    print(fdf1.apply('max', result_type = 'expand'))
-    
-Output  
-
-    Name             Princi
-    Age                  36
-    City             Nagpur
-    Qualification       Phd
-    Score                52
-    dtype: object
-
-__Return Value__  
-1. **If only one 'func' provided:**  
-     - It returns a pandas Series instance with numeric column(s) only, after aggregation function is completed.  
-2. **If more than one 'func' provided:**  
-     - It returns a pandas DataFrame instance with numeric column(s) only, after aggregation function is completed.  
-
-### 3. cov(min_periods = None, ddof = 1.0, low_memory = True, other = None)  
+### 2. DataFrame.cov(min_periods = None, ddof = 1.0, low_memory = True, other = None)  
 
 __Parameters__  
 **_min\_periods_**: It accepts an integer as parameter. It specifies the minimum number of observations required per 
@@ -355,7 +219,7 @@ For example,
 
     # create another dataframe
     pdf2 = pd.DataFrame({'Score': [51, 34, 33, 45, 12, 82, 67, 91]})
-    fdf2 = fdf.DataFrame(pdf2, is_series = True)
+    fdf2 = fdf.DataFrame(pdf2)
 
     # cov() demo using 'other' parameter 
     print(fdf1['Score'].cov(other = fdf2['Score']))
@@ -374,7 +238,7 @@ It returns a covariance matrix represented as frovedis DataFrame instance.
 - **If other != None:**  
 It returns covariance as scalar value.  
 
-### 4. mad(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
+### 3. DataFrame.mad(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -501,7 +365,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance with the result of the specified aggregate operation.  
 
-### 5. max(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
+### 4. DataFrame.max(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -627,7 +491,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance with the result of the specified aggregate operation.  
 
-### 6. mean(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
+### 5. DataFrame.mean(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -752,7 +616,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance.  
 
-### 7. median(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
+### 6. DataFrame.median(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -878,7 +742,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance.  
 
-### 8. min(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
+### 7. DataFrame.min(axis = None, skipna = None, level = None, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -1004,7 +868,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance with the result of the specified aggregate operation.  
 
-### 9. mode(axis = 0, numeric_only = False, dropna = True)  
+### 8. DataFrame.mode(axis = 0, numeric_only = False, dropna = True)  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform standard error of the mean along the columns or rows. (Default: 0)  
 - **0 or 'index'**: perform mode along the indices.  
@@ -1182,7 +1046,7 @@ It returns a frovedis DataFrame instance having both numeric and non-numeric col
 - **If numeric_only = True**:  
 It returns a frovedis DataFrame instance having only numeric columns.  
 
-### 10. sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, \*\*kwargs)  
+### 9. DataFrame.sem(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -1318,7 +1182,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance with the result of the specified aggregate operation.  
 
-### 11. std(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, \*\*kwargs)  
+### 10. DataFrame.std(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -1453,7 +1317,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 12. sum(axis = None, skipna = None, level = None, numeric_only = None, min_count = 0, \*\*kwargs)  
+### 11. DataFrame.sum(axis = None, skipna = None, level = None, numeric_only = None, min_count = 0, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
@@ -1581,7 +1445,7 @@ Output
 __Return Value__  
 It returns a frovedis DataFrame instance with the result of the specified aggregate functions.  
 
-### 13. var(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, \*\*kwargs)  
+### 12. DataFrame.var(axis = None, skipna = None, level = None, ddof = 1, numeric_only = None, \*\*kwargs)  
 
 __Parameters__  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 

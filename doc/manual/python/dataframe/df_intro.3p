@@ -62,7 +62,7 @@ values such as string, integer, float, double, boolean).\f[R]
 .PP
 \f[B]a) Using DataFrame constructor\f[R]
 .PP
-\f[B]DataFrame(df = None, is_series = False)\f[R]
+\f[B]DataFrame(df = None)\f[R]
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -77,12 +77,6 @@ instance.
 When this parameter is not None (specified explicitly), it will load the
 pandas dataframe (or series) to perform conversion into frovedis
 dataframe.
-.PD 0
-.P
-.PD
-\f[B]\f[BI]is_series\f[B]\f[R]: It is a boolean parameter which when set
-to true indicates that the dataframe consists of single column.
-(Default: False)
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -477,6 +471,7 @@ that specifies the log level to use.
 Its value is \f[B]False by default (for INFO mode)\f[R] and it can be
 set to \f[B]True (for DEBUG mode)\f[R].
 This is used for getting the loading time logs from frovedis server.
+It is useful for debugging purposes.
 (Default: False)
 .PD 0
 .P
@@ -729,46 +724,6 @@ For example,
 .IP
 .nf
 \f[C]
-# demo for read_csv() with verbose = True
-import frovedis.dataframe as fdf
-df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names = [\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]], verbose = True)
-df.show()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-[rank 0] load_text: MPI_File_read_all time: 0.0063569 sec
-[rank 0] load_text: find delimiter and align time: 2.01548e-05 sec
-[rank 0] make_dftable_loadtext::load_csv: 0.00673271 sec
-[rank 0] parse_words, words_to_number: 1.4253e-05 sec
-[rank 0] make_dftable_loadtext::parse_words, one: 0.000132132 sec
-[rank 0] parse_words, words_to_number: 2.76566e-05 sec
-[rank 0] make_dftable_loadtext::parse_words, two: 6.97458e-05 sec
-[rank 0] parse_words, extract_compressed_words: 1.748e-05 sec
-[rank 0] init_compressed, create dict locally: 1.55922e-05 sec
-[rank 0] init_compressed, merge_dict: 5.33368e-06 sec
-[rank 0] init_compressed, broadcast dict: 7.31274e-06 sec
-[rank 0] init_compressed, lookup: 1.22013e-05 sec
-[rank 0] make_dftable_loadtext::parse_words, three: 0.000158226 sec
-[rank 0] parse_words, words_to_number: 5.30668e-06 sec
-[rank 0] make_dftable_loadtext::parse_words, four: 3.63998e-05 sec
-[rank 0] make_dftable_loadtext: load separated df: 0.00718475 sec
-[rank 0] make_dftable_loadtext: union tables: 2.9644e-06 sec
-index   one     two     three   four
-0       10      10.23   F       0
-1       12      12.2    NULL    0
-2       13      34.8999 D       1
-3       15      100.12  A       2
-\f[R]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
 # demo for read_csv() with dtype parameter
 import frovedis.dataframe as fdf
 df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names = [\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]], 
@@ -996,122 +951,87 @@ functions\f[B]\f[R], \f[B]\f[BI]Aggregate functions\f[B]\f[R] and
 \f[B]Basic functions\f[R] are further categorized into two sub parts -
 \f[B]\f[BI]conversion and sorting functions\f[B]\f[R] and
 \f[B]\f[BI]selection and combination functions\f[B]\f[R].
+.PP
 In the basic functions, we will discuss the common and essential
 functionalities of dataframe like conversion of dataframes, sorting of
 data, selection of specified data and combining two or more data.
-.SS Conversion and Sorting Functions:
+.SS Conversion Functions:
 .PP
-Conversion and sorting functions are essential part of DataFrame which
-are basically used to perform conversions to other types and to narrow
-down the data as per specification.
-.IP " 1." 4
+Conversion functions are essential part of DataFrame which are basically
+used to perform conversions to other types and to narrow down the data
+as per specification.
+.IP "1." 3
 \f[B]asDF()\f[R] - Returns a Frovedis DataFrame after suitable
 conversion from other DataFrame types.
 .PD 0
 .P
 .PD
-.IP " 2." 4
-\f[B]astype()\f[R] - Cast a selected column to a specified dtype.
-.PD 0
-.P
-.PD
-.IP " 3." 4
-\f[B]copy()\f[R] - Make a copy of this object\[cq]s indices and data.
-.PD 0
-.P
-.PD
-.IP " 4." 4
-\f[B]dropna()\f[R] - Remove missing values.
-.PD 0
-.P
-.PD
-.IP " 5." 4
-\f[B]fillna()\f[R] - Fill NA/NaN values using specified values.
-.PD 0
-.P
-.PD
-.IP " 6." 4
-\f[B]isna()\f[R] - Detect missing values.
-.PD 0
-.P
-.PD
-.IP " 7." 4
-\f[B]isnull()\f[R] - Is an alias of isna().
-.PD 0
-.P
-.PD
-.IP " 8." 4
-\f[B]nlargest()\f[R] - Return the first n rows ordered by columns in
-descending order.
-.PD 0
-.P
-.PD
-.IP " 9." 4
-\f[B]nsmallest()\f[R] - Return the first n rows ordered by columns in
-ascending order.
-.PD 0
-.P
-.PD
-.IP "10." 4
-\f[B]nsort()\f[R] - Return the top \f[B]n\f[R] rows ordered by the
-specified columns in ascending or descending order.
-.PD 0
-.P
-.PD
-.IP "11." 4
-\f[B]sort()\f[R] - Sort by the values on a column.
-.PD 0
-.P
-.PD
-.IP "12." 4
-\f[B]sort_index()\f[R] - Sort dataframes according to index.
-.PD 0
-.P
-.PD
-.IP "13." 4
-\f[B]sort_values()\f[R] - Sort by the values along either axis.
-.PD 0
-.P
-.PD
-.IP "14." 4
+.IP "2." 3
 \f[B]to_dict()\f[R] - Convert the dataframe to a dictionary.
 .PD 0
 .P
 .PD
-.IP "15." 4
+.IP "3." 3
 \f[B]to_numpy()\f[R] - Converts a frovedis dataframe to numpy array.
 .PD 0
 .P
 .PD
-.IP "16." 4
+.IP "4." 3
 \f[B]to_pandas()\f[R] - Returns a pandas dataframe object from frovedis
 dataframe.
 .PD 0
 .P
 .PD
-.IP "17." 4
+.IP "5." 3
 \f[B]to_frovedis_rowmajor_matrix()\f[R] - Converts a frovedis dataframe
 to FrovedisRowmajorMatrix.
 .PD 0
 .P
 .PD
-.IP "18." 4
+.IP "6." 3
 \f[B]to_frovedis_colmajor_matrix()\f[R] - Converts a frovedis dataframe
 to FrovedisColmajorMatrix.
 .PD 0
 .P
 .PD
-.IP "19." 4
+.IP "7." 3
 \f[B]to_frovedis_crs_matrix()\f[R] - Converts a frovedis dataframe to
 FrovedisCRSMatrix.
 .PD 0
 .P
 .PD
-.IP "20." 4
+.IP "8." 3
 \f[B]to_frovedis_crs_matrix_using_info()\f[R] - Converts a frovedis
 dataframe to FrovedisCRSMatrix provided an info object of
 df_to_sparse_info class.
-.SS Selection and Combination Functions:
+.SS Sorting Functions:
+.PP
+Sorting functions are essential part of DataFrame.
+.IP "1." 3
+\f[B]nlargest()\f[R] - Return the first n rows ordered by columns in
+descending order.
+.PD 0
+.P
+.PD
+.IP "2." 3
+\f[B]nsmallest()\f[R] - Return the first n rows ordered by columns in
+ascending order.
+.PD 0
+.P
+.PD
+.IP "3." 3
+\f[B]sort()\f[R] - Sort by the values on a column.
+.PD 0
+.P
+.PD
+.IP "4." 3
+\f[B]sort_index()\f[R] - Sort dataframes according to index.
+.PD 0
+.P
+.PD
+.IP "5." 3
+\f[B]sort_values()\f[R] - Sort by the values along either axis.
+.SS Generic Functions:
 .PP
 DataFrame provides various facilities to easily select and combine
 together specified values and support join/merge operations.
@@ -1126,117 +1046,207 @@ together specified values and support join/merge operations.
 .P
 .PD
 .IP " 3." 4
+\f[B]apply()\f[R] - Apply a function along an axis of the DataFrame.
+.PD 0
+.P
+.PD
+.IP " 4." 4
+\f[B]astype()\f[R] - Cast a selected column to a specified dtype.
+.PD 0
+.P
+.PD
+.IP " 5." 4
 \f[B]between()\f[R] - Filters rows according to the specified bound over
 a single column at a time.
 .PD 0
 .P
 .PD
-.IP " 4." 4
+.IP " 6." 4
+\f[B]copy()\f[R] - Make a copy of this object\[cq]s indices and data.
+.PD 0
+.P
+.PD
+.IP " 7." 4
+\f[B]countna()\f[R] - Count NA values for each column/row.
+.PD 0
+.P
+.PD
+.IP " 8." 4
+\f[B]describe()\f[R] - Generate descriptive statistics.
+.PD 0
+.P
+.PD
+.IP " 9." 4
 \f[B]drop()\f[R] - Drop specified labels from rows or columns.
 .PD 0
 .P
 .PD
-.IP " 5." 4
-\f[B]drop_cols()\f[R] - Drop specified columns.
-.PD 0
-.P
-.PD
-.IP " 6." 4
+.IP "10." 4
 \f[B]drop_duplicates()\f[R] - Return DataFrame with duplicate rows
 removed.
 .PD 0
 .P
 .PD
-.IP " 7." 4
-\f[B]drop_rows()\f[R] - Drop specified rows.
+.IP "11." 4
+\f[B]dropna()\f[R] - Remove missing values.
 .PD 0
 .P
 .PD
-.IP " 8." 4
+.IP "12." 4
+\f[B]fillna()\f[R] - Fill NA/NaN values using specified values.
+.PD 0
+.P
+.PD
+.IP "13." 4
 \f[B]filter()\f[R] - Subset the dataframe rows or columns according to
 the specified index labels.
 .PD 0
 .P
 .PD
-.IP " 9." 4
+.IP "14." 4
 \f[B]get_index_loc()\f[R] - Returns integer location, slice or boolean
 mask for specified value in index column.
 .PD 0
 .P
 .PD
-.IP "10." 4
+.IP "15." 4
 \f[B]head()\f[R] - Return the first n rows.
 .PD 0
 .P
 .PD
-.IP "11." 4
+.IP "16." 4
 \f[B]insert()\f[R] - Insert column into DataFrame at specified location.
 .PD 0
 .P
 .PD
-.IP "12." 4
-\f[B]join()\f[R] - Join columns of another DataFrame.
-.PD 0
-.P
-.PD
-.IP "13." 4
-\f[B]merge()\f[R] - Merge dataframes according to specified parameters.
-.PD 0
-.P
-.PD
-.IP "14." 4
-\f[B]rename()\f[R] - Used to rename column.
-.PD 0
-.P
-.PD
-.IP "15." 4
-\f[B]rename_index()\f[R] - Renames index field (inplace).
-.PD 0
-.P
-.PD
-.IP "16." 4
-\f[B]reset_index()\f[R] - Reset the index.
-.PD 0
-.P
-.PD
 .IP "17." 4
-\f[B]set_index()\f[R] - Set the DataFrame index using existing columns.
+\f[B]isna()\f[R] - Detect missing values.
 .PD 0
 .P
 .PD
 .IP "18." 4
-\f[B]show()\f[R] - Displays the selected dataframe values on console.
+\f[B]isnull()\f[R] - Is an alias of isna().
 .PD 0
 .P
 .PD
 .IP "19." 4
-\f[B]tail()\f[R] - Return the last n rows.
+\f[B]join()\f[R] - Join columns of another DataFrame.
 .PD 0
 .P
 .PD
 .IP "20." 4
+\f[B]merge()\f[R] - Merge dataframes according to specified parameters.
+.PD 0
+.P
+.PD
+.IP "21." 4
+\f[B]rename()\f[R] - Used to rename column.
+.PD 0
+.P
+.PD
+.IP "22." 4
+\f[B]rename_index()\f[R] - Renames index field (inplace).
+.PD 0
+.P
+.PD
+.IP "23." 4
+\f[B]reset_index()\f[R] - Reset the index.
+.PD 0
+.P
+.PD
+.IP "24." 4
+\f[B]set_index()\f[R] - Set the DataFrame index using existing columns.
+.PD 0
+.P
+.PD
+.IP "25." 4
+\f[B]show()\f[R] - Displays the selected dataframe values on console.
+.PD 0
+.P
+.PD
+.IP "26." 4
+\f[B]tail()\f[R] - Return the last n rows.
+.PD 0
+.P
+.PD
+.IP "27." 4
 \f[B]update_index()\f[R] - Updates/sets index values.
-.SS b) Application, groupby Functions
-.PP
-Such functions are used to perform operations like agg(), groupby()
-operations on frovedis dataframe.
-.IP "1." 3
-\f[B]agg()\f[R] - Aggregate using the specified functions and columns.
-.PD 0
-.P
-.PD
-.IP "2." 3
-\f[B]apply()\f[R] - Apply a function along an axis of the DataFrame.
-.PD 0
-.P
-.PD
-.IP "3." 3
-\f[B]groupby()\f[R] - Group dataframe using the specified columns.
-.SS c) List of Aggregate Functions
+.SS b) List of Aggregate Functions
 .PP
 Aggregate functions of dataframe help to perform computations on the
 specified values and helps with efficient summarization of data.
 The calculated values gives insight into the nature of potential data.
+.IP " 1." 4
+\f[B]agg()\f[R] - Aggregate using the specified functions and columns.
+.PD 0
+.P
+.PD
+.IP " 2." 4
+\f[B]cov()\f[R] - Returns the pairwise covariance of columns, excluding
+missing values.
+.PD 0
+.P
+.PD
+.IP " 3." 4
+\f[B]mad()\f[R] - Returns the mean absolute deviation of the values over
+the requested axis.
+.PD 0
+.P
+.PD
+.IP " 4." 4
+\f[B]max()\f[R] - Returns the maximum of the values over the requested
+axis.
+.PD 0
+.P
+.PD
+.IP " 5." 4
+\f[B]mean()\f[R] - Returns the mean of the values over the requested
+axis.
+.PD 0
+.P
+.PD
+.IP " 6." 4
+\f[B]median()\f[R] - Returns the median of the values over the requested
+axis.
+.PD 0
+.P
+.PD
+.IP " 7." 4
+\f[B]min()\f[R] - Returns the minimum of the values over the requested
+axis.
+.PD 0
+.P
+.PD
+.IP " 8." 4
+\f[B]mode()\f[R] - Returns the mode(s) of each element along the
+selected axis.
+.PD 0
+.P
+.PD
+.IP " 9." 4
+\f[B]sem()\f[R] - Returns the unbiased standard error of the mean over
+requested axis.
+.PD 0
+.P
+.PD
+.IP "10." 4
+\f[B]std()\f[R] - Returns the sample standard deviation over requested
+axis.
+.PD 0
+.P
+.PD
+.IP "11." 4
+\f[B]sum()\f[R] - Returns the sum of the values over the requested axis.
+.PD 0
+.P
+.PD
+.IP "12." 4
+\f[B]var()\f[R] - Returns unbiased variance over requested axis.
+.SS c) List of Math Functions
+.PP
+DataFrame has methods for carrying out binary operations like add(),
+sub(), etc and related functions like radd(), rsub(), etc.
+for carrying out reverse binary operations.
 .IP " 1." 4
 \f[B]abs()\f[R] - Return a DataFrame with absolute numeric value of each
 element.
@@ -1244,183 +1254,107 @@ element.
 .P
 .PD
 .IP " 2." 4
-\f[B]countna()\f[R] - Count NA values for each column/row.
-.PD 0
-.P
-.PD
-.IP " 3." 4
-\f[B]cov()\f[R] - Returns the pairwise covariance of columns, excluding
-missing values.
-.PD 0
-.P
-.PD
-.IP " 4." 4
-\f[B]describe()\f[R] - Generate descriptive statistics.
-.PD 0
-.P
-.PD
-.IP " 5." 4
-\f[B]mad()\f[R] - Returns the mean absolute deviation of the values over
-the requested axis.
-.PD 0
-.P
-.PD
-.IP " 6." 4
-\f[B]max()\f[R] - Returns the maximum of the values over the requested
-axis.
-.PD 0
-.P
-.PD
-.IP " 7." 4
-\f[B]mean()\f[R] - Returns the mean of the values over the requested
-axis.
-.PD 0
-.P
-.PD
-.IP " 8." 4
-\f[B]median()\f[R] - Returns the median of the values over the requested
-axis.
-.PD 0
-.P
-.PD
-.IP " 9." 4
-\f[B]min()\f[R] - Returns the minimum of the values over the requested
-axis.
-.PD 0
-.P
-.PD
-.IP "10." 4
-\f[B]mode()\f[R] - Returns the mode(s) of each element along the
-selected axis.
-.PD 0
-.P
-.PD
-.IP "11." 4
-\f[B]sem()\f[R] - Returns the unbiased standard error of the mean over
-requested axis.
-.PD 0
-.P
-.PD
-.IP "12." 4
-\f[B]std()\f[R] - Returns the sample standard deviation over requested
-axis.
-.PD 0
-.P
-.PD
-.IP "13." 4
-\f[B]sum()\f[R] - Returns the sum of the values over the requested axis.
-.PD 0
-.P
-.PD
-.IP "14." 4
-\f[B]var()\f[R] - Returns unbiased variance over requested axis.
-.SS d) List of Binary Operator Functions
-.PP
-DataFrame has methods for carrying out binary operations like add(),
-sub(), etc and related functions like radd(), rsub(), etc.
-for carrying out reverse binary operations.
-.IP " 1." 4
 \f[B]add()\f[R] - Get addition of dataframe and other specified value.
 It is equivalent to dataframe + other.
 .PD 0
 .P
 .PD
-.IP " 2." 4
+.IP " 3." 4
 \f[B]div()\f[R] - Get floating division of dataframe and other specified
 value.
 It is equivalent to dataframe / other.
 .PD 0
 .P
 .PD
-.IP " 3." 4
+.IP " 4." 4
 \f[B]floordiv()\f[R] - Get integer division of dataframe and other
 specified value.
 It is equivalent to dataframe // other.
 .PD 0
 .P
 .PD
-.IP " 4." 4
+.IP " 5." 4
 \f[B]mod()\f[R] - Get modulo of dataframe and other specified value.
 It is equivalent to dataframe % other.
 .PD 0
 .P
 .PD
-.IP " 5." 4
+.IP " 6." 4
 \f[B]mul()\f[R] - Get multiplication of dataframe and other specified
 value.
 It is equivalent to dataframe * other.
 .PD 0
 .P
 .PD
-.IP " 6." 4
+.IP " 7." 4
 \f[B]pow()\f[R] - Get exponential power of dataframe and other specified
 value.
 It is equivalent to dataframe ** other.
 .PD 0
 .P
 .PD
-.IP " 7." 4
+.IP " 8." 4
 \f[B]sub()\f[R] - Get subtraction of dataframe and other specified
 value.
 It is equivalent to dataframe - other.
 .PD 0
 .P
 .PD
-.IP " 8." 4
+.IP " 9." 4
 \f[B]truediv()\f[R] - Get floating division of dataframe and other
 specified value.
 It is equivalent to dataframe / other.
 .PD 0
 .P
 .PD
-.IP " 9." 4
+.IP "10." 4
 \f[B]radd()\f[R] - Get addition of other specified value and dataframe.
 It is equivalent to other + dataframe.
 .PD 0
 .P
 .PD
-.IP "10." 4
+.IP "11." 4
 \f[B]rdiv()\f[R] - Get floating division of other specified value and
 dataframe.
 It is equivalent to other / dataframe.
 .PD 0
 .P
 .PD
-.IP "11." 4
+.IP "12." 4
 \f[B]rfloordiv()\f[R] - Get integer division of other specified value
 and dataframe.
 It is equivalent to other // dataframe.
 .PD 0
 .P
 .PD
-.IP "12." 4
+.IP "13." 4
 \f[B]rmod()\f[R] - Get modulo of other specified value and dataframe.
 It is equivalent to other % dataframe.
 .PD 0
 .P
 .PD
-.IP "13." 4
+.IP "14." 4
 \f[B]rmul()\f[R] - Get multiplication of other specified value and
 dataframe.
 It is equivalent to other * dataframe.
 .PD 0
 .P
 .PD
-.IP "14." 4
+.IP "15." 4
 \f[B]rpow()\f[R] - Get exponential power of other specified value and
 dataframe.
 It is equivalent to other ** dataframe.
 .PD 0
 .P
 .PD
-.IP "15." 4
+.IP "16." 4
 \f[B]rsub()\f[R] - Get subtraction of other specified value and
 dataframe.
 It is equivalent to other - dataframe.
 .PD 0
 .P
 .PD
-.IP "16." 4
+.IP "17." 4
 \f[B]rtruediv()\f[R] - Get floating division of other specified value
 and dataframe.
 It is equivalent to other / dataframe.
@@ -1718,23 +1652,22 @@ Jo      4            4       58            59
 .fi
 .SH SEE ALSO
 .IP \[bu] 2
-\f[B]DataFrame - Selection and Combinations\f[R]
+\f[B]DataFrame - Generic Functions\f[R]
 .PD 0
 .P
 .PD
 .IP \[bu] 2
-\f[B]DataFrame - Conversion, Missing data handling, Sorting
-Functions\f[R]
+\f[B]DataFrame - Conversion Functions\f[R]
 .PD 0
 .P
 .PD
 .IP \[bu] 2
-\f[B]DataFrame - Function Application, Groupby\f[R]
+\f[B]DataFrame - Sorting Functions\f[R]
 .PD 0
 .P
 .PD
 .IP \[bu] 2
-\f[B]DataFrame - Binary Operators\f[R]
+\f[B]DataFrame - Math Functions\f[R]
 .PD 0
 .P
 .PD
