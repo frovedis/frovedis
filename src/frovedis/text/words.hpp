@@ -179,6 +179,14 @@ void translate(const std::vector<int>& chars,
                std::vector<size_t>& ret_lens,
                const std::string& from,
                const std::string& to);
+std::vector<int> hamming_distance(
+               const std::vector<int>& chars1,
+               const std::vector<size_t>& starts1,
+               const std::vector<size_t>& lens1,
+               const std::vector<int>& chars2,
+               const std::vector<size_t>& starts2,
+               const std::vector<size_t>& lens2,
+               bool& all_valid);
 void prepend(const std::vector<int>& chars,
              const std::vector<size_t>& starts,
              const std::vector<size_t>& lens,
@@ -278,6 +286,11 @@ struct words {
     chars.swap(ret_chars);
     starts.swap(ret_starts);
     lens.swap(ret_lens);
+  }
+  std::vector<int> hamming_distance(const words& w2, bool& all_valid) {
+    return frovedis::hamming_distance(chars, starts, lens, 
+                                      w2.chars, w2.starts, w2.lens, 
+                                      all_valid);
   }
   void prepend(const std::string& to_prepend) { // destructive
     std::vector<int> ret_chars;
@@ -386,6 +399,8 @@ void search(const words& w, const std::vector<int>& to_search,
             std::vector<size_t>& idx, std::vector<size_t>& pos);
 words replace(const words& w, const std::string& from, const std::string& to);
 words translate(const words& w, const std::string& from, const std::string& to);
+std::vector<int> hamming_distance(const words& w1, const words& w2, 
+                                  bool& all_valid);
 words prepend(const words& w, const std::string& to_prepend);
 words append(const words& w, const std::string& to_append);
 words horizontal_concat_words(std::vector<words>& vec_words);

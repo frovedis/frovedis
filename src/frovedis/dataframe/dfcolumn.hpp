@@ -497,6 +497,10 @@ public:
   virtual std::shared_ptr<dfcolumn> locate(const std::string& str, int pos);
   virtual std::shared_ptr<dfcolumn>
   trim(trim_type kind, const std::string& to_trim);
+  virtual std::shared_ptr<dfcolumn> 
+  hamming(const std::shared_ptr<dfcolumn>& right);
+  virtual std::shared_ptr<dfcolumn>
+  translate(const std::string& from, const std::string& to);
   virtual std::shared_ptr<dfcolumn>
   replace(const std::string& from, const std::string& to);
   virtual std::shared_ptr<dfcolumn> reverse();

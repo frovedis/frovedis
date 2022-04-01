@@ -151,6 +151,8 @@ enum OPTYPE {
   INSTR = 121,
   REPLACE = 122,
   INITCAP = 123,
+  TRANSLATE = 124,
+  HAMMINGDIST = 125,
   // --- date ---
   GETYEAR = 201,
   GETMONTH = 202,

@@ -5,7 +5,7 @@
 #include "../core/lower_bound.hpp"
 #include "../core/upper_bound.hpp"
 #include "../core/prefix_sum.hpp"
-#include "../core/find_condition.hpp"
+#include "../core/vector_operations.hpp"
 #include "char_int_conv.hpp"
 #include <stdexcept>
 
@@ -2020,7 +2020,6 @@ void tolower(const std::vector<int>& chars,
 
 words tolower(const words& ws) {
   words ret;
-  std::vector<int> ret_chars;
   frovedis::tolower(ws.chars, ret.chars);
   ret.starts = ws.starts;
   ret.lens = ws.lens;
@@ -2043,7 +2042,6 @@ void toupper(const std::vector<int>& chars,
 
 words toupper(const words& ws) {
   words ret;
-  std::vector<int> ret_chars;
   frovedis::toupper(ws.chars, ret.chars);
   ret.starts = ws.starts;
   ret.lens = ws.lens;
@@ -2376,6 +2374,7 @@ void initcap(const std::vector<int>& chars,
              const std::vector<size_t>& starts,
              const std::vector<size_t>& lens,
              std::vector<int>& ret_chars) {
+  int offset = ('a' - 'A');
   tolower(chars, ret_chars);
   auto len = lens.size();
   auto cptr = ret_chars.data();
@@ -2388,7 +2387,7 @@ void initcap(const std::vector<int>& chars,
     if (lptr[i]) {
       auto sidx = sptr[i];
       auto initchar = cptr[sidx];
-      if (initchar >= 'a' && initchar <= 'z') cptr[sidx] -= 32; // toUpper
+      if (initchar >= 'a' && initchar <= 'z') cptr[sidx] -= offset; // toUpper
     }
   }
 
@@ -2406,17 +2405,101 @@ void initcap(const std::vector<int>& chars,
 #pragma _NEC ivdep
   for(size_t i = 0; i < tsize; ++i) {
     auto nextchar = cptr[pos_ptr[i] + 1];
-    if (nextchar >= 'a' && nextchar <= 'z') cptr[pos_ptr[i] + 1] -= 32; // toUpper
+    if (nextchar >= 'a' && nextchar <= 'z') cptr[pos_ptr[i] + 1] -= offset; // toUpper
   }
 }
 
 words initcap(const words& ws) {
   words ret;
-  std::vector<int> ret_chars;
   frovedis::initcap(ws.chars, ws.starts, ws.lens, ret.chars);
   ret.starts = ws.starts;
   ret.lens = ws.lens;
   return ret;
+}
+
+std::vector<int> 
+hamming_distance(const std::vector<int>& chars1,
+                 const std::vector<size_t>& starts1,
+                 const std::vector<size_t>& lens1,
+                 const std::vector<int>& chars2,
+                 const std::vector<size_t>& starts2,
+                 const std::vector<size_t>& lens2,
+                 bool& all_valid) {
+  auto vlen = lens1.size();
+  checkAssumption(vlen == lens2.size());
+
+  auto cptr1 = chars1.data();
+  auto cptr2 = chars2.data();
+  auto sptr1 = starts1.data();
+  auto sptr2 = starts2.data();
+  auto lptr1 = lens1.data();
+  auto lptr2 = lens2.data();
+
+  int maxlen = 0, sum = 0;
+  std::vector<int> difflen;
+  std::vector<int> valid(vlen);
+  auto validp = valid.data();
+
+  for(size_t i = 0; i < vlen; ++i) {
+    validp[i] = (lptr1[i] == lptr2[i]);
+    sum += validp[i];
+  }
+  all_valid = (sum == vlen);
+
+  if (!all_valid) { // some targets with mismatched lengths
+    auto imax = std::numeric_limits<int>::max();
+    difflen = vector_full<int>(vlen, imax);
+    auto diffp = difflen.data();
+
+    auto pos = vector_find_one(valid);
+    auto psize = pos.size();
+    auto posp = pos.data();
+#pragma _NEC ivdep
+    for(size_t i = 0; i < psize; ++i) {
+      auto idx = posp[i];
+      diffp[idx] = 0;
+      auto l = lptr1[idx];
+      if (l > maxlen) maxlen = l;
+    }
+
+    for(size_t i = 0; i < maxlen; ++i) {
+#pragma _NEC ivdep
+      for(size_t j = 0; j < psize; ++j) {
+        auto idx = posp[j];
+        if (i < lptr1[idx]) {
+          auto c1 = cptr1[sptr1[idx] + i];
+          auto c2 = cptr2[sptr2[idx] + i];
+          diffp[idx] += (c1 != c2);
+        }
+      }
+    }
+  } else {
+    difflen = vector_zeros<int>(vlen);
+    auto diffp = difflen.data();
+
+    for(size_t i = 0; i < vlen; ++i) {
+      auto l = lptr1[i];
+      if (l > maxlen) maxlen = l;
+    }
+
+    for(size_t i = 0; i < maxlen; ++i) {
+#pragma _NEC ivdep
+      for(size_t j = 0; j < vlen; ++j) {
+        if (i < lptr1[j]) {
+          auto c1 = cptr1[sptr1[j] + i];
+          auto c2 = cptr2[sptr2[j] + i];
+          diffp[j] += (c1 != c2);
+        }
+      }
+    }
+  }
+  return difflen;
+}
+
+std::vector<int> 
+hamming_distance(const words& w1, const words& w2, bool& all_valid) {
+  return hamming_distance(w1.chars, w1.starts, w1.lens, 
+                          w2.chars, w2.starts, w2.lens, all_valid);
 }
 
 }

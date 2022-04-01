@@ -2863,7 +2863,7 @@ make_datetime_col_as(const std::shared_ptr<dffunction>& year,
                                                     hour, minute, second, as);
 }
 
-// ----- iinitcap -----
+// ----- initcap -----
 std::shared_ptr<dfcolumn>
 dffunction_initcap::execute(dftable_base& t) const {
   auto left_column = left->execute(t);
@@ -3338,6 +3338,58 @@ trim_im_as(const std::shared_ptr<dffunction>& left,
 }
 
 
+// ----- translate -----
+std::shared_ptr<dfcolumn>
+dffunction_translate::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->translate(from, to);
+}
+
+std::shared_ptr<dfcolumn> dffunction_translate::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  return left_column->translate(from, to);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_translate::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->translate(from, to);
+}
+
+std::shared_ptr<dffunction>
+translate_im(const std::string& left, const std::string& from,
+             const std::string& to) {
+  return std::make_shared<dffunction_translate>(id_col(left), from, to);
+}
+
+std::shared_ptr<dffunction>
+translate_im(const std::shared_ptr<dffunction>& left, const std::string& from,
+             const std::string& to) {
+  return std::make_shared<dffunction_translate>(left, from, to);
+}
+
+std::shared_ptr<dffunction>
+translate_im_as(const std::string& left, const std::string& from,
+                const std::string& to, const std::string& as) {
+  return std::make_shared<dffunction_translate>(id_col(left), from, to, as);
+}
+
+std::shared_ptr<dffunction>
+translate_im_as(const std::shared_ptr<dffunction>& left, const std::string& from,
+                const std::string& to, const std::string& as) {
+  return std::make_shared<dffunction_translate>(left, from, to, as);
+}
+
+
 // ----- replace -----
 std::shared_ptr<dfcolumn>
 dffunction_replace::execute(dftable_base& t) const {
@@ -3487,6 +3539,72 @@ std::shared_ptr<dffunction>
 substring_index_im_as(const std::shared_ptr<dffunction>& left,
                       const std::string& str, int pos, const std::string& as) {
   return std::make_shared<dffunction_substring_index>(left, str, pos, as);
+}
+
+
+// ----- hamming_distance -----
+std::shared_ptr<dfcolumn> 
+dffunction_hamming::execute(dftable_base& t) const {
+  auto left_column = left->execute(t);
+  return left_column->hamming(right->execute(t));
+}
+
+std::shared_ptr<dfcolumn> 
+dffunction_hamming::execute(dftable_base& t1,
+                                dftable_base& t2) const {
+  auto left_column = left->execute(t1);
+  auto right_column = right->execute(t2);
+  auto aligned_right_column = realign_df(t1, t2, right_column);
+  return left_column->hamming(aligned_right_column);
+}
+
+std::shared_ptr<dfcolumn> dffunction_hamming::aggregate
+(dftable_base& table,
+ node_local<std::vector<size_t>>& local_grouped_idx,
+ node_local<std::vector<size_t>>& local_idx_split,
+ node_local<std::vector<std::vector<size_t>>>& hash_divide,
+ node_local<std::vector<std::vector<size_t>>>& merge_map,
+ node_local<size_t>& row_sizes,
+ dftable& grouped_table) {
+  auto left_column = left->aggregate(table, local_grouped_idx,
+                                     local_idx_split, hash_divide,
+                                     merge_map, row_sizes, grouped_table);
+  auto right_column = right->aggregate(table, local_grouped_idx,
+                                       local_idx_split, hash_divide,
+                                       merge_map, row_sizes, grouped_table);
+  return left_column->hamming(right_column);
+}
+
+std::shared_ptr<dfcolumn>
+dffunction_hamming::whole_column_aggregate(dftable_base& t) {
+  auto left_column = left->whole_column_aggregate(t);
+  return left_column->hamming(right->whole_column_aggregate(t));
+}
+
+std::shared_ptr<dffunction> 
+hamming_col(const std::string& left,
+            const std::string& right) {
+  return std::make_shared<dffunction_hamming>(id_col(left), id_col(right));
+}
+
+std::shared_ptr<dffunction>
+hamming_col(const std::shared_ptr<dffunction>& left,
+            const std::shared_ptr<dffunction>& right) {
+  return std::make_shared<dffunction_hamming>(left, right);
+}
+
+std::shared_ptr<dffunction> 
+hamming_col_as(const std::string& left,
+               const std::string& right,
+               const std::string& as) {
+  return std::make_shared<dffunction_hamming>(id_col(left), id_col(right), as); 
+}
+
+std::shared_ptr<dffunction>
+hamming_col_as(const std::shared_ptr<dffunction>& left,
+               const std::shared_ptr<dffunction>& right,
+               const std::string& as) {
+  return std::make_shared<dffunction_hamming>(left, right, as);
 }
 
 

@@ -781,9 +781,9 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getImmedLocateFu
   return (jlong) ret_proxy;
 }
 
-JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getImmedReplaceFunc
+JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getImmedFromToFunc
   (JNIEnv *env, jclass thisCls, jobject master_node,
-   jlong proxy, jstring from, jstring to, jstring colname) {
+   jlong proxy, jstring from, jstring to, jshort opt_id, jstring colname) {
 
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto colProxy = (exrpc_ptr_t) proxy;
@@ -792,8 +792,8 @@ JNIEXPORT jlong JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getImmedReplaceF
   auto to_ = to_cstring(env, to);
   exrpc_ptr_t ret_proxy = 0;
   try {
-    ret_proxy = exrpc_async(fm_node, get_immed_replace, colProxy,
-                            from_, to_, cname).get();
+    ret_proxy = exrpc_async(fm_node, get_immed_from_to_opt, colProxy,
+                            from_, to_, opt_id, cname).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return (jlong) ret_proxy;

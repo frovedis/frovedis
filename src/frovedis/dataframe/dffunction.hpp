@@ -4237,6 +4237,73 @@ trim_im_as(const std::shared_ptr<dffunction>& left,
            const std::string& as);
 
 
+// ----- translate -----
+struct dffunction_translate : public dffunction {
+  dffunction_translate(const std::shared_ptr<dffunction>& left,
+                       const std::string& from, const std::string& to) :
+    left(left), from(from), to(to) {
+    as_name = "translate(" + left->get_as() + "," + from + "," + to + ")";
+  }
+  dffunction_translate(const std::shared_ptr<dffunction>& left,
+                       const std::string& from, const std::string& to,
+                       const std::string& as_name) :
+    left(left), from(from), to(to), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_translate>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const {
+    throw std::runtime_error
+      ("translate is not available for binary operation!\n");
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    return left->columns_to_use(t);
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    throw std::runtime_error
+      ("two args of columns_to_use on this operator is not implemented");
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    return leftnames;
+  }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
+
+  std::shared_ptr<dffunction> left;
+  std::string from, to;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+translate_im(const std::string& left, const std::string& from,
+             const std::string& to);
+
+std::shared_ptr<dffunction>
+translate_im(const std::shared_ptr<dffunction>& left, const std::string& from,
+             const std::string& to);
+
+std::shared_ptr<dffunction>
+translate_im_as(const std::string& left, const std::string& from,
+                const std::string& to, const std::string& as);
+
+std::shared_ptr<dffunction>
+translate_im_as(const std::shared_ptr<dffunction>& left, const std::string& from,
+                const std::string& to, const std::string& as);
+
+
 // ----- replace -----
 struct dffunction_replace : public dffunction {
   dffunction_replace(const std::shared_ptr<dffunction>& left,
@@ -4431,6 +4498,76 @@ substring_index_im_as(const std::string& left, const std::string& str,
 std::shared_ptr<dffunction>
 substring_index_im_as(const std::shared_ptr<dffunction>& left,
                       const std::string& str, int pos, const std::string& as);
+
+
+// ----- hamming_distance -----
+struct dffunction_hamming : public dffunction {
+  dffunction_hamming(const std::shared_ptr<dffunction>& left,
+                     const std::shared_ptr<dffunction>& right) :
+    left(left), right(right) {
+    as_name = "hamming(" + left->get_as() + "," + right->get_as() + ")";
+  }
+  dffunction_hamming(const std::shared_ptr<dffunction>& left,
+                     const std::shared_ptr<dffunction>& right,
+                     const std::string& as_name) :
+    left(left), right(right), as_name(as_name) {}
+  virtual std::string get_as() {return as_name;}
+  virtual std::shared_ptr<dffunction> as(const std::string& cname) {
+    as_name = cname;
+    return std::make_shared<dffunction_hamming>(*this);
+  }
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t) const;
+  virtual std::shared_ptr<dfcolumn> execute(dftable_base& t1,
+                                            dftable_base& t2) const;
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t) {
+    auto leftuse = left->columns_to_use(t);
+    auto rightuse = right->columns_to_use(t);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+  virtual std::vector<std::shared_ptr<dfcolumn>>
+  columns_to_use(dftable_base& t1, dftable_base& t2) {
+    auto leftuse = left->columns_to_use(t1);
+    auto rightuse = right->columns_to_use(t2);
+    leftuse.insert(leftuse.end(), rightuse.begin(), rightuse.end());
+    return leftuse;
+  }
+  virtual std::vector<std::string> used_col_names() const {
+    auto leftnames = left->used_col_names();
+    auto rightnames = right->used_col_names();
+    leftnames.insert(leftnames.end(), rightnames.begin(), rightnames.end());
+    return leftnames;
+  }
+  virtual std::shared_ptr<dfcolumn>
+  aggregate(dftable_base& table,
+            node_local<std::vector<size_t>>& local_grouped_idx,
+            node_local<std::vector<size_t>>& local_idx_split,
+            node_local<std::vector<std::vector<size_t>>>& hash_divide,
+            node_local<std::vector<std::vector<size_t>>>& merge_map,
+            node_local<size_t>& row_sizes,
+            dftable& grouped_table);
+  virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& t);
+
+  std::shared_ptr<dffunction> left, right;
+  std::string as_name;
+};
+
+std::shared_ptr<dffunction>
+hamming_col(const std::string& left, const std::string& right);
+
+std::shared_ptr<dffunction>
+hamming_col(const std::shared_ptr<dffunction>& left,
+            const std::shared_ptr<dffunction>& right);
+
+std::shared_ptr<dffunction>
+hamming_col_as(const std::string& left, const std::string& right,
+               const std::string& as);
+
+std::shared_ptr<dffunction>
+hamming_col_as(const std::shared_ptr<dffunction>& left,
+               const std::shared_ptr<dffunction>& right,
+               const std::string& as);
 
 
 // ----- concat -----

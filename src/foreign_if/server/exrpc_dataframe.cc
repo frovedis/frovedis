@@ -1508,11 +1508,15 @@ dummy_dftable frov_df_mean(exrpc_ptr_t& df_proxy,
 }
 
 void replace_le_zero(std::vector<double>& res_col) {
-  auto res_col_sz = res_col.size();
+  auto pos = vector_find_le(res_col, 0.);
+  auto pos_sz = pos.size();
+  auto posp = pos.data();
   auto resp = res_col.data();
   auto dmax = std::numeric_limits<double>::max();
-  for (size_t i = 0; i < res_col_sz; ++i)
-    if ( resp[i] <= 0) resp[i] = dmax;
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for (size_t i = 0; i < pos_sz; ++i) resp[posp[i]] = dmax;
 }
 
 // TODO: move the implementation in dataframe library
@@ -2197,6 +2201,7 @@ exrpc_ptr_t get_dffunc_opt(exrpc_ptr_t& leftp,
     case RTRIM:     opt = new std::shared_ptr<dffunction>(rtrim_im_as(left, cname)); break;
     case ASCII:     opt = new std::shared_ptr<dffunction>(ascii_col_as(left, cname)); break;
     case INITCAP:   opt = new std::shared_ptr<dffunction>(initcap_col_as(left, cname)); break;
+    case HAMMINGDIST: opt = new std::shared_ptr<dffunction>(hamming_col_as(left, right, cname)); break;
     // -- date --
     case GETYEAR:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::year, cname)); break;
     case GETMONTH:   opt = new std::shared_ptr<dffunction>(datetime_extract_col_as(left, datetime_type::month, cname)); break;
@@ -2422,14 +2427,22 @@ exrpc_ptr_t get_immed_pad(exrpc_ptr_t& colp,
   return reinterpret_cast<exrpc_ptr_t> (retp);
 }
 
-exrpc_ptr_t get_immed_replace(exrpc_ptr_t& colp,
-                              std::string& from,
-                              std::string& to,
-                              std::string& cname) {
+exrpc_ptr_t get_immed_from_to_opt(exrpc_ptr_t& colp,
+                                  std::string& from,
+                                  std::string& to,
+                                  short& opt_id,
+                                  std::string& cname) {
   auto& col = *reinterpret_cast<std::shared_ptr<dffunction>*>(colp);
-  auto retp = new std::shared_ptr<dffunction>(
-                replace_im_as(col, from, to, cname));
-  return reinterpret_cast<exrpc_ptr_t> (retp);
+  std::shared_ptr<dffunction> *opt = NULL;
+  switch(opt_id) {
+    case REPLACE:   opt = new std::shared_ptr<dffunction>(
+                            replace_im_as(col, from, to, cname)); break;
+    case TRANSLATE: opt = new std::shared_ptr<dffunction>(
+                            translate_im_as(col, from, to, cname)); break;
+    default: REPORT_ERROR(USER_ERROR,
+             "Unsupported dffunction with from-and-to is requested!\n");
+  }
+  return reinterpret_cast<exrpc_ptr_t> (opt);
 }
 
 exrpc_ptr_t get_dffunc_agg(exrpc_ptr_t& leftp,

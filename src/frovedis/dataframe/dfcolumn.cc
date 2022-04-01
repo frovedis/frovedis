@@ -1081,6 +1081,36 @@ std::shared_ptr<dfcolumn> dfcolumn::initcap() {
   }
 }
 
+// returns hamming distance of two columns
+std::shared_ptr<dfcolumn> 
+dfcolumn::hamming(const std::shared_ptr<dfcolumn>& right) {
+  auto ws1 = as_words();
+  auto ws2 = right->as_words();
+  auto nulls1 = get_nulls();
+  auto nulls2 = right->get_nulls();
+  auto nulls = make_node_local_allocate<std::vector<size_t>>();
+  auto len = ws1.map(+[](words& ws1, std::vector<size_t>& nulls1,
+                         words& ws2, std::vector<size_t>& nulls2,
+                         std::vector<size_t>& nulls) {
+      bool all_valid;
+      auto ret = ws1.hamming_distance(ws2, all_valid);
+      nulls = set_union(nulls1, nulls2);
+      auto retp = ret.data();
+      auto nullsp = nulls.data();
+      auto nulls_size = nulls.size();
+      auto max = std::numeric_limits<int>::max();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+      for(size_t i = 0; i < nulls_size; i++) {
+        retp[nullsp[i]] = max;
+      }
+      if (!all_valid) nulls = set_union(nulls, vector_find_tmax<int>(ret));
+      return ret;}, nulls1, ws2, nulls2, nulls);
+  return std::make_shared<typed_dfcolumn<int>>
+    (std::move(len), std::move(nulls));
+}
+
 // returns ascii of the first character in each word
 std::shared_ptr<dfcolumn> dfcolumn::ascii() {
   auto ws = as_words();
@@ -1235,6 +1265,30 @@ dfcolumn::trim(trim_type kind, const std::string& to_trim) {
     ws.mapv(+[](words& ws, const std::string& to_trim){ws.trim(to_trim);},
             broadcast(to_trim));
   }
+  auto nulls = get_nulls();
+  if(dtype() == "string") {
+    auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});
+    auto ret = std::make_shared<typed_dfcolumn<std::string>>
+      (std::move(vs), std::move(nulls));
+    return ret;
+  } else if (dtype() == "raw_string") {
+    auto ret = std::make_shared<typed_dfcolumn<raw_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  } else {
+    auto ret = std::make_shared<typed_dfcolumn<dic_string>>
+      (std::move(ws), std::move(nulls));
+    return ret;
+  }
+}
+
+std::shared_ptr<dfcolumn>
+dfcolumn::translate(const std::string& from, const std::string& to) {
+  auto ws = as_words();
+  ws.mapv(+[](words& ws){ws.utf8_to_utf32();});
+  ws.mapv(+[](words& ws, const std::string& from, const std::string& to)
+          {ws.translate(from, to);}, broadcast(from), broadcast(to));
+  ws.mapv(+[](words& ws){ws.utf32_to_utf8();});
   auto nulls = get_nulls();
   if(dtype() == "string") {
     auto vs = ws.map(+[](words& ws){return words_to_vector_string(ws);});

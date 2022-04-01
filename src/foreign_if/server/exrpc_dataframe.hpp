@@ -169,10 +169,11 @@ exrpc_ptr_t get_immed_pad(exrpc_ptr_t& colp,
                           int& len, std::string& value,
                           std::string& cname, bool& is_left);
 
-exrpc_ptr_t get_immed_replace(exrpc_ptr_t& colp,
-                              std::string& from,
-                              std::string& to,
-                              std::string& cname);
+exrpc_ptr_t get_immed_from_to_opt(exrpc_ptr_t& colp,
+                                  std::string& from,
+                                  std::string& to,
+                                  short& opt_id,
+                                  std::string& cname);
 
 exrpc_ptr_t get_immed_locate(exrpc_ptr_t& colp, 
                              std::string& substr, int& pos, 

@@ -123,7 +123,7 @@ object OPTYPE extends java.io.Serializable {
   val REPLACE:    Short = 122
   val INITCAP:    Short = 123
   val TRANSLATE:  Short = 124
-  val LEVENDIST:  Short = 125
+  val HAMMINGDIST:  Short = 125
   // --- date ---
   val GETYEAR:       Short = 201
   val GETMONTH:      Short = 202
@@ -525,7 +525,7 @@ class FrovedisColumn extends java.io.Serializable {
       case OPTYPE.LTRIMWS => "TRIM(LEADING " + right + " FROM " + left + ")"
       case OPTYPE.RTRIM   => "rtrim(" + left + ")"
       case OPTYPE.RTRIMWS => "TRIM(TRAILING " + right + " FROM " + left + ")"
-      case OPTYPE.LEVENDIST => "levenshtein(" + left + ", " + right + ")"
+      case OPTYPE.HAMMINGDIST => "hamming(" + left + ", " + right + ")"
       case _ => throw new IllegalArgumentException("Unsupported opt-type: " + opt)
     }
   }
@@ -1099,7 +1099,7 @@ object functions extends java.io.Serializable {
   def translate(e: FrovedisColumn, from: String, to: String) = 
     e.from_to_opt(from, to, OPTYPE.TRANSLATE)
 
-  def levenshtein(left: FrovedisColumn, right: FrovedisColumn) = 
-    new FrovedisColumn(left, right, OPTYPE.LEVENDIST, DTYPE.INT)
+  def hamming(left: FrovedisColumn, right: FrovedisColumn) = 
+    new FrovedisColumn(left, right, OPTYPE.HAMMINGDIST, DTYPE.INT)
 }
 

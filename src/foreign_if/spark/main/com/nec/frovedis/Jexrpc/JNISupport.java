@@ -1004,9 +1004,10 @@ public class JNISupport {
                                                String substr, int pos,
                                                String col_name);
 
-  public static native long getImmedReplaceFunc(Node master_node, long proxy, 
-                                                String from, String to,
-                                                String col_name);
+  public static native long getImmedFromToFunc(Node master_node, long proxy, 
+                                               String from, String to,
+                                               short opt,
+                                               String col_name);
 
   public static native long appendWhenCondition(Node master_node, long left_fn,
                                                 long right_fn, String col_name);
