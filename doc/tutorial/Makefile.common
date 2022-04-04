@@ -1,6 +1,6 @@
 # https://ja.stackoverflow.com/questions/319/
 tutorial.pdf: tutorial.md
-	pandoc tutorial.md -o tutorial.pdf --latex-engine=xelatex -H preamble.tex -V geometry:margin=1in
+	pandoc tutorial.md -o tutorial.pdf --pdf-engine=xelatex -H preamble.tex -V geometry:margin=1in
 
 clean:
 	rm -f *~
