@@ -3456,3 +3456,65 @@ This should produce result like:
     2	105
     3	120
     4	50
+
+
+## 5.9 Out-of-core functionality
+
+Frovedis dataframe has out-of-core functionality, which allows to
+handle larger data than memory capacity by spilling out part of the
+data into storage. Please look at "src/tut5.10/tut.cc".
+
+    std::vector<int> v(1 << 30); // 1G * 4byte = 4GB
+    auto dv = make_dvector_scatter(v);
+
+    dftable t;
+    try {
+      for(size_t i = 0; i < 11; i++) {
+        t.append_column(std::to_string(i), dv);
+      }
+      t.show();
+    } catch (std::exception& e) {
+      std::cerr << e.what() << std::endl;
+    }
+
+This program allocates 4GB of std::vector and scatter it to create
+dvector. Then, the dvector is appended to a dftable 11 times.
+So this program requires at least 4GB * (2 + 11)  = 52GB.
+If this program is executed with one VE 1.0 card, it will throw
+bad_alloc exception, since VE 1.0 card only has 48GB of memory:
+
+    $ mpirun -np 8 ./tut
+    exception at any of the ranks:
+    rank 0: std::bad_alloc
+    rank 1: std::bad_alloc
+    rank 2: std::bad_alloc
+    rank 3: std::bad_alloc
+    rank 4: std::bad_alloc
+    rank 5: std::bad_alloc
+    rank 6: std::bad_alloc
+    rank 7: std::bad_alloc
+
+(By the way, exceptions thrown at each rank is caught at each rank and
+the information is gathered by rank 0; then one exception is thrown.)
+
+To enable out-of-core functionality, users just need to set an
+environment variable: `FROVEDIS_DFCOLUMN_SPILLABLE=true`
+
+
+    $ FROVEDIS_DFCOLUMN_SPILLABLE=true mpirun -np 8 ./tut
+
+will run without error. Before executing the program, please make sure
+that `/var/tmp` has enough free area (more than 50GB) to spill the data.
+If you want to change the directory to use, please set an environment
+variable: `FROVEDIS_TMPDIR=/path/to/spill`.
+
+Basically, the system spills all the columns; since all the dataframe
+operations needs to access only the specified columns, the required
+columns are restored from the storage and processed. 
+
+However, spilling all the columns is sometimes inefficient. So there
+is buffer (we call this queue) to keep the column in memory before
+spilling to storage. The size of the queue is 1GB by default. You can
+change the size by using an environment variable 
+`FROVEDIS_DFCOLUMN_SPILLQ_SIZE`. The value is in MB 
+(e.g. `FROVEDIS_DFCOLUMN_SPILLQ_SIZE=1024`, in this case 1GB). 
