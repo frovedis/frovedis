@@ -137,13 +137,14 @@ class StandardScaler(BaseEstimator):
         NAME: mean_
         """
         if self._mean is None:
-            (host, port) = FrovedisServer.getServerInstance()
-            mean_vector = rpclib.get_scaler_mean(host, port, self.__mid, \
-                                                  self.__mdtype)
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            self._mean = np.asarray(mean_vector, dtype=np.float64)
+            if self.with_mean or self.with_std:
+                (host, port) = FrovedisServer.getServerInstance()
+                mean_vector = rpclib.get_scaler_mean(host, port, self.__mid, \
+                                                      self.__mdtype)
+                excpt = rpclib.check_server_exception()
+                if excpt["status"]:
+                    raise RuntimeError(excpt["info"])
+                self._mean = np.asarray(mean_vector, dtype=np.float64)
         return self._mean
 
     @mean_.setter
@@ -159,13 +160,14 @@ class StandardScaler(BaseEstimator):
         NAME: var_
         """
         if self._var is None:
-            (host, port) = FrovedisServer.getServerInstance()
-            var_vector = rpclib.get_scaler_var(host, port, self.__mid, \
+            if self.with_std:
+                (host, port) = FrovedisServer.getServerInstance()
+                var_vector = rpclib.get_scaler_var(host, port, self.__mid, \
                                                   self.__mdtype)
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            self._var = np.asarray(var_vector, dtype=np.float64)
+                excpt = rpclib.check_server_exception()
+                if excpt["status"]:
+                    raise RuntimeError(excpt["info"])
+                self._var = np.asarray(var_vector, dtype=np.float64)   
         return self._var
 
     @var_.setter
