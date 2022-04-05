@@ -2894,11 +2894,11 @@ would produce output like:
     0
     -1.09677
     6.45161
-    33.9677
+    34.0645
     7.54838
     3.80645
-    9.67741
-    -0.48387
+    9.70967
+    -0.451612
 
 The function `datetime_next_day_col` or `datetime_next_day_im`
 calculates the next day of the specified day of week.
