@@ -198,11 +198,13 @@ scikit-learn manual):
 - `cluster.AgglomerativeClustering`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html))
 - `cluster.DBSCAN`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html))
 - `cluster.SpectralClustering`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.SpectralClustering.html))
+- `mixture.GaussianMixture`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.mixture.GaussianMixture.html))
 - `manifold.SpectralEmbedding`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.SpectralEmbedding.html))
 - `manifold.TSNE`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html))
 - `decomposition.TruncatedSVD`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.TruncatedSVD.html))
 - `decomposition.PCA`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html))
 - `decomposition.LatentDirichletAllocation`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.LatentDirichletAllocation.html))
+- `preprocessing.StandardScaler`([sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html))
 
 Please add `frovedis.mllib.` to import these modules.
 (In the case of scikit-learn, `sklearn.` is added to import them.)
@@ -766,27 +768,42 @@ If it is shown as dense matrix, it should look like:
 As you can see, 'male' is assigned to 3rd column, not 2nd column. 
 The data structure `info` can be saved and loaded to a file.
 
+In addition, Frovedis DataFrame has out-of-core functionality, which
+allows to handle larger data than memory capacity by spilling out part
+of the data into storage. 
+
+To enable out-of-core functionality, users just need to set an
+environment variable: `FROVEDIS_DFCOLUMN_SPILLABLE=true`. You can set
+the environment by exporting it before calling python interpreter,
+like:
+
+    $ export FROVEDIS_DFCOLUMN_SPILLABLE=true
+    $ python your_program.py
+
+or, you can specify it when you call frovedis server, like:
+
+    FrovedisServer.initialize("FROVEDIS_DFCOLUMN_SPILLABLE=true mpirun -np 4 {}".
+                              format(os.environ['FROVEDIS_SERVER'])) 
+
+The default directory that is used to spill the data is `/var/tmp`.
+If you want to change the directory to use, please set an environment
+variable: `FROVEDIS_TMPDIR=/path/to/spill`.
+
+Basically, the system spills all the columns; since all the dataframe
+operations needs to access only the specified columns, the required
+columns are restored from the storage and processed. 
+
+However, spilling all the columns is sometimes inefficient. So there
+is buffer (we call this queue) to keep the column in memory before
+spilling to storage. The size of the queue is 1GB by default. You can
+change the size by using an environment variable 
+`FROVEDIS_DFCOLUMN_SPILLQ_SIZE`. The value is in MB 
+(e.g. `FROVEDIS_DFCOLUMN_SPILLQ_SIZE=1024`, in this case 1GB). 
+
 # 7. Manuals
 
-Manuals are in `../manual` directory.
+Manuals are in `../manual/python` directory.
 In addition to PDF file, you can also use `man` command (MANPATH is
 set in `x86env.sh` or `veenv.sh`). For python interface, the section is
 `3p` (same name of the manual may exist in section `3` or `3s`.), so
 you can run like `man -s 3p logistic_regression`. 
-Currently, there are following manual entries: 
-
-- `logistic_regression`
-- `linear_regression`
-- `lasso_regression`
-- `ridge_regression`
-- `linear_svm`
-- `kmeans`
-- `als`
-- `crs_matrix`
-- `dvector`
-- `blockcyclic_matrix`
-- `scalapack_wrapper`
-- `pblas_wrapper`
-- `getrf_result`
-- `gesvd_result`
-
