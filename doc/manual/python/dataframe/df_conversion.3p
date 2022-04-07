@@ -58,6 +58,9 @@ Pandas DataFrame or a Series instance.
 .PD
 It creates a new Frovedis DataFrame after suitable conversion.
 .PP
+\f[B]Using asDF() to create frovedis DataFrame from pandas
+DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -95,6 +98,8 @@ display type after conversion to frovedis dataframe
 <class \[aq]frovedis.dataframe.df.DataFrame\[aq]>
 \f[R]
 .fi
+.PP
+\f[B]Using asDF() to create frovedis DataFrame from pandas Series:\f[R]
 .PP
 For example,
 .IP
@@ -150,9 +155,7 @@ It is used to determine the type of the values of the dictionary.
 .PD
 2.
 \f[I]`list'\f[R] : dict like {column -> [values]}
-.PD 0
-.P
-.PD
+.PP
 \f[B]\f[BI]into\f[B]\f[R]: This parameter is used for mapping in the
 return value.
 Currently it only supports OrderedDict as return type.
@@ -163,6 +166,8 @@ Currently it only supports OrderedDict as return type.
 .P
 .PD
 It is used to convert the Frovedis DataFrame to a dictionary.
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -194,11 +199,12 @@ row2    2       0.75
 \f[R]
 .fi
 .PP
+\f[B]Converting frovedis DataFrame to dictionary:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# convert frovedis dataframe to dictionary using to_dict()
 print(fd_df.to_dict())
 \f[R]
 .fi
@@ -210,6 +216,9 @@ Output
 OrderedDict([(\[aq]col1\[aq], {\[aq]row1\[aq]: 1, \[aq]row2\[aq]: 2}), (\[aq]col2\[aq], {\[aq]row1\[aq]: 0.5, \[aq]row2\[aq]: 0.75})])
 \f[R]
 .fi
+.PP
+\f[B]Converting frovedis DataFrame to dictionary and using orient
+parameter:\f[R]
 .PP
 For example,
 .IP
@@ -273,6 +282,8 @@ to make the interface uniform to the pandas DataFrame.to_numpy().
 .PD
 This is not used in the frovedis implementation.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -317,6 +328,8 @@ index   Ename   Age     Country isMale
 \f[R]
 .fi
 .PP
+\f[B]Convert frovedis DataFrame into numpy array:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -359,6 +372,8 @@ It has shape \f[B](nRows , nCols)\f[R].
 .PD
 It converts a Frovedis DataFrame instance into a pandas DataFrame
 instance.
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -403,6 +418,8 @@ index   Ename   Age     Country isMale
 <class \[aq]frovedis.dataframe.df.DataFrame\[aq]>
 \f[R]
 .fi
+.PP
+\f[B]Convert frovedis DataFrame to pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -460,6 +477,8 @@ supported.
 This method is used to convert a Frovedis DataFrame instance into
 FrovedisRowmajorMatrix instance.
 .PP
+\f[B]Loading input file data into frovedis DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -485,6 +504,8 @@ index   one     two     three   four
 3       15      100.12  A       2
 \f[R]
 .fi
+.PP
+\f[B]Convert frovedis DataFrame into FrovedisRowmajorMatrix:\f[R]
 .PP
 For example,
 .IP
@@ -537,6 +558,8 @@ Currently only float (float32) and double (float64) types are supported.
 This method converts a Frovedis DataFrame instance to
 FrovedisColmajorMatrix instance.
 .PP
+\f[B]Loading input file data into frovedis DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -562,6 +585,8 @@ index   one     two     three   four
 3       15      100.12  A       2
 \f[R]
 .fi
+.PP
+\f[B]Convert frovedis DataFrame into FrovedisColmajorMatrix:\f[R]
 .PP
 For example,
 .IP
@@ -633,6 +658,8 @@ type `df_to_sparse_info'.
 .PD
 It converts a Frovedis DataFrame instance to FrovedisCRSMatrix instance.
 .PP
+\f[B]Loading input file data into frovedis DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -659,6 +686,8 @@ index   one     two     three   four
 3       15      100.12  A       2
 \f[R]
 .fi
+.PP
+\f[B]Convert frovedis DataFrame to FrovedisCRSMatrix:\f[R]
 .PP
 For example,
 .IP
@@ -727,6 +756,8 @@ Currently only float (float32) and double (float64) types are supported.
 It converts a Frovedis DataFrame instance to FrovedisCRSMatrix instance
 and provided an info object of `df_to_sparse_info' class.
 .PP
+\f[B]Loading input file data into frovedis DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -752,6 +783,8 @@ index   one     two     three   four
 3       15      100.12  A       2
 \f[R]
 .fi
+.PP
+\f[B]Convert frovedis DataFrame to FrovedisCRSMatrix:\f[R]
 .PP
 For example,
 .IP

@@ -9,8 +9,10 @@ FrovedisGroupedDataFrame Aggregate Functions - aggregate operations performed on
 Once FrovedisGroupedDataframe instance is created, several aggregation operations can be performed on it such as max(), min(), sem(), var(), etc.  
 
 The aggregation operation will basically compute summary for each group. Some examples:  
-- Compute group sums or means.  
+  
+- Compute group sums, means, var or sem.  
 - Compute group sizes / counts.  
+- Compute max or min in the group.
 
 Also, aggregation functions can be chained along with groupby() calls in frovedis.  
 
@@ -47,6 +49,8 @@ _**\*\*kwargs**_: This is an unused parameter.
 __Purpose__  
 It computes an aggregate operation based on the condition specified in 'func'. It is an alias for aggregate().  
 
+**Constructing frovedis DataFrame from a pandas DataFrame:**  
+
 For example,  
     
     import pandas as pd
@@ -83,6 +87,8 @@ Output
     6       Princi  27      Kanpur     Phd            52
     7       Abhi    32      Kanpur     B.Tech         NULL
 
+**Aggregate the function on the grouped dataframe where func is a function string name:**  
+
 For example,  
 
     # agg() demo with func as a function string name 
@@ -96,6 +102,8 @@ Output
 
 It displays a frovedis dataframe containing numeric column(s) with newly computed minimum of each groups.  
 
+**Aggregate the function on the grouped dataframe where func is a dictionary:**  
+
 For example,  
     
     # agg() demo with func as a dictionary 
@@ -106,6 +114,8 @@ Output
     Qualification   max_Age min_Age mean_Age  sum_Score
     B.Tech          36      22      29.25     108
     Phd             33      24      29        13
+
+**Aggregate the function on the grouped dataframe where func is a list of functions:**  
 
 For example,  
     
@@ -138,6 +148,8 @@ _**\*\*kwargs**_: This is an unused parameter.
 __Purpose__  
 It computes an aggregate operation based on the condition specified in 'func'.  
 
+**Constructing frovedis DataFrame from a pandas DataFrame:**  
+
 For example,  
     
     import pandas as pd
@@ -175,6 +187,8 @@ Output
     6       Princi  27      Kanpur     Phd            52
     7       Abhi    32      Kanpur     B.Tech         NULL
 
+**Aggregate the function on the grouped dataframe where func is a function string name:**  
+
 For example,  
 
     # aggregate() demo using FrovedisGroupedDataframe instance and 'func' as a function string name 
@@ -188,6 +202,8 @@ Output
 
 It displays a frovedis dataframe containing numeric column(s) with newly computed minimum of each groups.   
 
+**Aggregate the function on the grouped dataframe where func is a dictionary:**  
+
 For example,  
     
     # aggregate() demo using FrovedisGroupedDataframe instance and 'func' as a dictionary 
@@ -198,6 +214,8 @@ Output
     Qualification   count_Age  max_Score  min_Score
     B.Tech          4          50         23
     Phd             4          52         34
+
+**Aggregate the function on the grouped dataframe where func is a list of functions:**  
 
 For example,  
     
@@ -222,6 +240,8 @@ column data as input. (Default: True)
 __Purpose__  
 It computes count of groups, excluding the missing values.  
 
+**Constructing frovedis DataFrame from a pandas DataFrame:**  
+
 For example,  
     
     import pandas as pd
@@ -257,6 +277,8 @@ Output
     5       Anuj    36      Kanpur     B.Tech         50
     6       Princi  27      Kanpur     Phd            52
     7       Abhi    32      Kanpur     B.Tech         NULL
+
+**Count groups in each column of the grouped dataframe:**  
 
 For example,  
 
@@ -300,6 +322,8 @@ This method can be used to group large amounts of data and compute operations on
 
 The parameters: "level", "as_index", "sort", "group_keys", "squeeze" and "observed" is simply kept in to make the interface uniform to the pandas DataFrame.groupby(). This is not used anywhere within the frovedis implementation.  
 
+**Constructing frovedis DataFrame from a pandas DataFrame:**  
+
 For example,  
 
     import pandas as pd
@@ -337,17 +361,18 @@ Output
     6       Princi  27    Kanpur     Phd            52
     7       Abhi    32    Kanpur     NULL           NULL
 
+**Performing groupby operation on the frovedis dataframe:**  
+
 For example,  
 
-    # groupby() demo
     fdf1.groupby('Qualification')
     
 This will perform groupby operation on the dataframe over **'Qualification'** column data.  
 
+**Using groupby() to perform aggregation on resultant grouped dataframe. Also dropna = True:**  
+
 For example,  
 
-    # groupby() demo to perform aggregation on resultant grouped dataframe
-    # Also, dropna = True by default
     fdf1.groupby('Qualification', dropna = True).agg({'Score': 'count'})
 
 Output  
@@ -358,10 +383,10 @@ Output
     
 Here, it excludes **NULL** group since missing values were dropped during groupby().  
 
+**Using groupby() to perform aggregation on resultant grouped dataframe. Also dropna = False:**  
+
 For example,  
 
-    # groupby() demo to perform aggregation on resultant grouped dataframe
-    # Also, dropna = False
     fdf1.groupby('Qualification', dropna = False).agg({'Score': 'count'})
 
 Output  
@@ -391,6 +416,8 @@ This is not used anywhere within the frovedis implementation.
 
 **Currently, this method only displays result for dataframe having atleast one numeric column.**  
 
+**Constructing frovedis DataFrame from a pandas DataFrame:**  
+
 For example,  
     
     import pandas as pd
@@ -427,6 +454,8 @@ Output
     5       Anuj    36      Kanpur     B.Tech         50
     6       Princi  27      Kanpur     Phd            52
     7       Abhi    32      Kanpur     B.Tech         NULL
+
+**To calculate maximum value in each group of grouped dataframe:**  
 
 For example,  
 
@@ -455,6 +484,8 @@ It computes mean of groups, excluding the missing values.
 
 **Currently, this method only displays result for dataframe having atleast one numeric column.**  
 
+**Constructing frovedis DataFrame from a pandas DataFrame:**  
+
 For example,  
     
     import pandas as pd
@@ -490,6 +521,8 @@ Output
     5       Anuj    36      Kanpur     B.Tech         50
     6       Princi  27      Kanpur     Phd            52
     7       Abhi    32      Kanpur     B.Tech         NULL
+
+**Compute mean of each group:**  
 
 For example,  
 
@@ -525,6 +558,8 @@ This is not used anywhere within the frovedis implementation.
 
 **Currently, this method only displays result for dataframe having atleast one numeric column.**  
 
+**Constructing frovedis DataFrame from a pandas DataFrame:**  
+
 For example,  
     
     import pandas as pd
@@ -561,6 +596,8 @@ Output
     6       Princi  27      Kanpur     Phd            52
     7       Abhi    32      Kanpur     B.Tech         NULL
 
+**To calculate minimum value in each group of grouped dataframe:**  
+
 For example,  
     
     # min() demo using FrovedisGroupedDataframe instance 
@@ -586,6 +623,8 @@ __Purpose__
 It computes standard error of the mean of groups, excluding missing values.  
 
 **Currently, this method only displays result for dataframe having atleast one numeric column.**  
+
+**Constructing frovedis DataFrame from a pandas DataFrame:**  
 
 For example,  
     
@@ -623,6 +662,8 @@ Output
     6       Princi  27      Kanpur     Phd            52
     7       Abhi    32      Kanpur     B.Tech         NULL
 
+**Compute standard error of the mean of each group:**  
+
 For example,
 
     # sem() demo using FrovedisGroupedDataframe instance and default ddof value 
@@ -639,6 +680,8 @@ standard error of mean for each groups.
 
 Also, it excludes the missing value(s) in **'Score'** column while computing standard error of mean 
 for the groups **'B.Tech'** and **'Phd'**.  
+
+**Using ddof parameter to compute standard error of the mean of each group:**  
 
 For example,
 
@@ -662,6 +705,8 @@ column data as input. (Default: True)
 
 __Purpose__  
 It computes group sizes, including the missing values.  
+
+**Constructing frovedis DataFrame from a pandas DataFrame:**  
 
 For example,  
     
@@ -698,6 +743,8 @@ Output
     5       Anuj    36      Kanpur     B.Tech         50
     6       Princi  27      Kanpur     Phd            52
     7       Abhi    32      Kanpur     B.Tech         NULL
+
+**To compute size of groups for the grouped dataframe:**  
 
 For example,  
     
@@ -732,6 +779,8 @@ This is not used anywhere within the frovedis implementation.
 
 **Currently, this method only displays result for dataframe having atleast one numeric column.**  
 
+**Constructing frovedis DataFrame from a pandas DataFrame:**  
+
 For example,  
     
     import pandas as pd
@@ -767,6 +816,8 @@ Output
     5       Anuj    36      Kanpur     B.Tech         50
     6       Princi  27      Kanpur     Phd            52
     7       Abhi    32      Kanpur     B.Tech         NULL
+
+**To compute sum of group values for the grouped dataframe:**  
 
 For example,  
 
@@ -794,6 +845,8 @@ It computes the variance of groups, excluding missing values.
 
 **Currently, this method only displays result for dataframe having atleast one numeric column.**  
 
+**Constructing frovedis DataFrame from a pandas DataFrame:**  
+
 For example,  
     
     import pandas as pd
@@ -830,6 +883,8 @@ Output
     6       Princi  27      Kanpur     Phd            52
     7       Abhi    32      Kanpur     B.Tech         NULL
 
+**To compute variance of groups in the grouped dataframe:**  
+
 For example,  
 
     # var() demo using FrovedisGroupedDataframe instance and default ddof value
@@ -846,6 +901,8 @@ for each groups.
 
 Also, it excludes the missing value in **'Score'** column while computing variance of groups **'B.Tech'** 
 and **'Phd'**.  
+
+**Using ddof parameter to compute variance of each group:**  
 
 For example,  
 

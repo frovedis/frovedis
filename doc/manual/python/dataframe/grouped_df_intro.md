@@ -35,7 +35,9 @@ __Purpose__
 It is used for a specific purpose. It's instance is created in order to hold result of groupby method calls.  
 This instance can then further be used with aggregate functions such as mean(), sem(), etc.  
 
-For example,
+**Creating FrovedisGroupedDataframe instance using groupby operation:**  
+
+For example,  
     
     # create frovedis dataframe
     import pandas as pd
@@ -54,9 +56,17 @@ For example,
 
 The groupby call returns a FrovedisGroupedDataframe instance.  
 
-For example,
+**Multiple columns can be used in groupby operation to create this instance:**  
 
-    # In order to select the grouped column 
+For example,  
+
+    # using multiple columns to create FrovedisGroupedDataframe object
+    g_df = fdf1.groupby(['Age','Country'])
+
+**In order to select one of the grouped column:**   
+
+For example,  
+
     print(g_df['Country'])
 
 Output  
@@ -66,6 +76,22 @@ Output
     France
     Japan
     USA
+
+**In order to select multiple columns from the grouped dataframe:**   
+
+For example,  
+
+    print(g_df[['Age','Country'])
+
+Output  
+
+    index   Age     Country
+    0       19      France
+    1       27      Japan
+    2       29      USA
+    3       30      England
+    4       31      Japan
+
 
 __Return Value__  
 It simply returns "self" reference.  

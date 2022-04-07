@@ -89,6 +89,8 @@ for ordering.
 This method is equivalent to DataFrame.sort_values(columns, ascending =
 False).head(n), but it is more efficient.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -130,11 +132,13 @@ Anguilla    11300           311       AI
 \f[R]
 .fi
 .PP
+\f[B]In order to use nlargest() to select the 3 rows having the largest
+values in `population' column:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# nlargest() demo to select the 3 rows having the largest values in column \[lq]population\[rq]
 fd_df.nlargest(3, \[aq]population\[aq]).show()
 \f[R]
 .fi
@@ -149,6 +153,9 @@ Italy      59000000        1937894   IT
 Malta      434000          12011     MT
 \f[R]
 .fi
+.PP
+\f[B]When using keep=`last', last ocurrances are prioritized.
+Ties are resolved in reverse order:\f[R]
 .PP
 For example,
 .IP
@@ -169,6 +176,9 @@ Italy       59000000       1937894   IT
 Brunei      434000         12128     BN
 \f[R]
 .fi
+.PP
+\f[B]When using keep=`all', all duplicate items are maintained (not
+dropped):\f[R]
 .PP
 For example,
 .IP
@@ -191,6 +201,9 @@ Maldives    434000         4520      MV
 Brunei      434000         12128     BN
 \f[R]
 .fi
+.PP
+\f[B]To order by the largest values in `population' and then `GDP'
+column, multiple columns may be specified:\f[R]
 .PP
 For example,
 .IP
@@ -269,6 +282,8 @@ for ordering.
 This method is equivalent to DataFrame.sort_values(columns,
 ascending=True).head(n), but it is more efficient.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example
 .IP
 .nf
@@ -312,11 +327,13 @@ Anguilla    11300          311       AI
 \f[R]
 .fi
 .PP
+\f[B]In order to use nlargest() to select the 3 rows having the largest
+values in `population' column:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# nsmallest() demo to select the 3 rows having the smallest values in column \[lq]population\[rq]
 fd_df.nsmallest(3, \[aq]population\[aq]).show()
 \f[R]
 .fi
@@ -331,6 +348,9 @@ Tuvalu      11300          38       TV
 Anguilla    11300          311      AI
 \f[R]
 .fi
+.PP
+\f[B]When using keep=`last', last ocurrances are prioritized.
+Ties are resolved in reverse order:\f[R]
 .PP
 For example,
 .IP
@@ -352,6 +372,9 @@ Nauru       11300          182      NR
 \f[R]
 .fi
 .PP
+\f[B]When using keep=`all', all duplicate items are maintained (not
+dropped):\f[R]
+.PP
 For example
 .IP
 .nf
@@ -371,6 +394,9 @@ Tuvalu      11300          38       TV
 Anguilla    11300          311      AI
 \f[R]
 .fi
+.PP
+\f[B]To order by the largest values in `population' and then `GDP'
+column, multiple columns may be specified:\f[R]
 .PP
 For example,
 .IP
@@ -486,6 +512,8 @@ or axis = `index' in the Frovedis DataFrame.
 \f[B]This method is present only in frovedis.
 It internally uses sort_values().\f[R]
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -521,6 +549,8 @@ index   col1    col2    col3    col4
 \f[R]
 .fi
 .PP
+\f[B]Sort by `col1' on frovedis dataframe:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -543,6 +573,9 @@ index   col1    col2    col3    col4
 3       NULL    8       4       D
 \f[R]
 .fi
+.PP
+\f[B]Sorting frovedis dataframe in ascending order (by default) by using
+multiple columns:\f[R]
 .PP
 For example,
 .IP
@@ -571,6 +604,9 @@ index   col1    col2    col3    col4
 sorting, \f[B]`col1'\f[R] will be sorted first and \f[B]`col2'\f[R] will
 only be considered for sorting in case of duplicate entries present in
 \f[B]`col1'\f[R].
+.PP
+\f[B]Sorting frovedis dataframe in descending orde by using
+ascending=False:\f[R]
 .PP
 For example,
 .IP
@@ -664,9 +700,10 @@ It is used to sort Frovedis DataFrame according to index values.
 It creates a new sorted DataFrame by the specified label.
 .PP
 \f[B]Currently it only supports `radixsort' and other values for `kind'
-parameter are ignored internally along with a warning.\f[R]
+parameter are ignored internally along with a warning.
+Also, this method does not support MultiIndex yet.\f[R]
 .PP
-\f[B]Also, Frovedis DataFrame doesn\[cq]t support MultiIndex\f[R]
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -701,6 +738,9 @@ index   A
 \f[R]
 .fi
 .PP
+\f[B]Sort values in dataframe, by default in ascending order
+(ascending=True):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -723,11 +763,12 @@ index   A
 \f[R]
 .fi
 .PP
+\f[B]In order to sort in descending order, use ascending=False:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# Sort in descending order, use ascending=False
 fd_df.sort_index(ascending=False)
 \f[R]
 .fi
@@ -826,6 +867,8 @@ When na_position = `last', it puts NaNs at the end.
 .PD
 To sort the DataFrame by the values along axis = 0 or `index'.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -863,11 +906,12 @@ index   col1    col2    col3    col4
 \f[R]
 .fi
 .PP
+\f[B]Sort by `col1' on frovedis dataframe:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# sorting \[aq]col1\[aq] by values on frovedis dataframe
 fd_df.sort_values(by=[\[aq]col1\[aq]]).show() #Sort by col1
 \f[R]
 .fi
@@ -886,11 +930,13 @@ index   col1    col2    col3    col4
 \f[R]
 .fi
 .PP
+\f[B]Sorting frovedis dataframe in ascending order (by default) by using
+multiple columns:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# Sorting dataframe by multiple columns
 fd_df.sort_values(by=[\[aq]col1\[aq], \[aq]col2\[aq]], ascending = [True, True]).show()
 \f[R]
 .fi
@@ -908,6 +954,9 @@ index   col1    col2    col3    col4
 3       NULL    8       4       D
 \f[R]
 .fi
+.PP
+\f[B]Sorting frovedis dataframe in descending orde by using
+ascending=False:\f[R]
 .PP
 For example,
 .IP

@@ -18,7 +18,7 @@
 .hy
 .SH NAME
 .PP
-DataFrame Generic Functions - it contains list of all generally used
+DataFrame Generic Functions - it contalins list of all generally used
 functions with frovedis dataframe.
 .SS DESCRIPTION
 .PP
@@ -95,6 +95,8 @@ It adds index column to the Frovedis DataFrame object.
 The index added is zero based i.e.\ [0, 1, \&...
 n-1] where n is the number of rows.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -132,6 +134,8 @@ index   Ename   Age     Country isMale
 4       Yuta    31      Japan   1
 \f[R]
 .fi
+.PP
+\f[B]Adding `SNo' column as new index:\f[R]
 .PP
 For example,
 .IP
@@ -204,6 +208,8 @@ dataframe.
 The columns of other DataFrame instance that are not in the calling
 DataFrame instance are added as new columns.
 .PP
+\f[B]Creating two frovedis dataframes:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -245,6 +251,8 @@ y       7       8
 \f[R]
 .fi
 .PP
+\f[B]Appending fd_df2 to fd_df1:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -267,6 +275,8 @@ y       7       8
 \f[R]
 .fi
 .PP
+\f[B]With ignore_index set to True:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -276,7 +286,7 @@ fd_df1.append(fd_df2, ignore_index = True).show()
 \f[R]
 .fi
 .PP
-Output,
+Output
 .IP
 .nf
 \f[C]
@@ -287,6 +297,8 @@ index   A       B
 3       7       8
 \f[R]
 .fi
+.PP
+\f[B]Creating two frovedis dataframes with no common columns:\f[R]
 .PP
 For example,
 .IP
@@ -329,11 +341,13 @@ y       7       8
 \f[R]
 .fi
 .PP
+\f[B]Append fd_df2 to fd_df1 when there are no common columns in
+frovedis dataframes:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# append() demo when there are no common columns
 fd_df1.append(fd_df2).show() 
 \f[R]
 .fi
@@ -349,6 +363,9 @@ x       NULL    NULL    6       5
 y       NULL    NULL    8       7
 \f[R]
 .fi
+.PP
+\f[B]Creating two frovedis dataframes where both have few duplicate
+entries:\f[R]
 .PP
 For example,
 .IP
@@ -391,11 +408,12 @@ v       7       8
 \f[R]
 .fi
 .PP
+\f[B]Appending fd_df2 to fd_df1 with verify_integrity = True:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# appending fd_df2 to fd_df1 with verify_integrity = True
 fd_df1.append(fd_df2, verify_integrity = True).show()
 \f[R]
 .fi
@@ -411,6 +429,9 @@ u       1       2
 v       7       8
 \f[R]
 .fi
+.PP
+\f[B]Creating two frovedis dataframes to perform append and using
+sort=True:\f[R]
 .PP
 For example,
 .IP
@@ -453,11 +474,12 @@ y       7       8
 \f[R]
 .fi
 .PP
+\f[B]Appending fd_df2 with fd_df1 with sort = True:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# appending fd_df2 with fd_df1 with sort = True
 fd_df1.append(fd_df2, sort = True).show()
 \f[R]
 .fi
@@ -581,6 +603,8 @@ Basically, it converts the pandas dataframe into frovedis dataframe and
 after performing apply(), it returns the result back as pandas
 dataframe.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -626,11 +650,13 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Apply function along the rows (by default) and where func is string
+name:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# apply() demo using string function name
 print(fdf1.apply(\[aq]max\[aq]))
 \f[R]
 .fi
@@ -639,20 +665,22 @@ Output
 .IP
 .nf
 \f[C]
-Name             8
-Age              8
-City             8
-Qualification    8
-Score            6
-dtype: int64
+Name             Princi
+Age                  36
+City             Nagpur
+Qualification       Phd
+Score                52
+dtype: object
 \f[R]
 .fi
+.PP
+\f[B]Apply function along the columns and where func is string
+name:\f[R]
 .PP
 For example,
 .IP
 .nf
 \f[C]
-# apply() demo using axis = 1
 print(fdf1.apply(\[aq]max\[aq], axis = 1))
 \f[R]
 .fi
@@ -674,12 +702,14 @@ dtype: float64
 \f[R]
 .fi
 .PP
+\f[B]Apply multiple functions along the rows (by default) and where func
+is a list of functions:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# apply() demo using raw = True
-print(fdf1.apply(\[aq]max\[aq], raw = True))
+print(fdf1.apply([\[aq]max\[aq],\[aq]min\[aq]]))
 \f[R]
 .fi
 .PP
@@ -687,58 +717,30 @@ Output
 .IP
 .nf
 \f[C]
-Name             Princi
-Age                  36
-City             Nagpur
-Qualification       Phd
-Score                52
-dtype: object
-\f[R]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# apply() demo using result_type = \[aq]expand\[aq]
-print(fdf1.apply(\[aq]max\[aq], result_type = \[aq]expand\[aq]))
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-Name             Princi
-Age                  36
-City             Nagpur
-Qualification       Phd
-Score                52
-dtype: object
+      Name    Age  City        Qualification  Score
+max   Princi  36   Nagpur      Phd            52.0
+min   Abhi    22   Allahabad   B.Tech         23.0
 \f[R]
 .fi
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
+.IP "1." 3
 \f[B]If only one `func' provided:\f[R]
-.PD 0
-.P
-.PD
-- It returns a pandas Series instance with numeric column(s) only, after
+.RS 4
+.IP \[bu] 2
+It returns a pandas Series instance with numeric column(s) only, after
 aggregation function is completed.
 .PD 0
 .P
 .PD
-2.
+.RE
+.IP "2." 3
 \f[B]If more than one `func' provided:\f[R]
-.PD 0
-.P
-.PD
-- It returns a pandas DataFrame instance with numeric column(s) only,
+.RS 4
+.IP \[bu] 2
+It returns a pandas DataFrame instance with numeric column(s) only,
 after aggregation function is completed.
+.RE
 .SS 4. DataFrame.astype(dtype, copy = True, errors = `raise', check_bool_like_string = False)
 .PP
 \f[B]Parameters\f[R]
@@ -784,6 +786,63 @@ uniform to the pandas DataFrame.astype().
 .PD
 This is not used anywhere within the frovedis implementation.
 .PP
+\f[B]Creating a frovedis DataFrame from pandas DataFrame and display all
+column dtypes:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+
+# creating a pandas dataframe
+pd_df =  pd.DataFrame({\[aq]col1\[aq]: [1, 2], \[aq]col2\[aq]: [3, 4]})
+
+# creating a frovedis dataframe
+fd_df1 = fdf.DataFrame(pf1)
+
+# displaying a frovedis dataframe dtype 
+print(fd_df1.dtypes)
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+col1    int64
+col2    int64
+dtype: object
+\f[R]
+.fi
+.PP
+\f[B]Cast all columns to int32 type:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fd_df2 = fd_df1.astype(\[aq]int32\[aq])
+
+# display dataframe after conversion
+print(fd_df2.dtypes)
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+col1    int32
+col2    int32
+dtype: object
+\f[R]
+.fi
+.PP
+\f[B]Creating a new frovedis DataFrame and display all column
+dtypes:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -821,11 +880,12 @@ dtype: object
 \f[R]
 .fi
 .PP
+\f[B]Cast `Age' column to int32 type using a dictionary:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# display the datatype of object after conversion of \[aq]Age\[aq] column
 print(fd_df.astype({\[aq]Age\[aq]:\[aq]int32\[aq]}).dtypes)
 \f[R]
 .fi
@@ -842,55 +902,8 @@ dtype: object
 \f[R]
 .fi
 .PP
-For example,
-.IP
-.nf
-\f[C]
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# creating a pandas dataframe
-pd_df =  pd.DataFrame({\[aq]col1\[aq]: [1, 2], \[aq]col2\[aq]: [3, 4]})
-
-# creating a frovedis dataframe
-fd_df1 = fdf.DataFrame(pf1)
-
-# displaying a frovedis dataframe dtype 
-print(fd_df1.dtypes)
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-col1    int64
-col2    int64
-dtype: object
-\f[R]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# cast all columns to int32:
-fd_df2 = fd_df1.astype(\[aq]int32\[aq])
-
-# display dataframe after conversion
-print(fd_df2.dtypes)
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-col1    int32
-col2    int32
-dtype: object
-\f[R]
-.fi
+\f[B]Creating a new frovedis DataFrame and using check_bool_like_string
+parameter:\f[R]
 .PP
 For example,
 .IP
@@ -938,6 +951,8 @@ isMale     object
 dtype: object
 \f[R]
 .fi
+.PP
+\f[B]With check_bool_like_string = True:\f[R]
 .PP
 For example,
 .IP
@@ -1020,6 +1035,8 @@ over a single column at a time.
 \f[B]Currently, this method filters data for numeric column data
 only.\f[R]
 .PP
+\f[B]Creating a frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1065,6 +1082,8 @@ index   Name    Age     City       Qualification   Score
 \f[R]
 .fi
 .PP
+\f[B]Using between function where both boundaries are provided:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1098,7 +1117,8 @@ This returns a boolean array containing True wherever the corresponding
 element is between the boundary values `left' and `right'.
 The missing values are treated as False.
 .PP
-Also, this method can be used in the form of given expression below:
+\f[B]Also, this method can be used in the form of given expression
+below:\f[R]
 .PP
 For example,
 .IP
@@ -1121,7 +1141,7 @@ index   Name    Age     City    Qualification   Score
 \f[R]
 .fi
 .PP
-It can also be expressed as follows:
+\f[B]It can also be expressed as follows:\f[R]
 .PP
 For example,
 .IP
@@ -1141,7 +1161,7 @@ index   Name    Age     City    Qualification   Score
 \f[R]
 .fi
 .PP
-Now, when `inclusive' parameter is provided, then,
+\f[B]With inclusive=`left':\f[R]
 .PP
 For example,
 .IP
@@ -1160,6 +1180,8 @@ Output
 \f[R]
 .fi
 .PP
+\f[B]With `inclusive=\[cq]right':\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1176,6 +1198,8 @@ Output
 [False False False  True False  True False False]
 \f[R]
 .fi
+.PP
+\f[B]With `inclusive=\[cq]neither':\f[R]
 .PP
 For example,
 .IP
@@ -1224,6 +1248,8 @@ False).\f[R]
 It creates a deep copy of the Frovedis DataFrame object\[cq]s indices
 and data.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1262,11 +1288,12 @@ index   Ename   Age     Country isMale
 \f[R]
 .fi
 .PP
+\f[B]Creating a deep copy:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# creating a deep copy
 fd_df_copy = fd_df.copy()
 
 print(\[aq]displaying copied dataframe object\[aq])
@@ -1287,6 +1314,9 @@ index   Ename   Age     Country isMale
 4       Yuta    31      Japan   1
 \f[R]
 .fi
+.PP
+\f[B]In order to check changes done in copy are reflected in original,
+we can do the following:\f[R]
 .PP
 For example,
 .IP
@@ -1348,6 +1378,8 @@ or by column labels.
 .PD
 It counts number of missing values in the given axis.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1393,6 +1425,8 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Counting number of missing values along the rows:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1414,6 +1448,8 @@ Qualification   0
 Score   2
 \f[R]
 .fi
+.PP
+\f[B]Counting number of missing values along the columns:\f[R]
 .PP
 For example,
 .IP
@@ -1455,6 +1491,10 @@ It generates descriptive statistics.
 Descriptive statistics include count, mean, median, etc, excluding
 missing values.
 .PP
+\f[B]Currenlty, it only numeric fields are returned.\f[R]
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1499,6 +1539,9 @@ index   Name    Age     City       Qualification  Score
 7       Abhi    32      Kanpur     B.Tech         NULL
 \f[R]
 .fi
+.PP
+\f[B]Describing a DataFrame.
+Only numeric fields are returned:\f[R]
 .PP
 For example,
 .IP
@@ -1616,6 +1659,8 @@ It is used to drop specified labels from rows or columns.
 Rows or columns can be removed by specifying label names and
 corresponding axis, or by specifying index or column names.
 .PP
+\f[B]Creating a frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1645,6 +1690,8 @@ index   A       B       C       D
 \f[R]
 .fi
 .PP
+\f[B]Drop columns using axis parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1664,6 +1711,8 @@ index   A       D
 2       8       11
 \f[R]
 .fi
+.PP
+\f[B]Other way to drop columns:\f[R]
 .PP
 For example,
 .IP
@@ -1685,11 +1734,12 @@ index   A       D
 \f[R]
 .fi
 .PP
+\f[B]Drop a row by index:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# Drop a row by index
 fd_df.drop(labels = [0, 1]).show()
 \f[R]
 .fi
@@ -1704,15 +1754,12 @@ index   A       B       C       D
 .fi
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
+.IP \[bu] 2
 It returns a new of Frovedis DataFrame having remaining entries.
 .PD 0
 .P
 .PD
-2.
+.IP \[bu] 2
 It returns None when parameter `inplace' = True.
 .SS 10. DataFrame.drop_duplicates(subset = None, keep = `first', inplace = False, ignore_index = False)
 .PP
@@ -1763,6 +1810,8 @@ values 0 to n - 1, where n is the number of rows in the DataFrame.
 .PD
 It is used to remove duplicate rows.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1797,6 +1846,8 @@ index   brand   style   rating
 \f[R]
 .fi
 .PP
+\f[B]Drop duplicates along the rows (by default):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1820,6 +1871,9 @@ index   brand   style   rating
 .PP
 By default, it removes duplicate rows based on all columns
 .PP
+\f[B]To remove duplicates on specific column(s), use subset
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1838,6 +1892,9 @@ index   brand   style   rating
 2       Indomie cup     3.5
 \f[R]
 .fi
+.PP
+\f[B]To remove duplicates and keep last occurrences, use keep
+parameter:\f[R]
 .PP
 For example,
 .IP
@@ -1860,15 +1917,12 @@ index   brand   style   rating
 .fi
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
+.IP \[bu] 2
 It returns a new of Frovedis DataFrame having remaining entries.
 .PD 0
 .P
 .PD
-2.
+.IP \[bu] 2
 It returns None when parameter `inplace' = True.
 .SS 11. DataFrame.dropna(axis = 0, how = `any', thresh = None, subset = None, inplace = False)
 .PP
@@ -1881,27 +1935,25 @@ It returns None when parameter `inplace' = True.
 This parameter is used to determine whether rows or columns containing
 missing values are to be removed.
 (Default: 0)
+.IP \[bu] 2
+0 : Drop rows which contain missing values.
 .PD 0
 .P
 .PD
-- 0 : Drop rows which contain missing values.
-.PD 0
-.P
-.PD
-- 1 : Drop columns which contain missing values.
+.IP \[bu] 2
+1 : Drop columns which contain missing values.
 .PP
 \f[B]\f[BI]how\f[B]\f[R]: It accepts a string object to determine if row
 or column is removed from DataFrame, when we have at least one `NaN' or
 all `NaN'.
 (Default: `any')
+.IP \[bu] 2
+`any' : If any NaN values are present, drop that row or column.
 .PD 0
 .P
 .PD
-- `any' : If any NaN values are present, drop that row or column.
-.PD 0
-.P
-.PD
-- `all' : If all values are NaN, drop that row or column.
+.IP \[bu] 2
+`all' : If all values are NaN, drop that row or column.
 .PP
 \f[B]\f[BI]thresh\f[B]\f[R]: It accepts an integer as parameter which is
 the number of NaN values required for rows/columns to be dropped.
@@ -1932,6 +1984,8 @@ new Frovedis DataFrame object.
 .P
 .PD
 It is used to remove missing values from the Frovedis DataFrame.
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -1966,11 +2020,12 @@ index   name            toy             born
 \f[R]
 .fi
 .PP
+\f[B]Drop the rows where at least one missing value is present:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# drop the rows where at least one element is missing.
 print(\[dq]After dropping nan values\[dq])
 fd_df.dropna().show()
 \f[R]
@@ -1986,6 +2041,8 @@ index   name    toy             born
 \f[R]
 .fi
 .PP
+\f[B]Drop the columns where at least one missing value is present:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1994,7 +2051,6 @@ For example,
 print(\[dq]Before dropping nan values\[dq])
 fd_df.show()
 
-# drop the columns where at least one nan value is present
 print(\[dq]After dropping nan values\[dq])
 fd_df.dropna(axis=1)
 \f[R]
@@ -2017,6 +2073,8 @@ index   name
 2       Catwoman
 \f[R]
 .fi
+.PP
+\f[B]Drop the rows where all elements are missing:\f[R]
 .PP
 For example,
 .IP
@@ -2046,6 +2104,8 @@ index   name            toy             born
 2       Catwoman        Bullwhip        NULL
 \f[R]
 .fi
+.PP
+\f[B]Keep only the rows with at least 2 non-NA values:\f[R]
 .PP
 For example,
 .IP
@@ -2077,8 +2137,10 @@ index   name            toy             born
 \f[R]
 .fi
 .PP
-\f[B]NOTE: Since row 0 had 2 NaN values, so it was dropped, but other
-rows are not dropped.\f[R]
+\f[B]NOTE: Since 0th index had 2 missing values, so it was dropped, but
+other rows are not dropped.\f[R]
+.PP
+\f[B]To specify the columns to look for missing values:\f[R]
 .PP
 For example,
 .IP
@@ -2110,6 +2172,8 @@ index   name            toy
 \f[R]
 .fi
 .PP
+\f[B]To keep the dataframe with valid entries in the same variable:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2140,16 +2204,13 @@ index   name    toy             born
 .fi
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
+.IP \[bu] 2
 If inplace = False, it returns a new Frovedis DataFrame with NA entries
 dropped.
 .PD 0
 .P
 .PD
-2.
+.IP \[bu] 2
 If inplace = True, it returns None.
 .SS 12. DataFrame.fillna(value = None, method = None, axis = None, inplace = False, limit = None, downcast = None)
 .PP
@@ -2216,6 +2277,8 @@ DataFrame.fillna().
 .PD
 This is not used anywhere within the frovedis implementation.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2250,11 +2313,12 @@ index   A       B       C       D
 \f[R]
 .fi
 .PP
+\f[B]Replace all missing values with 0:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# fillna() demo where NaN will be repaced with 0
 fd_df.fillna(0).show()
 \f[R]
 .fi
@@ -2270,6 +2334,9 @@ index   A       B       C       D
 3       0       3       0       4
 \f[R]
 .fi
+.PP
+\f[B]Replace all missing values with 1 and keep the dataframe in the
+same variable:\f[R]
 .PP
 For example,
 .IP
@@ -2302,16 +2369,13 @@ index   A       B       C       D
 .fi
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
+.IP \[bu] 2
 It returns a Frovedis DataFrame object with missing values replaced when
 `inplace' parameter is False.
 .PD 0
 .P
 .PD
-2.
+.IP \[bu] 2
 It returns None when `inplace' parameter is set to True.
 .SS 13. DataFrame.filter(items = None, like = None, regex = None, axis = None)
 .PP
@@ -2361,7 +2425,7 @@ It specifies the axis on which filter operation will be performed.
 .P
 .PD
 - 0 or `index' : The corresponding index labels will be filtered.
-Currently this is not supported in Frovedis.
+\f[B]Currently this is not supported in Frovedis\f[R].
 .PD 0
 .P
 .PD
@@ -2376,6 +2440,8 @@ When it is None (not specified explicitly), it will filter along axis =
 .PD
 It is used to filter the DataFrame according to the specified column
 labels.
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -2404,11 +2470,13 @@ rabbit  4       5       6
 \f[R]
 .fi
 .PP
+\f[B]Select columns by name:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# filter(0 demo with items parameter
+# filter() demo with items parameter
 # select columns by name
 fd_df.filter(items = [\[aq]one\[aq], \[aq]three\[aq]]).show()
 \f[R]
@@ -2424,12 +2492,12 @@ rabbit  4       6
 \f[R]
 .fi
 .PP
+\f[B]Select columns by regular expression:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# select columns by regular expression
-# will display only those columns whose label ends with \[aq]e\[aq]
 fd_df.filter(regex=\[aq]e$\[aq], axis=1).show()
 \f[R]
 .fi
@@ -2444,11 +2512,14 @@ rabbit  4       6
 \f[R]
 .fi
 .PP
+The output displayed only those columns whose label ends with `e'.
+.PP
+\f[B]Select column containing `hre':\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# select column containing \[aq]hre\[aq]
 fd_df.filter(like=\[aq]hre\[aq], axis=1)
 \f[R]
 .fi
@@ -2486,6 +2557,8 @@ It provides integer location, slice or boolean mask for requested label.
 .PP
 \f[B]It is present only in frovedis\f[R].
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2521,11 +2594,12 @@ e       Yuta    31      Japan   1
 \f[R]
 .fi
 .PP
+\f[B]Get index location when there are unique indices:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# get_index_loc() demo when there are unique index
 # getting index location of \[aq]d\[aq] index value
 fd_df.get_index_loc(\[aq]d\[aq]).show()
 \f[R]
@@ -2538,6 +2612,8 @@ Output
 3
 \f[R]
 .fi
+.PP
+\f[B]Creating a new frovedis DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -2577,11 +2653,13 @@ e       Yuta    31      Japan   1
 \f[R]
 .fi
 .PP
+\f[B]Get index location when there are consecutive duplicate
+indices:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# get_index_loc(0 demo when there are duplicate index but consecutively
 # getting index location of \[aq]d\[aq] index value
 fd_df.get_index_loc(\[aq]d\[aq]).show()
 \f[R]
@@ -2594,6 +2672,8 @@ Output
 slice(2, 4, None)
 \f[R]
 .fi
+.PP
+\f[B]Creating another frovedis DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -2633,11 +2713,12 @@ a       Yuta    31      Japan   1
 \f[R]
 .fi
 .PP
+\f[B]Get index location when there are duplicate indices randomly:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# get_index_loc() demo when there are duplicate index but randomly
 # getting index location of \[aq]a\[aq] index value
 fd_df.get_index_loc(\[aq]a\[aq]).show()
 \f[R]
@@ -2693,6 +2774,8 @@ data in it.
 \f[B]For negative values of n, this function returns all rows except the
 last n rows, equivalent to df[:-n]\f[R].
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2730,6 +2813,8 @@ index   animal
 \f[R]
 .fi
 .PP
+\f[B]Viewing the first 5 lines (by default n=5):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2752,6 +2837,8 @@ index   animal
 \f[R]
 .fi
 .PP
+\f[B]Viewing the first 2 lines (n=2):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2770,6 +2857,8 @@ index   animal
 1       bee
 \f[R]
 .fi
+.PP
+\f[B]For negative values of n:\f[R]
 .PP
 For example,
 .IP
@@ -2795,16 +2884,13 @@ index   animal
 .fi
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
+.IP \[bu] 2
 It n is positive integer, it returns a new DataFrame with the first n
 rows.
 .PD 0
 .P
 .PD
-2.
+.IP \[bu] 2
 If n is negative integer, it returns a new DataFrame with all rows
 except last n rows.
 .SS 16. DataFrame.insert(loc, column, value, allow_duplicates = False)
@@ -2842,6 +2928,8 @@ Currently, frovedis does not support duplicate column names.
 .PD
 It is used to insert column into DataFrame at specified location.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2865,11 +2953,12 @@ index   col1    col2
 \f[R]
 .fi
 .PP
+\f[B]Inserting [99, 99] at 1st index in `newcol' column:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# inserting \[dq]newcol\[dq] as position 1 with values [99, 99]
 fd_df.insert(1, \[dq]newcol\[dq], [99, 99])
 
 # display frovedis dataframe after insertion
@@ -2887,11 +2976,13 @@ index   col1    newcol  col2
 \f[R]
 .fi
 .PP
+\f[B]Inserting a Series object having values [5,6] at 0th index in
+\[lq]col0\[rq] column:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# insert() demo with Series object having values [5,6] in \[dq]col0\[dq] at 0th position 
 fd_df.insert(0, \[dq]col0\[dq], pd.Series([5, 6])).show()
 \f[R]
 .fi
@@ -2924,6 +3015,8 @@ NA values, such as None or numpy.NaN, gets mapped to True values.
 Everything else gets mapped to False values.
 Characters such as empty strings \[cq]\[cq] or numpy.inf are not
 considered NA values.
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -2964,6 +3057,8 @@ index   Ename   Age     Country isMale
 \f[R]
 .fi
 .PP
+\f[B]Show which entries in a frovedis DataFrame are NA:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2986,6 +3081,8 @@ index   Ename   Age     Country isMale
 \f[R]
 .fi
 .PP
+\f[B]Creating frovedis DataFrame from pandas Series:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2993,7 +3090,7 @@ For example,
 import pandas as pd
 import frovedis.dataframe as fdf
 
-# frovedis dataframe from a Series object.
+# frovedis dataframe from a pandas Series object.
 ser = pd.Series([5, 6, np.NaN])
 
 # creating a frovedis dataframe
@@ -3014,6 +3111,8 @@ index   0
 2       NULL
 \f[R]
 .fi
+.PP
+\f[B]Show which entries in corresonding frovedis DataFrame are NA:\f[R]
 .PP
 For example,
 .IP
@@ -3057,6 +3156,8 @@ Everything else gets mapped to False values.
 Characters such as empty strings \[cq]\[cq] or numpy.inf are not
 considered NA values.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3096,6 +3197,8 @@ index   Ename   Age     Country isMale
 \f[R]
 .fi
 .PP
+\f[B]Show which entries in a frovedis DataFrame are NULL:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3117,6 +3220,8 @@ index   Ename   Age     Country isMale
 4       0       0       0       0
 \f[R]
 .fi
+.PP
+\f[B]Creating frovedis DataFrame from pandas Series:\f[R]
 .PP
 For example,
 .IP
@@ -3146,6 +3251,9 @@ index   0
 2       NULL
 \f[R]
 .fi
+.PP
+\f[B]Show which entries in corresonding frovedis DataFrame are
+NULL:\f[R]
 .PP
 For example,
 .IP
@@ -3258,6 +3366,8 @@ passing a list.
 \f[B]Note:- Parameters `on', `lsuffix', and `rsuffix' are not supported
 when passing a list of DataFrame instances.\f[R]
 .PP
+\f[B]Creating two frovedis dataframes:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3306,6 +3416,8 @@ index   key     B
 \f[R]
 .fi
 .PP
+\f[B]Join dataframes using their indexes:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3325,6 +3437,8 @@ index   key_caller      A       key_other       B
 2       K2              A2      K2              B2
 \f[R]
 .fi
+.PP
+\f[B]Using the on parameter:\f[R]
 .PP
 For example,
 .IP
@@ -3347,11 +3461,13 @@ index   key     A       B
 \f[R]
 .fi
 .PP
+\f[B]Using the how parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# join(0 demo with parameter how = \[aq]left\[aq]
+# join() demo with parameter how = \[aq]left\[aq]
 fd_df1.join(fd_df2, \[aq]key\[aq], how = \[aq]left\[aq]).show()
 \f[R]
 .fi
@@ -3858,6 +3974,8 @@ When it is set to True then the original DataFrame instance is modified.
 .PD
 It is used to set the name of the columns.
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3887,6 +4005,8 @@ index   A       B
 \f[R]
 .fi
 .PP
+\f[B]Rename columns using a mapping:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3907,11 +4027,14 @@ index   a       c
 \f[R]
 .fi
 .PP
+\f[B]Rename columns using a mapping and keep the dataframe in the same
+variable:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# rename() demo with implace = True
+# rename() demo with inplace = True
 fd_df.rename(columns={\[dq]A\[dq]: \[dq]X\[dq], \[dq]B\[dq]: \[dq]Y\[dq]}, inplace = True)
 \f[R]
 .fi
@@ -3928,16 +4051,13 @@ index   X       Y
 .fi
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
+.IP \[bu] 2
 It returns a new Frovedis DataFrame with the updated label name for the
 specified columns.
 .PD 0
 .P
 .PD
-2.
+.IP \[bu] 2
 It returns None when `inplace' parameter is set to True.
 .SS 22. DataFrame.rename_index(new_name, inplace = False)
 .PP
@@ -3960,6 +4080,8 @@ directly instead of creating a copy of DataFrame instance.
 .P
 .PD
 It is used to rename the index label.
+.PP
+\f[B]Creating a frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -3999,6 +4121,8 @@ index   Ename   Age     Country isMale
 \f[R]
 .fi
 .PP
+\f[B]Renaming current index label to `SNo':\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4022,16 +4146,13 @@ SNo     Ename   Age     Country isMale
 .fi
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
+.IP \[bu] 2
 It returns a new Frovedis DataFrame with the updated label for the Index
 label.
 .PD 0
 .P
 .PD
-2.
+.IP \[bu] 2
 It returns None when inplace parameter is set to True.
 .SS 23. DataFrame.reset_index(drop = False, inplace = False)
 .PP
@@ -4060,6 +4181,8 @@ A new Index label is inserted with default integer values from 0 to n-1
 where n is the number of rows.
 .PP
 \f[B]Note:- MultiIndex is not supported by Frovedis DataFrame.\f[R]
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -4102,6 +4225,8 @@ a       Yuta    31      Japan   1
 \f[R]
 .fi
 .PP
+\f[B]Resetting the index and keeping the old index is as a column:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4126,6 +4251,8 @@ label_0 index_col       Ename   Age     Country isMale
 .PP
 When we reset the index, the old index is added as a column, and a new
 sequential index is used.
+.PP
+\f[B]Using drop parameter:\f[R]
 .PP
 For example,
 .IP
@@ -4153,16 +4280,13 @@ We can use the drop parameter to avoid the old index being added as a
 column.
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
-It returns a new Frovedis DataFrame with the default sequence in Index
+.IP \[bu] 2
+It returns a new Frovedis DataFrame with the default sequence in index
 label.
 .PD 0
 .P
 .PD
-2.
+.IP \[bu] 2
 It returns None if `inplace' parameter is set to True.
 .SS 24. DataFrame.set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
 .PP
@@ -4212,6 +4336,8 @@ The index will replace the existing index.
 .PP
 \f[B]Note:- Frovedis DataFrame does not support Multi Index.\f[R]
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4244,11 +4370,12 @@ index   month   year    sale
 \f[R]
 .fi
 .PP
+\f[B]Set the `month' column to be the new index:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# set_index() demo where \[oq]month\[cq] column is set as index
 fd_df.set_index(\[aq]month\[aq]).show()
 \f[R]
 .fi
@@ -4264,6 +4391,9 @@ month   year    sale
 10      2014    31
 \f[R]
 .fi
+.PP
+\f[B]Set the `month' column to be the new index.
+Also, it checks for duplicates before setting:\f[R]
 .PP
 For example,
 .IP
@@ -4290,16 +4420,13 @@ month   year    sale
 index must have unique values.
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
+.IP \[bu] 2
 It returns a new Frovedis DataFrame where the Index column label is
 replace with specified column label.
 .PD 0
 .P
 .PD
-2.
+.IP \[bu] 2
 It returns None when `inplace' parameter is set to True.
 .SS 25. DataFrame.show()
 .PP
@@ -4313,6 +4440,8 @@ It can display full dataframe or some selected columns of the DataFrame
 .PP
 It can be used either with any method which returns a Frovedis DataFrame
 instance type compatible with string type.
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -4354,11 +4483,12 @@ index   Ename   Age     Country isMale
 \f[R]
 .fi
 .PP
+\f[B]Display dataframe by selecting single column:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# Display dataframe by selecting single column
 print(\[dq]Displaying frovedis dataframe with just Ename column\[dq])
 fd_df[\[dq]Ename\[dq]].show()         # single column
 \f[R]
@@ -4378,12 +4508,13 @@ index   Ename
 \f[R]
 .fi
 .PP
+\f[B]Displaying multiple columns:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# Selecting multiple columns
-print(\[dq]Displaying frovedis dataframe with Ename  and Age columns\[dq])
+print(\[dq]Displaying frovedis dataframe with Ename and Age columns\[dq])
 fd_df[[\[dq]Ename\[dq],\[dq]Age\[dq]]].show() # multiple column
 \f[R]
 .fi
@@ -4392,7 +4523,7 @@ Output
 .IP
 .nf
 \f[C]
-Displaying frovedis dataframe with Ename  and Age columns
+Displaying frovedis dataframe with Ename and Age columns
 index   Ename   Age
 0       Michael 29
 1       Andy    30
@@ -4402,11 +4533,13 @@ index   Ename   Age
 \f[R]
 .fi
 .PP
+\f[B]Displaying frovedis dataframe using condition based indexing
+operator:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# With slicing operator
 print(\[dq]Displaying frovedis dataframe using condition based slicing operator\[dq])
 fd_df[fd_df.Age > 19].show()  
 \f[R]
@@ -4425,11 +4558,12 @@ index   Ename   Age     Country isMale
 \f[R]
 .fi
 .PP
+\f[B]Displaying frovedis dataframe using chaining of methods:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# With slicing operator
 print(\[dq]Displaying frovedis dataframe using chaining of methods\[dq])
 fd_df[fd_df.Country.str.contains(\[dq]a\[dq])].show()
 \f[R]
@@ -4476,6 +4610,8 @@ appending rows.
 For negative values of n, this function returns all rows except the
 first n rows, equivalent to \f[B]fdf[n:]\f[R].
 .PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4513,6 +4649,8 @@ index   animal
 \f[R]
 .fi
 .PP
+\f[B]Viewing the last 5 lines (by default n=5):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4537,6 +4675,8 @@ index   animal
 \f[R]
 .fi
 .PP
+\f[B]Viewing the last 3 lines:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4558,6 +4698,8 @@ index   animal
 8       zebra
 \f[R]
 .fi
+.PP
+\f[B]For negative values of n:\f[R]
 .PP
 For example,
 .IP
@@ -4635,6 +4777,8 @@ set to True, it performs operation on original DataFrame.
 It sets the DataFrame index using existing columns.
 The index can replace the existing index or can expand it.
 .PP
+\f[B]Creting frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4667,6 +4811,8 @@ index   month   year    sale
 \f[R]
 .fi
 .PP
+\f[B]To update the current index values with new values:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4687,6 +4833,8 @@ a       7       2013    84
 d       10      2014    31
 \f[R]
 .fi
+.PP
+\f[B]Using verify_integrity parameter:\f[R]
 .PP
 For example,
 .IP

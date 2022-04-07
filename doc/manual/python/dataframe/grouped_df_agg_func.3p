@@ -28,14 +28,18 @@ etc.
 .PP
 The aggregation operation will basically compute summary for each group.
 Some examples:
+.IP \[bu] 2
+Compute group sums, means, var or sem.
 .PD 0
 .P
 .PD
-- Compute group sums or means.
+.IP \[bu] 2
+Compute group sizes / counts.
 .PD 0
 .P
 .PD
-- Compute group sizes / counts.
+.IP \[bu] 2
+Compute max or min in the group.
 .PP
 Also, aggregation functions can be chained along with groupby() calls in
 frovedis.
@@ -100,6 +104,8 @@ It computes an aggregate operation based on the condition specified in
 `func'.
 It is an alias for aggregate().
 .PP
+\f[B]Constructing frovedis DataFrame from a pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -144,6 +150,9 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Aggregate the function on the grouped dataframe where func is a
+function string name:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -166,6 +175,9 @@ Phd             24      34
 It displays a frovedis dataframe containing numeric column(s) with newly
 computed minimum of each groups.
 .PP
+\f[B]Aggregate the function on the grouped dataframe where func is a
+dictionary:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -184,6 +196,9 @@ B.Tech          36      22      29.25     108
 Phd             33      24      29        13
 \f[R]
 .fi
+.PP
+\f[B]Aggregate the function on the grouped dataframe where func is a
+list of functions:\f[R]
 .PP
 For example,
 .IP
@@ -252,6 +267,8 @@ For Example, {`Age': [`max',`min',`mean'], `Ename': [`count']}
 It computes an aggregate operation based on the condition specified in
 `func'.
 .PP
+\f[B]Constructing frovedis DataFrame from a pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -297,6 +314,9 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Aggregate the function on the grouped dataframe where func is a
+function string name:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -319,6 +339,9 @@ Phd             33      52
 It displays a frovedis dataframe containing numeric column(s) with newly
 computed minimum of each groups.
 .PP
+\f[B]Aggregate the function on the grouped dataframe where func is a
+dictionary:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -337,6 +360,9 @@ B.Tech          4          50         23
 Phd             4          52         34
 \f[R]
 .fi
+.PP
+\f[B]Aggregate the function on the grouped dataframe where func is a
+list of functions:\f[R]
 .PP
 For example,
 .IP
@@ -378,6 +404,8 @@ specifies whether or not to use only numeric column data as input.
 .P
 .PD
 It computes count of groups, excluding the missing values.
+.PP
+\f[B]Constructing frovedis DataFrame from a pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -422,6 +450,8 @@ index   Name    Age     City       Qualification  Score
 7       Abhi    32      Kanpur     B.Tech         NULL
 \f[R]
 .fi
+.PP
+\f[B]Count groups in each column of the grouped dataframe:\f[R]
 .PP
 For example,
 .IP
@@ -527,6 +557,8 @@ The parameters: \[lq]level\[rq], \[lq]as_index\[rq], \[lq]sort\[rq],
 kept in to make the interface uniform to the pandas DataFrame.groupby().
 This is not used anywhere within the frovedis implementation.
 .PP
+\f[B]Constructing frovedis DataFrame from a pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -573,11 +605,12 @@ index   Name    Age   City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Performing groupby operation on the frovedis dataframe:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# groupby() demo
 fdf1.groupby(\[aq]Qualification\[aq])
 \f[R]
 .fi
@@ -585,12 +618,14 @@ fdf1.groupby(\[aq]Qualification\[aq])
 This will perform groupby operation on the dataframe over
 \f[B]`Qualification'\f[R] column data.
 .PP
+\f[B]Using groupby() to perform aggregation on resultant grouped
+dataframe.
+Also dropna = True:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# groupby() demo to perform aggregation on resultant grouped dataframe
-# Also, dropna = True by default
 fdf1.groupby(\[aq]Qualification\[aq], dropna = True).agg({\[aq]Score\[aq]: \[aq]count\[aq]})
 \f[R]
 .fi
@@ -608,12 +643,14 @@ Phd     2
 Here, it excludes \f[B]NULL\f[R] group since missing values were dropped
 during groupby().
 .PP
+\f[B]Using groupby() to perform aggregation on resultant grouped
+dataframe.
+Also dropna = False:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# groupby() demo to perform aggregation on resultant grouped dataframe
-# Also, dropna = False
 fdf1.groupby(\[aq]Qualification\[aq], dropna = False).agg({\[aq]Score\[aq]: \[aq]count\[aq]})
 \f[R]
 .fi
@@ -669,6 +706,8 @@ This is not used anywhere within the frovedis implementation.
 \f[B]Currently, this method only displays result for dataframe having
 atleast one numeric column.\f[R]
 .PP
+\f[B]Constructing frovedis DataFrame from a pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -713,6 +752,8 @@ index   Name    Age     City       Qualification  Score
 7       Abhi    32      Kanpur     B.Tech         NULL
 \f[R]
 .fi
+.PP
+\f[B]To calculate maximum value in each group of grouped dataframe:\f[R]
 .PP
 For example,
 .IP
@@ -761,6 +802,8 @@ It computes mean of groups, excluding the missing values.
 \f[B]Currently, this method only displays result for dataframe having
 atleast one numeric column.\f[R]
 .PP
+\f[B]Constructing frovedis DataFrame from a pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -804,6 +847,8 @@ index   Name    Age     City       Qualification  Score
 7       Abhi    32      Kanpur     B.Tech         NULL
 \f[R]
 .fi
+.PP
+\f[B]Compute mean of each group:\f[R]
 .PP
 For example,
 .IP
@@ -864,6 +909,8 @@ This is not used anywhere within the frovedis implementation.
 \f[B]Currently, this method only displays result for dataframe having
 atleast one numeric column.\f[R]
 .PP
+\f[B]Constructing frovedis DataFrame from a pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -907,6 +954,8 @@ index   Name    Age     City       Qualification  Score
 7       Abhi    32      Kanpur     B.Tech         NULL
 \f[R]
 .fi
+.PP
+\f[B]To calculate minimum value in each group of grouped dataframe:\f[R]
 .PP
 For example,
 .IP
@@ -956,6 +1005,8 @@ values.
 \f[B]Currently, this method only displays result for dataframe having
 atleast one numeric column.\f[R]
 .PP
+\f[B]Constructing frovedis DataFrame from a pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1000,6 +1051,8 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Compute standard error of the mean of each group:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1025,6 +1078,9 @@ newly computed standard error of mean for each groups.
 Also, it excludes the missing value(s) in \f[B]`Score'\f[R] column while
 computing standard error of mean for the groups \f[B]`B.Tech'\f[R] and
 \f[B]`Phd'\f[R].
+.PP
+\f[B]Using ddof parameter to compute standard error of the mean of each
+group:\f[R]
 .PP
 For example,
 .IP
@@ -1067,6 +1123,8 @@ specifies whether or not to use only numeric column data as input.
 .PD
 It computes group sizes, including the missing values.
 .PP
+\f[B]Constructing frovedis DataFrame from a pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1110,6 +1168,8 @@ index   Name    Age     City       Qualification  Score
 7       Abhi    32      Kanpur     B.Tech         NULL
 \f[R]
 .fi
+.PP
+\f[B]To compute size of groups for the grouped dataframe:\f[R]
 .PP
 For example,
 .IP
@@ -1173,6 +1233,8 @@ This is not used anywhere within the frovedis implementation.
 \f[B]Currently, this method only displays result for dataframe having
 atleast one numeric column.\f[R]
 .PP
+\f[B]Constructing frovedis DataFrame from a pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1216,6 +1278,8 @@ index   Name    Age     City       Qualification  Score
 7       Abhi    32      Kanpur     B.Tech         NULL
 \f[R]
 .fi
+.PP
+\f[B]To compute sum of group values for the grouped dataframe:\f[R]
 .PP
 For example,
 .IP
@@ -1264,6 +1328,8 @@ It computes the variance of groups, excluding missing values.
 \f[B]Currently, this method only displays result for dataframe having
 atleast one numeric column.\f[R]
 .PP
+\f[B]Constructing frovedis DataFrame from a pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1308,6 +1374,8 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]To compute variance of groups in the grouped dataframe:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1332,6 +1400,8 @@ newly computed variance for each groups.
 .PP
 Also, it excludes the missing value in \f[B]`Score'\f[R] column while
 computing variance of groups \f[B]`B.Tech'\f[R] and \f[B]`Phd'\f[R].
+.PP
+\f[B]Using ddof parameter to compute variance of each group:\f[R]
 .PP
 For example,
 .IP

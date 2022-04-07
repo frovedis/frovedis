@@ -30,6 +30,8 @@ __Parameters__
 __Purpose__  
 It creates a new Frovedis DataFrame after suitable conversion.   
 
+**Using asDF() to create frovedis DataFrame from pandas DataFrame:**  
+
 For example,  
     
     import pandas as pd
@@ -60,6 +62,8 @@ Output
     display type after conversion to frovedis dataframe
     <class 'frovedis.dataframe.df.DataFrame'>
 
+**Using asDF() to create frovedis DataFrame from pandas Series:**  
+
 For example,  
     
     import pandas as pd
@@ -89,12 +93,15 @@ It returns a Frovedis DataFrame instance after suitable conversion
 
 __Parameters__  
 **_orient_**: It accepts a string object as parameter. It is used to determine the type of the values of the dictionary. (Default: 'dict')  
-    1. *'dict'* : dict like {column -> {index -> value}}  
-    2. *'list'* : dict like {column -> [values]}  
+1. *'dict'* : dict like {column -> {index -> value}}  
+2. *'list'* : dict like {column -> [values]}  
+
 **_into_**: This parameter is used for mapping in the return value. Currently it only supports OrderedDict as return type. (Default: dict)  
 
 __Purpose__  
 It is used to convert the Frovedis DataFrame to a dictionary.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -118,15 +125,18 @@ Output
     row1    1       0.5
     row2    2       0.75
 
+**Converting frovedis DataFrame to dictionary:**  
+
 For example,  
 
-    # convert frovedis dataframe to dictionary using to_dict()
     print(fd_df.to_dict())
     
 Output  
 
     OrderedDict([('col1', {'row1': 1, 'row2': 2}), ('col2', {'row1': 0.5, 'row2': 0.75})])
     
+**Converting frovedis DataFrame to dictionary and using orient parameter:**  
+
 For example,  
     
     # to_dict() demo with orient = 'list'
@@ -153,6 +163,8 @@ This method is used to convert a frovedis dataframe into a numpy array.
 
 The parameters: "copy" and "na_value" are simply kept in to make the interface uniform to the pandas DataFrame.to_numpy().  
 This is not used in the frovedis implementation.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**   
 
 For example,  
 
@@ -190,6 +202,8 @@ Output
 
     <class 'frovedis.dataframe.df.DataFrame'>
 
+**Convert frovedis DataFrame into numpy array:**  
+
 For example,  
     
     # to_numpy() demo to convert a frovedis dataframe into numpy array
@@ -216,6 +230,8 @@ It returns a numpy ndarray that represents a Frovedis DataFrame instance. It has
 
 __Purpose__  
 It converts a Frovedis DataFrame instance into a pandas DataFrame instance.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -253,6 +269,8 @@ Output
 
     <class 'frovedis.dataframe.df.DataFrame'>
 
+**Convert frovedis DataFrame to pandas DataFrame:**  
+
 For example,  
 
     # to_pandas() demo to convert frovedis dataframe to pandas dataframe    
@@ -284,6 +302,8 @@ __Parameters__
 __Purpose__  
 This method is used to convert a Frovedis DataFrame instance into FrovedisRowmajorMatrix instance.  
 
+**Loading input file data into frovedis DataFrame:**  
+
 For example,  
     
     import frovedis.dataframe as fdf
@@ -301,6 +321,8 @@ Output
     1       12      12.2    F       0
     2       13      34.8999 D       1
     3       15      100.12  A       2
+
+**Convert frovedis DataFrame into FrovedisRowmajorMatrix:**  
 
 For example,  
 
@@ -328,7 +350,9 @@ __Parameters__
 
 __Purpose__  
 This method converts a Frovedis DataFrame instance to FrovedisColmajorMatrix instance.  
- 
+
+**Loading input file data into frovedis DataFrame:**  
+
 For example,  
     
     import frovedis.dataframe as fdf
@@ -346,6 +370,8 @@ Output
     1       12      12.2    F       0
     2       13      34.8999 D       1
     3       15      100.12  A       2
+
+**Convert frovedis DataFrame into FrovedisColmajorMatrix:**  
 
 For example,  
 
@@ -376,6 +402,8 @@ __Parameters__
 __Purpose__  
 It converts a Frovedis DataFrame instance to FrovedisCRSMatrix instance.  
 
+**Loading input file data into frovedis DataFrame:**  
+
 For example,  
     
     import frovedis.dataframe as fdf
@@ -394,6 +422,8 @@ Output
     1       12      12.2    F       0
     2       13      34.8999 D       1
     3       15      100.12  A       2
+
+**Convert frovedis DataFrame to FrovedisCRSMatrix:**  
 
 For example,  
 
@@ -436,6 +466,8 @@ __Parameters__
  
 __Purpose__  
 It converts a Frovedis DataFrame instance to FrovedisCRSMatrix instance and provided an info object of 'df_to_sparse_info' class.  
+
+**Loading input file data into frovedis DataFrame:**    
   
 For example,  
     
@@ -454,6 +486,8 @@ Output
     1       12      12.2    F       0
     2       13      34.8999 D       1
     3       15      100.12  A       2
+
+**Convert frovedis DataFrame to FrovedisCRSMatrix:**  
 
 For example,  
 

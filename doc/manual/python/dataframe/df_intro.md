@@ -14,7 +14,7 @@ Features of DataFrame:
 - DataFrame supports indexing and labeled columns name.  
 - Supports arithmetic operations on rows and columns.  
 
-Frovedis contains dataframe implementation over a client server architecture (which uses Vector Engine on server side to perform fast computations) where pandas dataframe will be converted to frovedis dataframe and then will be used to perform dataframe related operations.  
+Frovedis contains dataframe implementation over a client server architecture (which uses Vector Engine on server side to perform fast computations) where pandas dataframe will be converted to frovedis dataframe and then will be used to perform dataframe related operations. 
 
 **In frovedis, currently dataframe can only support atomic data i.e. a column in a frovedis dataframe can only have primitve type values such as string, integer, float, double, boolean).**  
 
@@ -33,6 +33,8 @@ When this parameter is not None (specified explicitly), it will load the pandas 
 
 __Purpose__  
 It is used to create a Frovedis dataframe from the given pandas dataframe or series.  
+
+**Constructing frovedis DataFrame from pandas DataFrame:**   
 
 For example,  
 
@@ -149,7 +151,6 @@ Output
 
 __Parameters__  
 _**filepath\_or\_buffer**_: It accepts any valid string value that contains the name of the file to access as parameter. The string path can be a URL as well. In case, a file is to be read, then the pathname can be absolute path or relative path to the current working directory of the file to be opened.  
-Also, like pandas, it accepts os.PathLike instance for storing file path name as well.  
 _**sep**_: It accepts string value as paramter that specifies delimiter to use. (Default: ',')  
 **Currently, it supports only single character delimiter.**  
 When it is None (if specified explicitly), it will use ',' as delimiter.  
@@ -160,29 +161,41 @@ _**header**_: It accepts integer or string value that specifies the row number(s
 start of the data. (Default: 'infer')  
 **Currently, frovedis supports only 'infer', 0 or None as values for this parameter.**  
 The default behavior is to **'infer'** the column names:  
+
 - **If no column names are passed**, then the behavior is identical to **header = 0** and column names are inferred from the first 
   line of the file.  
 - **If column names are passed explicitly**, then the behavior is identical to **header = None** and column names are inferred from the explicitly specified list.  
 
 _**names**_: It accepts array like input as parameter that specifies the list of column names to use. (Default: None)  
 When it is None (not specified explicitly), it will get the column names from the first line of the file. Otherwise, it will override with the given list of column names. Since, **header = 0 or None is only supported in frovedis**, the first line of the file will be used as column names. **Duplicates in this list of column names are not allowed.**  
-_**index\_col**_: It accepts boolean and integer type values as parameter. It specifies the column(s) to use as the row labels of the frovedis dataframe. (Default: None)  
+_**index\_col**_: It accepts boolean and integer type values as parameter. It specifies the column(s) to use as the row labels of the frovedis dataframe. **Currently, multi-index is not supported in frovedis.** (Default: None)  
+
 - If boolean type value is passed, then currently it can only be set as False. Also, when **index_col = False**, it can be used to force to not use the first column as the index. **Also, 'names' parameter must be provided**.  
 - It integer type value is passed, then it must be in the range **(0, nCols - 1)**, where **nCols** is the number of columns present in the input file.  
-**Currently, multi-index is not supported in frovedis.**  
+
 _**usecols**_: It accepts currently a list-like input of integer values as parameter. It specifies the subset of 
 the columns to be used while loading data into frovedis dataframe. (Default: None)  
 When it is None (not specified explicitly), it will use all columns while creating frovedis dataframe.  
 Also, if the column names are provided and do not match the number of columns in the input file, then the list of names must be same in length as the list of 'usecols' parameter values. Otherwise, it raises an exception.  
 _**squeeze**_: An unused parameter. (Default: False)  
-_**prefix**_: It accepts a string value as parameter. It specifies the prefix which needs to be added to the column numbers. (Default: None)  
-For example, 'X' for X0, X1, X2, ...  
+_**prefix**_: It accepts a string value as parameter. It specifies the prefix which needs to be added to the 
+column numbers. (Default: None)  
+
+    For example, 'X' for X0, X1, X2, ...  
+
 **This is an optional paramter which will be used when column names are not provided and header is None (no header)**.  
 When it is None (not specified explicitly), it will create list of numbers as column labels of length N - 1, where **'N'** is the number of columns in the input file.  
 _**mangle\_dupe_cols**_: It accepts boolean value as parameter that specifies the action taken for duplicate columns present in the input file. (Default: True)  
+
 - **When set to True (not specified explicitly) and if duplicate columns are present**, they will be specified as ‘X’, ‘X.1’, …’X.N’, rather than ‘X’…’X’.  
 - **When set to False and duplicate columns are present**, it will raise an exeption **(not supported in frovedis yet)**.  
+
 _**dtype**_: It accepts datatype or dictionary of columns which is used for explicitly setting type for data or columns in frovedis dataframe. (Default: None)  
+For boolwan type, frovedis supports: 
+
+    True/False, On/OFF, 0/1, yes/No, y/n 
+
+User must provide this, then frovedis can convert to boolean type. **Make sure user provides correct dtype , otherwise it will cause issues while creating frovedis dataframe**.  
 _**na\_values**_: It accepts scalar value or array-like input as parameter that specifies the additional strings to recognize as  missing values (NA/NaN). Currently, it doesn't accept dictionary as value for this parameter. (Default: None)  
 When it is None (not specified explicitly), it will interpret the list of following values as missing values:  
 
@@ -193,41 +206,9 @@ _**verbose**_: It accepts a bollean values as parameter that specifies the log l
 default (for INFO mode)** and it can be set to **True (for DEBUG mode)**. This is used for getting the loading time logs from frovedis server. It is useful for debugging purposes. (Default: False)  
 _**comment**_: This is an unused parameter. (Default: None)  
 _**low\_memory**_: It accepts boolean value as parameter that specifies if the dataframe is to be loaded chunk wise. The chunk size then would be specified by the 'separate_mb' parameter. (Default: True)  
-
-For example,  
-
-    import time
-    train_time = []
-    start_time = time.time()
-    df = fdf.read_csv("./input/numbers.csv", names=['one', 'two', 'three', 'four'], 
-                       low_memory = False)
-    train_time.append(round(time.time() - start_time, 4))
-    print('loading time: 'train_time)
-
-Output  
-
-    loading time:  [0.0063]
-
-Here, it is False, by default. So, it will load entire data into frovedis dataframe at once.  
-
-For example,  
-
-    import time
-    train_time = []
-    start_time = time.time()
-    df = fdf.read_csv("./input/numbers.csv", names=['one', 'two', 'three', 'four'], 
-                       low_memory = False)
-    train_time.append(round(time.time() - start_time, 4))
-    print('loading time: 'train_time)
-
-Output  
-
-    loading time:  [0.0021]
-
-Here it is True, so it will load data chunk wise.  
-
 _**rows\_to\_see**_: It accepts integer value as parameter. It is useful when creating frovedis dataframe by loading from large files.   While using big files, only some rows would be used to infer the data types of columns. This paramter specifies the number of such rows which will used to infer data types. (Default: 1024)  
 _**separate\_mb**_: It accepts double (float64) value as parameter. It is a memory optimization parameter. (Default: 1024)  
+
 - **If low_memory = True**, then internally frovedis dataframes of size **'separate_mb'** will be loaded separately and would be combined later into a single frovedis dataframe.  
 - **If low_memory = False**, then complete frovedis dataframe will be loaded at once.  
 
@@ -239,6 +220,8 @@ This method reads a comma-separated values (csv) file into frovedis dataframe.
 
 The parameters: "squeeze" and "comment" are simply kept in to to make the interface uniform to the pandas read_csv() method. These are not used internally within the frovedis implementation.  
 
+**Using read_csv() to load data from given csv file path into frovedis dataframe: **  
+
 **File: numbers.csv**  
 
 10,10.23,F,0  
@@ -246,9 +229,10 @@ The parameters: "squeeze" and "comment" are simply kept in to to make the interf
 13,34.90,D,1  
 15,100.12,A,2  
 
+In order to load csv file will into frovedis dataframe,  
+
 For example,  
 
-    # demo for read_csv() with csv file path
     import frovedis.dataframe as fdf
     df = fdf.read_csv("./input/numbers.csv")
     df.show()
@@ -264,9 +248,10 @@ Here, by default it uses ',' delimiter while loading csv data into frovedis data
 
 Also, since no column names were provided and header = 'infer', so the newly created frovedis dataframe contains column names inferred from the first line of input file.  
 
+**Using read_csv() with header = None and no column name is provided: **  
+
 For example,  
 
-    # demo for read_csv() with header = None and column names not provided
     import frovedis.dataframe as fdf
     df = fdf.read_csv("./input/numbers.csv", header = None)
     df.show()
@@ -281,9 +266,10 @@ Output
 
 Here, it creates list of column numbers which is used as column names in newly created frovedis dataframe.  
 
+**Using read_csv() with header = None. Also, column names are provided: **  
+
 For example,  
 
-    # demo for read_csv() with header = None and column names are provided
     import frovedis.dataframe as fdf
     df = fdf.read_csv("./input/numbers.csv", names = ['one', 'two', 'three', 'four'], header = None)
     df.show()
@@ -298,11 +284,12 @@ Output
 
 Here, given list of names will be used as column names in the newly generated frovedis dataframe.   
 
-Also, the input file, no duplicates column names were present in its header.  
+Also, the input file contained no duplicate column names in its header.  
+
+**Using read_csv() with prefix = True: **  
 
 For example,  
 
-    # demo for read_csv() with prefix = True
     import frovedis.dataframe as fdf
     df = fdf.read_csv("./input/numbers.csv", header = None, prefix = "X")
     df.show()
@@ -315,9 +302,13 @@ Output
     2       13      34.8999 D       1
     3       15      100.12  A       2
 
+Here, 'prefix' is an optional paremeter which will be in use when header = None and names = None.  
+It will use column numbers by default when prefix = None.  
+
+**To load specific columns in frovedis dataframe, usecols parameter will be used: **  
+
 For example,  
 
-    # demo for read_csv() with usecols parameter
     import frovedis.dataframe as fdf
     df = fdf.read_csv("./input/numbers.csv",names=['one', 'two', 'three', 'four'], usecols = [1,2])
     df.show()
@@ -330,25 +321,36 @@ Output
     2       34.8999 D
     3       100.12  A
 
+**Using read_csv() with dtype parameter: **  
+
+**File: numbers.csv**  
+
+10,10.23,E,TRUE  
+12,12.20,nan,TRUE  
+13,34.90,D,FALSE  
+15,100.12,A,FALSE  
+
+In above data, **TRUE/FALSE** in python can be converted to boolean **(0/1)** type values using dtype parameter.  
+
 For example,  
 
-    # demo for read_csv() with dtype parameter
     import frovedis.dataframe as fdf
     df = fdf.read_csv("./input/numbers.csv", names = ['one', 'two', 'three', 'four'], 
-                       dtype = {'two': int})
+                       dtype = {'four': bool})
     df.show()
 
 Output  
 
     index   one     two     three   four
-    0       10      9823    F       0
-    1       12      11820   NULL    0
-    2       13      33890   D       1
-    3       15      99812   A       2
+    0       10      10.23   E       1
+    1       12      12.2    NULL    1
+    2       13      34.8999 D       0
+    3       15      100.12  A       0
+
+**In order to use second column as index, index_col parameter will be used: **  
 
 For example,  
 
-    # demo for read_csv() with index_col parameter with integer values
     import frovedis.dataframe as fdf
     df = fdf.read_csv("./input/numbers.csv", names = ['one', 'two', 'three', 'four'], index_col = 1)
     df.show()
@@ -361,9 +363,10 @@ Output
     34.8999 13      D       1
     100.12  15      A       2
 
+**When index_col = False, it will force to not use the first column as the index: **  
+
 For example,  
 
-    # demo for read_csv() with index_col = False
     import frovedis.dataframe as fdf
     df = fdf.read_csv("./input/numbers.csv", names = ['one', 'two', 'three', 'four'], index_col = False)
     df.show()
@@ -376,9 +379,7 @@ Output
     2       13      34.8999 D       1
     3       15      100.12  A       2
 
-Here, it will force the first column to not be used as index.  
-
-In case the input file contains duplicate columns in header, then,  
+**Using mangle_dupe_cols = True, when input file contains duplicate columns in header:**  
 
 **File: numbers_dupl.csv**  
 
@@ -388,9 +389,10 @@ score,score,grade,pass
 43.6,34.90,D,1  
 75.1,100.12,A,1  
 
+The input file contains duplicate column labels. To make sure while loading data into frovedis dataframe, mangle_dupe_cols will be set as True.  
+
 For example,  
 
-    # demo for read_csv() with mangle_dupe_cols = True
     import frovedis.dataframe as fdf
     df = fdf.read_csv("./input/numbers_dupl.csv",mangle_dupe_cols = True)
     df.show()
@@ -403,45 +405,70 @@ Output
     2       13      34.8999 D       1
     3       15      100.12  A       1
 
-For example,  
+**Using read_csv() with na_values parameter:**  
 
 **File: numbers.csv**  
 
-10,10.23,F,0  
-12,12.20,None,0  
-13,34.90,D,1  
-15,100.12,A,2  
+11,10.23,E,0,1  
+12,12.20,F,0,1  
+10,34.90,D,1,0  
+15,10,A,10,0  
+10,10.23,B,0,1  
+10,10.23,B,0,1  
 
-The above file contains None as data, so by default it will be loaded in frovedis dataframe as string (inferred dtype).  
+When using na_values = None (by default), it will interpret the values nan, Nan, NULL, etc. as missing values (explained in parameter description)  
 
-    # demo for read_csv() with na_values parameter provided
+    # demo for read_csv() with na_values = None by default
     import frovedis.dataframe as fdf
-    df = fdf.read_csv("./input/numbers.csv", names = ['one', 'two', 'three', 'four'])
+    df = fdf.read_csv("./input/numbers.csv", na_values = None)
     df.show()
 
 Output  
 
-    index   one     two     three   four
-    0       10      10.23   F       0
-    1       12      12.2    None    0
-    2       13      34.8999 D       1
-    3       15      100.12  A       2
+    index   11      10.23   E       0       1
+    0       12      12.2    F       0       1
+    1       10      34.8999 D       1       0
+    2       15      10      A       10      0
+    3       10      10.23   B       0       1
+    4       10      10.23   B       0       1
 
-It can be interpreted by passing **"na_values"** parameter.  
+**When list of strings are provided to be set as missing values: **  
 
-    # demo for read_csv() with na_values parameter provided
+For example,  
+
     import frovedis.dataframe as fdf
-    df = fdf.read_csv("./input/numbers.csv", names = ['one', 'two', 'three', 'four'], 
-                       na_values = None)
+    df = fdf.read_csv("./input/numbers.csv", na_values = ['10','1'])
     df.show()
 
 Output  
 
-    index   one     two     three   four
-    0       10      10.23   F       0
-    1       12      12.2    NULL    0
-    2       13      34.8999 D       1
-    3       15      100.12  A       2
+    index   11      10.23   E       0       1
+    0       12      12.2    F       0       NULL
+    1       NULL    34.8999 D       NULL    0
+    2       15      NULL    A       NULL    0
+    3       NULL    10.23   B       0       NULL
+    4       NULL    10.23   B       0       NULL
+
+It will interpret the list of values **['10','1']** as missing values (explicitly provided) while loading input file into frovedis dataframe.  
+
+**When a string is to be set as missing value:**  
+
+For example,  
+
+    import frovedis.dataframe as fdf
+    df = fdf.read_csv("./input/numbers.csv", na_values = '10')
+    df.show()
+
+Output  
+
+    index   11      10.23   E       0       1
+    0       12      12.2    F       0       1
+    1       NULL    34.8999 D       1       0
+    2       15      NULL    A       NULL    0
+    3       NULL    10.23   B       0       1
+    4       NULL    10.23   B       0       1
+
+It will interpret the string **'10'** as missing value (explicitly provided) while loading input file into frovedis dataframe.  
 
 __Return Value__  
 It returns a frovedis DataFrame instance.  
@@ -454,10 +481,11 @@ __Purpose__
 This method acts like a destructor.  
 It is used to release dataframe pointer from server heap and it resets all its attributes to None.  
   
+**Releasing dataframe pointers from frovedis:**  
+
 For example,  
 
     # fdf1 is same from above example 
-    # releasing dataframe pointers
     fdf1.release()
 
 __Return Value__  
@@ -574,11 +602,13 @@ There are a lot of ways to pull the rows and columns from a dataframe. There are
 
 - **Dataframe.[ ]**: This function also known as indexing operator. It helps in filtering rows and columns from a dataframe. Also, it returns a pandas dataframe as output.  
 
-**Indexing using [ ]**     
+**Indexing using [ ]**  
 
 Indexing operator is used to refer to the square brackets following an object.  
 
 In order to select a single column, we simply put the name of the column in-between the brackets.  
+
+**Selecting a single column:**  
 
 For example,  
 
@@ -597,6 +627,9 @@ For example,
     
     # display created frovedis dataframe
     fdf1.show()
+    
+    print('selecting single column: ')
+    fdf1['Bonus'].show()
 
 Output  
 
@@ -606,20 +639,24 @@ Output
     Sam     2            2       63           64
     Jo      4            4       58           59
 
-For example,  
-
-    # selcting a single column
-    fdf1['Bonus'].show()
-
-Output  
-
+    selecting single column: 
     index   Bonus
     John    5
     Marry   2
     Sam     2
     Jo      4
 
-In order to select multiple columns, we have to pass a list of columns in an indexing operator.  
+**Note:- Frovedis also supports use of attribute operators to filter/select column(s) in dataframe**
+
+In previous example, **Bonus** column can also be selected from the dataframe as follows:  
+
+For example,   
+
+    fdf1.Bonus
+
+This returns a FrovedisColumn instance.  
+
+**To select multiple columns:**  
 
 For example,  
 
@@ -634,11 +671,12 @@ Output
     Sam     2       64
     Jo      4       59
 
-In order to select rows between given range using indexing operator, it can be done as follows:  
+Here, list of columns are passed in the indexing operator.  
+
+**Filtering dataframe using slice operation with row numbers:**  
 
 For example,  
 
-    # filtering dataframe using slice operation with row numbers
     fdf1[1:2].show()
 
 Output  
@@ -646,9 +684,10 @@ Output
     index   Last Bonus   Bonus   Last Salary   Salary
     Marry   2            2       59            60
 
+**Filtering dataframe using slice operation with row labels:**  
+
 For example,  
 
-    # filtering dataframe using slice operation with row labels
     fdf1['John':'Sam'].show()
 
 Output  
@@ -656,15 +695,7 @@ Output
     index   Last Bonus   Bonus   Last Salary   Salary
     Marry   2            2       59            60
 
-**Note:- Frovedis also supports use of attribute operators to filter/select column(s) in dataframe**
-
-For example, in previous example which selects **Bonus** column from the dataframe can be expressed as:  
-
-    fdf1.Bonus
-
-This returns a FrovedisColumn instance.  
-
-Filtering can be done with help of attribute operators as follows:    
+**Filtering can be done with help of attribute operators:**  
 
 For example,  
 

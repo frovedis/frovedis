@@ -31,14 +31,14 @@ operations done on frovedis dataframe.
 Aggregation can be performed in \f[B]two ways\f[R] on frovedis
 dataframe:
 .IP \[bu] 2
-Either using agg()
+Either using agg().
 .PD 0
 .P
 .PD
 .IP \[bu] 2
 Or using aggregation functions such as min(), max() median(), mode(),
 etc.
-on frovedis dataframe
+on frovedis dataframe.
 .SS Public Member Functions
 .IP
 .nf
@@ -72,16 +72,19 @@ instance having atleast one numeric column.
 .PD 0
 .P
 .PD
-Accepted combinations for this parameter are: - A string function name
-such as `max', `min', etc.
+Accepted combinations for this parameter are:
+.IP \[bu] 2
+A string function name such as `max', `min', etc.
 .PD 0
 .P
 .PD
-- list of functions and/or function names, For example, [`max', `mean'].
+.IP \[bu] 2
+list of functions and/or function names, For example, [`max', `mean'].
 .PD 0
 .P
 .PD
-- dictionary with keys as column labels and values as function name or
+.IP \[bu] 2
+dictionary with keys as column labels and values as function name or
 list of such functions.
 .PD 0
 .P
@@ -97,6 +100,8 @@ It computes an aggregate operation based on the condition specified in
 .PP
 \f[B]Currently, this method will perform aggregation operation along the
 rows.\f[R]
+.PP
+\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -143,11 +148,13 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Aggregate these functions over the rows, where func is a function
+string name:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# agg() demo with func as a function string name 
 print(fdf1.agg(\[aq]max\[aq]))
 \f[R]
 .fi
@@ -168,11 +175,13 @@ Name: max, dtype: object
 It displays a pandas dataframe containing numeric column(s) with newly
 computed aggregates of each groups.
 .PP
+\f[B]Performing aggregation along the rows where func is a
+dictionary:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# agg() demo with func as a dictionary 
 print(fdf1.agg({\[dq]Age\[dq]: [\[dq]std\[dq], \[dq]mean\[dq]]}))
 \f[R]
 .fi
@@ -187,11 +196,12 @@ std    4.853202
 \f[R]
 .fi
 .PP
+\f[B]Aggregation along the rows where func is a list of functions:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# agg() demo where func is a list of functions 
 print(fdf1[\[aq]Age\[aq]].agg([\[aq]max\[aq],\[aq]min\[aq],\[aq]mean\[aq]])
 \f[R]
 .fi
@@ -208,27 +218,24 @@ mean  29.125
 .fi
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
+.IP "1." 3
 \f[B]If one `func' provided and `func' is a string:\f[R]
-.PD 0
-.P
-.PD
-- It returns a pandas Series instance with numeric column(s) only, after
+.RS 4
+.IP \[bu] 2
+It returns a pandas Series instance with numeric column(s) only, after
 aggregation function is completed.
 .PD 0
 .P
 .PD
-2.
+.RE
+.IP "2." 3
 \f[B]If one or more `func' provided and `func' is list/dict of
 string:\f[R]
-.PD 0
-.P
-.PD
-- It returns a pandas DataFrame instance with numeric column(s) only,
+.RS 4
+.IP \[bu] 2
+It returns a pandas DataFrame instance with numeric column(s) only,
 after aggregation function is completed.
+.RE
 .SS 2. DataFrame.cov(min_periods = None, ddof = 1.0, low_memory = True, other = None)
 .PP
 \f[B]Parameters\f[R]
@@ -284,6 +291,8 @@ dataframe.
 .PD
 It computes pairwise covariance of columns, excluding missing values.
 .PP
+\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -325,6 +334,8 @@ index   Age     Score
 \f[R]
 .fi
 .PP
+\f[B]Compute covariance on frovedis dataframe:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -346,6 +357,8 @@ Score   11      124.571
 .PP
 It displays a covariance matrix as the frovedis DataFrame instance.
 .PP
+\f[B]Using min_periods parameter to calculate covariance:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -364,6 +377,8 @@ Age     NULL    NULL
 Score   NULL    NULL
 \f[R]
 .fi
+.PP
+\f[B]Using ddof parameter to calculate covariance:\f[R]
 .PP
 For example,
 .IP
@@ -384,7 +399,8 @@ Score   12.8333 145.333
 \f[R]
 .fi
 .PP
-\f[B]When using `other' parameter, both inputs must be frovedis series.
+\f[B]In the below example, while using `other' parameter, both inputs
+must be frovedis series.
 Also, the output returned by this method will be a float value.\f[R]
 .PP
 For example,
@@ -416,10 +432,8 @@ fdf2[`Score'])\[rq]\f[R].
 parameter must be provided.
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-- \f[B]If other = None:\f[R]
+.IP \[bu] 2
+\f[B]If other = None:\f[R]
 .PD 0
 .P
 .PD
@@ -428,7 +442,8 @@ instance.
 .PD 0
 .P
 .PD
-- \f[B]If other != None:\f[R]
+.IP \[bu] 2
+\f[B]If other != None:\f[R]
 .PD 0
 .P
 .PD
@@ -444,19 +459,16 @@ parameter.
 It is used to decide whether to perform mean absolute deviation along
 the columns or rows.
 (Default: None)
-.PD 0
-.P
-.PD
-- \f[B]0 or `index'\f[R]: perform mean absolute deviation along the
+.IP \[bu] 2
+\f[B]0 or `index'\f[R]: perform mean absolute deviation along the
 indices.
 .PD 0
 .P
 .PD
-- \f[B]1 or `columns'\f[R]: perform mean absolute deviation along the
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform mean absolute deviation along the
 columns.
-.PD 0
-.P
-.PD
+.PP
 When it is None (not specified explicitly), it performs mean absolute
 deviation along the rows.
 .PP
@@ -500,6 +512,8 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 the pandas DataFrame.mad().
 These are not used internally in frovedis.
 .PP
+\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -545,6 +559,8 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Mean absolute deviation along the rows (by default):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -570,6 +586,9 @@ newly computed mean absolute deviation for each column.
 Also, it excludes the missing value in \f[B]`Score'\f[R] column while
 computing the mean absolute deviation.
 .PP
+\f[B]Mean absolute deviation along the rows and using skipna
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -591,6 +610,8 @@ Score   NULL
 .PP
 Here, it includes the missing value in \f[B]`Score'\f[R] column while
 computing the mean absolute deviation.
+.PP
+\f[B]Mean absolute deviation along the columns:\f[R]
 .PP
 For example,
 .IP
@@ -616,6 +637,9 @@ index   mad
 7       0
 \f[R]
 .fi
+.PP
+\f[B]Mean absolute deviation along the columns and using skipna
+parameter:\f[R]
 .PP
 For example,
 .IP
@@ -659,19 +683,16 @@ parameter.
 It is used to decide whether to perform maximum operation along the
 columns or rows.
 (Default: None)
-.PD 0
-.P
-.PD
-- \f[B]0 or `index'\f[R]: perform maximum operation along the indices to
+.IP \[bu] 2
+\f[B]0 or `index'\f[R]: perform maximum operation along the indices to
 get the maximum value.
 .PD 0
 .P
 .PD
-- \f[B]1 or `columns'\f[R]: perform maximum operation along the columns
-to get the maximum value.
-.PD 0
-.P
-.PD
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform maximum operation along the columns to
+get the maximum value.
+.PP
 When it is None (not specified explicitly), it performs maximum
 operation along the rows.
 .PP
@@ -713,6 +734,8 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 \[lq]**kwargs\[rq] are simply kept in to make the interface uniform to
 the pandas DataFrame.max().
 These are not used internally in frovedis.
+.PP
+\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -759,6 +782,8 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Max operation along the rows (by default):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -784,6 +809,8 @@ newly computed maximum value for each column.
 Also, it excludes the missing value in \f[B]`Score'\f[R] column while
 computing the maximum value.
 .PP
+\f[B]Max operation along the rows and using skipna parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -805,6 +832,8 @@ Score   NULL
 .PP
 Here, it includes the missing value in \f[B]`Score'\f[R] column while
 computing the maximum value.
+.PP
+\f[B]Max operation along the columns:\f[R]
 .PP
 For example,
 .IP
@@ -830,6 +859,8 @@ index   max
 7       32
 \f[R]
 .fi
+.PP
+\f[B]Max operation along the columns and using skipna parameter:\f[R]
 .PP
 For example,
 .IP
@@ -880,9 +911,7 @@ It is used to decide whether to perform mean along the columns or rows.
 .P
 .PD
 - \f[B]1 or `columns'\f[R]: perform mean along the columns.
-.PD 0
-.P
-.PD
+.PP
 When it is None (not specified explicitly), it performs mean operation
 along the rows.
 .PP
@@ -925,6 +954,8 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 the pandas DataFrame.mean().
 These are not used internally in frovedis.
 .PP
+\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -970,6 +1001,8 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Mean computation along the rows (by default):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -995,6 +1028,8 @@ newly computed mean for each column.
 Also, it excludes the missing value in \f[B]`Score'\f[R] column while
 computing the mean.
 .PP
+\f[B]Mean computation along the rows and using skipna parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1016,6 +1051,8 @@ Score   NULL
 .PP
 Here, it includes the missing value in \f[B]`Score'\f[R] column while
 computing the mean.
+.PP
+\f[B]Max operation along the columns:\f[R]
 .PP
 For example,
 .IP
@@ -1041,6 +1078,8 @@ index   mean
 7       32
 \f[R]
 .fi
+.PP
+\f[B]Max operation along the columns and using skipna parameter:\f[R]
 .PP
 For example,
 .IP
@@ -1083,17 +1122,14 @@ parameter.
 It is used to decide whether to perform median operation along the
 columns or rows.
 (Default: None)
+.IP \[bu] 2
+\f[B]0 or `index'\f[R]: perform median operation along the indices.
 .PD 0
 .P
 .PD
-- \f[B]0 or `index'\f[R]: perform median operation along the indices.
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform median operation along the columns.
-.PD 0
-.P
-.PD
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform median operation along the columns.
+.PP
 When it is None (not specified explicitly), it performs median operation
 along the rows.
 .PP
@@ -1136,6 +1172,8 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 the pandas DataFrame.median().
 These are not used internally in frovedis.
 .PP
+\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1181,6 +1219,8 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Median computation along the rows (by default):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1206,6 +1246,8 @@ newly computed median for each column.
 Also, it excludes the missing value in \f[B]`Score'\f[R] column while
 computing the median.
 .PP
+\f[B]Median computation along the rows and using skipna parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1227,6 +1269,8 @@ Score   NULL
 .PP
 Here, it includes the missing value in \f[B]`Score'\f[R] column while
 computing the median.
+.PP
+\f[B]Median computation along the columns:\f[R]
 .PP
 For example,
 .IP
@@ -1252,6 +1296,9 @@ index   median
 7       32
 \f[R]
 .fi
+.PP
+\f[B]Median computation along the columns and using skipna
+parameter:\f[R]
 .PP
 For example,
 .IP
@@ -1294,19 +1341,16 @@ parameter.
 It is used to decide whether to perform minimum operation along the
 columns or rows.
 (Default: None)
-.PD 0
-.P
-.PD
-- \f[B]0 or `index'\f[R]: perform minimum operation along the indices to
+.IP \[bu] 2
+\f[B]0 or `index'\f[R]: perform minimum operation along the indices to
 get the minimum value.
 .PD 0
 .P
 .PD
-- \f[B]1 or `columns'\f[R]: perform minimum operation along the columns
-to get the minimum value.
-.PD 0
-.P
-.PD
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform minimum operation along the columns to
+get the minimum value.
+.PP
 When it is None (not specified explicitly), it performs minimum
 operation along the rows.
 .PP
@@ -1349,6 +1393,8 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 the pandas DataFrame.min().
 These are not used internally in frovedis.
 .PP
+\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1394,6 +1440,8 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Min operation along the rows (by default):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1419,6 +1467,8 @@ newly computed minimum value for each column.
 Also, it excludes the missing value in \f[B]`Score'\f[R] column while
 computing the minimum value.
 .PP
+\f[B]Min operation along the rows and using skipna parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1440,6 +1490,8 @@ Score   NULL
 .PP
 Here, it includes the missing value in \f[B]`Score'\f[R] column while
 computing the median.
+.PP
+\f[B]Min operation along the columns:\f[R]
 .PP
 For example,
 .IP
@@ -1465,6 +1517,8 @@ index   min
 7       32
 \f[R]
 .fi
+.PP
+\f[B]Min operation along the columns and using skipna parameter:\f[R]
 .PP
 For example,
 .IP
@@ -1504,17 +1558,14 @@ parameter.
 It is used to decide whether to perform standard error of the mean along
 the columns or rows.
 (Default: 0)
+.IP \[bu] 2
+\f[B]0 or `index'\f[R]: perform mode along the indices.
 .PD 0
 .P
 .PD
-- \f[B]0 or `index'\f[R]: perform mode along the indices.
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform mode along the columns.
-.PD 0
-.P
-.PD
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform mode along the columns.
+.PP
 When it is None (not specified explicitly), it performs standard error
 of the mean along the rows.
 .PP
@@ -1549,6 +1600,8 @@ It can be multiple values.
 .PP
 \f[B]When input with non-numeric columns is used with mode(), then it
 ignores the non-numeric columns for mode computation.\f[R]
+.PP
+\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -1595,6 +1648,8 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Mode computation along the rows (by default):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1626,6 +1681,9 @@ columns when axis = 0 or `index'.\f[R]
 \f[B]Also, resultant dataframe has both numeric and non-numeric
 columns.\f[R]
 .PP
+\f[B]Mode computation along the rows and using numeric_only
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1649,7 +1707,9 @@ index   Score   Age
 \f[R]
 .fi
 .PP
-\f[B]Here, resultant dataframe has only numeric columns.\f[R]
+Here, resultant dataframe has only numeric columns.
+.PP
+\f[B]Mode computation along the rows and using dropna parameter:\f[R]
 .PP
 For example,
 .IP
@@ -1715,6 +1775,8 @@ index   height  weight
 \f[R]
 .fi
 .PP
+\f[B]Mode computation along the columns:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1739,6 +1801,8 @@ index   0
 7       152
 \f[R]
 .fi
+.PP
+\f[B]Mode computation along the columns and using dropna parameter:\f[R]
 .PP
 For example,
 .IP
@@ -1766,10 +1830,8 @@ index   0
 .fi
 .PP
 \f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-- \f[B]If numeric_only = False\f[R]:
+.IP \[bu] 2
+\f[B]If numeric_only = False\f[R]:
 .PD 0
 .P
 .PD
@@ -1778,7 +1840,8 @@ non-numeric columns (if any).
 .PD 0
 .P
 .PD
-- \f[B]If numeric_only = True\f[R]:
+.IP \[bu] 2
+\f[B]If numeric_only = True\f[R]:
 .PD 0
 .P
 .PD
@@ -1794,19 +1857,16 @@ parameter.
 It is used to decide whether to perform standard error of the mean along
 the columns or rows.
 (Default: None)
-.PD 0
-.P
-.PD
-- \f[B]0 or `index'\f[R]: perform standard error of the mean along the
+.IP \[bu] 2
+\f[B]0 or `index'\f[R]: perform standard error of the mean along the
 indices.
 .PD 0
 .P
 .PD
-- \f[B]1 or `columns'\f[R]: perform standard error of the mean along the
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform standard error of the mean along the
 columns.
-.PD 0
-.P
-.PD
+.PP
 When it is None (not specified explicitly), it performs standard error
 of the mean along the rows.
 .PP
@@ -1855,6 +1915,8 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 the pandas DataFrame.sem().
 These are not used internally in frovedis.
 .PP
+\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1900,6 +1962,9 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Standard error of the mean operation along the rows (by
+default):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1922,6 +1987,9 @@ Score   4.54178
 It displays a frovedis dataframe with numeric column(s) containing the
 newly computed standard error of the mean for each column.
 .PP
+\f[B]Standard error of the mean operation along the rows and using ddof
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1941,6 +2009,9 @@ Score   5.07786
 \f[R]
 .fi
 .PP
+\f[B]Standard error of the mean operation along the rows and using
+skipna parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1959,6 +2030,8 @@ Age     1.71586
 Score   NULL
 \f[R]
 .fi
+.PP
+\f[B]Standard error of the mean operation along the columns:\f[R]
 .PP
 For example,
 .IP
@@ -1984,6 +2057,9 @@ index   sem
 7       NULL
 \f[R]
 .fi
+.PP
+\f[B]Standard error of the mean operation along the columns and using
+skipna parameter:\f[R]
 .PP
 For example,
 .IP
@@ -2027,18 +2103,14 @@ parameter.
 It is used to decide whether to perform standard deviation along the
 columns or rows.
 (Default: None)
+.IP \[bu] 2
+\f[B]0 or `index'\f[R]: perform standard deviation along the indices.
 .PD 0
 .P
 .PD
-- \f[B]0 or `index'\f[R]: perform standard deviation along the indices.
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform standard deviation along the
-columns.
-.PD 0
-.P
-.PD
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform standard deviation along the columns.
+.PP
 When it is None (not specified explicitly), it performs standard
 deviation along the rows.
 .PD 0
@@ -2053,7 +2125,9 @@ result.
 .PD
 When it is None (not specified explicitly), it excludes missing values
 during standard deviation computation.
-.PP
+.PD 0
+.P
+.PD
 \f[I]\f[BI]level\f[I]\f[R]: This is an unused parameter.
 (Default: None)
 .PD 0
@@ -2086,6 +2160,8 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 \[lq]**kwargs\[rq] are simply kept in to make the interface uniform to
 the pandas DataFrame.std().
 These are not used internally in frovedis.
+.PP
+\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -2132,6 +2208,8 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Standard deviation computation along the rows (by default):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2154,6 +2232,9 @@ Score   11.125
 It displays a frovedis dataframe with numeric column(s) containing the
 newly computed standard deviation for each column.
 .PP
+\f[B]Standard deviation computation along the rows and using skipna
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2172,6 +2253,30 @@ Age     4.8532
 Score   NULL
 \f[R]
 .fi
+.PP
+\f[B]Standard deviation computation along the rows and using ddof
+parameter:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# std() demo using ddof = 2 
+fdf1.std(ddof = 2).show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   std
+Age     5.24205
+Score   12.4381
+\f[R]
+.fi
+.PP
+\f[B]Standard deviation computation along the columns:\f[R]
 .PP
 For example,
 .IP
@@ -2198,6 +2303,9 @@ index   std
 \f[R]
 .fi
 .PP
+\f[B]Standard deviation computation along the columns and using skipna
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2223,25 +2331,6 @@ index   std
 \f[R]
 .fi
 .PP
-For example,
-.IP
-.nf
-\f[C]
-# std() demo using ddof = 2 
-fdf1.std(ddof = 2).show()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   std
-Age     5.24205
-Score   12.4381
-\f[R]
-.fi
-.PP
 \f[B]Return Value\f[R]
 .PD 0
 .P
@@ -2259,18 +2348,14 @@ parameter.
 It is used to decide whether to perform summation operation along the
 columns or rows.
 (Default: None)
+.IP \[bu] 2
+\f[B]0 or `index'\f[R]: perform summation operation along the indices.
 .PD 0
 .P
 .PD
-- \f[B]0 or `index'\f[R]: perform summation operation along the indices.
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform summation operation along the
-columns.
-.PD 0
-.P
-.PD
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform summation operation along the columns.
+.PP
 When it is None (not specified explicitly), it performs summation
 operation along the rows.
 .PD 0
@@ -2285,7 +2370,9 @@ result.
 .PD
 When it is None (not specified explicitly), it excludes missing values
 during summation computation.
-.PP
+.PD 0
+.P
+.PD
 \f[I]\f[BI]level\f[I]\f[R]: This is an unused parameter.
 (Default: None)
 .PD 0
@@ -2320,6 +2407,8 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 the pandas DataFrame.sum().
 These are not used internally in frovedis.
 .PP
+\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2365,6 +2454,8 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Sum operation along the rows (by default):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2390,6 +2481,8 @@ newly computed summation for each column.
 Also, it excludes the missing value in \f[B]`Score'\f[R] column while
 computing summation.
 .PP
+\f[B]Sum operation along the rows and using skipna parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2411,6 +2504,8 @@ Score   NULL
 .PP
 Here, it includes the missing value in \f[B]`Score'\f[R] column while
 computing the sum.
+.PP
+\f[B]Sum operation along the columns:\f[R]
 .PP
 For example,
 .IP
@@ -2436,6 +2531,8 @@ index   sum
 7       32
 \f[R]
 .fi
+.PP
+\f[B]Sum operation along the columns and using skipna parameter:\f[R]
 .PP
 For example,
 .IP
@@ -2479,17 +2576,14 @@ parameter.
 It is used to decide whether to perform variance along the columns or
 rows.
 (Default: None)
+.IP \[bu] 2
+\f[B]0 or `index'\f[R]: perform variance along the indices.
 .PD 0
 .P
 .PD
-- \f[B]0 or `index'\f[R]: perform variance along the indices.
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform variance along the columns.
-.PD 0
-.P
-.PD
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform variance along the columns.
+.PP
 When it is None (not specified explicitly), it performs variance along
 the rows.
 .PD 0
@@ -2504,7 +2598,9 @@ result.
 .PD
 When it is None (not specified explicitly), it excludes missing values
 during variance computation.
-.PP
+.PD 0
+.P
+.PD
 \f[I]\f[BI]level\f[I]\f[R]: This is an unused parameter.
 (Default: None)
 .PD 0
@@ -2537,6 +2633,8 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 \[lq]**kwargs\[rq] are simply kept in to make the interface uniform to
 the pandas DataFrame.var().
 These are not used internally in frovedis.
+.PP
+\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -2583,6 +2681,8 @@ index   Name    Age     City       Qualification  Score
 \f[R]
 .fi
 .PP
+\f[B]Variance computation along the rows (by default):\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2608,6 +2708,9 @@ newly computed variance for each column.
 Also, it excludes the missing value in \f[B]`Score'\f[R] column while
 computing variance.
 .PP
+\f[B]Variance computation along the rows and using skipna
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2626,6 +2729,29 @@ Age     23.5535
 Score   NULL
 \f[R]
 .fi
+.PP
+\f[B]Variance computation along the rows and using ddof parameter:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# var() demo using ddof = 2 
+fdf1.var(ddof = 2).show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   var
+Age     27.4791
+Score   154.708
+\f[R]
+.fi
+.PP
+\f[B]Variance computation along the columns:\f[R]
 .PP
 For example,
 .IP
@@ -2652,6 +2778,9 @@ index   var
 \f[R]
 .fi
 .PP
+\f[B]Variance computation along the columns and using skipna
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2674,25 +2803,6 @@ index   var
 5       98
 6       312.5
 7       NULL
-\f[R]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# var() demo using ddof = 2 
-fdf1.var(ddof = 2).show()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   var
-Age     27.4791
-Score   154.708
 \f[R]
 .fi
 .PP

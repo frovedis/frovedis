@@ -84,6 +84,9 @@ calls.
 This instance can then further be used with aggregate functions such as
 mean(), sem(), etc.
 .PP
+\f[B]Creating FrovedisGroupedDataframe instance using groupby
+operation:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -107,11 +110,24 @@ g_df = fdf1.groupby(\[aq]Country\[aq])
 .PP
 The groupby call returns a FrovedisGroupedDataframe instance.
 .PP
+\f[B]Multiple columns can be used in groupby operation to create this
+instance:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# In order to select the grouped column 
+# using multiple columns to create FrovedisGroupedDataframe object
+g_df = fdf1.groupby([\[aq]Age\[aq],\[aq]Country\[aq]])
+\f[R]
+.fi
+.PP
+\f[B]In order to select one of the grouped column:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
 print(g_df[\[aq]Country\[aq]])
 \f[R]
 .fi
@@ -125,6 +141,30 @@ England
 France
 Japan
 USA
+\f[R]
+.fi
+.PP
+\f[B]In order to select multiple columns from the grouped
+dataframe:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print(g_df[[\[aq]Age\[aq],\[aq]Country\[aq]])
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   Age     Country
+0       19      France
+1       27      Japan
+2       29      USA
+3       30      England
+4       31      Japan
 \f[R]
 .fi
 .PP

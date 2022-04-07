@@ -85,6 +85,8 @@ dataframe.
 It is used to create a Frovedis dataframe from the given pandas
 dataframe or series.
 .PP
+\f[B]Constructing frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -278,11 +280,6 @@ relative path to the current working directory of the file to be opened.
 .PD 0
 .P
 .PD
-Also, like pandas, it accepts os.PathLike instance for storing file path
-name as well.
-.PD 0
-.P
-.PD
 \f[I]\f[BI]sep\f[I]\f[R]: It accepts string value as paramter that
 specifies delimiter to use.
 (Default: `,')
@@ -319,16 +316,15 @@ this parameter.\f[R]
 .P
 .PD
 The default behavior is to \f[B]`infer'\f[R] the column names:
+.IP \[bu] 2
+\f[B]If no column names are passed\f[R], then the behavior is identical
+to \f[B]header = 0\f[R] and column names are inferred from the first
+line of the file.
 .PD 0
 .P
 .PD
-- \f[B]If no column names are passed\f[R], then the behavior is
-identical to \f[B]header = 0\f[R] and column names are inferred from the
-first line of the file.
-.PD 0
-.P
-.PD
-- \f[B]If column names are passed explicitly\f[R], then the behavior is
+.IP \[bu] 2
+\f[B]If column names are passed explicitly\f[R], then the behavior is
 identical to \f[B]header = None\f[R] and column names are inferred from
 the explicitly specified list.
 .PP
@@ -351,11 +347,10 @@ first line of the file will be used as column names.
 values as parameter.
 It specifies the column(s) to use as the row labels of the frovedis
 dataframe.
-(Default: None)
-.PD 0
-.P
-.PD
-- If boolean type value is passed, then currently it can only be set as
+\f[B]Currently, multi-index is not supported in frovedis.\f[R] (Default:
+None)
+.IP \[bu] 2
+If boolean type value is passed, then currently it can only be set as
 False.
 Also, when \f[B]index_col = False\f[R], it can be used to force to not
 use the first column as the index.
@@ -363,16 +358,11 @@ use the first column as the index.
 .PD 0
 .P
 .PD
-- It integer type value is passed, then it must be in the range \f[B](0,
+.IP \[bu] 2
+It integer type value is passed, then it must be in the range \f[B](0,
 nCols - 1)\f[R], where \f[B]nCols\f[R] is the number of columns present
 in the input file.
-.PD 0
-.P
-.PD
-\f[B]Currently, multi-index is not supported in frovedis.\f[R]
-.PD 0
-.P
-.PD
+.PP
 \f[I]\f[BI]usecols\f[I]\f[R]: It accepts currently a list-like input of
 integer values as parameter.
 It specifies the subset of the columns to be used while loading data
@@ -401,13 +391,13 @@ Otherwise, it raises an exception.
 \f[I]\f[BI]prefix\f[I]\f[R]: It accepts a string value as parameter.
 It specifies the prefix which needs to be added to the column numbers.
 (Default: None)
-.PD 0
-.P
-.PD
-For example, `X' for X0, X1, X2, \&...
-.PD 0
-.P
-.PD
+.IP
+.nf
+\f[C]
+For example, \[aq]X\[aq] for X0, X1, X2, ...  
+\f[R]
+.fi
+.PP
 \f[B]This is an optional paramter which will be used when column names
 are not provided and header is None (no header)\f[R].
 .PD 0
@@ -423,24 +413,35 @@ number of columns in the input file.
 parameter that specifies the action taken for duplicate columns present
 in the input file.
 (Default: True)
-.PD 0
-.P
-.PD
-- \f[B]When set to True (not specified explicitly) and if duplicate
+.IP \[bu] 2
+\f[B]When set to True (not specified explicitly) and if duplicate
 columns are present\f[R], they will be specified as `X', `X.1',
 \&...\[cq]X.N\[cq], rather than `X'\&...\[cq]X\[cq].
 .PD 0
 .P
 .PD
-- \f[B]When set to False and duplicate columns are present\f[R], it will
+.IP \[bu] 2
+\f[B]When set to False and duplicate columns are present\f[R], it will
 raise an exeption \f[B](not supported in frovedis yet)\f[R].
-.PD 0
-.P
-.PD
+.PP
 \f[I]\f[BI]dtype\f[I]\f[R]: It accepts datatype or dictionary of columns
 which is used for explicitly setting type for data or columns in
 frovedis dataframe.
 (Default: None)
+.PD 0
+.P
+.PD
+For boolwan type, frovedis supports:
+.IP
+.nf
+\f[C]
+True/False, On/OFF, 0/1, yes/No, y/n 
+\f[R]
+.fi
+.PP
+User must provide this, then frovedis can convert to boolean type.
+\f[B]Make sure user provides correct dtype , otherwise it will cause
+issues while creating frovedis dataframe\f[R].
 .PD 0
 .P
 .PD
@@ -485,56 +486,9 @@ It is useful for debugging purposes.
 that specifies if the dataframe is to be loaded chunk wise.
 The chunk size then would be specified by the `separate_mb' parameter.
 (Default: True)
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import time
-train_time = []
-start_time = time.time()
-df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names=[\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]], 
-                   low_memory = False)
-train_time.append(round(time.time() - start_time, 4))
-print(\[aq]loading time: \[aq]train_time)
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-loading time:  [0.0063]
-\f[R]
-.fi
-.PP
-Here, it is False, by default.
-So, it will load entire data into frovedis dataframe at once.
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import time
-train_time = []
-start_time = time.time()
-df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names=[\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]], 
-                   low_memory = False)
-train_time.append(round(time.time() - start_time, 4))
-print(\[aq]loading time: \[aq]train_time)
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-loading time:  [0.0021]
-\f[R]
-.fi
-.PP
-Here it is True, so it will load data chunk wise.
-.PP
+.PD 0
+.P
+.PD
 \f[I]\f[BI]rows_to_see\f[I]\f[R]: It accepts integer value as parameter.
 It is useful when creating frovedis dataframe by loading from large
 files.
@@ -550,16 +504,15 @@ data types.
 parameter.
 It is a memory optimization parameter.
 (Default: 1024)
-.PD 0
-.P
-.PD
-- \f[B]If low_memory = True\f[R], then internally frovedis dataframes of
+.IP \[bu] 2
+\f[B]If low_memory = True\f[R], then internally frovedis dataframes of
 size \f[B]`separate_mb'\f[R] will be loaded separately and would be
 combined later into a single frovedis dataframe.
 .PD 0
 .P
 .PD
-- \f[B]If low_memory = False\f[R], then complete frovedis dataframe will
+.IP \[bu] 2
+\f[B]If low_memory = False\f[R], then complete frovedis dataframe will
 be loaded at once.
 .PP
 \f[B]Purpose\f[R]
@@ -573,6 +526,9 @@ not contain blank line at beginning.\f[R]
 The parameters: \[lq]squeeze\[rq] and \[lq]comment\[rq] are simply kept
 in to to make the interface uniform to the pandas read_csv() method.
 These are not used internally within the frovedis implementation.
+.PP
+\f[B]Using read_csv() to load data from given csv file path into
+frovedis dataframe: \f[R]
 .PP
 \f[B]File: numbers.csv\f[R]
 .PP
@@ -590,11 +546,12 @@ These are not used internally within the frovedis implementation.
 .PD
 15,100.12,A,2
 .PP
+In order to load csv file will into frovedis dataframe,
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# demo for read_csv() with csv file path
 import frovedis.dataframe as fdf
 df = fdf.read_csv(\[dq]./input/numbers.csv\[dq])
 df.show()
@@ -619,11 +576,13 @@ Also, since no column names were provided and header = `infer', so the
 newly created frovedis dataframe contains column names inferred from the
 first line of input file.
 .PP
+\f[B]Using read_csv() with header = None and no column name is provided:
+\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# demo for read_csv() with header = None and column names not provided
 import frovedis.dataframe as fdf
 df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], header = None)
 df.show()
@@ -645,11 +604,13 @@ index   0       1       2       3
 Here, it creates list of column numbers which is used as column names in
 newly created frovedis dataframe.
 .PP
+\f[B]Using read_csv() with header = None.
+Also, column names are provided: \f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# demo for read_csv() with header = None and column names are provided
 import frovedis.dataframe as fdf
 df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names = [\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]], header = None)
 df.show()
@@ -671,14 +632,14 @@ index   one     two     three   four
 Here, given list of names will be used as column names in the newly
 generated frovedis dataframe.
 .PP
-Also, the input file, no duplicates column names were present in its
-header.
+Also, the input file contained no duplicate column names in its header.
+.PP
+\f[B]Using read_csv() with prefix = True: \f[R]
 .PP
 For example,
 .IP
 .nf
 \f[C]
-# demo for read_csv() with prefix = True
 import frovedis.dataframe as fdf
 df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], header = None, prefix = \[dq]X\[dq])
 df.show()
@@ -697,11 +658,20 @@ index   X0      X1      X2      X3
 \f[R]
 .fi
 .PP
+Here, `prefix' is an optional paremeter which will be in use when header
+= None and names = None.
+.PD 0
+.P
+.PD
+It will use column numbers by default when prefix = None.
+.PP
+\f[B]To load specific columns in frovedis dataframe, usecols parameter
+will be used: \f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# demo for read_csv() with usecols parameter
 import frovedis.dataframe as fdf
 df = fdf.read_csv(\[dq]./input/numbers.csv\[dq],names=[\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]], usecols = [1,2])
 df.show()
@@ -720,14 +690,34 @@ index   two     three
 \f[R]
 .fi
 .PP
+\f[B]Using read_csv() with dtype parameter: \f[R]
+.PP
+\f[B]File: numbers.csv\f[R]
+.PP
+10,10.23,E,TRUE
+.PD 0
+.P
+.PD
+12,12.20,nan,TRUE
+.PD 0
+.P
+.PD
+13,34.90,D,FALSE
+.PD 0
+.P
+.PD
+15,100.12,A,FALSE
+.PP
+In above data, \f[B]TRUE/FALSE\f[R] in python can be converted to
+boolean \f[B](0/1)\f[R] type values using dtype parameter.
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# demo for read_csv() with dtype parameter
 import frovedis.dataframe as fdf
 df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names = [\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]], 
-                   dtype = {\[aq]two\[aq]: int})
+                   dtype = {\[aq]four\[aq]: bool})
 df.show()
 \f[R]
 .fi
@@ -737,18 +727,20 @@ Output
 .nf
 \f[C]
 index   one     two     three   four
-0       10      9823    F       0
-1       12      11820   NULL    0
-2       13      33890   D       1
-3       15      99812   A       2
+0       10      10.23   E       1
+1       12      12.2    NULL    1
+2       13      34.8999 D       0
+3       15      100.12  A       0
 \f[R]
 .fi
+.PP
+\f[B]In order to use second column as index, index_col parameter will be
+used: \f[R]
 .PP
 For example,
 .IP
 .nf
 \f[C]
-# demo for read_csv() with index_col parameter with integer values
 import frovedis.dataframe as fdf
 df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names = [\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]], index_col = 1)
 df.show()
@@ -767,11 +759,13 @@ two     one     three   four
 \f[R]
 .fi
 .PP
+\f[B]When index_col = False, it will force to not use the first column
+as the index: \f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# demo for read_csv() with index_col = False
 import frovedis.dataframe as fdf
 df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names = [\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]], index_col = False)
 df.show()
@@ -790,9 +784,8 @@ index   one     two     three   four
 \f[R]
 .fi
 .PP
-Here, it will force the first column to not be used as index.
-.PP
-In case the input file contains duplicate columns in header, then,
+\f[B]Using mangle_dupe_cols = True, when input file contains duplicate
+columns in header:\f[R]
 .PP
 \f[B]File: numbers_dupl.csv\f[R]
 .PP
@@ -814,11 +807,14 @@ score,score,grade,pass
 .PD
 75.1,100.12,A,1
 .PP
+The input file contains duplicate column labels.
+To make sure while loading data into frovedis dataframe,
+mangle_dupe_cols will be set as True.
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# demo for read_csv() with mangle_dupe_cols = True
 import frovedis.dataframe as fdf
 df = fdf.read_csv(\[dq]./input/numbers_dupl.csv\[dq],mangle_dupe_cols = True)
 df.show()
@@ -837,32 +833,41 @@ index   score   score.1 grade   pass
 \f[R]
 .fi
 .PP
-For example,
+\f[B]Using read_csv() with na_values parameter:\f[R]
 .PP
 \f[B]File: numbers.csv\f[R]
 .PP
-10,10.23,F,0
+11,10.23,E,0,1
 .PD 0
 .P
 .PD
-12,12.20,None,0
+12,12.20,F,0,1
 .PD 0
 .P
 .PD
-13,34.90,D,1
+10,34.90,D,1,0
 .PD 0
 .P
 .PD
-15,100.12,A,2
+15,10,A,10,0
+.PD 0
+.P
+.PD
+10,10.23,B,0,1
+.PD 0
+.P
+.PD
+10,10.23,B,0,1
 .PP
-The above file contains None as data, so by default it will be loaded in
-frovedis dataframe as string (inferred dtype).
+When using na_values = None (by default), it will interpret the values
+nan, Nan, NULL, etc.
+as missing values (explained in parameter description)
 .IP
 .nf
 \f[C]
-# demo for read_csv() with na_values parameter provided
+# demo for read_csv() with na_values = None by default
 import frovedis.dataframe as fdf
-df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names = [\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]])
+df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], na_values = None)
 df.show()
 \f[R]
 .fi
@@ -871,23 +876,24 @@ Output
 .IP
 .nf
 \f[C]
-index   one     two     three   four
-0       10      10.23   F       0
-1       12      12.2    None    0
-2       13      34.8999 D       1
-3       15      100.12  A       2
+index   11      10.23   E       0       1
+0       12      12.2    F       0       1
+1       10      34.8999 D       1       0
+2       15      10      A       10      0
+3       10      10.23   B       0       1
+4       10      10.23   B       0       1
 \f[R]
 .fi
 .PP
-It can be interpreted by passing \f[B]\[lq]na_values\[rq]\f[R]
-parameter.
+\f[B]When list of strings are provided to be set as missing values:
+\f[R]
+.PP
+For example,
 .IP
 .nf
 \f[C]
-# demo for read_csv() with na_values parameter provided
 import frovedis.dataframe as fdf
-df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], names = [\[aq]one\[aq], \[aq]two\[aq], \[aq]three\[aq], \[aq]four\[aq]], 
-                   na_values = None)
+df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], na_values = [\[aq]10\[aq],\[aq]1\[aq]])
 df.show()
 \f[R]
 .fi
@@ -896,13 +902,46 @@ Output
 .IP
 .nf
 \f[C]
-index   one     two     three   four
-0       10      10.23   F       0
-1       12      12.2    NULL    0
-2       13      34.8999 D       1
-3       15      100.12  A       2
+index   11      10.23   E       0       1
+0       12      12.2    F       0       NULL
+1       NULL    34.8999 D       NULL    0
+2       15      NULL    A       NULL    0
+3       NULL    10.23   B       0       NULL
+4       NULL    10.23   B       0       NULL
 \f[R]
 .fi
+.PP
+It will interpret the list of values \f[B][`10',`1']\f[R] as missing
+values (explicitly provided) while loading input file into frovedis
+dataframe.
+.PP
+\f[B]When a string is to be set as missing value:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import frovedis.dataframe as fdf
+df = fdf.read_csv(\[dq]./input/numbers.csv\[dq], na_values = \[aq]10\[aq])
+df.show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   11      10.23   E       0       1
+0       12      12.2    F       0       1
+1       NULL    34.8999 D       1       0
+2       15      NULL    A       NULL    0
+3       NULL    10.23   B       0       1
+4       NULL    10.23   B       0       1
+\f[R]
+.fi
+.PP
+It will interpret the string \f[B]`10'\f[R] as missing value (explicitly
+provided) while loading input file into frovedis dataframe.
 .PP
 \f[B]Return Value\f[R]
 .PD 0
@@ -924,12 +963,13 @@ This method acts like a destructor.
 It is used to release dataframe pointer from server heap and it resets
 all its attributes to None.
 .PP
+\f[B]Releasing dataframe pointers from frovedis:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
 # fdf1 is same from above example 
-# releasing dataframe pointers
 fdf1.release()
 \f[R]
 .fi
@@ -1383,6 +1423,8 @@ object.
 In order to select a single column, we simply put the name of the column
 in-between the brackets.
 .PP
+\f[B]Selecting a single column:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1402,6 +1444,9 @@ fdf1 = fdf.DataFrame(pdf2)
 
 # display created frovedis dataframe
 fdf1.show()
+
+print(\[aq]selecting single column: \[aq])
+fdf1[\[aq]Bonus\[aq]].show()
 \f[R]
 .fi
 .PP
@@ -1414,22 +1459,8 @@ John    5            5       58           60
 Marry   2            2       59           60
 Sam     2            2       63           64
 Jo      4            4       58           59
-\f[R]
-.fi
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# selcting a single column
-fdf1[\[aq]Bonus\[aq]].show()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
+
+selecting single column: 
 index   Bonus
 John    5
 Marry   2
@@ -1438,8 +1469,23 @@ Jo      4
 \f[R]
 .fi
 .PP
-In order to select multiple columns, we have to pass a list of columns
-in an indexing operator.
+\f[B]Note:- Frovedis also supports use of attribute operators to
+filter/select column(s) in dataframe\f[R]
+.PP
+In previous example, \f[B]Bonus\f[R] column can also be selected from
+the dataframe as follows:
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fdf1.Bonus
+\f[R]
+.fi
+.PP
+This returns a FrovedisColumn instance.
+.PP
+\f[B]To select multiple columns:\f[R]
 .PP
 For example,
 .IP
@@ -1462,14 +1508,14 @@ Jo      4       59
 \f[R]
 .fi
 .PP
-In order to select rows between given range using indexing operator, it
-can be done as follows:
+Here, list of columns are passed in the indexing operator.
+.PP
+\f[B]Filtering dataframe using slice operation with row numbers:\f[R]
 .PP
 For example,
 .IP
 .nf
 \f[C]
-# filtering dataframe using slice operation with row numbers
 fdf1[1:2].show()
 \f[R]
 .fi
@@ -1483,11 +1529,12 @@ Marry   2            2       59            60
 \f[R]
 .fi
 .PP
+\f[B]Filtering dataframe using slice operation with row labels:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# filtering dataframe using slice operation with row labels
 fdf1[\[aq]John\[aq]:\[aq]Sam\[aq]].show()
 \f[R]
 .fi
@@ -1501,21 +1548,7 @@ Marry   2            2       59            60
 \f[R]
 .fi
 .PP
-\f[B]Note:- Frovedis also supports use of attribute operators to
-filter/select column(s) in dataframe\f[R]
-.PP
-For example, in previous example which selects \f[B]Bonus\f[R] column
-from the dataframe can be expressed as:
-.IP
-.nf
-\f[C]
-fdf1.Bonus
-\f[R]
-.fi
-.PP
-This returns a FrovedisColumn instance.
-.PP
-Filtering can be done with help of attribute operators as follows:
+\f[B]Filtering can be done with help of attribute operators:\f[R]
 .PP
 For example,
 .IP

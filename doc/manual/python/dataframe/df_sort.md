@@ -38,6 +38,8 @@ The columns that are not specified are returned as well, but not used for orderi
 
 This method is equivalent to DataFrame.sort_values(columns, ascending = False).head(n), but it is more efficient.  
 
+**Creating frovedis DataFrame from pandas DataFrame:**  
+
 For example,  
     
     import pandas as pd
@@ -71,9 +73,10 @@ Output
     Tuvalu      11300           38        TV
     Anguilla    11300           311       AI
 
+**In order to use nlargest() to select the 3 rows having the largest values in 'population' column:**  
+
 For example,  
 
-    # nlargest() demo to select the 3 rows having the largest values in column “population”
     fd_df.nlargest(3, 'population').show()
 
 Output  
@@ -82,6 +85,8 @@ Output
     France     65000000        2583560   FR
     Italy      59000000        1937894   IT
     Malta      434000          12011     MT
+
+**When using keep='last', last ocurrances are prioritized. Ties are resolved in reverse order:**  
 
 For example,  
 
@@ -94,6 +99,8 @@ Output
     France      65000000       2583560   FR
     Italy       59000000       1937894   IT
     Brunei      434000         12128     BN
+
+**When using keep='all', all duplicate items are maintained (not dropped):**  
 
 For example,  
 
@@ -108,6 +115,8 @@ Output
     Malta       434000         12011     MT
     Maldives    434000         4520      MV
     Brunei      434000         12128     BN
+
+**To order by the largest values in 'population' and then 'GDP' column, multiple columns may be specified:**  
 
 For example,  
 
@@ -140,6 +149,8 @@ It is used to return the **top n rows** ordered by the specified columns in asce
 It returns the first n rows with the smallest values in columns, in ascending order. The columns that are not specified are returned as well, but not used for ordering.
 
 This method is equivalent to DataFrame.sort_values(columns, ascending=True).head(n), but it is more efficient.
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example  
 
@@ -176,9 +187,10 @@ Output
     Tuvalu      11300          38        TV
     Anguilla    11300          311       AI
 
+**In order to use nlargest() to select the 3 rows having the largest values in 'population' column:**  
+
 For example,  
 
-    # nsmallest() demo to select the 3 rows having the smallest values in column “population”
     fd_df.nsmallest(3, 'population').show()
 
 Output  
@@ -187,6 +199,8 @@ Output
     Nauru       11300          182      NR
     Tuvalu      11300          38       TV
     Anguilla    11300          311      AI
+
+**When using keep='last', last ocurrances are prioritized. Ties are resolved in reverse order:**  
 
 For example,  
 
@@ -200,6 +214,8 @@ Output
     Tuvalu      11300          38       TV
     Nauru       11300          182      NR
 
+**When using keep='all', all duplicate items are maintained (not dropped):**  
+
 For example  
 
     # example to use nsmallest with keep = 'all' parameter
@@ -211,6 +227,8 @@ Output
     Nauru       11300          182      NR
     Tuvalu      11300          38       TV
     Anguilla    11300          311      AI
+
+**To order by the largest values in 'population' and then 'GDP' column, multiple columns may be specified:**  
 
 For example,  
 
@@ -247,6 +265,8 @@ It is used to sort the values in the specified column(s) along axis = 0 or axis 
 
 **This method is present only in frovedis. It internally uses sort_values().**  
 
+**Creating frovedis DataFrame from pandas DataFrame:**  
+
 For example,  
 
     import pandas as pd
@@ -274,6 +294,8 @@ Output
     4       D       7       2       e
     5       C       4       3       F
 
+**Sort by 'col1' on frovedis dataframe:**  
+
 For example,  
 
     # Sort dataframe by 'col1'
@@ -288,6 +310,8 @@ Output
     5       C       4       3       F
     4       D       7       2       e
     3       NULL    8       4       D
+
+**Sorting frovedis dataframe in ascending order (by default) by using multiple columns:**  
 
 For example,  
 
@@ -305,6 +329,8 @@ Output
     3       NULL    8       4       D
 
 **NOTE:** In the above example, in case of multiple columns sorting, **'col1'** will be sorted first and **'col2'** will only be considered for sorting in case of duplicate entries present in **'col1'**.  
+
+**Sorting frovedis dataframe in descending orde by using ascending=False:**  
 
 For example,  
 
@@ -340,9 +366,9 @@ When na\_position = 'last', it puts NaNs at the end. **Currently, na\_position =
 __Purpose__  
 It is used to sort Frovedis DataFrame according to index values. It creates a new sorted DataFrame by the specified label.  
 
-**Currently it only supports 'radixsort' and other values for 'kind' parameter are ignored internally along with a warning.**  
+**Currently it only supports 'radixsort' and other values for 'kind' parameter are ignored internally along with a warning. Also, this method does not support MultiIndex yet.**  
 
-**Also, Frovedis DataFrame doesn't support MultiIndex**  
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -369,6 +395,8 @@ Output
     1       4
     150     5
 
+**Sort values in dataframe, by default in ascending order (ascending=True):**  
+
 For example,  
 
     # to display sorted dataframe by index
@@ -383,9 +411,10 @@ Output
     150     5
     234     3
 
+**In order to sort in descending order, use ascending=False:**  
+
 For example,  
     
-    # Sort in descending order, use ascending=False
     fd_df.sort_index(ascending=False)
     
 Output  
@@ -416,6 +445,8 @@ When na\_position = 'last', it puts NaNs at the end. **Currently, it only suppor
   
 __Purpose__  
 To sort the DataFrame by the values along axis = 0 or 'index'.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**   
  
 For example,  
 
@@ -446,9 +477,10 @@ Output
     4       D       7       2       e
     5       C       4       3       F
 
+**Sort by 'col1' on frovedis dataframe:**  
+
 For example,  
 
-    # sorting 'col1' by values on frovedis dataframe
     fd_df.sort_values(by=['col1']).show() #Sort by col1
 
 Output  
@@ -461,9 +493,10 @@ Output
     4       D       7       2       e
     3       NULL    8       4       D
 
+**Sorting frovedis dataframe in ascending order (by default) by using multiple columns:**  
+
 For example,  
     
-    # Sorting dataframe by multiple columns
     fd_df.sort_values(by=['col1', 'col2'], ascending = [True, True]).show()
     
 Output  
@@ -475,6 +508,8 @@ Output
     5       C       4       3       F
     4       D       7       2       e
     3       NULL    8       4       D
+
+**Sorting frovedis dataframe in descending orde by using ascending=False:**  
 
 For example,  
 
