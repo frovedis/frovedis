@@ -5,7 +5,7 @@
 #include <frovedis/matrix/colmajor_matrix.hpp>
 #include <frovedis/ml/glm/linear_regression.hpp>
  
-#define DEBUG = 0
+// #define DEBUG = 1
 #define NaN std::numeric_limits<T>::max()
 
 namespace frovedis {
@@ -384,7 +384,7 @@ class Arima{
 
       if (sample_size < ma_lag + ar_lag + diff_order + seasonal + 2)
         REPORT_ERROR(USER_ERROR, 
-                   "Number of samples in input is too less for time series!\n");
+                   "Number of samples in input is too less for time series analysis!\n");
 
       if ((sample_size / sz) <= ar_lag + ma_lag + seasonal + diff_order){ 
         auto vec_size = vector_full<size_t>(sz, 0);
@@ -587,7 +587,7 @@ class Arima{
        
     void
     single_undifferencing_new (node_local<std::vector<T>>& numbers,
-                               double& diffnum, size_t pos) {
+                               T& diffnum, size_t pos) {
       auto n1 = numbers;
       log_handler(n1);
       if (diff_order){
@@ -885,6 +885,8 @@ class Arima{
     std::vector<T>
     predict(size_t start_step, size_t stop_step) {
       auto steps = stop_step - start_step + 1;
+      if(stop_step < start_step)
+        REPORT_ERROR(USER_ERROR, "Stop index cannot be less than Start index\n");
       if(steps <= 0) 
         REPORT_ERROR(USER_ERROR, "Steps  not valid\n");
       if(start_step - ma_lag - ar_lag - diff_order - seasonal  <= 0)
