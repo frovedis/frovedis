@@ -10,6 +10,294 @@ Frovedis dataframe has several math functions defined for performing operations 
 
 Also, it contains reverse operations such as radd(), rsub(), rmul(), etc.  
 
+However, there are some special cases while using frovedis dataframe with mathematical operations as mentioned below:    
+
+**Binary operation on two frovedis dataframes having same columns but different datatypes:**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    data1 = {
+              "points": [5, 6, 4],
+               "total": [10, 11, 12]
+            }
+
+    pdf1 = pd.DataFrame(data1)
+    fdf1 = fdf.DataFrame(pdf1)
+
+    data2 = {
+             "points": [2., 3., 8.],
+             "total": [7, 9, 11]
+            }
+
+    pdf2 = pd.DataFrame(data2)
+    fdf2 = fdf.DataFrame(pdf2)
+
+    print(fdf1 + fdf2)
+
+Output  
+
+    index   points  total
+    0       7       17
+    1       9       20
+    2       12      23
+
+Here, **'points'** column in first dataframe is **int type** and in other dataframe is **float type**.  
+
+Type conversion occurs for 'points' column in resultant dataframe.
+
+    fdf1.points(int) + fdf2.points(float) -> res.points(float) 
+
+**Binary operation on two frovedis dataframes having atleast one common column:**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    data1 = {
+              "points": [5, 6, 4],
+               "total": [10, 11, 12]
+            }
+
+    pdf1 = pd.DataFrame(data1)
+    fdf1 = fdf.DataFrame(pdf1)
+
+    data2 = {
+             "score": [2, 3, 8],
+             "total": [7, 9, 11]
+            }
+
+    pdf2 = pd.DataFrame(data2)
+    fdf2 = fdf.DataFrame(pdf2)
+
+    print(fdf1 + fdf2)
+
+Output  
+
+    index   points  score   total
+    0       NULL    NULL    17
+    1       NULL    NULL    20
+    2       NULL    NULL    23
+
+Here, the resultant dataframe will contains all columns from input frovedis dataframes lexicographically.  
+Also, binary operation (i.e. addition) is performed on the common column only.  
+
+**Binary operation on two frovedis dataframes having same columns. Also, same indices but in different order:**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    data1 = {
+              "points": [5, 6, 4],
+               "total": [10, 11, 12]
+            }
+
+    pdf1 = pd.DataFrame(data1, index = [1,2,3])
+    fdf1 = fdf.DataFrame(pdf1)
+
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, 9, 11]
+            }
+
+    pdf2 = pd.DataFrame(data2, index = [2,3,1])
+    fdf2 = fdf.DataFrame(pdf2)
+
+    print(fdf1 + fdf2)
+
+Output  
+
+    index   points  total
+    1       13      21
+    2       8       18
+    3       7       21
+
+Binary operation (i.e. addition) will be performed between same indices for each column irrespective of the index order.  
+
+**Currently, binary operation on two frovedis dataframes having same columns but different indices is not supported**.  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    data1 = {
+              "points": [5, 6, 4],
+               "total": [10, 11, 12]
+            }
+
+    pdf1 = pd.DataFrame(data1, index = [0,1,2])
+    fdf1 = fdf.DataFrame(pdf1)
+
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, 9, 11]
+            }
+
+    pdf2 = pd.DataFrame(data2, index = [0,1,3])
+    fdf2 = fdf.DataFrame(pdf2)
+
+    print(fdf1 + fdf2)
+
+In this case, dataframes have same column but indices are different. This will raise an exception in frovedis.  
+
+**Binary operation between columns of frovedis dataframes. Also, having same indices:**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    data1 = {
+              "points": [5, 6, 4],
+               "total": [10, 11, 12]
+            }
+
+    pdf1 = pd.DataFrame(data1, index = [1,2,3])
+    fdf1 = fdf.DataFrame(pdf1)
+
+    data2 = {
+             "points": [2, 3, 8],
+             "total": [7, 9, 11]
+            }
+
+    pdf2 = pd.DataFrame(data2, index = [1,2,3])
+    fdf2 = fdf.DataFrame(pdf2)
+
+    print(fdf1['points'] + fdf2['points'])
+
+Output  
+
+    index   (points+points)
+    1       7
+    2       9
+    3       12
+
+**Binary operation between two frovedis dataframes having single column (common) only. Also, having same indices but different order:**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    pdf1 = pd.Series([27, 24, 22, 32, 33, 36, 27, 32],index = [0,1,2,3,4,5,6,7])
+    pdf2 = pd.Series([23, 34, 35, 45, 23, 50, 52, 34],index = [2,3,1,0,7,4,5,6])
+
+    fdf1 = fdf.DataFrame(pdf1)
+    fdf2 = fdf.DataFrame(pdf2)
+
+    print(fdf1 + fdf2)
+
+Output  
+
+    index   (0+0)
+    0       72
+    1       59
+    2       45
+    3       66
+    4       83
+    5       88
+    6       61
+    7       55
+
+Binary operation (i.e. addition) will be performed between same indices irrespective of the index order in the frovedis dataframe.  
+
+**Currently, binary operation on two frovedis dataframes single column only but different indices is not supported**.  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    pdf1 = pd.Series([27, 24, 22, 32, 33, 36, 27, 32],index = [0,1,2,3,4,5,6,7])
+    pdf2 = pd.Series([23, 34, 35, 45, 23, 50, 52, 34],index = [2,3,1,0,8,4,5,9])
+
+    fdf1 = fdf.DataFrame(pdf1)
+    fdf2 = fdf.DataFrame(pdf2)
+
+    print(fdf1 + fdf2)
+
+In this case, resultant dataframe has single column but indices are different. This will raise an exception in frovedis.  
+
+**Binary operation between frovedis dataframe and scalar value (float type):**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    data1 = {
+          "points": [5, 6, 4],
+           "total": [10, 11, 12]
+        }
+
+    pdf1 = pd.DataFrame(data1)
+    fdf1 = fdf.DataFrame(pdf1)
+
+    print(fdf1 + 12.)
+
+Output  
+
+    index   points  total
+    0       17      22
+    1       18      23
+    2       16      24
+    
+Here, binary operation (i.e. addition) will be performed between the scalar value of float type on each column of the resultant frovedis dataframe.  
+    
+**Binary operation between frovedis dataframe and row vector:**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    data1 = {
+          "points": [5, 6, 4],
+           "total": [10, 11, 12]
+        }
+
+    pdf1 = pd.DataFrame(data1)
+    fdf1 = fdf.DataFrame(pdf1)
+
+    print(fdf1 + [51, 34])
+
+Output  
+
+    index   points  total
+    0       56      44
+    1       57      45
+    2       55      46
+
+Here, binary operation (i.e addition) will be performed between each element of row vector with each column on the given index of the frovedis dataframe.  
+
+**Binary operation between frovedis dataframe and column vector:**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+    data1 = {
+          "points": [5, 6, 4],
+           "total": [10, 11, 12]
+        }
+
+    pdf1 = pd.DataFrame(data1)
+    fdf1 = fdf.DataFrame(pdf1)
+
+    print(fdf1['points'] + [21, 34, 45])
+    print(fdf1['total'] + [21, 34, 45])
+
+Output  
+
+    index   points
+    0       26
+    1       40
+    2       49
+
+    index   total
+    0       31
+    1       45
+    2       57
+
+Here, binary operation (i.e addition) will be performed between the array and the given column of frovedis dataframe.  
+
 ## Public Member Functions  
 
     1. abs()
@@ -38,6 +326,8 @@ __Purpose__
 It computes absolute numeric value of each element.  
 
 This function only applies to elements that are all numeric.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -73,6 +363,8 @@ Output
     6       Kanpur     36
     7       Kanpur     45
 
+**Absolute numeric values in a frovedis dataframe:**  
+
 For example,
 
     # abs() demo
@@ -97,9 +389,10 @@ It returns a frovedis DataFrame instance.
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -107,6 +400,7 @@ __Parameters__
 Any of these is considered as the value to be added with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform addition operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform addition operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -116,8 +410,9 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs addition operation between two dataframes or dataframe and scalar value. It is equivalent 
-to **'dataframe + other'**.  
+It performs addition between two operands. It is equivalent to **'dataframe + other'**.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -146,9 +441,10 @@ Output
     1       6       11
     2       4       12
 
+**Add a scalar value using operator version:**  
+
 For example,  
 
-    # add() demo with scalar value using operator version
     print(fdf1 + 10)
 
 Output  
@@ -158,9 +454,10 @@ Output
     1       16      21
     2       14      22
 
+**Add a scalar value using method version:**  
+
 For example,  
 
-    # add() demo with scalar value using method version
     fdf1.add(10).show()
 
 Output  
@@ -171,6 +468,8 @@ Output
     2       14      22
 
 In both versions, all column elements (axis = 1 by default) are added with a scalar value.  
+
+**Creating two frovedis dataframes to perform addition:**  
 
 For example,  
 
@@ -223,9 +522,10 @@ Output
     1       3       9
     2       8       11
 
+**Add two dataframes using operator version:**  
+
 For example,  
 
-    # add() demo on two dataframes using operator version
     print(fdf1 + fdf2)
 
 Output  
@@ -235,9 +535,10 @@ Output
     1       9       20
     2       12      23
     
+**Add two dataframes using method version:**  
+    
 For example,  
 
-    # add() demo on two dataframes using method version
     fdf1.add(other = fdf2).show()
 
 Output  
@@ -250,7 +551,7 @@ Output
 In both versions, only common columns in both dataframes are added. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes in order to use fill_value parameter during addition:**  
 
 For example,  
 
@@ -302,6 +603,8 @@ Output
     0       2       7
     1       3       NULL
     2       8       NULL
+
+**Add two dataframes and using fill_value parameter:**  
 
 For example,  
     
@@ -325,9 +628,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -335,6 +639,7 @@ __Parameters__
 Any of these is considered as the value to be divided over the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform division operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform division operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -344,10 +649,11 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs floating division operation between two dataframes or dataframe and scalar value. It is 
-equivalent to **'dataframe / other'**.  
+It performs floating division operation between two operands. It is equivalent to **'dataframe / other'**.  
 
 **It is an alias of truediv().**  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -376,9 +682,10 @@ Output
     1       6       11
     2       4       12
 
+**Divide a scalar value using operator version:**  
+
 For example,  
 
-    # div() demo with scalar value using operator version
     print(fdf1 / 10)
 
 Output  
@@ -388,9 +695,10 @@ Output
     1       0.6     1.1
     2       0.4     1.19999
 
+**Divide a scalar value using method version:**  
+
 For example,  
 
-    # div() demo with scalar value using method version
     fdf1.div(10).show()
 
 Output  
@@ -401,6 +709,8 @@ Output
     2       0.4     1.19999
 
 In both versions, all column elements (axis = 1 by default) are divied by a scalar value.  
+
+**Creating two frovedis dataframes to perform division:**  
 
 For example,  
 
@@ -453,9 +763,10 @@ Output
     1       3       9
     2       8       11
 
+**Divide two dataframes using operator version:**  
+
 For example,  
     
-    # div() demo on two dataframes using operator version
     print(fdf1 / fdf2)
 
 Output  
@@ -465,9 +776,10 @@ Output
     1       2       1.22222
     2       0.5     1.0909
 
+**Divide two dataframes using method version:**  
+
 For example,  
 
-    # div() demo on two dataframes using method version
     fdf1.div(other = fdf2).show()
 
 Output  
@@ -480,7 +792,7 @@ Output
 In both versions, only common columns in both dataframes are divided. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes in order to use fill_value parameter during division:**  
 
 For example,  
 
@@ -532,6 +844,8 @@ Output
     0       2       7
     1       3       NULL
     2       8       NULL
+
+**Divide two dataframes and using fill_value parameter:**  
 
 For example,  
 
@@ -555,9 +869,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -565,6 +880,7 @@ __Parameters__
 Any of these is considered as the value to be divided over the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform division operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform division operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -574,8 +890,9 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs integer division operation between two dataframes or dataframe and scalar value. It is 
-equivalent to **'dataframe // other'**.  
+It performs integer division operation between operands. It is equivalent to **'dataframe // other'**.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -604,9 +921,10 @@ Output
     1       6       11
     2       4       12
 
+**Floor Division on a scalar value using operator version:**  
+
 For example,  
 
-    # floordiv() demo with scalar value using operator version
     print(fdf1 // 10)
 
 Output  
@@ -616,9 +934,10 @@ Output
     1       0       1
     2       0       1
 
+**Floor Division on a scalar value using method version:**  
+
 For example,  
 
-    # floordiv() demo with scalar value using method version
     fdf1.floordiv(10).show()
 
 Output  
@@ -630,6 +949,8 @@ Output
 
 In both versions, all column elements (axis = 1 by default) are divied by a scalar value.  
 Also, resultant dataframe column elements will contain floor integer value.  
+
+**Creating two frovedis dataframes to perform floor division:**  
 
 For example,  
 
@@ -682,9 +1003,10 @@ Output
     1       3       9
     2       8       11
 
+**Floor Division on two dataframes using operator version:**  
+
 For example,  
 
-    # floordiv() demo on two dataframes using operator version
     print(fdf1 // fdf2)
     
 Output  
@@ -694,9 +1016,10 @@ Output
     1       2       1
     2       0       1
 
+**Floor Division on two dataframes using method version:**  
+
 For example,  
 
-    # floordiv() demo on two dataframes using method version
     fdf1.floordiv(other = fdf2).show()
 
 Output  
@@ -709,7 +1032,7 @@ Output
 In both versions, only common columns in both dataframes are divided. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes in order to use fill_value parameter during floor division:**  
 
 For example,  
 
@@ -762,6 +1085,8 @@ Output
     1       3       NULL
     2       8       NULL
 
+**Floor Division on two dataframes and using fill_value parameter:**  
+
 For example,  
     
     # floordiv() demo on two dataframes using method version and fill_value = 10
@@ -784,9 +1109,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -794,6 +1120,7 @@ __Parameters__
 Any of these is considered as the value to perform modulo operation with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform modulo operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform modulo operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -803,8 +1130,9 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs modulo operation between two dataframes or dataframe and scalar value. It is equivalent 
-to **'dataframe % other'**.  
+It performs modulo operation between two operands. It is equivalent to **'dataframe % other'**.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -833,9 +1161,10 @@ Output
     1       6       11
     2       4       12
 
+**Modulo on a scalar value using operator version:**  
+
 For example,  
 
-    # mod() demo with scalar value using operator version
     print(fdf1 % 10)
     
 Output  
@@ -845,9 +1174,10 @@ Output
     1       6       1
     2       4       2
 
+**Modulo on a scalar value using method version:**  
+
 For example,  
 
-    # mod() demo with scalar value using method version
     fdf1.mod(10).show()
 
 Output  
@@ -858,6 +1188,8 @@ Output
     2       4       2
 
 In both versions, modulo operation is performed on all column elements (axis = 1 by default) by a scalar value.  
+
+**Creating two frovedis dataframes to perform modulo:**  
 
 For example,  
 
@@ -910,9 +1242,10 @@ Output
     1       3       9
     2       8       11
 
+**Modulo on two dataframes using operator version:**  
+
 For example,  
 
-    # mod() demo on two dataframes using operator version
     print(fdf1 % fdf2)
 
 Output  
@@ -922,7 +1255,7 @@ Output
     1       0       2
     2       4       1
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes to perform modulo, use fill_value parameter too:**  
 
 For example,  
 
@@ -975,9 +1308,10 @@ Output
     1       3       NULL
     2       8       NULL
 
+**Modulo on two dataframes using method version:**  
+
 For example,  
 
-    # mod() demo on two dataframes using method version
     fdf1.mod(other = fdf2).show()
 
 Output  
@@ -989,6 +1323,8 @@ Output
 
 In both versions, modulo is performed on only common columns in both dataframes. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
+
+**Modulo on two dataframes and using fill_value parameter:**  
 
 For example,  
     
@@ -1012,9 +1348,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -1022,6 +1359,7 @@ __Parameters__
 Any of these is considered as the value to be multiplied with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform multiplication operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform multiplication operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -1031,8 +1369,9 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs multiplication operation between two dataframes or dtaframe and scalar value. It is 
-equivalent to **'dataframe * other'**.  
+It performs multiplication operation between two operands. It is equivalent to **'dataframe * other'**.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -1061,9 +1400,10 @@ Output
     1       6       11
     2       4       12
 
+**Multiply a scalar value using operator version:**  
+
 For example,  
 
-    # mul() demo with scalar value using operator version
     print(fdf1 * 10)
 
 Output  
@@ -1073,9 +1413,10 @@ Output
     1       60      110
     2       40      120
 
+**Multiply a scalar value using method version:**  
+
 For example,  
 
-    # mul() demo with scalar value using method version
     fdf1.mul(10).show()
 
 Output  
@@ -1086,6 +1427,8 @@ Output
     2       40      120
 
 In both versions, all column elements (axis = 1 by default) are multiplied with a scalar value.  
+
+**Creating two frovedis dataframes to perform multiplication:**  
 
 For example,  
 
@@ -1138,9 +1481,10 @@ Output
     1       3       9
     2       8       11
 
+**Multiply two dataframes using operator version:**  
+
 For example,  
 
-    # mult() demo on two dataframes using operator version
     print(fdf1 * fdf2)
 
 Output  
@@ -1149,6 +1493,8 @@ Output
     0       10      70
     1       18      99
     2       32      132
+
+**Multiply two dataframes using method version:**  
 
 For example,  
 
@@ -1165,7 +1511,7 @@ Output
 In both versions, only common columns in both dataframes are multiplied. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes in order to use fill_value parameter during multiplication:**  
 
 For example,  
 
@@ -1218,6 +1564,8 @@ Output
     1       3       NULL
     2       8       NULL
 
+**Multiply two dataframes and using fill_value parameter:**  
+
 For example,  
     
     # mul() demo on two dataframes using method version and fill_value = 10
@@ -1240,9 +1588,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -1250,6 +1599,7 @@ __Parameters__
 Any of these is considered as the value to perform exponential power operation with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform exponential power operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform exponential power operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -1259,8 +1609,9 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs exponential power operation between two dataframes or dataframe and scalar value. It is 
-equivalent to **'dataframe ** other'**.  
+It performs exponential power operation between two operands. It is equivalent to **'dataframe ** other'**.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -1289,9 +1640,10 @@ Output
     1       6       11
     2       4       12
 
+**Exponential power operation on a scalar value using operator version:**  
+
 For example,  
 
-    # pow() demo with scalar value using operator version
     print(fdf1 ** 2)
 
 Output  
@@ -1301,9 +1653,10 @@ Output
     1       12      22
     2       8       24
 
+**Exponential power operation on a scalar value using method version:**  
+
 For example,  
 
-    # pow() demo with scalar value using method version
     fdf1.pow(2).show()
 
 Output  
@@ -1315,6 +1668,8 @@ Output
 
 In both versions, exponential power operation is performed on all column 
 elements (axis = 1 by default) by a scalar value.  
+
+**Creating two frovedis dataframes to perform exponential power operation:**  
 
 For example,  
 
@@ -1367,9 +1722,10 @@ Output
     1       3       9
     2       8       11
 
+**Exponential power operation on two dataframes using operator version:**  
+
 For example,  
 
-    # pow() demo on two dataframes using operator version
     print(fdf1 ** fdf2)
 
 Output  
@@ -1379,9 +1735,10 @@ Output
     1       18      99
     2       32      132
 
+**Exponential power operation on two dataframes using method version:**  
+
 For example,
 
-    # pow() demo on two dataframes using method version
     fdf1.pow(other = fdf2).show()
 
 Output  
@@ -1394,7 +1751,7 @@ Output
 In both versions, exponential power operation on only common columns in both dataframes. Exponential 
 power operation on other are replaced with NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes and use fill_value parameter during exponential power operation:**  
 
 For example,  
 
@@ -1447,6 +1804,8 @@ Output
     1       3       NULL
     2       8       NULL
 
+**Exponential power operation on two dataframes and using fill_value parameter:**  
+
 For example,  
     
     # pow() on two dataframes using method version and fill_value = 10
@@ -1470,9 +1829,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -1480,6 +1840,7 @@ __Parameters__
 Any of these is considered as the value to be subtracted with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform subtraction operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform subtraction operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -1489,8 +1850,9 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs subtraction operation between two dataframes or dtaframe and scalar value. It is 
-equivalent to **'dataframe - other'**.  
+It performs subtraction operation between two operands. It is equivalent to **'dataframe - other'**.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -1519,9 +1881,10 @@ Output
     1       6       11
     2       4       12
 
+**Subtract a scalar value using operator version:**  
+
 For example,  
 
-    # sub() demo with scalar value using operator version
     print(fdf1 - 10)
 
 Output  
@@ -1531,9 +1894,10 @@ Output
     1       -4      1
     2       -6      2
 
+**Subtract a scalar value using method version:**  
+
 For example,  
     
-    # sub() demo with scalar value using method version
     fdf1.sub(10).show()
 
 Output  
@@ -1544,6 +1908,8 @@ Output
     2       -6      2
 
 In both versions, all column elements (axis = 1 by default) are subtracted by a scalar value.  
+
+**Creating two frovedis dataframes to perform subtraction:**  
 
 For example,  
 
@@ -1596,9 +1962,10 @@ Output
     1       3       9
     2       8       11
 
+**Subtract two dataframes using operator version:**  
+
 For example,  
 
-    # sub() demo on two dataframes using operator version
     print(fdf1 - fdf2)
 
 Output  
@@ -1608,9 +1975,10 @@ Output
     1       3       2
     2       -4      1
 
+**Subtract two dataframes using method version:**  
+
 For example,  
 
-    # sub() demo on two dataframes using method version
     fdf1.sub(other = fdf2).show()
 
 Output  
@@ -1623,7 +1991,7 @@ Output
 In both versions, only common columns in both dataframes are subtracted. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes and use fill_value parameter during subtraction:**  
 
 For example,  
 
@@ -1676,6 +2044,8 @@ Output
     1       3       NULL
     2       8       NULL
 
+**Subtract two dataframes and using fill_value parameter:**  
+
 For example,  
     
     # sub() demo on two dataframes using method version and fill_value = 10
@@ -1698,9 +2068,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -1708,6 +2079,7 @@ __Parameters__
 Any of these is considered as the value to be divided with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform division operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform division operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -1717,8 +2089,9 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs floating division operation between two dataframes or dtaframe and scalar value. It is 
-equivalent to **'dataframe / other'**.  
+It performs floating division operation between two operands. It is equivalent to **'dataframe / other'**.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -1747,9 +2120,10 @@ Output
     1       5       2
     2       9       1
 
+**Floating Division on a scalar value using operator version:**  
+
 For example,  
 
-    # truediv() demo with scalar value using operator version
     print(fdf1 / 10)
 
 Output  
@@ -1759,9 +2133,10 @@ Output
     1       0.5     0.2
     2       0.9     0.1
 
+**Floating Division on a scalar value using method version:**  
+
 For example,  
     
-    # truediv() demo with scalar value using method version
     fdf1.truediv(10).show()
 
 Output  
@@ -1772,6 +2147,8 @@ Output
     2       0.9     0.1
 
 In both versions, all column elements (axis = 1 by default) are divied by a scalar value.  
+
+**Creating two frovedis dataframes to perform floating division:**  
 
 For example,  
 
@@ -1824,9 +2201,10 @@ Output
     1       7       1
     2       2       9
 
+**Floating Division on two dataframes using operator version:**  
+
 For example,  
 
-    # truediv() demo on two dataframes using operator version
     print(fdf1 / fdf2)
 
 Output  
@@ -1836,9 +2214,10 @@ Output
     1       0.714285  2
     2       4.5       0.111111
 
+**Floating Division on two dataframes using method version:**  
+
 For example,  
 
-    # truediv() demo on two dataframes using method version
     fdf1.truediv(other = fdf2).show()
 
 Output  
@@ -1851,7 +2230,7 @@ Output
 In both versions, only common columns in both dataframes are divided. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes and use fill_value parameter during floating division:**  
 
 For example,  
 
@@ -1904,6 +2283,8 @@ Output
     1       3       NULL
     2       8       NULL
 
+**Floating Division on two dataframes and using fill_value parameter:**  
+
 For example,  
 
     # truediv() demo on two dataframes using method version and fill_value = 10
@@ -1926,9 +2307,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -1936,6 +2318,7 @@ __Parameters__
 Any of these is considered as the value to be added with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform reverse addition operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform reverse addition operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -1945,11 +2328,12 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs reverse addition operation between two dataframes or dataframe and scalar value. It is 
-equivalent to **'other + dataframe'**.  
+It performs reverse addition operation between two operands. It is equivalent to **'other + dataframe'**.  
 
 **Currently, it does not perform reverse addition of scalar using operator version. Only method version 
 is supported.**  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -1978,6 +2362,8 @@ Output
     1       6       11
     2       4       12
 
+**Reverse addition on a scalar value using method version:**  
+
 For example,  
 
     # radd() demo with scalar value using method version
@@ -1991,6 +2377,8 @@ Output
     2       14      22
 
 Here, it adds the scalar to all columns in dataframe (axis = 1 by default).  
+
+**Creating two frovedis dataframes to perform reverse addition:**  
 
 For example,  
 
@@ -2043,6 +2431,8 @@ Output
     1       3       9
     2       8       11
 
+**Reverse addition on two dataframes using method version:**  
+
 For example,  
 
     # radd() demo on two dataframes using method version
@@ -2058,7 +2448,7 @@ Output
 Here, only common columns in both dataframes are added. Column values in other 
 datframe are replaced with NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**     
+**Creating two frovedis dataframes and use fill_value parameter during reverse addition:**  
 
 For example,  
 
@@ -2110,6 +2500,8 @@ Output
     0       2       7
     1       3       NULL
     2       8       NULL
+
+**Reverse addition on two dataframes and using fill_value parameter:**  
 
 For example,  
     
@@ -2133,9 +2525,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -2143,6 +2536,7 @@ __Parameters__
 Any of these is considered as the value to be divided with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform reverse division operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform reverse division operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -2152,12 +2546,13 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs reverse floating division operation between two dataframes or dataframe and a scalar value. It is 
-equivalent to **'other / dataframe'**.  
+It performs reverse floating division operation between two operands. It is equivalent to **'other / dataframe'**.  
 
 It is an alias of rtruediv().  
 
 **Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.**  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -2186,6 +2581,8 @@ Output
     1       6       11
     2       4       12
 
+**Reverse division on a scalar value using method version:**  
+
 For example,  
 
     # rdiv() demo with scalar value using method version
@@ -2199,6 +2596,8 @@ Output
     2       2.5     0.833333
 
 Here, it uses the scalar to perform division on all column elements in dataframe (axis = 1 by default).  
+
+**Creating two frovedis dataframes to perform reverse division:**  
 
 For example,  
 
@@ -2251,6 +2650,8 @@ Output
     1       3       9
     2       8       11
 
+**Reverse division on two dataframes using method version:**  
+
 For example,  
 
     # rdiv() demo on two dataframes using method version
@@ -2266,7 +2667,7 @@ Output
 Here, only common columns in both dataframes are divided. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes and use fill_value parameter during reverse division:**  
 
 For example,  
 
@@ -2318,6 +2719,8 @@ Output
     0       2       7
     1       3       NULL
     2       8       NULL
+
+**Reverse division on two dataframes and using fill_value parameter:**  
 
 For example,  
 
@@ -2341,9 +2744,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -2351,6 +2755,7 @@ __Parameters__
 Any of these is considered as the value to be divided with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform reverse division operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform reverse division operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -2360,10 +2765,11 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs reverse floating division operation between two dataframes or dataframe and scalar value. It is 
-equivalent to **'other // dataframe'**.  
+It performs reverse floating division operation between two operands. It is equivalent to **'other // dataframe'**.  
 
 **Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.**  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -2392,6 +2798,8 @@ Output
     1       6       11
     2       4       12
 
+**Reverse floor division on a scalar value using method version:**  
+
 For example,  
 
     # rfloordiv() demo with scalar value using method version
@@ -2406,6 +2814,8 @@ Output
 
 Here, it uses the scalar to perform division on all column elements (axis = 1 by default).  
 Also, resultant dataframe column elements will contain floor integer value.  
+
+**Creating two frovedis dataframes to perform reverse floor division:**  
 
 For example,  
 
@@ -2458,6 +2868,8 @@ Output
     1       3       9
     2       8       11
 
+**Reverse floor division on two dataframes using method version:**  
+
 For example,  
 
     # rfloordiv() demo on two dataframes using method version
@@ -2473,7 +2885,7 @@ Output
 Here, only common columns in both dataframes are divided. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes and use fill_value parameter during reverse floor division:**  
 
 For example,  
 
@@ -2526,6 +2938,8 @@ Output
     1       3       NULL
     2       8       NULL
 
+**Reverse floor division on two dataframes and using fill_value parameter:**  
+
 For example,  
     
     # rfloordiv()  demo on two dataframes using method version and fill_value = 10
@@ -2548,9 +2962,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -2558,6 +2973,7 @@ __Parameters__
 Any of these is considered as the value to perform modulo operation with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform reverse modulo operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform reverse modulo operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -2567,10 +2983,11 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs reverse modulo operation between two dataframes or dataframe and scalar value. It is equivalent 
-to **'other % dataframe'**.  
+It performs reverse modulo operation between two operands. It is equivalent to **'other % dataframe'**.  
 
 **Currently, it does not perform reverse modulo of scalar using operator version. Only method version is supported.**  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -2599,6 +3016,8 @@ Output
     1       6       11
     2       4       12
 
+**Reverse modulo on a scalar value using method version:**  
+
 For example,  
 
     # rmod() demo with scalar value using method version
@@ -2612,6 +3031,8 @@ Output
     2       2       10
 
 Here, it uses the scalar to perform modulo operation on all column elements (axis = 1 by default).   
+
+**Creating two frovedis dataframes to perform reverse modulo:**  
 
 For example,  
 
@@ -2664,6 +3085,8 @@ Output
     1       3       9
     2       8       11
 
+**Reverse modulo on two dataframes using method version:**  
+
 For example,  
 
     # rmod() demo on two dataframes using method version
@@ -2679,7 +3102,7 @@ Output
 Here, modulo is performed on only common columns in both dataframes. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes and use fill_value parameter during reverse modulo:**  
 
 For example,  
 
@@ -2732,6 +3155,8 @@ Output
     1       3       NULL
     2       8       NULL
 
+**Reverse modulo on two dataframes and using fill_value parameter:**  
+
 For example,  
     
     # rmod() demo on two dataframes using method version and fill_value = 10
@@ -2755,9 +3180,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -2765,6 +3191,7 @@ __Parameters__
 Any of these is considered as the value to be multiplied with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform reverse multiplication operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform reverse multiplication operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -2774,11 +3201,12 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs reverse multiplication operation between two dataframes or dataframe and scalar value. It is equivalent 
-to **'other * dataframe'**.  
+It performs reverse multiplication operation between two operands. It is equivalent to **'other * dataframe'**.  
 
 **Currently, it does not perform reverse multiplication of scalar using operator version. Only method 
 version is supported.**  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -2807,6 +3235,8 @@ Output
     1       6       11
     2       4       12
 
+**Reverse multiplication on a scalar value using method version:**  
+
 For example,  
 
     # rmul() demo with scalar value using method version
@@ -2820,6 +3250,8 @@ Output
     2       40      120
 
 Here, it uses the scalar to perform multiplication on all column elements in dataframe (axis = 1 by default).  
+
+**Creating two frovedis dataframes to perform reverse multiplication:**  
 
 For example,  
 
@@ -2872,6 +3304,8 @@ Output
     1       3       9
     2       8       11
 
+**Reverse multiplication on two dataframes using method version:**  
+
 For example,  
     
     # rmul() demo on two dataframes using method version
@@ -2887,7 +3321,7 @@ Output
 Here, only common columns in both dataframes are multiplied. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes and use fill_value parameter during reverse multiplication:**  
 
 For example,  
 
@@ -2940,6 +3374,8 @@ Output
     1       3       NULL
     2       8       NULL
 
+**Reverse multiplication on two dataframes and using fill_value parameter:**  
+
 For example,  
     
     # rmul() demo on two dataframes using method version and fill_value = 10
@@ -2963,9 +3399,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -2973,6 +3410,7 @@ __Parameters__
 Any of these is considered as the value to perfomr exponential power operation with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform reverse exponential power operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform reverse exponential power operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -2982,11 +3420,12 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs reverse exponential power operation between two dataframes or dtaframe and scalar value. It is 
-equivalent to **'other ** dataframe'**.  
+It performs reverse exponential power operation between two operands. It is equivalent to **'other ** dataframe'**.  
 
 **Currently, it does not perform reverse exponential power operation of scalar using operator version. Only 
 method version is supported.**  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -3015,6 +3454,8 @@ Output
     1       6       11
     2       4       12
 
+**Reverse exponential power operation on a scalar value using method version:**  
+
 For example,  
 
     # rpow() demo with scalar value using method version
@@ -3029,6 +3470,8 @@ Output
 
 Here, it uses the scalar to perform exponential power operation on all column 
 elements in dataframe (axis = 1 by default).  
+
+**Creating two frovedis dataframes to perform reverse exponential power operation:**  
 
 For example,  
 
@@ -3081,6 +3524,8 @@ Output
     1       3       9
     2       8       11
 
+**Reverse exponential power operation on two dataframes using method version:**  
+
 For example,  
 
     # rpow() demo on two dataframes using method version
@@ -3096,7 +3541,7 @@ Output
 Here, exponential power operation is performed on only common columns in both 
 dataframes. Other are replaced with NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes and use fill_value parameter during reverse exponential power operation:**  
 
 For example,  
 
@@ -3149,6 +3594,8 @@ Output
     1       3       NULL
     2       8       NULL
 
+**Reverse exponential power operation on two dataframes and using fill_value parameter:**  
+
 For example,  
     
     # rpow() demo on two dataframes using method version and fill_value = 10
@@ -3172,9 +3619,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -3182,6 +3630,7 @@ __Parameters__
 Any of these is considered as the value to be subtracted with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform reverse subtraction operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform reverse subtraction operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -3191,10 +3640,11 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs reverse subtraction operation between two dataframes or dataframe and scalar value. It is 
-equivalent to **'other - dataframe'**.  
+It performs reverse subtraction operation between two operands. It is equivalent to **'other - dataframe'**.  
 
 **Currently, it does not perform reverse subtraction of scalar using operator version. Only method version is supported.**  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -3223,6 +3673,8 @@ Output
     1       6       11
     2       4       12
 
+**Reverse subtraction on a scalar value using method version:**  
+
 For example,  
 
     # rsub() with scalar value using method version
@@ -3236,6 +3688,8 @@ Output
     2       6       -2
 
 Here, it subtracts the scalar to all columns in dataframe (axis = 1 by default).  
+
+**Creating two frovedis dataframes to perform reverse subtraction:**  
 
 For example,  
 
@@ -3288,6 +3742,8 @@ Output
     1       3       9
     2       8       11
 
+**Reverse subtraction on two dataframes using method version:**  
+
 For example,  
 
     # rsub() on two dataframes using method version
@@ -3303,7 +3759,7 @@ Output
 Here, only common columns in both dataframes are subtracted. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes and use fill_value parameter during reverse subtraction:**  
 
 For example,  
 
@@ -3356,6 +3812,8 @@ Output
     1       3       NULL
     2       8       NULL
 
+**Reverse subtraction on two dataframes and using fill_value parameter:**  
+
 For example,  
     
     # rsub() on two dataframes using method version and fill_value = 10
@@ -3379,9 +3837,10 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 
 __Parameters__  
 **_other_**: It can accept single or multiple element data structure like the following:  
+
 - Number  
-- List. Currently, this method supports operation on only list of numeric values.  
-- A numpy ndarray. Currently, this method supports operation on only an array of numeric values.  
+- List having 1 dimension. Currently, this method supports operation on only list of numeric values.  
+- A numpy ndarray having 1 dimension. Currently, this method supports operation on only an array of numeric values.  
 - pandas DataFrame. It must not be an empty dataframe.  
 - pandas Series  
 - frovedis DataFrame. It must not be an empty dataframe.  
@@ -3389,6 +3848,7 @@ __Parameters__
 Any of these is considered as the value to be divided with the current dataframe.  
 **_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
 perform reverse division operation along the indices or by column labels. (Default: 'columns')  
+
 - **1 or 'columns'**: perform reverse division operation on the columns. Currently, axis = 1 is supported in this method.  
 
 **_level_**: This is an unused parameter. (Default: None)  
@@ -3398,10 +3858,11 @@ Irrespective of the specified value, if data in both corresponding dataframe loc
 the result will be missing (contains NaNs).  
 
 __Purpose__  
-It performs reverse floating division operation between two dataframes or dtaframe and scalar value. It is 
-equivalent to **'other / dataframe'**.  
+It performs reverse floating division operation between two operands. It is equivalent to **'other / dataframe'**.  
 
 **Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.**  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -3430,6 +3891,8 @@ Output
     1       5       2
     2       9       1
 
+**Reverse floating division on a scalar value using method version:**  
+
 For example,  
 
     # rtruediv() demo with scalar value using method version
@@ -3443,6 +3906,8 @@ Output
     2       1.11111 10
 
 Here, it uses the scalar to perform division on all column elements in dataframe (axis = 1 by default).  
+
+**Creating two frovedis dataframes to perform reverse floating division:**  
 
 For example,  
 
@@ -3495,6 +3960,8 @@ Output
     1       7       1
     2       2       9
 
+**Reverse floating division on two dataframes using method version:**  
+
 For example,  
 
     # rtruediv() demo on two dataframes using method version
@@ -3510,7 +3977,7 @@ Output
 Here, only common columns in both dataframes are divided. Other are replaced with 
 NaN values in resultant dataframe (fill_value = None by default).  
 
-**When fill_value is not None,**  
+**Creating two frovedis dataframes and use fill_value parameter during reverse floating division:**  
 
 For example,  
 
@@ -3562,6 +4029,8 @@ Output
     0       2       7
     1       3       NULL
     2       8       NULL
+
+**Reverse floating division on two dataframes and using fill_value parameter:**  
 
 For example,  
     

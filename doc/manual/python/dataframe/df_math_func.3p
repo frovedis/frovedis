@@ -29,6 +29,396 @@ These functions return a new frovedis DataFrame instance as a result.
 .PP
 Also, it contains reverse operations such as radd(), rsub(), rmul(),
 etc.
+.PP
+However, there are some special cases while using frovedis dataframe
+with mathematical operations as mentioned below:
+.PP
+\f[B]Binary operation on two frovedis dataframes having same columns but
+different datatypes:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+data1 = {
+          \[dq]points\[dq]: [5, 6, 4],
+           \[dq]total\[dq]: [10, 11, 12]
+        }
+
+pdf1 = pd.DataFrame(data1)
+fdf1 = fdf.DataFrame(pdf1)
+
+data2 = {
+         \[dq]points\[dq]: [2., 3., 8.],
+         \[dq]total\[dq]: [7, 9, 11]
+        }
+
+pdf2 = pd.DataFrame(data2)
+fdf2 = fdf.DataFrame(pdf2)
+
+print(fdf1 + fdf2)
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   points  total
+0       7       17
+1       9       20
+2       12      23
+\f[R]
+.fi
+.PP
+Here, \f[B]`points'\f[R] column in first dataframe is \f[B]int type\f[R]
+and in other dataframe is \f[B]float type\f[R].
+.PP
+Type conversion occurs for `points' column in resultant dataframe.
+.IP
+.nf
+\f[C]
+fdf1.points(int) + fdf2.points(float) -> res.points(float) 
+\f[R]
+.fi
+.PP
+\f[B]Binary operation on two frovedis dataframes having atleast one
+common column:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+data1 = {
+          \[dq]points\[dq]: [5, 6, 4],
+           \[dq]total\[dq]: [10, 11, 12]
+        }
+
+pdf1 = pd.DataFrame(data1)
+fdf1 = fdf.DataFrame(pdf1)
+
+data2 = {
+         \[dq]score\[dq]: [2, 3, 8],
+         \[dq]total\[dq]: [7, 9, 11]
+        }
+
+pdf2 = pd.DataFrame(data2)
+fdf2 = fdf.DataFrame(pdf2)
+
+print(fdf1 + fdf2)
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   points  score   total
+0       NULL    NULL    17
+1       NULL    NULL    20
+2       NULL    NULL    23
+\f[R]
+.fi
+.PP
+Here, the resultant dataframe will contains all columns from input
+frovedis dataframes lexicographically.
+.PD 0
+.P
+.PD
+Also, binary operation (i.e.\ addition) is performed on the common
+column only.
+.PP
+\f[B]Binary operation on two frovedis dataframes having same columns.
+Also, same indices but in different order:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+data1 = {
+          \[dq]points\[dq]: [5, 6, 4],
+           \[dq]total\[dq]: [10, 11, 12]
+        }
+
+pdf1 = pd.DataFrame(data1, index = [1,2,3])
+fdf1 = fdf.DataFrame(pdf1)
+
+data2 = {
+         \[dq]points\[dq]: [2, 3, 8],
+         \[dq]total\[dq]: [7, 9, 11]
+        }
+
+pdf2 = pd.DataFrame(data2, index = [2,3,1])
+fdf2 = fdf.DataFrame(pdf2)
+
+print(fdf1 + fdf2)
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   points  total
+1       13      21
+2       8       18
+3       7       21
+\f[R]
+.fi
+.PP
+Binary operation (i.e.\ addition) will be performed between same indices
+for each column irrespective of the index order.
+.PP
+\f[B]Currently, binary operation on two frovedis dataframes having same
+columns but different indices is not supported\f[R].
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+data1 = {
+          \[dq]points\[dq]: [5, 6, 4],
+           \[dq]total\[dq]: [10, 11, 12]
+        }
+
+pdf1 = pd.DataFrame(data1, index = [0,1,2])
+fdf1 = fdf.DataFrame(pdf1)
+
+data2 = {
+         \[dq]points\[dq]: [2, 3, 8],
+         \[dq]total\[dq]: [7, 9, 11]
+        }
+
+pdf2 = pd.DataFrame(data2, index = [0,1,3])
+fdf2 = fdf.DataFrame(pdf2)
+
+print(fdf1 + fdf2)
+\f[R]
+.fi
+.PP
+In this case, dataframes have same column but indices are different.
+This will raise an exception in frovedis.
+.PP
+\f[B]Binary operation between columns of frovedis dataframes.
+Also, having same indices:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+data1 = {
+          \[dq]points\[dq]: [5, 6, 4],
+           \[dq]total\[dq]: [10, 11, 12]
+        }
+
+pdf1 = pd.DataFrame(data1, index = [1,2,3])
+fdf1 = fdf.DataFrame(pdf1)
+
+data2 = {
+         \[dq]points\[dq]: [2, 3, 8],
+         \[dq]total\[dq]: [7, 9, 11]
+        }
+
+pdf2 = pd.DataFrame(data2, index = [1,2,3])
+fdf2 = fdf.DataFrame(pdf2)
+
+print(fdf1[\[aq]points\[aq]] + fdf2[\[aq]points\[aq]])
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   (points+points)
+1       7
+2       9
+3       12
+\f[R]
+.fi
+.PP
+\f[B]Binary operation between two frovedis dataframes having single
+column (common) only.
+Also, having same indices but different order:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+pdf1 = pd.Series([27, 24, 22, 32, 33, 36, 27, 32],index = [0,1,2,3,4,5,6,7])
+pdf2 = pd.Series([23, 34, 35, 45, 23, 50, 52, 34],index = [2,3,1,0,7,4,5,6])
+
+fdf1 = fdf.DataFrame(pdf1)
+fdf2 = fdf.DataFrame(pdf2)
+
+print(fdf1 + fdf2)
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   (0+0)
+0       72
+1       59
+2       45
+3       66
+4       83
+5       88
+6       61
+7       55
+\f[R]
+.fi
+.PP
+Binary operation (i.e.\ addition) will be performed between same indices
+irrespective of the index order in the frovedis dataframe.
+.PP
+\f[B]Currently, binary operation on two frovedis dataframes single
+column only but different indices is not supported\f[R].
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+pdf1 = pd.Series([27, 24, 22, 32, 33, 36, 27, 32],index = [0,1,2,3,4,5,6,7])
+pdf2 = pd.Series([23, 34, 35, 45, 23, 50, 52, 34],index = [2,3,1,0,8,4,5,9])
+
+fdf1 = fdf.DataFrame(pdf1)
+fdf2 = fdf.DataFrame(pdf2)
+
+print(fdf1 + fdf2)
+\f[R]
+.fi
+.PP
+In this case, resultant dataframe has single column but indices are
+different.
+This will raise an exception in frovedis.
+.PP
+\f[B]Binary operation between frovedis dataframe and scalar value (float
+type):\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+data1 = {
+      \[dq]points\[dq]: [5, 6, 4],
+       \[dq]total\[dq]: [10, 11, 12]
+    }
+
+pdf1 = pd.DataFrame(data1)
+fdf1 = fdf.DataFrame(pdf1)
+
+print(fdf1 + 12.)
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   points  total
+0       17      22
+1       18      23
+2       16      24
+\f[R]
+.fi
+.PP
+Here, binary operation (i.e.\ addition) will be performed between the
+scalar value of float type on each column of the resultant frovedis
+dataframe.
+.PP
+\f[B]Binary operation between frovedis dataframe and row vector:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+data1 = {
+      \[dq]points\[dq]: [5, 6, 4],
+       \[dq]total\[dq]: [10, 11, 12]
+    }
+
+pdf1 = pd.DataFrame(data1)
+fdf1 = fdf.DataFrame(pdf1)
+
+print(fdf1 + [51, 34])
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   points  total
+0       56      44
+1       57      45
+2       55      46
+\f[R]
+.fi
+.PP
+Here, binary operation (i.e addition) will be performed between each
+element of row vector with each column on the given index of the
+frovedis dataframe.
+.PP
+\f[B]Binary operation between frovedis dataframe and column vector:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+data1 = {
+      \[dq]points\[dq]: [5, 6, 4],
+       \[dq]total\[dq]: [10, 11, 12]
+    }
+
+pdf1 = pd.DataFrame(data1)
+fdf1 = fdf.DataFrame(pdf1)
+
+print(fdf1[\[aq]points\[aq]] + [21, 34, 45])
+print(fdf1[\[aq]total\[aq]] + [21, 34, 45])
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   points
+0       26
+1       40
+2       49
+
+index   total
+0       31
+1       45
+2       57
+\f[R]
+.fi
+.PP
+Here, binary operation (i.e addition) will be performed between the
+array and the given column of frovedis dataframe.
 .SS Public Member Functions
 .IP
 .nf
@@ -62,6 +452,8 @@ etc.
 It computes absolute numeric value of each element.
 .PP
 This function only applies to elements that are all numeric.
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -105,6 +497,8 @@ index   City       Temperature
 \f[R]
 .fi
 .PP
+\f[B]Absolute numeric values in a frovedis dataframe:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -143,35 +537,38 @@ It returns a frovedis DataFrame instance.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to be added with the current
@@ -184,10 +581,8 @@ parameter.
 It is used to decide whether to perform addition operation along the
 indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform addition operation on the columns.
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform addition operation on the columns.
 Currently, axis = 1 is supported in this method.
 .PP
 \f[B]\f[BI]level\f[B]\f[R]: This is an unused parameter.
@@ -210,9 +605,10 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs addition operation between two dataframes or dataframe and
-scalar value.
+It performs addition between two operands.
 It is equivalent to \f[B]`dataframe + other'\f[R].
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -250,11 +646,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Add a scalar value using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# add() demo with scalar value using operator version
 print(fdf1 + 10)
 \f[R]
 .fi
@@ -270,11 +667,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Add a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# add() demo with scalar value using method version
 fdf1.add(10).show()
 \f[R]
 .fi
@@ -292,6 +690,8 @@ index   points  total
 .PP
 In both versions, all column elements (axis = 1 by default) are added
 with a scalar value.
+.PP
+\f[B]Creating two frovedis dataframes to perform addition:\f[R]
 .PP
 For example,
 .IP
@@ -360,11 +760,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Add two dataframes using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# add() demo on two dataframes using operator version
 print(fdf1 + fdf2)
 \f[R]
 .fi
@@ -380,11 +781,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Add two dataframes using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# add() demo on two dataframes using method version
 fdf1.add(other = fdf2).show()
 \f[R]
 .fi
@@ -404,7 +806,8 @@ In both versions, only common columns in both dataframes are added.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes in order to use fill_value
+parameter during addition:\f[R]
 .PP
 For example,
 .IP
@@ -472,6 +875,8 @@ index   points  total
 2       8       NULL
 \f[R]
 .fi
+.PP
+\f[B]Add two dataframes and using fill_value parameter:\f[R]
 .PP
 For example,
 .IP
@@ -512,35 +917,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to be divided over the current
@@ -553,10 +961,8 @@ parameter.
 It is used to decide whether to perform division operation along the
 indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform division operation on the columns.
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform division operation on the columns.
 Currently, axis = 1 is supported in this method.
 .PP
 \f[B]\f[BI]level\f[B]\f[R]: This is an unused parameter.
@@ -579,11 +985,12 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs floating division operation between two dataframes or
-dataframe and scalar value.
+It performs floating division operation between two operands.
 It is equivalent to \f[B]`dataframe / other'\f[R].
 .PP
 \f[B]It is an alias of truediv().\f[R]
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -620,11 +1027,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Divide a scalar value using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# div() demo with scalar value using operator version
 print(fdf1 / 10)
 \f[R]
 .fi
@@ -640,11 +1048,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Divide a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# div() demo with scalar value using method version
 fdf1.div(10).show()
 \f[R]
 .fi
@@ -662,6 +1071,8 @@ index   points  total
 .PP
 In both versions, all column elements (axis = 1 by default) are divied
 by a scalar value.
+.PP
+\f[B]Creating two frovedis dataframes to perform division:\f[R]
 .PP
 For example,
 .IP
@@ -730,11 +1141,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Divide two dataframes using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# div() demo on two dataframes using operator version
 print(fdf1 / fdf2)
 \f[R]
 .fi
@@ -750,11 +1162,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Divide two dataframes using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# div() demo on two dataframes using method version
 fdf1.div(other = fdf2).show()
 \f[R]
 .fi
@@ -774,7 +1187,8 @@ In both versions, only common columns in both dataframes are divided.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes in order to use fill_value
+parameter during division:\f[R]
 .PP
 For example,
 .IP
@@ -842,6 +1256,8 @@ index   points  total
 2       8       NULL
 \f[R]
 .fi
+.PP
+\f[B]Divide two dataframes and using fill_value parameter:\f[R]
 .PP
 For example,
 .IP
@@ -882,35 +1298,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to be divided over the current
@@ -923,10 +1342,8 @@ parameter.
 It is used to decide whether to perform division operation along the
 indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform division operation on the columns.
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform division operation on the columns.
 Currently, axis = 1 is supported in this method.
 .PP
 \f[B]\f[BI]level\f[B]\f[R]: This is an unused parameter.
@@ -949,9 +1366,10 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs integer division operation between two dataframes or
-dataframe and scalar value.
+It performs integer division operation between operands.
 It is equivalent to \f[B]`dataframe // other'\f[R].
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -988,11 +1406,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Floor Division on a scalar value using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# floordiv() demo with scalar value using operator version
 print(fdf1 // 10)
 \f[R]
 .fi
@@ -1008,11 +1427,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Floor Division on a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# floordiv() demo with scalar value using method version
 fdf1.floordiv(10).show()
 \f[R]
 .fi
@@ -1035,6 +1455,8 @@ by a scalar value.
 .PD
 Also, resultant dataframe column elements will contain floor integer
 value.
+.PP
+\f[B]Creating two frovedis dataframes to perform floor division:\f[R]
 .PP
 For example,
 .IP
@@ -1103,11 +1525,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Floor Division on two dataframes using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# floordiv() demo on two dataframes using operator version
 print(fdf1 // fdf2)
 \f[R]
 .fi
@@ -1123,11 +1546,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Floor Division on two dataframes using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# floordiv() demo on two dataframes using method version
 fdf1.floordiv(other = fdf2).show()
 \f[R]
 .fi
@@ -1147,7 +1571,8 @@ In both versions, only common columns in both dataframes are divided.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes in order to use fill_value
+parameter during floor division:\f[R]
 .PP
 For example,
 .IP
@@ -1215,6 +1640,9 @@ index   points  total
 2       8       NULL
 \f[R]
 .fi
+.PP
+\f[B]Floor Division on two dataframes and using fill_value
+parameter:\f[R]
 .PP
 For example,
 .IP
@@ -1255,35 +1683,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to perform modulo operation with
@@ -1296,10 +1727,8 @@ parameter.
 It is used to decide whether to perform modulo operation along the
 indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform modulo operation on the columns.
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform modulo operation on the columns.
 Currently, axis = 1 is supported in this method.
 .PP
 \f[B]\f[BI]level\f[B]\f[R]: This is an unused parameter.
@@ -1322,9 +1751,10 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs modulo operation between two dataframes or dataframe and
-scalar value.
+It performs modulo operation between two operands.
 It is equivalent to \f[B]`dataframe % other'\f[R].
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -1361,11 +1791,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Modulo on a scalar value using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# mod() demo with scalar value using operator version
 print(fdf1 % 10)
 \f[R]
 .fi
@@ -1381,11 +1812,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Modulo on a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# mod() demo with scalar value using method version
 fdf1.mod(10).show()
 \f[R]
 .fi
@@ -1403,6 +1835,8 @@ index   points  total
 .PP
 In both versions, modulo operation is performed on all column elements
 (axis = 1 by default) by a scalar value.
+.PP
+\f[B]Creating two frovedis dataframes to perform modulo:\f[R]
 .PP
 For example,
 .IP
@@ -1471,11 +1905,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Modulo on two dataframes using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# mod() demo on two dataframes using operator version
 print(fdf1 % fdf2)
 \f[R]
 .fi
@@ -1491,7 +1926,8 @@ index   points  total
 \f[R]
 .fi
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes to perform modulo, use fill_value
+parameter too:\f[R]
 .PP
 For example,
 .IP
@@ -1560,11 +1996,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Modulo on two dataframes using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# mod() demo on two dataframes using method version
 fdf1.mod(other = fdf2).show()
 \f[R]
 .fi
@@ -1584,6 +2021,8 @@ In both versions, modulo is performed on only common columns in both
 dataframes.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
+.PP
+\f[B]Modulo on two dataframes and using fill_value parameter:\f[R]
 .PP
 For example,
 .IP
@@ -1624,35 +2063,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to be multiplied with the
@@ -1665,10 +2107,8 @@ parameter.
 It is used to decide whether to perform multiplication operation along
 the indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform multiplication operation on the
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform multiplication operation on the
 columns.
 Currently, axis = 1 is supported in this method.
 .PP
@@ -1692,9 +2132,10 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs multiplication operation between two dataframes or dtaframe
-and scalar value.
+It performs multiplication operation between two operands.
 It is equivalent to \f[B]`dataframe * other'\f[R].
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -1731,11 +2172,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Multiply a scalar value using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# mul() demo with scalar value using operator version
 print(fdf1 * 10)
 \f[R]
 .fi
@@ -1751,11 +2193,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Multiply a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# mul() demo with scalar value using method version
 fdf1.mul(10).show()
 \f[R]
 .fi
@@ -1773,6 +2216,8 @@ index   points  total
 .PP
 In both versions, all column elements (axis = 1 by default) are
 multiplied with a scalar value.
+.PP
+\f[B]Creating two frovedis dataframes to perform multiplication:\f[R]
 .PP
 For example,
 .IP
@@ -1841,11 +2286,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Multiply two dataframes using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# mult() demo on two dataframes using operator version
 print(fdf1 * fdf2)
 \f[R]
 .fi
@@ -1860,6 +2306,8 @@ index   points  total
 2       32      132
 \f[R]
 .fi
+.PP
+\f[B]Multiply two dataframes using method version:\f[R]
 .PP
 For example,
 .IP
@@ -1885,7 +2333,8 @@ In both versions, only common columns in both dataframes are multiplied.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes in order to use fill_value
+parameter during multiplication:\f[R]
 .PP
 For example,
 .IP
@@ -1954,6 +2403,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Multiply two dataframes and using fill_value parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -1993,35 +2444,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to perform exponential power
@@ -2034,10 +2488,8 @@ parameter.
 It is used to decide whether to perform exponential power operation
 along the indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform exponential power operation on the
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform exponential power operation on the
 columns.
 Currently, axis = 1 is supported in this method.
 .PP
@@ -2061,9 +2513,10 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs exponential power operation between two dataframes or
-dataframe and scalar value.
+It performs exponential power operation between two operands.
 It is equivalent to \f[B]`dataframe ** other'\f[R].
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -2100,11 +2553,13 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Exponential power operation on a scalar value using operator
+version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# pow() demo with scalar value using operator version
 print(fdf1 ** 2)
 \f[R]
 .fi
@@ -2120,11 +2575,13 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Exponential power operation on a scalar value using method
+version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# pow() demo with scalar value using method version
 fdf1.pow(2).show()
 \f[R]
 .fi
@@ -2142,6 +2599,9 @@ index   points  total
 .PP
 In both versions, exponential power operation is performed on all column
 elements (axis = 1 by default) by a scalar value.
+.PP
+\f[B]Creating two frovedis dataframes to perform exponential power
+operation:\f[R]
 .PP
 For example,
 .IP
@@ -2210,11 +2670,13 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Exponential power operation on two dataframes using operator
+version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# pow() demo on two dataframes using operator version
 print(fdf1 ** fdf2)
 \f[R]
 .fi
@@ -2230,11 +2692,13 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Exponential power operation on two dataframes using method
+version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# pow() demo on two dataframes using method version
 fdf1.pow(other = fdf2).show()
 \f[R]
 .fi
@@ -2255,7 +2719,8 @@ both dataframes.
 Exponential power operation on other are replaced with NaN values in
 resultant dataframe (fill_value = None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes and use fill_value parameter
+during exponential power operation:\f[R]
 .PP
 For example,
 .IP
@@ -2324,6 +2789,9 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Exponential power operation on two dataframes and using fill_value
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2363,35 +2831,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to be subtracted with the
@@ -2404,11 +2875,8 @@ parameter.
 It is used to decide whether to perform subtraction operation along the
 indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform subtraction operation on the
-columns.
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform subtraction operation on the columns.
 Currently, axis = 1 is supported in this method.
 .PP
 \f[B]\f[BI]level\f[B]\f[R]: This is an unused parameter.
@@ -2431,9 +2899,10 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs subtraction operation between two dataframes or dtaframe and
-scalar value.
+It performs subtraction operation between two operands.
 It is equivalent to \f[B]`dataframe - other'\f[R].
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -2470,11 +2939,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Subtract a scalar value using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# sub() demo with scalar value using operator version
 print(fdf1 - 10)
 \f[R]
 .fi
@@ -2490,11 +2960,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Subtract a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# sub() demo with scalar value using method version
 fdf1.sub(10).show()
 \f[R]
 .fi
@@ -2512,6 +2983,8 @@ index   points  total
 .PP
 In both versions, all column elements (axis = 1 by default) are
 subtracted by a scalar value.
+.PP
+\f[B]Creating two frovedis dataframes to perform subtraction:\f[R]
 .PP
 For example,
 .IP
@@ -2580,11 +3053,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Subtract two dataframes using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# sub() demo on two dataframes using operator version
 print(fdf1 - fdf2)
 \f[R]
 .fi
@@ -2600,11 +3074,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Subtract two dataframes using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# sub() demo on two dataframes using method version
 fdf1.sub(other = fdf2).show()
 \f[R]
 .fi
@@ -2624,7 +3099,8 @@ In both versions, only common columns in both dataframes are subtracted.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes and use fill_value parameter
+during subtraction:\f[R]
 .PP
 For example,
 .IP
@@ -2693,6 +3169,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Subtract two dataframes and using fill_value parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -2732,35 +3210,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to be divided with the current
@@ -2773,10 +3254,8 @@ parameter.
 It is used to decide whether to perform division operation along the
 indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform division operation on the columns.
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform division operation on the columns.
 Currently, axis = 1 is supported in this method.
 .PP
 \f[B]\f[BI]level\f[B]\f[R]: This is an unused parameter.
@@ -2799,9 +3278,10 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs floating division operation between two dataframes or
-dtaframe and scalar value.
+It performs floating division operation between two operands.
 It is equivalent to \f[B]`dataframe / other'\f[R].
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -2838,11 +3318,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Floating Division on a scalar value using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# truediv() demo with scalar value using operator version
 print(fdf1 / 10)
 \f[R]
 .fi
@@ -2858,11 +3339,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Floating Division on a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# truediv() demo with scalar value using method version
 fdf1.truediv(10).show()
 \f[R]
 .fi
@@ -2880,6 +3362,8 @@ index   points  total
 .PP
 In both versions, all column elements (axis = 1 by default) are divied
 by a scalar value.
+.PP
+\f[B]Creating two frovedis dataframes to perform floating division:\f[R]
 .PP
 For example,
 .IP
@@ -2948,11 +3432,12 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Floating Division on two dataframes using operator version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# truediv() demo on two dataframes using operator version
 print(fdf1 / fdf2)
 \f[R]
 .fi
@@ -2968,11 +3453,12 @@ index   points    total
 \f[R]
 .fi
 .PP
+\f[B]Floating Division on two dataframes using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
 \f[C]
-# truediv() demo on two dataframes using method version
 fdf1.truediv(other = fdf2).show()
 \f[R]
 .fi
@@ -2992,7 +3478,8 @@ In both versions, only common columns in both dataframes are divided.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes and use fill_value parameter
+during floating division:\f[R]
 .PP
 For example,
 .IP
@@ -3061,6 +3548,9 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Floating Division on two dataframes and using fill_value
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3100,35 +3590,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to be added with the current
@@ -3141,10 +3634,8 @@ parameter.
 It is used to decide whether to perform reverse addition operation along
 the indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform reverse addition operation on the
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform reverse addition operation on the
 columns.
 Currently, axis = 1 is supported in this method.
 .PP
@@ -3168,13 +3659,14 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs reverse addition operation between two dataframes or
-dataframe and scalar value.
+It performs reverse addition operation between two operands.
 It is equivalent to \f[B]`other + dataframe'\f[R].
 .PP
 \f[B]Currently, it does not perform reverse addition of scalar using
 operator version.
 Only method version is supported.\f[R]
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -3211,6 +3703,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse addition on a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3233,6 +3727,8 @@ index   points  total
 .PP
 Here, it adds the scalar to all columns in dataframe (axis = 1 by
 default).
+.PP
+\f[B]Creating two frovedis dataframes to perform reverse addition:\f[R]
 .PP
 For example,
 .IP
@@ -3301,6 +3797,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse addition on two dataframes using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3325,7 +3823,8 @@ Here, only common columns in both dataframes are added.
 Column values in other datframe are replaced with NaN values in
 resultant dataframe (fill_value = None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes and use fill_value parameter
+during reverse addition:\f[R]
 .PP
 For example,
 .IP
@@ -3393,6 +3892,9 @@ index   points  total
 2       8       NULL
 \f[R]
 .fi
+.PP
+\f[B]Reverse addition on two dataframes and using fill_value
+parameter:\f[R]
 .PP
 For example,
 .IP
@@ -3433,35 +3935,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to be divided with the current
@@ -3474,10 +3979,8 @@ parameter.
 It is used to decide whether to perform reverse division operation along
 the indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform reverse division operation on the
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform reverse division operation on the
 columns.
 Currently, axis = 1 is supported in this method.
 .PP
@@ -3501,8 +4004,7 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs reverse floating division operation between two dataframes
-or dataframe and a scalar value.
+It performs reverse floating division operation between two operands.
 It is equivalent to \f[B]`other / dataframe'\f[R].
 .PP
 It is an alias of rtruediv().
@@ -3510,6 +4012,8 @@ It is an alias of rtruediv().
 \f[B]Currently, it does not perform reverse division of scalar using
 operator version.
 Only method version is supported.\f[R]
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -3546,6 +4050,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse division on a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3568,6 +4074,8 @@ index   points  total
 .PP
 Here, it uses the scalar to perform division on all column elements in
 dataframe (axis = 1 by default).
+.PP
+\f[B]Creating two frovedis dataframes to perform reverse division:\f[R]
 .PP
 For example,
 .IP
@@ -3636,6 +4144,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse division on two dataframes using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3660,7 +4170,8 @@ Here, only common columns in both dataframes are divided.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes and use fill_value parameter
+during reverse division:\f[R]
 .PP
 For example,
 .IP
@@ -3728,6 +4239,9 @@ index   points  total
 2       8       NULL
 \f[R]
 .fi
+.PP
+\f[B]Reverse division on two dataframes and using fill_value
+parameter:\f[R]
 .PP
 For example,
 .IP
@@ -3768,35 +4282,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to be divided with the current
@@ -3809,10 +4326,8 @@ parameter.
 It is used to decide whether to perform reverse division operation along
 the indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform reverse division operation on the
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform reverse division operation on the
 columns.
 Currently, axis = 1 is supported in this method.
 .PP
@@ -3836,13 +4351,14 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs reverse floating division operation between two dataframes
-or dataframe and scalar value.
+It performs reverse floating division operation between two operands.
 It is equivalent to \f[B]`other // dataframe'\f[R].
 .PP
 \f[B]Currently, it does not perform reverse division of scalar using
 operator version.
 Only method version is supported.\f[R]
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -3879,6 +4395,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse floor division on a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3906,6 +4424,9 @@ Here, it uses the scalar to perform division on all column elements
 .PD
 Also, resultant dataframe column elements will contain floor integer
 value.
+.PP
+\f[B]Creating two frovedis dataframes to perform reverse floor
+division:\f[R]
 .PP
 For example,
 .IP
@@ -3974,6 +4495,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse floor division on two dataframes using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -3998,7 +4521,8 @@ Here, only common columns in both dataframes are divided.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes and use fill_value parameter
+during reverse floor division:\f[R]
 .PP
 For example,
 .IP
@@ -4067,6 +4591,9 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse floor division on two dataframes and using fill_value
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4106,35 +4633,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to perform modulo operation with
@@ -4147,10 +4677,8 @@ parameter.
 It is used to decide whether to perform reverse modulo operation along
 the indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform reverse modulo operation on the
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform reverse modulo operation on the
 columns.
 Currently, axis = 1 is supported in this method.
 .PP
@@ -4174,13 +4702,14 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs reverse modulo operation between two dataframes or dataframe
-and scalar value.
+It performs reverse modulo operation between two operands.
 It is equivalent to \f[B]`other % dataframe'\f[R].
 .PP
 \f[B]Currently, it does not perform reverse modulo of scalar using
 operator version.
 Only method version is supported.\f[R]
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -4217,6 +4746,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse modulo on a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4239,6 +4770,8 @@ index   points  total
 .PP
 Here, it uses the scalar to perform modulo operation on all column
 elements (axis = 1 by default).
+.PP
+\f[B]Creating two frovedis dataframes to perform reverse modulo:\f[R]
 .PP
 For example,
 .IP
@@ -4307,6 +4840,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse modulo on two dataframes using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4331,7 +4866,8 @@ Here, modulo is performed on only common columns in both dataframes.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes and use fill_value parameter
+during reverse modulo:\f[R]
 .PP
 For example,
 .IP
@@ -4399,6 +4935,9 @@ index   points  total
 2       8       NULL
 \f[R]
 .fi
+.PP
+\f[B]Reverse modulo on two dataframes and using fill_value
+parameter:\f[R]
 .PP
 For example,
 .IP
@@ -4440,35 +4979,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to be multiplied with the
@@ -4481,10 +5023,8 @@ parameter.
 It is used to decide whether to perform reverse multiplication operation
 along the indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform reverse multiplication operation on
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform reverse multiplication operation on
 the columns.
 Currently, axis = 1 is supported in this method.
 .PP
@@ -4508,13 +5048,14 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs reverse multiplication operation between two dataframes or
-dataframe and scalar value.
+It performs reverse multiplication operation between two operands.
 It is equivalent to \f[B]`other * dataframe'\f[R].
 .PP
 \f[B]Currently, it does not perform reverse multiplication of scalar
 using operator version.
 Only method version is supported.\f[R]
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -4551,6 +5092,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse multiplication on a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4573,6 +5116,9 @@ index   points  total
 .PP
 Here, it uses the scalar to perform multiplication on all column
 elements in dataframe (axis = 1 by default).
+.PP
+\f[B]Creating two frovedis dataframes to perform reverse
+multiplication:\f[R]
 .PP
 For example,
 .IP
@@ -4641,6 +5187,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse multiplication on two dataframes using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4665,7 +5213,8 @@ Here, only common columns in both dataframes are multiplied.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes and use fill_value parameter
+during reverse multiplication:\f[R]
 .PP
 For example,
 .IP
@@ -4734,6 +5283,9 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse multiplication on two dataframes and using fill_value
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4773,35 +5325,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to perfomr exponential power
@@ -4814,11 +5369,9 @@ parameter.
 It is used to decide whether to perform reverse exponential power
 operation along the indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform reverse exponential power operation
-on the columns.
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform reverse exponential power operation on
+the columns.
 Currently, axis = 1 is supported in this method.
 .PP
 \f[B]\f[BI]level\f[B]\f[R]: This is an unused parameter.
@@ -4841,13 +5394,14 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs reverse exponential power operation between two dataframes
-or dtaframe and scalar value.
+It performs reverse exponential power operation between two operands.
 It is equivalent to \f[B]`other ** dataframe'\f[R].
 .PP
 \f[B]Currently, it does not perform reverse exponential power operation
 of scalar using operator version.
 Only method version is supported.\f[R]
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -4884,6 +5438,9 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse exponential power operation on a scalar value using method
+version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4906,6 +5463,9 @@ index   points  total
 .PP
 Here, it uses the scalar to perform exponential power operation on all
 column elements in dataframe (axis = 1 by default).
+.PP
+\f[B]Creating two frovedis dataframes to perform reverse exponential
+power operation:\f[R]
 .PP
 For example,
 .IP
@@ -4974,6 +5534,9 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse exponential power operation on two dataframes using method
+version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -4999,7 +5562,8 @@ both dataframes.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes and use fill_value parameter
+during reverse exponential power operation:\f[R]
 .PP
 For example,
 .IP
@@ -5067,6 +5631,9 @@ index   points  total
 2       8       NULL
 \f[R]
 .fi
+.PP
+\f[B]Reverse exponential power operation on two dataframes and using
+fill_value parameter:\f[R]
 .PP
 For example,
 .IP
@@ -5108,35 +5675,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to be subtracted with the
@@ -5149,10 +5719,8 @@ parameter.
 It is used to decide whether to perform reverse subtraction operation
 along the indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform reverse subtraction operation on the
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform reverse subtraction operation on the
 columns.
 Currently, axis = 1 is supported in this method.
 .PP
@@ -5176,13 +5744,14 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs reverse subtraction operation between two dataframes or
-dataframe and scalar value.
+It performs reverse subtraction operation between two operands.
 It is equivalent to \f[B]`other - dataframe'\f[R].
 .PP
 \f[B]Currently, it does not perform reverse subtraction of scalar using
 operator version.
 Only method version is supported.\f[R]
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -5219,6 +5788,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse subtraction on a scalar value using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -5241,6 +5812,9 @@ index   points  total
 .PP
 Here, it subtracts the scalar to all columns in dataframe (axis = 1 by
 default).
+.PP
+\f[B]Creating two frovedis dataframes to perform reverse
+subtraction:\f[R]
 .PP
 For example,
 .IP
@@ -5309,6 +5883,8 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse subtraction on two dataframes using method version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -5333,7 +5909,8 @@ Here, only common columns in both dataframes are subtracted.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes and use fill_value parameter
+during reverse subtraction:\f[R]
 .PP
 For example,
 .IP
@@ -5402,6 +5979,9 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse subtraction on two dataframes and using fill_value
+parameter:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -5441,35 +6021,38 @@ operation.
 .PD
 \f[B]\f[BI]other\f[B]\f[R]: It can accept single or multiple element
 data structure like the following:
+.IP \[bu] 2
+Number
 .PD 0
 .P
 .PD
-- Number
-.PD 0
-.P
-.PD
-- List.
+.IP \[bu] 2
+List having 1 dimension.
 Currently, this method supports operation on only list of numeric
 values.
 .PD 0
 .P
 .PD
-- A numpy ndarray.
+.IP \[bu] 2
+A numpy ndarray having 1 dimension.
 Currently, this method supports operation on only an array of numeric
 values.
 .PD 0
 .P
 .PD
-- pandas DataFrame.
+.IP \[bu] 2
+pandas DataFrame.
 It must not be an empty dataframe.
 .PD 0
 .P
 .PD
-- pandas Series
+.IP \[bu] 2
+pandas Series
 .PD 0
 .P
 .PD
-- frovedis DataFrame.
+.IP \[bu] 2
+frovedis DataFrame.
 It must not be an empty dataframe.
 .PP
 Any of these is considered as the value to be divided with the current
@@ -5482,10 +6065,8 @@ parameter.
 It is used to decide whether to perform reverse division operation along
 the indices or by column labels.
 (Default: `columns')
-.PD 0
-.P
-.PD
-- \f[B]1 or `columns'\f[R]: perform reverse division operation on the
+.IP \[bu] 2
+\f[B]1 or `columns'\f[R]: perform reverse division operation on the
 columns.
 Currently, axis = 1 is supported in this method.
 .PP
@@ -5509,13 +6090,14 @@ dataframe locations is missing, then the result will be missing
 .PD 0
 .P
 .PD
-It performs reverse floating division operation between two dataframes
-or dtaframe and scalar value.
+It performs reverse floating division operation between two operands.
 It is equivalent to \f[B]`other / dataframe'\f[R].
 .PP
 \f[B]Currently, it does not perform reverse division of scalar using
 operator version.
 Only method version is supported.\f[R]
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -5552,6 +6134,9 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse floating division on a scalar value using method
+version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -5574,6 +6159,9 @@ index   points  total
 .PP
 Here, it uses the scalar to perform division on all column elements in
 dataframe (axis = 1 by default).
+.PP
+\f[B]Creating two frovedis dataframes to perform reverse floating
+division:\f[R]
 .PP
 For example,
 .IP
@@ -5642,6 +6230,9 @@ index   points  total
 \f[R]
 .fi
 .PP
+\f[B]Reverse floating division on two dataframes using method
+version:\f[R]
+.PP
 For example,
 .IP
 .nf
@@ -5666,7 +6257,8 @@ Here, only common columns in both dataframes are divided.
 Other are replaced with NaN values in resultant dataframe (fill_value =
 None by default).
 .PP
-\f[B]When fill_value is not None,\f[R]
+\f[B]Creating two frovedis dataframes and use fill_value parameter
+during reverse floating division:\f[R]
 .PP
 For example,
 .IP
@@ -5734,6 +6326,9 @@ index   points  total
 2       8       NULL
 \f[R]
 .fi
+.PP
+\f[B]Reverse floating division on two dataframes and using fill_value
+parameter:\f[R]
 .PP
 For example,
 .IP
