@@ -44,127 +44,38 @@ generally/frequently used with it to perform operations:
 .IP
 .nf
 \f[C]
-1. add_index(name)
-2. append(other, ignore_index = False, verify_integrity = False, sort = False)
-3. apply()
-4. astype(dtype, copy = True, errors = \[aq]raise\[aq], check_bool_like_string = False)
-5. between(left, right, inclusive=\[dq]both\[dq])
-6. copy(deep = True)
-7. countna()
-8. describe()        
-9. drop(labels = None, axis = 0, index = None, columns = None, level = None, 
+1. append(other, ignore_index = False, verify_integrity = False, sort = False)
+2. apply()
+3. astype(dtype, copy = True, errors = \[aq]raise\[aq], check_bool_like_string = False)
+4. between(left, right, inclusive=\[dq]both\[dq])
+5. copy(deep = True)
+6. countna()
+7. describe()        
+8. drop(labels = None, axis = 0, index = None, columns = None, level = None, 
         inplace = False, errors = \[aq]raise\[aq])
-10. drop_duplicates(subset = None, keep = \[aq]first\[aq], inplace = False, ignore_index = False)
-11. dropna(axis = 0, how = \[aq]any\[aq], thresh = None, subset = None, inplace = False)
-12. fillna(value = None, method = None, axis = None, inplace = False, limit = None, downcast = None)
-13. filter(items = None, like = None, regex = None, axis = None)
-14. get_index_loc(value)
-15. head(n = 5)
-16. insert(loc, column, value, allow_duplicates = False)
-17. isna()
-18. isnull()
-19. join(right, on, how = \[aq]inner\[aq], lsuffix = \[aq]_left\[aq], rsuffix = \[aq]_right\[aq], 
+9. drop_duplicates(subset = None, keep = \[aq]first\[aq], inplace = False, ignore_index = False)
+10. dropna(axis = 0, how = \[aq]any\[aq], thresh = None, subset = None, inplace = False)
+11. fillna(value = None, method = None, axis = None, inplace = False, limit = None, downcast = None)
+12. filter(items = None, like = None, regex = None, axis = None)
+13. get_index_loc(value)
+14. head(n = 5)
+15. insert(loc, column, value, allow_duplicates = False)
+16. isna()
+17. isnull()
+18. join(right, on, how = \[aq]inner\[aq], lsuffix = \[aq]_left\[aq], rsuffix = \[aq]_right\[aq], 
          sort = False, join_type = \[aq]bcast\[aq])
-20. merge(right, on = None, how = \[aq]inner\[aq], left_on = None, right_on = None, 
+19. merge(right, on = None, how = \[aq]inner\[aq], left_on = None, right_on = None, 
           left_index = False, right_index = False, sort = False, suffixes = (\[aq]_x\[aq], \[aq]_y\[aq]), 
           copy = True, indicator = False, join_type = \[aq]bcast\[aq])
-21. rename(columns, inplace = False)
-22. rename_index(new_name, inplace = False)
-23. reset_index(drop = False, inplace = False)
-24. set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
-25. show()
-26. tail(n = 5)
-27. update_index(value, key = None, verify_integrity = False, inplace = False) 
+20. rename(columns, inplace = False)
+21. reset_index(drop = False, inplace = False)
+22. set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
+23. show()
+24. tail(n = 5)
 \f[R]
 .fi
 .SS Detailed Description
-.SS 1. DataFrame.add_index(name)
-.PP
-\f[B]Parameters\f[R]
-.PD 0
-.P
-.PD
-\f[B]\f[BI]name\f[B]\f[R]: It accepts a string object as parameter which
-represents the name of the index label.
-.PP
-\f[B]Purpose\f[R]
-.PD 0
-.P
-.PD
-It adds index column to the Frovedis DataFrame object.
-The index added is zero based i.e.\ [0, 1, \&...
-n-1] where n is the number of rows.
-.PP
-\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import pandas as pd
-import frovedis.dataframe as fdf
-
-peopleDF = {
-            \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]],
-            \[aq]Age\[aq] : [29, 30, 27, 19, 31],
-            \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
-            \[aq]isMale\[aq]: [False, False, False, False, True]
-           }
-
-# create a pandas dataframe
-pd_df = pd.DataFrame(peopleDF)
-
-# create a frovedis dataframe
-fd_df = fdf.DataFrame(pd_df)
-
-# display the frovedis dataframe
-fd_df.show()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   Ename   Age     Country isMale
-0       Michael 29      USA     0
-1       Andy    30      England 0
-2       Tanaka  27      Japan   0
-3       Raul    19      France  0
-4       Yuta    31      Japan   1
-\f[R]
-.fi
-.PP
-\f[B]Adding `SNo' column as new index:\f[R]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# add_index() demo
-fd_df.add_index(\[dq]SNo\[dq]).show()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-SNo   index   Ename   Age     Country isMale
-0     0       Michael 29      USA     0
-1     1       Andy    30      England 0
-2     2       Tanaka  27      Japan   0
-3     3       Raul    19      France  0
-4     4       Yuta    31      Japan   1  
-\f[R]
-.fi
-.PP
-\f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-It returns a self reference.
-.SS 2. DataFrame.append(other, ignore_index = False, verify_integrity = False, sort = False)
+.SS 1. DataFrame.append(other, ignore_index = False, verify_integrity = False, sort = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -502,7 +413,7 @@ y       7       8       NULL    NULL
 .PD
 It returns a new Frovedis DataFrame consisting of the rows of original
 DataFrame object and the rows of other DataFrame object.
-.SS 3. DataFrame.apply(func, axis = 0, raw = False, result_type = None, args = (), **kwds)
+.SS 2. DataFrame.apply(func, axis = 0, raw = False, result_type = None, args = (), **kwds)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -741,7 +652,7 @@ aggregation function is completed.
 It returns a pandas DataFrame instance with numeric column(s) only,
 after aggregation function is completed.
 .RE
-.SS 4. DataFrame.astype(dtype, copy = True, errors = `raise', check_bool_like_string = False)
+.SS 3. DataFrame.astype(dtype, copy = True, errors = `raise', check_bool_like_string = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -990,7 +901,7 @@ dtype: object
 .P
 .PD
 It returns a new DataFrame instance with dtype converted as specified.
-.SS 5. DataFrame.between(left, right, inclusive = \[lq]both\[rq])
+.SS 4. DataFrame.between(left, right, inclusive = \[lq]both\[rq])
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1223,7 +1134,7 @@ Output
 .P
 .PD
 It returns a dfoperator instance.
-.SS 6. DataFrame.copy(deep = True)
+.SS 5. DataFrame.copy(deep = True)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1352,7 +1263,7 @@ not in original DataFrame instance.\f[R]
 .P
 .PD
 It returns a deep copy of the DataFrame instance of the same type.
-.SS 7. DataFrame.countna(axis = 0)
+.SS 6. DataFrame.countna(axis = 0)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1481,7 +1392,7 @@ index   count
 .P
 .PD
 It returns a frovedis DataFrame instance.
-.SS 8. DataFrame.describe()
+.SS 7. DataFrame.describe()
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -1575,7 +1486,7 @@ max      36.000000   52.000000
 .PD
 It returns a pandas DataFrame instance with the result of the specified
 aggregate operation.
-.SS 9. DataFrame.drop(labels = None, axis = 0, index = None, columns = None, level = None, inplace = False, errors = `raise')
+.SS 8. DataFrame.drop(labels = None, axis = 0, index = None, columns = None, level = None, inplace = False, errors = `raise')
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1761,7 +1672,7 @@ It returns a new of Frovedis DataFrame having remaining entries.
 .PD
 .IP \[bu] 2
 It returns None when parameter `inplace' = True.
-.SS 10. DataFrame.drop_duplicates(subset = None, keep = `first', inplace = False, ignore_index = False)
+.SS 9. DataFrame.drop_duplicates(subset = None, keep = `first', inplace = False, ignore_index = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -1924,7 +1835,7 @@ It returns a new of Frovedis DataFrame having remaining entries.
 .PD
 .IP \[bu] 2
 It returns None when parameter `inplace' = True.
-.SS 11. DataFrame.dropna(axis = 0, how = `any', thresh = None, subset = None, inplace = False)
+.SS 10. DataFrame.dropna(axis = 0, how = `any', thresh = None, subset = None, inplace = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2212,7 +2123,7 @@ dropped.
 .PD
 .IP \[bu] 2
 If inplace = True, it returns None.
-.SS 12. DataFrame.fillna(value = None, method = None, axis = None, inplace = False, limit = None, downcast = None)
+.SS 11. DataFrame.fillna(value = None, method = None, axis = None, inplace = False, limit = None, downcast = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2242,7 +2153,7 @@ It decides the axis along which missing values will be filled.
 .P
 .PD
 - 0 or `index': Operation will be carried out on rows.
-Currently only axis = 0 is supported in Frovedis DataFrame.
+\f[B]Currently only axis = 0 is supported in Frovedis DataFrame\f[R].
 .PD 0
 .P
 .PD
@@ -2377,7 +2288,7 @@ It returns a Frovedis DataFrame object with missing values replaced when
 .PD
 .IP \[bu] 2
 It returns None when `inplace' parameter is set to True.
-.SS 13. DataFrame.filter(items = None, like = None, regex = None, axis = None)
+.SS 12. DataFrame.filter(items = None, like = None, regex = None, axis = None)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2540,7 +2451,7 @@ rabbit  6
 .PD
 It returns a new Frovedis DataFrame instance with the column labels that
 matches the given conditions.
-.SS 14. DataFrame.get_index_loc(value)
+.SS 13. DataFrame.get_index_loc(value)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2753,7 +2664,7 @@ in index.
 .PD
 3.
 \f[B]mask:\f[R] it returns a list of boolean values.
-.SS 15. DataFrame.head(n = 5)
+.SS 14. DataFrame.head(n = 5)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2893,7 +2804,7 @@ rows.
 .IP \[bu] 2
 If n is negative integer, it returns a new DataFrame with all rows
 except last n rows.
-.SS 16. DataFrame.insert(loc, column, value, allow_duplicates = False)
+.SS 15. DataFrame.insert(loc, column, value, allow_duplicates = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -3002,7 +2913,7 @@ index   col0    col1    col2
 .P
 .PD
 It returns a self reference.
-.SS 17. DataFrame.isna()
+.SS 16. DataFrame.isna()
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -3141,7 +3052,7 @@ index   0
 It returns a new Frovedis DataFrame having all boolean values (0, 1)
 corresponding to each of the Frovedis DataFrame values depending on
 whether it is a valid NaN (True i.e.\ 1) value or not (False i.e.\ 0).
-.SS 18. DataFrame.isnull()
+.SS 17. DataFrame.isnull()
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -3282,7 +3193,7 @@ index   0
 It returns a Frovedis DataFrame having boolean values (0, 1)
 corresponding to each of the Frovedis DataFrame value depending of
 whether it is a valid NaN (True i.e.\ 1) value or not (False i.e.\ 0).
-.SS 19. DataFrame.join(right, on, how = `inner', lsuffix = `_left', rsuffix = `_right', sort = False, join_type = `bcast')
+.SS 18. DataFrame.join(right, on, how = `inner', lsuffix = `_left', rsuffix = `_right', sort = False, join_type = `bcast')
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -3492,7 +3403,7 @@ index   key     A       B
 .PD
 It returns a new Frovedis DataFrame containing columns from both the
 DataFrame instances.
-.SS 20. DataFrame.merge(right, on = None, how = `inner', left_on = None, right_on = None, left_index = False, right_index = False, sort = False, suffixes = (`_x', `_y'), copy = True, indicator = False, join_type = `bcast')
+.SS 19. DataFrame.merge(right, on = None, how = `inner', left_on = None, right_on = None, left_index = False, right_index = False, sort = False, suffixes = (`_x', `_y'), copy = True, indicator = False, join_type = `bcast')
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -3775,7 +3686,7 @@ For example,
 .IP
 .nf
 \f[C]
-# merge(0 demo with same suffixes on \[aq]lkey\[aq] and \[aq]rkey\[aq]
+# merge() demo with same suffixes on \[aq]lkey\[aq] and \[aq]rkey\[aq]
 fd_df1.merge(fd_df2, left_on = \[aq]lkey\[aq], right_on = \[aq]rkey\[aq], suffixes = (\[aq]_test\[aq], \[aq]_test\[aq])).show()
 \f[R]
 .fi
@@ -3854,7 +3765,7 @@ For example,
 .IP
 .nf
 \f[C]
-# merge(0 demo with left_index = True and right_index = True
+# merge() demo with left_index = True and right_index = True
 fd_df1.merge(fd_df2, left_index = True, right_index = True).show()
 \f[R]
 .fi
@@ -3949,7 +3860,7 @@ index   a       b       c
 .PD
 It returns a new Frovedis DataFrame instance with the merged entries of
 the two DataFrame instances.
-.SS 21. DataFrame.rename(columns, inplace = False)
+.SS 20. DataFrame.rename(columns, inplace = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -4059,102 +3970,7 @@ specified columns.
 .PD
 .IP \[bu] 2
 It returns None when `inplace' parameter is set to True.
-.SS 22. DataFrame.rename_index(new_name, inplace = False)
-.PP
-\f[B]Parameters\f[R]
-.PD 0
-.P
-.PD
-\f[B]\f[BI]new_name\f[B]\f[R]: It accepts a string object as parameter.
-It renames the index for which the value is provided.
-.PD 0
-.P
-.PD
-\f[B]\f[BI]inplace\f[B]\f[R]: It accepts a boolean values as parameter.
-When it is explicitly set to True, it modifies the original object
-directly instead of creating a copy of DataFrame instance.
-(Default: False)
-.PP
-\f[B]Purpose\f[R]
-.PD 0
-.P
-.PD
-It is used to rename the index label.
-.PP
-\f[B]Creating a frovedis DataFrame from pandas DataFrame:\f[R]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import pandas as pd
-import frovedis.dataframe as fdf
-
-peopleDF = {
-            \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]],
-            \[aq]Age\[aq] : [29, 30, 27, 19, 31],
-            \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
-            \[aq]isMale\[aq]: [False, False, False, False, True]
-           }
-
-# creating a pandas dataframe
-pd_df = pd.DataFrame(peopleDF)
-
-# creating a frovedis dataframe
-fd_df = fdf.DataFrame(pd_df)
-
-# display a frovedis dataframe
-fd_df.show()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   Ename   Age     Country isMale
-0       Michael 29      USA     0
-1       Andy    30      England 0
-2       Tanaka  27      Japan   0
-3       Raul    19      France  0
-4       Yuta    31      Japan   1
-\f[R]
-.fi
-.PP
-\f[B]Renaming current index label to `SNo':\f[R]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# rename_index() demo where renaming index to \[dq]SNo\[dq]
-fd_df.rename_index(\[dq]SNo\[dq]).show()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-SNo     Ename   Age     Country isMale
-0       Michael 29      USA     0
-1       Andy    30      England 0
-2       Tanaka  27      Japan   0
-3       Raul    19      France  0
-4       Yuta    31      Japan   1
-\f[R]
-.fi
-.PP
-\f[B]Return Value\f[R]
-.IP \[bu] 2
-It returns a new Frovedis DataFrame with the updated label for the Index
-label.
-.PD 0
-.P
-.PD
-.IP \[bu] 2
-It returns None when inplace parameter is set to True.
-.SS 23. DataFrame.reset_index(drop = False, inplace = False)
+.SS 21. DataFrame.reset_index(drop = False, inplace = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -4288,7 +4104,7 @@ label.
 .PD
 .IP \[bu] 2
 It returns None if `inplace' parameter is set to True.
-.SS 24. DataFrame.set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
+.SS 22. DataFrame.set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -4428,7 +4244,7 @@ replace with specified column label.
 .PD
 .IP \[bu] 2
 It returns None when `inplace' parameter is set to True.
-.SS 25. DataFrame.show()
+.SS 23. DataFrame.show()
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -4587,7 +4403,7 @@ index   Ename   Age     Country isMale
 .P
 .PD
 It return nothing.
-.SS 26. DataFrame.tail(n = 5)
+.SS 24. DataFrame.tail(n = 5)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -4681,7 +4497,7 @@ For example,
 .IP
 .nf
 \f[C]
-# tail(0 demo with n = 3
+# tail() demo with n = 3
 print(\[dq]Viewing the last 3 lines\[dq])
 fd_df.tail(3).show()
 \f[R]
@@ -4732,146 +4548,6 @@ index   animal
 .P
 .PD
 It returns a new Frovedis DataFrame instance with last \f[B]n\f[R] rows.
-.SS 27. DataFrame.update_index(value, key = None, verify_integrity = False, inplace = False)
-.PP
-\f[B]Parameters\f[R]
-.PD 0
-.P
-.PD
-\f[B]\f[BI]value\f[B]\f[R]: It accepts a list-like object (list or
-tuple) as parameter.
-It contains the entries of the new index label.
-.PD 0
-.P
-.PD
-\f[B]\f[BI]key\f[B]\f[R]: It accepts a string object as parameter.
-It is the name of the index label.
-(Default: None)
-.PD 0
-.P
-.PD
-When it is None (not specified explicitly), it will not update the index
-entries and it will raise an exception.
-.PD 0
-.P
-.PD
-\f[B]\f[BI]verify_integrity\f[B]\f[R]: It accepts a boolean value as
-parameter.
-When it is explicitly set to True, it checks the new index for
-duplicates values before update and it will not update the index when
-there are duplicate values.
-Performance of this method will be improved when it is set to False.
-(Default: False)
-.PD 0
-.P
-.PD
-\f[B]\f[BI]inplace\f[B]\f[R]: It accepts a boolean as a parameter.
-It return a copy of DataFrame instance by default but when explicitly
-set to True, it performs operation on original DataFrame.
-(Default: False)
-.PP
-\f[B]Purpose\f[R]
-.PD 0
-.P
-.PD
-It sets the DataFrame index using existing columns.
-The index can replace the existing index or can expand it.
-.PP
-\f[B]Creting frovedis DataFrame from pandas DataFrame:\f[R]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-import pandas as pd
-import frovedis.dataframe as fdf
-
-# creating a pandas dataframe
-pd_df = pd.DataFrame({\[aq]month\[aq]: [1, 4, 7, 10],
-                     \[aq]year\[aq]: [2012, 2014, 2013, 2014],
-                     \[aq]sale\[aq]: [55, 40, 84, 31]})
-
-# creating a frovedis dataframe
-fd_df = fdf.DataFrame(pd_df)
-
-# display frovedis dataframe
-fd_df.show()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   month   year    sale
-0       1       2012    55
-1       4       2014    40
-2       7       2013    84
-3       10      2014    31
-\f[R]
-.fi
-.PP
-\f[B]To update the current index values with new values:\f[R]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# update_index() demo
-fd_df.update_index([\[aq]a\[aq],\[aq]b\[aq],\[aq]a\[aq],\[aq]d\[aq]], key = \[aq]index\[aq]).show()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   month   year    sale
-a       1       2012    55
-b       4       2014    40
-a       7       2013    84
-d       10      2014    31
-\f[R]
-.fi
-.PP
-\f[B]Using verify_integrity parameter:\f[R]
-.PP
-For example,
-.IP
-.nf
-\f[C]
-# update_index() demo with verify_integrity = True
-fd_df.update_index([\[aq]a\[aq],\[aq]b\[aq],\[aq]c\[aq],\[aq]d\[aq]], key = \[aq]index\[aq], verify_integrity = True).show()
-\f[R]
-.fi
-.PP
-Output
-.IP
-.nf
-\f[C]
-index   month   year    sale
-a       1       2012    55
-b       4       2014    40
-c       7       2013    84
-d       10      2014    31
-\f[R]
-.fi
-.PP
-\f[B]Note:-\f[R] Values used to update `index' must be different when
-parameter `verify_integrity' = True.
-.PP
-\f[B]Return Value\f[R]
-.PD 0
-.P
-.PD
-1.
-It returns a new Frovedis DataFrame with updated row values for index
-field along with specified label.
-.PD 0
-.P
-.PD
-2.
-It returns None when `inplace' parameter is set to True.
 .SH SEE ALSO
 .IP \[bu] 2
 \f[B]DataFrame - Introduction\f[R]
