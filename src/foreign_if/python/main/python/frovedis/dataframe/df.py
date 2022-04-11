@@ -2759,6 +2759,13 @@ class DataFrame(object):
         """
         return self.add(other)
 
+    def __radd__(self, other):
+        """
+        overloaded binary operator+ (wrapper of self.radd())
+        returns resultant dataframe after adding other + self
+        """
+        return self.radd(other)
+
     def __IADD__(self, other):
         """
         overloaded binary operator+= to perform self += other
@@ -2782,6 +2789,13 @@ class DataFrame(object):
         """
         return self.sub(other)
 
+    def __rsub__(self, other):
+        """
+        overloaded binary operator- (wrapper of self.rsub())
+        returns resultant dataframe after adding other - self
+        """
+        return self.rsub(other)
+
     def __ISUB__(self, other):
         """
         overloaded binary operator-= to perform self -= other
@@ -2804,6 +2818,13 @@ class DataFrame(object):
         returns resultant dataframe after adding self * other
         """
         return self.mul(other)
+
+    def __rmul__(self, other):
+        """
+        overloaded binary operator* (wrapper of self.rmul())
+        returns resultant dataframe after adding other * self
+        """
+        return self.rmul(other)
 
     def __IMUL__(self, other):
         """
@@ -2836,12 +2857,26 @@ class DataFrame(object):
         """
         return self.truediv(other)
 
+    def __rdiv__(self, other):
+        """
+        overloaded binary operator/ for python 2.x (wrapper of self.rtruediv())
+        returns resultant dataframe after adding other / self
+        """
+        return self.rtruediv(other)
+
     def __truediv__(self, other):
         """
         overloaded binary operator/ (wrapper of self.truediv())
         returns resultant dataframe after adding self / other
         """
         return self.truediv(other)
+
+    def __rtruediv__(self, other):
+        """
+        overloaded binary operator/ (wrapper of self.rtruediv())
+        returns resultant dataframe after adding other / self
+        """
+        return self.rtruediv(other)
 
     def __IDIV__(self, other):
         """
@@ -2866,6 +2901,13 @@ class DataFrame(object):
         """
         return self.floordiv(other)
 
+    def __rfloordiv__(self, other):
+        """
+        overloaded binary operator// (wrapper of self.rfloordiv())
+        returns resultant dataframe after adding other // self
+        """
+        return self.rfloordiv(other)
+
     def __IFLOORDIV__(self, other):
         """
         overloaded binary operator//= to perform self //= other
@@ -2889,6 +2931,13 @@ class DataFrame(object):
         """
         return self.mod(other)
 
+    def __rmod__(self, other):
+        """
+        overloaded binary operator% (wrapper of self.rmod())
+        returns resultant dataframe after adding other % self
+        """
+        return self.rmod(other)
+
     def __IMOD__(self, other):
         """
         overloaded binary operator%= to perform self %= other
@@ -2911,6 +2960,13 @@ class DataFrame(object):
         returns resultant dataframe after adding self ** other
         """
         return self.pow(other)
+
+    def __rpow__(self, other):
+        """
+        overloaded binary operator** (wrapper of self.rpow())
+        returns resultant dataframe after adding other ** self
+        """
+        return self.rpow(other)
 
     def __IPOW__(self, other):
         """
@@ -3731,6 +3787,60 @@ class DataFrame(object):
         self.__multi_index = cols
         return self
 
+    def __gt__(self, other):
+        """
+        gt: for comparison of column: series case
+        """
+        if not self.is_series:
+            raise TypeError("gt: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name] > other
+        
+    def __ge__(self, other):
+        """
+        ge: for comparison of column: series case
+        """
+        if not self.is_series:
+            raise TypeError("ge: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name] >= other
+        
+    def __lt__(self, other):
+        """
+        lt: for comparison of column: series case
+        """
+        if not self.is_series:
+            raise TypeError("lt: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name] < other
+        
+    def __le__(self, other):
+        """
+        le: for comparison of column: series case
+        """
+        if not self.is_series:
+            raise TypeError("le: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name] <= other
+        
+    def __eq__(self, other):
+        """
+        eq: for comparison of column: series case
+        """
+        if not self.is_series:
+            raise TypeError("eq: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name] == other
+        
+    def __ne__(self, other):
+        """
+        ne: for comparison of column: series case
+        """
+        if not self.is_series:
+            raise TypeError("ne: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name] != other
+        
 FrovedisDataframe = DataFrame
 
 class Iloc_handler():
