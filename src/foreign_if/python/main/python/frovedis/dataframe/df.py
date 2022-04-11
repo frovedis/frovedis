@@ -522,7 +522,7 @@ class DataFrame(object):
             if isinstance(target, str):
                 return self.select_frovedis_dataframe([target])
             elif isinstance(target, list):
-                if all(isinstance(e, bool) for e in target):
+                if all(isinstance(e, bool) for e in target) and target != []:
                     return self.__filter_using_mask(target)
                 return self.select_frovedis_dataframe(target)
             elif isinstance(target, dfoperator):
@@ -3143,25 +3143,23 @@ class DataFrame(object):
         """
         param = check_stat_error("first", DTYPE.STRING in self.__types, \
                                  skipna_=skipna)
-        ret_df = self[col_name]
-        if param.skipna_:
-            ret_df = ret_df.dropna()
-        if len(ret_df):
-            (host, port) = FrovedisServer.getServerInstance()
-            dummy_df = rpclib.df_first(host, port, \
-                                       ret_df.get(), \
-                                       col_name.encode('ascii'))
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            ret = DataFrame()
-            names = dummy_df["names"]
-            types = dummy_df["types"]
-            ret.num_row = dummy_df["nrow"]
-            ret.index = FrovedisColumn(names[0], types[0])
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-            return ret.to_numpy()[0][0]
-        return np.nan
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_first(host, port, \
+                                   self.get(), \
+                                   col_name.encode('ascii'), \
+                                   param.skipna_)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        ret = DataFrame(is_series=self.is_series)
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.num_row = dummy_df["nrow"]
+        ret.load_dummy(dummy_df["dfptr"], names, types)
+        ret = ret.to_numpy()[0][0]
+        if np.isnan(ret) and skipna == True:
+            raise ValueError("first_element: input dataframe is empty!")
+        return ret
 
     @check_association
     def last_element(self, col_name, skipna=None):
@@ -3170,25 +3168,23 @@ class DataFrame(object):
         """
         param = check_stat_error("last", DTYPE.STRING in self.__types, \
                                  skipna_=skipna)
-        ret_df = self[col_name]
-        if param.skipna_:
-            ret_df = ret_df.dropna()
-        if len(ret_df):
-            (host, port) = FrovedisServer.getServerInstance()
-            dummy_df = rpclib.df_last(host, port, \
-                                      ret_df.get(), \
-                                      col_name.encode('ascii'))
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            ret = DataFrame()
-            names = dummy_df["names"]
-            types = dummy_df["types"]
-            ret.num_row = dummy_df["nrow"]
-            ret.index = FrovedisColumn(names[0], types[0])
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-            return ret.to_numpy()[0][0]
-        return np.nan
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_last(host, port, \
+                                  self.get(), \
+                                  col_name.encode('ascii'), \
+                                  param.skipna_)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        ret = DataFrame(is_series=self.is_series)
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret.num_row = dummy_df["nrow"]
+        ret.load_dummy(dummy_df["dfptr"], names, types)
+        ret = ret.to_numpy()[0][0]
+        if np.isnan(ret) and skipna == True:
+            raise ValueError("last_element: input dataframe is empty!")
+        return ret
 
     @check_association
     def min(self, axis=None, skipna=None, level=None,
@@ -3543,6 +3539,72 @@ class DataFrame(object):
         return ret
     
     @property
+    def iloc(self):
+        return Iloc_handler(self)
+
+    def iloc_scalar(self, key):
+        """
+        DESC: Implementation for handling scalar key type for iloc.
+        PARAM: key -> Input data, can be:
+                                  - int
+        EXAMPLE: df.loc[<row idx>]
+        """
+        idx = self.index.name
+        self.add_index("__tmp_index")
+        ret = self[self.index == key]
+        ret.set_index(idx, inplace=True)
+        self.set_index(idx, inplace=True)
+        return ret #df
+
+    def iloc_tuple(self, key):
+        """
+        DESC: Implementation for handling tuple key type for iloc.
+        PARAM: key -> Input data, can be:
+                                  - tuple of row(scalar/slice/list) key and 
+                                             column(scalar/slice/list) key
+        EXAMPLE: df.iloc[<row idx>, <col idx>]
+                 df.iloc[<row idx1>:<row idx2>, <col idx>]
+                 df.iloc[<row idx>, <col idx1>:<col idx2>]
+                 df.iloc[<row idx>, [<col idx1>,<col idx2>]]
+                 df.iloc[<row idx1>:<row idx2>, <col idx1>:<col idx2>]
+        """
+        idx = self.index.name
+        self.add_index("__tmp_index")
+        ret = None
+        #row handling
+        if isinstance(key[0], slice):
+            ret = self[key[0].start : key[0].stop : key[0].step]
+        elif (isinstance(key[0], list)):
+            if all(isinstance(e, bool) for e in key[0]):
+                ret = self.__filter_using_mask(key[0])
+            else:
+                df_opt = (self.index == key[0][0])
+                for i in range(1, len(key[0])):
+                    df_opt = df_opt | (self.index == key[0][i])
+                ret = self[df_opt]
+        else:
+            ret = self[self.index == key[0]]
+        ret.set_index(idx, inplace=True)
+        self.set_index(idx, inplace=True)
+        #column handling
+        if isinstance(key[1], slice):
+            filtered_cols = self.columns[key[1].start: key[1].stop : key[1].step]
+            ret = ret[filtered_cols]
+        elif (isinstance(key[1], list)):
+            if all(isinstance(e, bool) for e in key[1]):
+                cols = [self.columns[i] for i in range(0, len(key[1])) if key[1][i]] #boolean case
+            else:
+                cols = [self.columns[key[1][i]] for i in range(0, len(key[1]))] #non boolean case
+            ret = ret[cols]
+        else:
+            ret = ret[self.columns[key[1]]]
+        if isinstance(key[1], int):
+            ret.is_series = True
+        else:
+            ret.is_series = False
+        return ret
+
+    @property
     def loc(self):
         return Loc_handler(self)
 
@@ -3670,6 +3732,34 @@ class DataFrame(object):
         return self
 
 FrovedisDataframe = DataFrame
+
+class Iloc_handler():
+    """Iloc handler"""
+    def __init__(self, df):
+        self.df = df
+    def __getitem__(self, key):
+        """
+        __getitem__
+        """
+        if isinstance(key, (int)):
+            return self.df.iloc_scalar(key)
+        elif isinstance(key, slice):
+            return self.df.iloc[key, :]
+        elif isinstance(key, tuple):
+            if len(key) == 2:
+                res = self.df.iloc_tuple(key)
+                if isinstance(key[0], (str,int,float)) \
+                    and isinstance(key[1], (str,int,float)):
+                    if len(res) == 1:
+                        res = res.to_pandas().to_numpy()[0]
+                return res
+            raise IndexingError("Too many indexers")
+        elif isinstance(key, list):
+            if all(isinstance(e, bool) for e in key):
+                return self.df[key]
+                #return self.df.iloc_filter_using_mask(key)
+            return self.df.iloc[key, :]
+        raise ("Unexpected key received!")
 
 class Loc_handler():
     """Loc handler"""
