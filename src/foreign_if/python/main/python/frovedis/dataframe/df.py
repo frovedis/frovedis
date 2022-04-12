@@ -2426,26 +2426,26 @@ class DataFrame(object):
         return res
 
     @check_association
-    def __set_col_order(self, new_cols):
+    def set_col_order(self, new_cols):
         """set_col_order"""
         if not isinstance(new_cols, list):
-            raise ValueError("__set_col_order: The new column order to be set"
+            raise ValueError("set_col_order: The new column order to be set"
                             " must be provided as list of strings!")
         else:
             check = all([ isinstance(e, str) for e in new_cols ] )
             if not check:
-                raise ValueError("__set_col_order: The new column order to be set"
+                raise ValueError("set_col_order: The new column order to be set"
                             " must be provided as list of strings!")
         current_col_order = self.columns
         if self.has_index():
             current_col_order = [self.index.name] + current_col_order
 
         if len(current_col_order) != len(new_cols):
-            raise ValueError("__set_col_order: The new column order to be set"
+            raise ValueError("set_col_order: The new column order to be set"
                             " must have same number of columns as the dataframe!")
 
         if set(current_col_order) != set(new_cols):
-            raise ValueError("__set_col_order: The new column order to be set"
+            raise ValueError("set_col_order: The new column order to be set"
                             " must have same column names as the dataframe!")
 
         sz = len(new_cols)
@@ -2749,7 +2749,7 @@ class DataFrame(object):
         ret.num_row = dummy_df["nrow"]
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         #sorting columns as per pandas result
-        ret.__set_col_order([names[0]] + sorted(names[1:]))
+        ret.set_col_order([names[0]] + sorted(names[1:]))
         return ret
 
     @check_association

@@ -283,7 +283,8 @@ class FrovedisGroupedDataframe(object):
                 else:
                     raise TypeError(\
                     "Must provide 'func' or tuples of '(column, aggfunc)'")
-            return self.__agg_with_dict(func=fdict, asname=asname)
+            order = list(kwargs.keys())
+            return self.__agg_with_dict(func=fdict, asname=asname, order=order)
         elif isinstance(func, str):
             return self.__agg_with_list([func])
         elif isinstance(func, list):
@@ -308,7 +309,7 @@ class FrovedisGroupedDataframe(object):
         return self.__agg_with_dict(args)
 
     # when asname is provided, it must be in-sync with func
-    def __agg_with_dict(self, func, asname=None):
+    def __agg_with_dict(self, func, asname=None, order=None):
         """
         __agg_with_dict
         """
@@ -386,6 +387,11 @@ class FrovedisGroupedDataframe(object):
         if len(agg_col) > 0:
             multi = pd.MultiIndex.from_tuples(list(zip(agg_col, agg_func)))
             ret.set_multi_level_column(multi)
+
+        if order:
+          ordered_cols = self.__cols + order
+          ret.set_col_order(ordered_cols)
+
         return ret
 
     def __get_numeric_columns(self):
