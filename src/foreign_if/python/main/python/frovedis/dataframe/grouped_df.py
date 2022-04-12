@@ -14,7 +14,8 @@ from ..matrix.dtype import DTYPE, get_string_array_pointer
 from .frovedisColumn import FrovedisColumn
 from .df import DataFrame
 from .dfutil import check_string_or_array_like, check_stat_error, \
-                    non_numeric_supporter
+                    non_numeric_supporter, double_typed_aggregator, \
+                    ulong_typed_aggregator
 import numbers
 
 class FrovedisGroupedDataframe(object):
@@ -248,48 +249,66 @@ class FrovedisGroupedDataframe(object):
         """ std """
         return self.__agg_func_with_ddof("std", ddof)
 
-    def agg(self, func, *args, **kwargs):
+    def agg(self, func=None, *args, **kwargs):
         """
         agg
         """
-        return self.aggregate(func, args, kwargs)
+        return self.aggregate(func, *args, **kwargs)
 
     @check_association
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         """
         aggregate
         """
-        if self.__fdata is not None:
-            if isinstance(func, str):
-                return self.__agg_with_list([func])
-            if isinstance(func, list):
-                return self.__agg_with_list(func)
-            if isinstance(func, dict):
-                return self.__agg_with_dict(func)
-            raise TypeError("Unsupported input type for aggregation")
-        raise ValueError("Operation on invalid frovedis grouped dataframe!")
+        if self.__fdata is None:
+            raise ValueError(\
+            "Operation on invalid frovedis grouped dataframe!")
+
+        if func is None:
+            if len(kwargs) == 0:
+                raise TypeError(\
+                "Must provide 'func' or tuples of '(column, aggfunc)'")
+            fdict = {}
+            asname = {}
+            for k, v in kwargs.items():
+                if (isinstance(v, tuple) and len(v) == 2):
+                    cname = v[0]
+                    fname = v[1]
+                    if cname in fdict:
+                        fdict[cname].append(fname)
+                        asname[cname].append(k)
+                    else:
+                        fdict[cname] = [fname]
+                        asname[cname] = [k]
+                else:
+                    raise TypeError(\
+                    "Must provide 'func' or tuples of '(column, aggfunc)'")
+            return self.__agg_with_dict(func=fdict, asname=asname)
+        elif isinstance(func, str):
+            return self.__agg_with_list([func])
+        elif isinstance(func, list):
+            return self.__agg_with_list(func)
+        elif isinstance(func, dict):
+            return self.__agg_with_dict(func)
+        else: 
+            raise TypeError("agg: Unsupported 'func' of type " +
+                            f"'{type(func).__name__}' is provided.")
 
     def __agg_with_list(self, func):
         """
         __agg_with_list
         """
         num_cols = self.__get_numeric_columns()
-        args = {}
-        funcs = []
-        for col in num_cols:
-            args[col] = func
-
-        for f in func:
-            if f in non_numeric_supporter:
-                funcs.append(f)
-
+        args = {col: func for col in num_cols}
+        funcs = list(filter(lambda x: x in non_numeric_supporter, func))
         if len(funcs) > 0:
             n_num_cols = self.__get_non_numeric_columns()
             for col in n_num_cols:
                 args[col] = funcs
         return self.__agg_with_dict(args)
 
-    def __agg_with_dict(self, func):
+    # when asname is provided, it must be in-sync with func
+    def __agg_with_dict(self, func, asname=None):
         """
         __agg_with_dict
         """
@@ -300,31 +319,41 @@ class FrovedisGroupedDataframe(object):
         for col, aggfuncs in func.items():
             if col not in self.__dict__:
                 raise ValueError("agg: No column named: ", col)
-            else: tid = self.__dict__[col].dtype
+
+            params = {}
             if isinstance(aggfuncs, str):
-                aggfuncs = [aggfuncs]
-            if isinstance(aggfuncs, list):
-                params = {}
-                for f in aggfuncs:
-                    col_as = f + '_' + col
-                    params[col_as] = f
-                aggfuncs = params
-            if isinstance(aggfuncs, dict):
-                for new_col, f in aggfuncs.items():
-                    if tid == DTYPE.STRING and f not in non_numeric_supporter:
-                        raise ValueError("Currently Frovedis doesn't support"
-                                         " aggregator %s to be applied on"
-                                         " string-typed column %s" %(f, col))
-                    agg_func.append(f)
-                    agg_col.append(col)
-                    agg_col_as.append(new_col)
-                    if f == 'count' or f == 'size':
-                        col_as_tid = DTYPE.ULONG
-                    elif f in ('mean', 'var', 'sem'):
-                        col_as_tid = DTYPE.DOUBLE
+                if asname:
+                    col_as = asname[col] 
+                else:
+                    col_as = aggfuncs + '_' + col
+                params[col_as] = aggfuncs
+            elif isinstance(aggfuncs, list):
+                for i in range(len(aggfuncs)):
+                    f = aggfuncs[i]
+                    if asname:
+                        col_as = asname[col][i]
                     else:
-                        col_as_tid = tid
-                    agg_col_as_types.append(col_as_tid)
+                        col_as = f + '_' + col
+                    params[col_as] = f
+            else: 
+                raise ValueError("agg: invalid dictionary input is provided.")
+
+            tid = self.__dict__[col].dtype
+            for new_col, f in params.items():
+                if tid == DTYPE.STRING and f not in non_numeric_supporter:
+                    raise ValueError("Currently Frovedis doesn't support"
+                                     " aggregator %s to be applied on"
+                                     " string-typed column %s" %(f, col))
+                agg_func.append(f)
+                agg_col.append(col)
+                agg_col_as.append(new_col)
+                if f in ulong_typed_aggregator:
+                    col_as_tid = DTYPE.ULONG
+                elif f in double_typed_aggregator:
+                    col_as_tid = DTYPE.DOUBLE
+                else:
+                    col_as_tid = tid
+                agg_col_as_types.append(col_as_tid)
         #print(agg_func)
         #print(agg_col)
         #print(agg_col_as)

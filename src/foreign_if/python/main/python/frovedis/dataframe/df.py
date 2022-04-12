@@ -31,7 +31,7 @@ from .dfoperator import dfoperator
 from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     infer_column_type_from_first_notna, get_string_typename, \
                     get_python_scalar_type, check_string_or_array_like, \
-                    check_stat_error
+                    check_stat_error, double_typed_aggregator
 from ..utils import deprecated
 from pandas.core.common import SettingWithCopyWarning
 
@@ -1273,26 +1273,27 @@ class DataFrame(object):
         describe
         """
         cols, types = self.__get_numeric_columns(include_bool=False)
-        index = ['count', 'mean', 'median', 'var', 'mad', 'std', 'sem', \
-                 'sum', 'min', 'max']
-        return self.__agg_impl(cols, index)
+        func = ['count', 'mean', 'median', 'var', 'mad', 'std', 'sem', \
+                'sum', 'min', 'max']
+        return self.__agg_impl(cols, func)
 
-    def __agg_impl(self, cols, index):
+    def __agg_impl(self, cols, func, index=None):
         """
         agg impl
         """
         func_ret = []
-        for ind in index:
-            func_ret.append(self.__get_stat_wrapper(ind, cols))
-        ret = pd.DataFrame(func_ret, index=index, columns=cols)
+        for f in func:
+            func_ret.append(self.__get_stat_wrapper(f, cols))
+
+        ret_index = func if index is None else index
+        ret = pd.DataFrame(func_ret, index=ret_index, columns=cols)
 
         ncols = len(cols)
         types = self.__get_column_types(cols)
-        has_max = 'max' in ret.index
-        has_min = 'min' in ret.index
+        has_max = 'max' in func
+        has_min = 'min' in func
         # agg func list has std, avg/mean, then dtype = float64
-        if (len(set(index).intersection(set(['mean', 'avg', 'std', 'mad', \
-                                            'var', 'median', 'sem']))) > 0):
+        if (len(set(func).intersection(set(double_typed_aggregator))) > 0):
             rtypes = [np.float64] * ncols
         else:
             rtypes = [np.int32 if x == DTYPE.BOOL \
@@ -1315,17 +1316,50 @@ class DataFrame(object):
         warnings.simplefilter(action="default", category=SettingWithCopyWarning)
         return ret
 
+    def agg(self, func=None, axis=0, *args, **kwargs):
+        """
+        agg
+        """
+        return self.aggregate(func, axis, *args, **kwargs)
+
     @check_association
-    def agg(self, func):
-        if isinstance(func, str):
+    def aggregate(self, func=None, axis=0, *args, **kwargs):
+        """
+        aggregate for entire column
+        """
+        supported_axis = [0, 'index']
+        if axis not in supported_axis:
+            raise NotImplementedError(\
+            "agg: Unsupported axis = '" + str(axis) + "'")
+
+        if func is None:
+            if len(kwargs) == 0:
+                raise TypeError(\
+                "Must provide 'func' or tuples of '(column, aggfunc)'")
+            fdict = {}
+            aIndex = []
+            for k, v in kwargs.items():
+                if (isinstance(v, tuple) and len(v) == 2):
+                    cname = v[0]
+                    fname = v[1]
+                    if cname in fdict:
+                        fdict[cname].append(fname)
+                    else:
+                        fdict[cname] = [fname]
+                    aIndex.append(k)
+                else:
+                    raise TypeError(\
+                    "Must provide 'func' or tuples of '(column, aggfunc)'")
+            return self.__agg_dict(func=fdict, index=aIndex)
+        elif isinstance(func, str):
             if "cov" == func:
                 return self.cov(1, 1.0, True)
             return self.__agg_list([func]).transpose()[func]
         elif isinstance(func, list):
             if len(func) == 1 and "cov" in func:
                 return self.cov(1, 1.0, True)
-            if len(func) > 1 and "cov" in func:
-                func.remove("cov")
+            if len(func) > 1 and "cov" in func: # remove all occurences of "cov"
+                func = list(filter(lambda i: i != "cov", func))
             return self.__agg_list(func)
         elif isinstance(func, dict):
             covs = [k for k in func if "cov" in func[k]]
@@ -1339,27 +1373,32 @@ class DataFrame(object):
         else:
             raise ValueError("Unsupported 'func' type : {0}".format(type(func)))
 
-    def __agg_list(self, func):
-        return self.__agg_impl(cols=self.columns, index=func)
+    def __agg_list(self, func, index=None):
+        return self.__agg_impl(cols=self.columns, func=func, index=index)
 
-    def __agg_dict(self, func_dict):
-        from itertools import chain
-        func_dict = dict(func_dict)
+    def __agg_dict(self, func, index=None):
+        func_dict = dict(func)
         for col in func_dict:
             if isinstance(func_dict[col], str):
                 func_dict[col] = [func_dict[col]]
 
+        from itertools import chain
         all_cols = list(func_dict.keys())
         all_funcs = list(set(chain.from_iterable(func_dict.values())))
 
-        df_all_res = self.__agg_impl(cols=all_cols, index=all_funcs)
+        df_all_res = self.__agg_impl(cols=all_cols, func=all_funcs)
         data_dict = {col: {} for col in all_cols}
 
+        # TODO: avoid this copy by computing only required part in __agg_impl
         for col in func_dict:
             for func in func_dict[col]:
                 data_dict[col][func] = df_all_res[col][func]
 
-        return pd.DataFrame(data_dict)
+        ret = pd.DataFrame(data_dict)
+        if index is not None:
+            ret.index = index
+
+        return ret
 
     @check_association
     def to_dict(self, orient="dict", into=dict):
@@ -2662,7 +2701,7 @@ class DataFrame(object):
                     tmp_df[self.columns[i]] = [other[i]] * nrow
                 other = DataFrame(tmp_df)
             immed = False
-            is_series = False
+            is_series = self.is_series
             other.copy_index(self, inplace=True, overwrite=True)
         else:
             other = DataFrame.asDF(other)

@@ -7,6 +7,8 @@ from ..matrix.dtype import DTYPE, TypeUtil, get_result_type
 
 # add future aggregator supporting non-numerics
 non_numeric_supporter = ["first", "last", "mode", "count", "size"]
+ulong_typed_aggregator = ["count", "size"]
+double_typed_aggregator = ["mean", "avg", "std", "mad", "var", "median", "sem"]
  
 def infer_column_type_from_first_notna(df, col, is_index=False):
     if is_index: #infers type of index assuming it contains all non-na
