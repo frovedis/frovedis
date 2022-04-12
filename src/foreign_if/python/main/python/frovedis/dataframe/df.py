@@ -31,7 +31,8 @@ from .dfoperator import dfoperator
 from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     infer_column_type_from_first_notna, get_string_typename, \
                     get_python_scalar_type, check_string_or_array_like, \
-                    check_stat_error, double_typed_aggregator
+                    check_stat_error, double_typed_aggregator, \
+                    if_mask_vector
 from ..utils import deprecated
 from pandas.core.common import SettingWithCopyWarning
 
@@ -522,9 +523,10 @@ class DataFrame(object):
             if isinstance(target, str):
                 return self.select_frovedis_dataframe([target])
             elif isinstance(target, list):
-                if all(isinstance(e, bool) for e in target) and target != []:
+                if if_mask_vector(target):
                     return self.__filter_using_mask(target)
-                return self.select_frovedis_dataframe(target)
+                else:
+                    return self.select_frovedis_dataframe(target)
             elif isinstance(target, dfoperator):
                 return self.filter_frovedis_dataframe(target)
             elif isinstance(target, slice):
@@ -539,10 +541,9 @@ class DataFrame(object):
             raise ValueError("Operation on invalid frovedis dataframe!")
 
     @property
-    @check_association
     def columns(self):
         """returns column list"""
-        return self.__cols
+        return self.__cols if self.__cols is not None else []
 
     @columns.setter
     @check_association
@@ -567,7 +568,7 @@ class DataFrame(object):
             ret = self.__filter_using_mask(opt.mask)
         else:
             ret = DataFrame(is_series=self.is_series)
-            ret.index = self.index.copy()
+            ret.index = self.index.copy() if self.has_index() else None
             (host, port) = FrovedisServer.getServerInstance()
             proxy = rpclib.filter_frovedis_dataframe(host, port, \
                                                      self.get(), opt.get())
@@ -585,7 +586,7 @@ class DataFrame(object):
         if not isinstance(mask, FrovedisIntDvector):
             mask = FrovedisIntDvector(np.asarray(mask, dtype=np.int32)) #checks errors
         ret = DataFrame(is_series=self.is_series)
-        ret.index = self.index.copy()
+        ret.index = self.index.copy() if self.has_index() else None
         (host, port) = FrovedisServer.getServerInstance()
         proxy = rpclib.filter_df_using_mask(host, port, \
                                             self.get(), mask.get())
@@ -604,7 +605,7 @@ class DataFrame(object):
         ret_types = self.__get_column_types(targets)
         ret_cols = list(targets) #targets is a list
         ret.num_row = len(self)
-        ret.index = self.index.copy()
+        ret.index = self.index.copy() if self.has_index() else None
 
         if self.has_index():
             targets = [self.index.name] + targets
@@ -658,6 +659,7 @@ class DataFrame(object):
             raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
+        self.__mark_boolean_columns(names, types)
         ret = DataFrame(is_series=self.is_series)
         ret.num_row = dummy_df["nrow"]
         if self.has_index():
@@ -742,7 +744,7 @@ class DataFrame(object):
                                 type(ascending).__name__)
 
         ret = DataFrame(is_series=self.is_series)
-        ret.index = self.index.copy()
+        ret.index = self.index.copy() if self.has_index() else None
         ret.num_row = len(self)
         (host, port) = FrovedisServer.getServerInstance()
         proxy = rpclib.sort_frovedis_dataframe(host, port, self.get(),\
@@ -1058,7 +1060,7 @@ class DataFrame(object):
             ret = self
         else:
             ret = DataFrame(is_series=self.is_series)
-            ret.index = self.index.copy()
+            ret.index = self.index.copy() if self.has_index() else None
             ret.num_row = len(self)
         ret_cols = list(self.__cols)
         ret_types = list(self.__types)
@@ -1099,10 +1101,6 @@ class DataFrame(object):
         else:
             ret = DataFrame(is_series=self.is_series)
             ret.num_row = len(self)
-        ret.index = FrovedisColumn(new_name, self.index.dtype)
-        ret_cols = list(self.__cols)
-        ret_types = list(self.__types)
-
         sz = 1
         name_ptr = get_string_array_pointer([self.index.name])
         new_name_ptr = get_string_array_pointer([new_name])
@@ -1114,6 +1112,9 @@ class DataFrame(object):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
+        ret.index = FrovedisColumn(new_name, self.index.dtype)
+        ret_cols = list(self.__cols)
+        ret_types = list(self.__types)
         ret.load_dummy(proxy, ret_cols, ret_types)
         return None if inplace else ret
 
@@ -1123,10 +1124,7 @@ class DataFrame(object):
         """
         if not deep:
             raise NotImplementedError("copy: shallow-copy is not yet supported!")
-        if self.get() is None: # empty dataframe
-            return DataFrame()
-        else:
-            return self[self.columns]
+        return self[self.columns] if self.get() else DataFrame()
 
     def get(self):
         """
@@ -1714,12 +1712,13 @@ class DataFrame(object):
             raise RuntimeError(excpt["info"])
         ret = DataFrame()
         ret.num_row = len(self)
-        ret.index = self.index.copy()
         ret_cols = list(self.__cols)
-        ret_types = [DTYPE.BOOL]*len(self)
+        ret_types = [DTYPE.BOOL] * len(self)
         ret.load_dummy(proxy, ret_cols, ret_types)
-        if not self.has_index():
-          ret.add_index("index")
+        if self.has_index():
+            ret.index = self.index.copy()
+        else:
+            ret.add_index("index")
         return ret
 
     def isnull(self):
@@ -1756,7 +1755,8 @@ class DataFrame(object):
             raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
-        ret = self if inplace else DataFrame()
+        self.__mark_boolean_columns(names, types)
+        ret = self if inplace else DataFrame(is_series = self.is_series)
         ret.num_row = dummy_df["nrow"]
         if self.has_index():
             ret.index = FrovedisColumn(names[0], types[0]) #setting index
@@ -1884,7 +1884,8 @@ class DataFrame(object):
 
         names = dummy_df["names"]
         types = dummy_df["types"]
-        ret = self if inplace else DataFrame()
+        self.__mark_boolean_columns(names, types)
+        ret = self if inplace else DataFrame(is_series = self.is_series)
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.num_row = dummy_df["nrow"]
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
@@ -1977,6 +1978,13 @@ class DataFrame(object):
         else:
             self.load_dummy(dummy_df["dfptr"], names[0:], types[0:])
         return self
+
+    def __mark_boolean_columns(self, names, types):
+        """ to mark boolean columns for columns in names """
+        for i in range(len(names)):
+            c = names[i]
+            if c in self.columns and self.__dict__[c].dtype == DTYPE.BOOL:
+                types[i] = DTYPE.BOOL
 
     def __get_dtype_name(self, arr): #TODO: improve
         """get_dtype_name"""
@@ -2474,7 +2482,7 @@ class DataFrame(object):
 
     def get_types(self):
         """get_types"""
-        return self.__types
+        return self.__types if self.__types is not None else []
 
     def get_dtype(self, colname):
         """

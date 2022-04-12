@@ -207,6 +207,8 @@ def check_string_or_array_like(by, func):
                         "received: %s" % (type(by).__name__))
     return ret_by
 
+def if_mask_vector(target):
+  return len(target) > 0 and all(isinstance(e, bool) for e in target)
 
 class stat_param(object): # place holder for parameters
     def __init__(self):
