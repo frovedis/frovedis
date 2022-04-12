@@ -1354,13 +1354,16 @@ class DataFrame(object):
         elif isinstance(func, str):
             if "cov" == func:
                 return self.cov(1, 1.0, True)
-            return self.__agg_list([func]).transpose()[func]
+            else:
+                return self.__agg_list([func]).transpose()[func]
         elif isinstance(func, list):
-            if len(func) == 1 and "cov" in func:
-                return self.cov(1, 1.0, True)
-            if len(func) > 1 and "cov" in func: # remove all occurences of "cov"
-                func = list(filter(lambda i: i != "cov", func))
-            return self.__agg_list(func)
+            lfunc = check_string_or_array_like(func, "agg")
+            if "cov" in lfunc:
+                if len(lfunc) == 1:
+                    return self.cov(1, 1.0, True)
+                else:
+                    lfunc.remove("cov") # like in pandas
+            return self.__agg_list(lfunc)
         elif isinstance(func, dict):
             covs = [k for k in func if "cov" in func[k]]
             if len(covs) > 0:

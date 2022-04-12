@@ -285,10 +285,9 @@ class FrovedisGroupedDataframe(object):
                     "Must provide 'func' or tuples of '(column, aggfunc)'")
             order = list(kwargs.keys())
             return self.__agg_with_dict(func=fdict, asname=asname, order=order)
-        elif isinstance(func, str):
-            return self.__agg_with_list([func])
-        elif isinstance(func, list):
-            return self.__agg_with_list(func)
+        elif isinstance(func, (str, list, tuple)):
+            lfunc = check_string_or_array_like(func, "agg")
+            return self.__agg_with_list(lfunc)
         elif isinstance(func, dict):
             return self.__agg_with_dict(func)
         else: 
