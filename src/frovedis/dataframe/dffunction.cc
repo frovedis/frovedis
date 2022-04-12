@@ -3917,7 +3917,7 @@ concat_multi_ws_as(const std::string& sep,
 // ----- repeat -----
 std::shared_ptr<dffunction>
 repeat_im_helper(const std::shared_ptr<dffunction>& left, int times) {
-  if(times == 0) {
+  if(times <= 0) {
     return substr_posim_numim(left, 0, 0); // to handle NULL properly
   } else if(times == 1) {
     return left;
