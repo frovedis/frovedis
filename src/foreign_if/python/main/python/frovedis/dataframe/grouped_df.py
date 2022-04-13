@@ -378,9 +378,11 @@ class FrovedisGroupedDataframe(object):
         types = self.__types + agg_col_as_types
         ret = DataFrame().load_dummy(fdata, cols, types)
         if len(self.__cols) > 1: #TODO: support multi-level index
+            with_added_index = True
             ret.add_index("index")
             ret.set_multi_index_targets(self.__cols)
         else:
+            with_added_index = False
             ret.set_index(keys=self.__cols, drop=True, inplace=True)
 
         if len(agg_col) > 0:
@@ -388,8 +390,11 @@ class FrovedisGroupedDataframe(object):
             ret.set_multi_level_column(multi)
 
         if order:
-          ordered_cols = self.__cols + order
-          ret.set_col_order(ordered_cols)
+            if with_added_index:
+                ordered_cols = ["index"] + self.__cols + order
+            else:
+                ordered_cols = self.__cols + order
+            ret.set_col_order(ordered_cols)
 
         return ret
 
