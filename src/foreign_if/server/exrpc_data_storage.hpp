@@ -134,12 +134,14 @@ set_dvector_data(std::vector<T>& vec,
   return ret;
 }
 
-// CAUTION: returns base address of the allocated memory pointer, 
-// instead of pointer to the container
+// first: pointer to the container
+// second: pointer to the base address of the allocated memory
 template <class T>
-exrpc_ptr_t allocate_vector(size_t& size) {
+frovedis_mem_pair allocate_vector(size_t& size) {
   auto retp = new std::vector<T>(size);
-  return reinterpret_cast<exrpc_ptr_t>(retp->data());
+  auto f = reinterpret_cast<exrpc_ptr_t>(retp);
+  auto s = reinterpret_cast<exrpc_ptr_t>(retp->data());
+  return frovedis_mem_pair(f, s);
 }
 
 // CAUTION: vecp: accepts base address of the allocated memory pointer, 

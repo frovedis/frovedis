@@ -68,33 +68,33 @@ JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_loadVectorData
   (JNIEnv *env, jclass thisCls, jobject target_node,
    jlong address, jlong size_, jshort dtype) {
 
-  exrpc_ptr_t recvbufp = 0;
+  frovedis_mem_pair mempair;
   size_t size = size_;
   auto node = java_node_to_frovedis_node(env, target_node);
   auto sendbufp = reinterpret_cast<char*>(address);
 
   try {
     switch(dtype) {
-      case BYTE:   recvbufp = exrpc_async(node, allocate_vector<char>, size).get();
-                   exrpc_rawsend(node, sendbufp, recvbufp, sizeof(char) * size);
-                   exrpc_oneway(node, show_vector<char>, recvbufp, size);
+      case BYTE:   mempair = exrpc_async(node, allocate_vector<char>, size).get();
+                   exrpc_rawsend(node, sendbufp, mempair.second(), sizeof(char) * size);
+                   exrpc_oneway(node, show_vector<char>, mempair.second(), size);
                    break;
       case BOOL:
-      case INT:    recvbufp = exrpc_async(node, allocate_vector<int>, size).get();
-                   exrpc_rawsend(node, sendbufp, recvbufp, sizeof(int) * size);
-                   exrpc_oneway(node, show_vector<int>, recvbufp, size);
+      case INT:    mempair = exrpc_async(node, allocate_vector<int>, size).get();
+                   exrpc_rawsend(node, sendbufp, mempair.second(), sizeof(int) * size);
+                   exrpc_oneway(node, show_vector<int>, mempair.second(), size);
                    break;
-      case LONG:   recvbufp = exrpc_async(node, allocate_vector<long>, size).get();
-                   exrpc_rawsend(node, sendbufp, recvbufp, sizeof(long) * size);
-                   exrpc_oneway(node, show_vector<long>, recvbufp, size);
+      case LONG:   mempair = exrpc_async(node, allocate_vector<long>, size).get();
+                   exrpc_rawsend(node, sendbufp, mempair.second(), sizeof(long) * size);
+                   exrpc_oneway(node, show_vector<long>, mempair.second(), size);
                    break;
-      case FLOAT:  recvbufp = exrpc_async(node, allocate_vector<float>, size).get();
-                   exrpc_rawsend(node, sendbufp, recvbufp, sizeof(float) * size);
-                   exrpc_oneway(node, show_vector<float>, recvbufp, size);
+      case FLOAT:  mempair = exrpc_async(node, allocate_vector<float>, size).get();
+                   exrpc_rawsend(node, sendbufp, mempair.second(), sizeof(float) * size);
+                   exrpc_oneway(node, show_vector<float>, mempair.second(), size);
                    break;
-      case DOUBLE: recvbufp = exrpc_async(node, allocate_vector<double>, size).get();
-                   exrpc_rawsend(node, sendbufp, recvbufp, sizeof(double) * size);
-                   exrpc_oneway(node, show_vector<double>, recvbufp, size);
+      case DOUBLE: mempair = exrpc_async(node, allocate_vector<double>, size).get();
+                   exrpc_rawsend(node, sendbufp, mempair.second(), sizeof(double) * size);
+                   exrpc_oneway(node, show_vector<double>, mempair.second(), size);
                    break;
       default:     REPORT_ERROR(USER_ERROR, "Unsupported type encountered!");
     }
