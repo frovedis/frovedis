@@ -521,7 +521,7 @@ class DataFrame(object):
         """
         if self.__fdata is not None:
             if isinstance(target, str):
-                return self.select_frovedis_dataframe([target])
+                return self.select_frovedis_dataframe(target)
             elif isinstance(target, list):
                 if if_mask_vector(target):
                     return self.__filter_using_mask(target)
@@ -599,9 +599,15 @@ class DataFrame(object):
     @check_association
     def select_frovedis_dataframe(self, targets):
         """ selects given columns from the input dataframe """
+        if isinstance(targets, str):
+            if targets not in self.columns:
+                raise ValueError("select: No column named: " + str(targets))
+            ret = FrovedisColumn(targets, self.__dict__[targets].dtype)
+            ret.df = self
+            return ret
+
         targets = list(check_string_or_array_like(targets, "select"))
-        is_ser = len(targets) == 1
-        ret = DataFrame(is_series=is_ser)
+        ret = DataFrame(is_series=False) # targets is not a 'string'
         ret_types = self.__get_column_types(targets)
         ret_cols = list(targets) #targets is a list
         ret.num_row = len(self)
@@ -798,7 +804,7 @@ class DataFrame(object):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        return grouped_df.FrovedisGroupedDataframe()\
+        return grouped_df.FrovedisGroupedDataframe(as_index=as_index)\
                          .load_dummy(fdata, list(g_by), list(types), \
                                      list(self.__cols), list(self.__types))
     def __merge_rename_helper(self, rename_dict):
@@ -1141,6 +1147,8 @@ class DataFrame(object):
             return df
         elif isinstance(df, (pd.DataFrame, pd.Series)):
             return DataFrame(df)
+        elif isinstance(df, FrovedisColumn):
+            return df.get_frovedis_series()
         else:
             raise TypeError("asDF: invalid dataframe type '%s' "
                             "is provided!" % (type(df).__name__))
@@ -2025,6 +2033,9 @@ class DataFrame(object):
 
         if isinstance(value, (DataFrame, pd.DataFrame)):
             self.copy_column(value, names_as=key, inplace=True)
+        elif isinstance(value, FrovedisColumn):
+            self.copy_column(value.get_frovedis_series(), \
+                             names_as=key, inplace=True)
         elif isinstance(value, dfoperator):
             pos = -1 # insert at last
             drop_old = False
@@ -3195,16 +3206,6 @@ class DataFrame(object):
                 ret = mask
         return ret
 
-    def between(self, left, right, inclusive="both"):
-        """
-        filtering rows according to the specified bounds
-        """
-        if not self.is_series:
-            raise AttributeError("'DataFrame' object has no attribute 'between'\n")
-        col_name = self.columns[0]
-        dfopt = self.__dict__[col_name].between(left, right, inclusive)
-        return dfopt
-
     @check_association
     def sum(self, axis=None, skipna=None, level=None,
             numeric_only=None, min_count=0, **kwargs):
@@ -3247,7 +3248,7 @@ class DataFrame(object):
         """
         Returns the first element/row from column/dataframe
         """
-        param = check_stat_error("first", DTYPE.STRING in self.__types, \
+        param = check_stat_error("first_element", DTYPE.STRING in self.__types,\
                                  skipna_=skipna)
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_first(host, port, \
@@ -3272,7 +3273,7 @@ class DataFrame(object):
         """
         Returns the last element from column
         """
-        param = check_stat_error("last", DTYPE.STRING in self.__types, \
+        param = check_stat_error("last_element", DTYPE.STRING in self.__types,\
                                  skipna_=skipna)
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_last(host, port, \
@@ -3607,18 +3608,10 @@ class DataFrame(object):
         return ret
 
     @check_association
-    def cov(self, min_periods=None, ddof=1.0, low_memory=True, other=None):
+    def cov(self, min_periods=None, ddof=1.0, low_memory=True):
         """
         returns the covariance matrix for the given dataframe.
         """
-        if (other != None):
-            other = DataFrame.asDF(other) # checks error internally
-            if not (self.is_series and other.is_series):
-                raise TypeError("cov(other): input is expected to be series.")
-            s1 = self.__dict__[self.columns[0]]   # FrovedisColumn
-            s2 = other.__dict__[other.columns[0]] # FrovedisColumn
-            return s1.cov(s2, min_periods, ddof)
-
         param = check_stat_error("cov", DTYPE.STRING in self.__types, \
                                  min_periods_=min_periods, \
                                  ddof_=ddof, low_memory_=low_memory)
@@ -3635,17 +3628,27 @@ class DataFrame(object):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        # returns a series
-        ret = DataFrame(is_series=True)
+        ret = DataFrame(is_series=False) # is not a series
         names = dummy_df["names"]
         types = dummy_df["types"]
         ret.num_row = dummy_df["nrow"]
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         return ret
-    
+
+    @property
+    def at(self):
+        """at"""
+        return At_handler(self)
+
+    @property
+    def iat(self):
+        """iat"""
+        return Iat_handler(self)
+
     @property
     def iloc(self):
+        """iloc"""
         return Iloc_handler(self)
 
     def iloc_scalar(self, key):
@@ -3666,7 +3669,7 @@ class DataFrame(object):
         """
         DESC: Implementation for handling tuple key type for iloc.
         PARAM: key -> Input data, can be:
-                                  - tuple of row(scalar/slice/list) key and 
+                                  - tuple of row(scalar/slice/list) key and
                                              column(scalar/slice/list) key
         EXAMPLE: df.iloc[<row idx>, <col idx>]
                  df.iloc[<row idx1>:<row idx2>, <col idx>]
@@ -3712,6 +3715,7 @@ class DataFrame(object):
 
     @property
     def loc(self):
+        """loc"""
         return Loc_handler(self)
 
     def loc_scalar(self, key):
@@ -3729,7 +3733,7 @@ class DataFrame(object):
         DESC: Implementation for handling tuple key type for loc.
               Modified row slices [row_slice, :] are also handled.
         PARAM: key -> Input data, can be:
-                                  - tuple of row(scalar/slice/list) key and 
+                                  - tuple of row(scalar/slice/list) key and
                                              column(scalar/slice/list) key
         EXAMPLE: df.loc[<row key>, <col key>]
                  df.loc[<row key1>:<row key2>, <col key>]
@@ -3757,7 +3761,16 @@ class DataFrame(object):
                 ret = ret | (self.index == key[0][i])
             res = self[ret]
         else:
-            res = self[self.index == key[0]]
+            tmp_key = key[0]
+            if isinstance(key[0], bool):
+                if self.index.dtype == DTYPE.BOOL:
+                    tmp_key = 1 if key[0] else 0
+                else:
+                    raise \
+                    KeyError(\
+                   '{}: boolean label can not be used without a boolean index'\
+                        .format(key[0]))
+            res = self[self.index == tmp_key]
         if isinstance(key[1], slice):
             try:
                 start = self.columns.index(key[1].start)
@@ -3837,60 +3850,6 @@ class DataFrame(object):
         self.__multi_index = cols
         return self
 
-    def __gt__(self, other):
-        """
-        gt: for comparison of column: series case
-        """
-        if not self.is_series:
-            raise TypeError("gt: is supported only for series!")
-        name = self.columns[0]
-        return self.__dict__[name] > other
-        
-    def __ge__(self, other):
-        """
-        ge: for comparison of column: series case
-        """
-        if not self.is_series:
-            raise TypeError("ge: is supported only for series!")
-        name = self.columns[0]
-        return self.__dict__[name] >= other
-        
-    def __lt__(self, other):
-        """
-        lt: for comparison of column: series case
-        """
-        if not self.is_series:
-            raise TypeError("lt: is supported only for series!")
-        name = self.columns[0]
-        return self.__dict__[name] < other
-        
-    def __le__(self, other):
-        """
-        le: for comparison of column: series case
-        """
-        if not self.is_series:
-            raise TypeError("le: is supported only for series!")
-        name = self.columns[0]
-        return self.__dict__[name] <= other
-        
-    def __eq__(self, other):
-        """
-        eq: for comparison of column: series case
-        """
-        if not self.is_series:
-            raise TypeError("eq: is supported only for series!")
-        name = self.columns[0]
-        return self.__dict__[name] == other
-        
-    def __ne__(self, other):
-        """
-        ne: for comparison of column: series case
-        """
-        if not self.is_series:
-            raise TypeError("ne: is supported only for series!")
-        name = self.columns[0]
-        return self.__dict__[name] != other
-        
 FrovedisDataframe = DataFrame
 
 class Iloc_handler():
@@ -3919,7 +3878,7 @@ class Iloc_handler():
                 return self.df[key]
                 #return self.df.iloc_filter_using_mask(key)
             return self.df.iloc[key, :]
-        raise ("Unexpected key received!")
+        raise ValueError("Unexpected key received!")
 
 class Loc_handler():
     """Loc handler"""
@@ -3944,4 +3903,45 @@ class Loc_handler():
             raise IndexingError("Too many indexers")
         elif isinstance(key, slice):
             return self.df.loc[key, :]
-        raise ("Unexpected key received!")
+        raise ValueError("Unexpected key received!")
+
+class At_handler():
+    """At handler"""
+    def __init__(self, df):
+        self.df = df
+    def __getitem__(self, key):
+        """
+        __getitem__
+        """
+        if isinstance(key, tuple):
+            if len(key) == 2:
+                if isinstance(key[0], (str,int,float)) \
+                    and isinstance(key[1], (str)):
+                    res = self.df.loc_tuple(key)
+                    if len(res) == 1:
+                        res = res.to_pandas().to_numpy()[0]
+                    return res
+                raise ValueError("Invalid index type.")
+            raise IndexingError("Too many indexers.")
+        raise ValueError("Unexpected key type received!")
+
+class Iat_handler():
+    """Iat handler"""
+    def __init__(self, df):
+        self.df = df
+    def __getitem__(self, key):
+        """
+        __getitem__
+        """
+        if isinstance(key, tuple):
+            if len(key) == 2:
+                if isinstance(key[0], (int)) \
+                    and isinstance(key[1], (int)):
+                    res = self.df.iloc_tuple(key)
+                    if len(res) == 1:
+                        res = res.to_pandas().to_numpy()[0]
+                    return res
+                raise ValueError(\
+                    "iat based indexing can only have integer indexers.")
+            raise IndexingError("Too many indexers.")
+        raise ValueError("Unexpected key type received!")

@@ -23,18 +23,41 @@ class FrovedisColumn(object):
         self.__dtype = dtype
         self.df = None
 
+    def get_frovedis_series(self):
+        """ helper method to create frovedis dataframe with is_series = True """
+        if self.df is None:
+            raise ValueError("column->series: column is not associated with a DataFrame!")
+        ret = self.df[[self.name]]
+        ret.is_series = True
+        return ret
+
     def copy(self):
-        return FrovedisColumn(self.__colName, self.__dtype)
+        ret = FrovedisColumn(self.name, self.dtype)
+        ret.df = self.df
+        return ret
 
     def __str__(self):
         """ to-string """
-        return "name: " + self.__colName + "; dtype: " + \
-               str(TypeUtil.to_numpy_dtype(self.__dtype))
+        if self.df is not None:
+            return str(self.df[[self.name]])
+        else:
+            return "name: " + self.name + "; dtype: " + \
+               str(TypeUtil.to_numpy_dtype(self.dtype))
 
     def __repr__(self):
         """ REPR """
         return str(self)
 
+    def show(self):
+        """ to print """
+        if self.df is None:
+            raise ValueError("show() is called on a series with unassociated DataFrame!")
+        print(str(self))
+        
+    def to_pandas(self):
+        """ to pandas series """
+        return self.get_frovedis_series().to_pandas()
+        
     @property
     def name(self):
         """
@@ -261,7 +284,7 @@ class FrovedisColumn(object):
         """returns a FrovedisStringMethods object, for: \
         startswith/endwith/contains operations
         """
-        ret = FrovedisStringMethods(self.colName, self.dtype)
+        ret = FrovedisStringMethods(self.name, self.dtype)
         ret.df = self.df
         return ret
 
@@ -270,7 +293,7 @@ class FrovedisColumn(object):
         Covariance for series
         call example: df.col1.cov(df.col2)
         """
-        if not isinstance(other, FrovedisColumn):
+        if not isinstance(other, FrovedisColumn): #TODO: support pandas series
             raise TypeError("other: input is expected to be a FrovedisColumn.")
 
         if len(self.df) != len(other.df):
@@ -301,155 +324,162 @@ class FrovedisColumn(object):
         Sum for series
         e.g. df.col.sum()
         """
-        return self.df[self.__colName].sum(skipna=skipna, \
-                                           numeric_only=numeric_only, \
-                                           min_count=min_count) \
-                                      .to_numpy()[0][0]
+        return self.get_frovedis_series() \
+                   .sum(skipna=skipna, \
+                        numeric_only=numeric_only, \
+                        min_count=min_count) \
+                   .to_numpy()[0][0]
 
     def min(self, skipna=None, numeric_only=None):
         """
         Min for series
         e.g. df.col.min()
         """
-        return self.df[self.__colName].min(skipna=skipna, \
-                                           numeric_only=numeric_only) \
-                                      .to_numpy()[0][0]
+        return self.get_frovedis_series() \
+                   .min(skipna=skipna, \
+                        numeric_only=numeric_only) \
+                   .to_numpy()[0][0]
 
     def max(self, skipna=None, numeric_only=None):
         """
         Max for series
         e.g. df.col.max()
         """
-        return self.df[self.__colName].max(skipna=skipna, \
-                                           numeric_only=numeric_only) \
-                                      .to_numpy()[0][0]
+        return self.get_frovedis_series() \
+                   .max(skipna=skipna, \
+                        numeric_only=numeric_only) \
+                   .to_numpy()[0][0]
 
     def mean(self, skipna=None, numeric_only=None):
         """
         Mean for series
         e.g. df.col.mean()
         """
-        return self.df[self.__colName].mean(skipna=skipna, \
-                                            numeric_only=numeric_only) \
-                                      .to_numpy()[0][0]
+        return self.get_frovedis_series() \
+                   .mean(skipna=skipna, \
+                         numeric_only=numeric_only) \
+                   .to_numpy()[0][0]
 
     def mode(self, numeric_only=None, dropna=True):
         """
         Mode for series
         e.g. df.col.mode()
         """
-        ret_df = self.df[self.__colName].mode(numeric_only=numeric_only, \
-                                              dropna=dropna)
-        ret_df.is_series = True
-        return ret_df
+        return self.get_frovedis_series() \
+                   .mode(numeric_only=numeric_only, \
+                         dropna=dropna)
 
     def median(self, skipna=None, numeric_only=None):
         """
         Median for series
         e.g. df.col.median()
         """
-        return self.df[self.__colName].median(skipna=skipna, \
-                                              numeric_only=numeric_only) \
-                                      .to_numpy()[0][0]
+        return self.get_frovedis_series() \
+                   .median(skipna=skipna, \
+                           numeric_only=numeric_only) \
+                   .to_numpy()[0][0]
 
     def var(self, skipna=None, ddof=1, numeric_only=None):
         """
         Var for series
         e.g. df.col.var()
         """
-        return self.df[self.__colName].var(skipna=skipna, \
-                                           ddof=ddof, \
-                                           numeric_only=numeric_only) \
-                                      .to_numpy()[0][0]
+        return self.get_frovedis_series() \
+                   .var(skipna=skipna, \
+                        ddof=ddof, \
+                        numeric_only=numeric_only) \
+                   .to_numpy()[0][0]
 
     def sem(self, skipna=None, ddof=1, numeric_only=None):
         """
         Sem for series
         e.g. df.col.sem()
         """
-        return self.df[self.__colName].sem(skipna=skipna, \
-                                           ddof=ddof, \
-                                           numeric_only=numeric_only) \
-                                      .to_numpy()[0][0]
+        return self.get_frovedis_series() \
+                   .sem(skipna=skipna, \
+                        ddof=ddof, \
+                        numeric_only=numeric_only) \
+                   .to_numpy()[0][0]
 
     def std(self, skipna=None, ddof=1, numeric_only=None):
         """
         Std for series
         e.g. df.col.std()
         """
-        return self.df[self.__colName].std(skipna=skipna, \
-                                           ddof=ddof, \
-                                           numeric_only=numeric_only) \
-                                      .to_numpy()[0][0]
+        return self.get_frovedis_series() \
+                   .std(skipna=skipna, \
+                        ddof=ddof, \
+                        numeric_only=numeric_only) \
+                   .to_numpy()[0][0]
 
     def mad(self, skipna=None, numeric_only=None):
         """
         Mad for series
         e.g. df.col.mad()
         """
-        return self.df[self.__colName].mad(skipna=skipna, \
-                                           numeric_only=numeric_only) \
-                                      .to_numpy()[0][0]
+        return self.get_frovedis_series() \
+                   .mad(skipna=skipna, \
+                        numeric_only=numeric_only) \
+                   .to_numpy()[0][0]
 
     def first_element(self, skipna=None):
         """
         Returns the first element for column
         e.g. df.col.first_element()
         """
-        param = check_stat_error("first", False, \
-                                 skipna_=skipna)
-        ret_df = self.df[self.__colName]
-        return ret_df.first_element(self.__colName, param.skipna_)
+        return self.get_frovedis_series() \
+                   .first_element(self.name, skipna=skipna)
 
     def last_element(self, skipna=None):
         """
         Returns the last element for column
         e.g. df.col.last_element()
         """
-        param = check_stat_error("last", False, \
-                                 skipna_=skipna)
-        ret_df = self.df[self.__colName]
-        return ret_df.last_element(self.__colName, param.skipna_)
+        return self.get_frovedis_series() \
+                   .last_element(self.name, skipna=skipna)
 
     def __binop_impl(self, other, op):
         """
         returns resultant dataframe(series) after performing self (op) other
         """
+
+        left = self.get_frovedis_series()
+
         if isinstance(other, FrovedisColumn):
             right_series = True
-            right = other.df[other.name]
+            right = other.get_frovedis_series()
         else:
             right_series = False
             right = other
 
         if (op == "add"):
-            ret = self.df[self.name] + right
+            ret = left + right
         elif (op == "radd"):
-            ret = right + self.df[self.name]
+            ret = right + left
         elif (op == "sub"):
-            ret = self.df[self.name] - right
+            ret = left - right
         elif (op == "rsub"):
-            ret = right - self.df[self.name]
+            ret = right - left
         elif (op == "mul"):
-            ret = self.df[self.name] * right
+            ret = left * right
         elif (op == "rmul"):
-            ret = right * self.df[self.name]
+            ret = right * left
         elif (op == "truediv"):
-            ret = self.df[self.name] / right
+            ret = left / right
         elif (op == "rtruediv"):
-            ret = right / self.df[self.name]
+            ret = right / left
         elif (op == "floordiv"):
-            ret = self.df[self.name] // right
+            ret = left // right
         elif (op == "rfloordiv"):
-            ret = right // self.df[self.name]
+            ret = right // left
         elif (op == "mod"):
-            ret = self.df[self.name] % right
+            ret = left % right
         elif (op == "rmod"):
-            ret = right % self.df[self.name]
+            ret = right % left
         elif (op == "pow"):
-            ret = self.df[self.name] ** right
+            ret = left ** right
         elif (op == "rpow"):
-            ret = right ** self.df[self.name]
+            ret = right ** left
         else:
             right_type = "series" if right_series else type(other).__name__
             raise ValueError("Unsupported operation: 'series' (" + op + \

@@ -22,7 +22,7 @@ class FrovedisGroupedDataframe(object):
     """
     A python container for holding Frovedis side created grouped dataframe
     """
-    def __init__(self, df=None):
+    def __init__(self, df=None, as_index=True):
         """
         __init__
         """
@@ -31,6 +31,7 @@ class FrovedisGroupedDataframe(object):
         self.__types = None
         self.__p_cols = None
         self.__p_types = None
+        self.as_index = as_index
 
     @set_association
     def load_dummy(self, fdata, cols, types, p_cols, p_types):
@@ -104,7 +105,7 @@ class FrovedisGroupedDataframe(object):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         ret = DataFrame().load_dummy(fdata, cols, types)
-        if len(self.__cols) > 1: #TODO: support multi-level index
+        if not self.as_index or len(self.__cols) > 1: #TODO: support multi-level index
             ret.add_index("index") # not similar to pandas behavior though...
         else:
             ret.set_index(keys=self.__cols, drop=True, inplace=True)
@@ -139,13 +140,17 @@ class FrovedisGroupedDataframe(object):
         names = dummy_df["names"]
         types = dummy_df["types"]
         ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
-        if len(self.__cols) > 1:
+        if not self.as_index:
             ret.add_index("index")
-            ret.set_multi_index_targets(self.__cols)
+            single = pd.Index(self.__cols + agg_col)
         else:
-            ret.set_index(keys=self.__cols, drop=True, inplace=True)
+            single = pd.Index(agg_col)
+            if len(self.__cols) > 1:
+                ret.add_index("index")
+                ret.set_multi_index_targets(self.__cols)
+            else:
+                ret.set_index(keys=self.__cols, drop=True, inplace=True)
 
-        single = pd.Index(agg_col)
         ret.set_multi_level_column(single)
         return ret
 
@@ -227,13 +232,18 @@ class FrovedisGroupedDataframe(object):
         names = dummy_df["names"]
         types = dummy_df["types"]
         ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
-        if len(self.__cols) > 1:
-            ret.add_index("index")
-            ret.set_multi_index_targets(self.__cols)
-        else:
-            ret.set_index(keys=self.__cols, drop=True, inplace=True)
 
-        single = pd.Index(agg_col)
+        if not self.as_index:
+            ret.add_index("index")
+            single = pd.Index(self.__cols + agg_col)
+        else:
+            single = pd.Index(agg_col)
+            if len(self.__cols) > 1:
+                ret.add_index("index")
+                ret.set_multi_index_targets(self.__cols)
+            else:
+                ret.set_index(keys=self.__cols, drop=True, inplace=True)
+
         ret.set_multi_level_column(single)
         return ret
 
@@ -377,16 +387,26 @@ class FrovedisGroupedDataframe(object):
         cols = self.__cols + agg_col_as
         types = self.__types + agg_col_as_types
         ret = DataFrame().load_dummy(fdata, cols, types)
-        if len(self.__cols) > 1: #TODO: support multi-level index
+        if not self.as_index:
             with_added_index = True
             ret.add_index("index")
-            ret.set_multi_index_targets(self.__cols)
         else:
-            with_added_index = False
-            ret.set_index(keys=self.__cols, drop=True, inplace=True)
-
+            if len(self.__cols) > 1:
+                with_added_index = True
+                ret.add_index("index")
+                ret.set_multi_index_targets(self.__cols)
+            else:
+                with_added_index = False
+                ret.set_index(keys=self.__cols, drop=True, inplace=True)
+        
         if len(agg_col) > 0:
-            multi = pd.MultiIndex.from_tuples(list(zip(agg_col, agg_func)))
+            if self.as_index:
+                tcol = agg_col
+                tfunc = agg_func
+            else:
+                tcol = self.__cols + agg_col
+                tfunc = [''] * len(self.__cols) + agg_func
+            multi = pd.MultiIndex.from_tuples(list(zip(tcol, tfunc)))
             ret.set_multi_level_column(multi)
 
         if order:
