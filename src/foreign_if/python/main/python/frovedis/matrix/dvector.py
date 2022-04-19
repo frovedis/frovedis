@@ -2,6 +2,7 @@
 dvector.py: contains the implementation of frovedis distributed vector
 """
 
+from ..config import global_config
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
@@ -65,22 +66,24 @@ class FrovedisDvector:
         data_size = vec.size
         (host, port) = FrovedisServer.getServerInstance()
         data_type = self.get_dtype()
+        rawsend = global_config.get("rawsend_enabled")
         if data_type == DTYPE.INT:
             dvec = rpclib.create_frovedis_int_dvector(host, port, data_vector,
-                                                      data_size)
+                                                      data_size, rawsend)
         elif data_type == DTYPE.LONG:
             dvec = rpclib.create_frovedis_long_dvector(host, port, data_vector,
-                                                       data_size)
+                                                       data_size, rawsend)
         elif data_type == DTYPE.ULONG:
             dvec = rpclib.create_frovedis_ulong_dvector(host, port, data_vector,
-                                                        data_size)
+                                                        data_size, rawsend)
         elif data_type == DTYPE.FLOAT:
             dvec = rpclib.create_frovedis_float_dvector(host, port,
-                                                        data_vector, data_size)
+                                                        data_vector, 
+                                                        data_size, rawsend)
         elif data_type == DTYPE.DOUBLE:
             dvec = rpclib.create_frovedis_double_dvector(host, port,
                                                          data_vector,
-                                                         data_size)
+                                                         data_size, rawsend)
         elif data_type == DTYPE.STRING:
             ptr_arr = get_string_array_pointer(data_vector)
             dvec = rpclib.create_frovedis_string_dvector(host, port, ptr_arr,

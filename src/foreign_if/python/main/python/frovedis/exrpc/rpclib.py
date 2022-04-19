@@ -46,31 +46,31 @@ check_server_exception.restype = py_object
 create_frovedis_int_dvector = LIB.create_frovedis_int_dvector
 create_frovedis_int_dvector.argtypes = [c_char_p, c_int,\
                             ndpointer(c_int, ndim=1, flags="C_CONTIGUOUS"),\
-                                  c_ulong]
+                                  c_ulong, c_bool]
 create_frovedis_int_dvector.restype = py_object
 
 create_frovedis_long_dvector = LIB.create_frovedis_long_dvector
 create_frovedis_long_dvector.argtypes = [c_char_p, c_int,\
                            ndpointer(c_long, ndim=1, flags="C_CONTIGUOUS"),\
-                                  c_ulong]
+                                  c_ulong, c_bool]
 create_frovedis_long_dvector.restype = py_object
 
 create_frovedis_ulong_dvector = LIB.create_frovedis_ulong_dvector
 create_frovedis_ulong_dvector.argtypes = [c_char_p, c_int,\
                            ndpointer(c_ulong, ndim=1, flags="C_CONTIGUOUS"),\
-                                  c_ulong]
+                                  c_ulong, c_bool]
 create_frovedis_ulong_dvector.restype = py_object
 
 create_frovedis_float_dvector = LIB.create_frovedis_float_dvector
 create_frovedis_float_dvector.argtypes = [c_char_p, c_int,\
                           ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS"),\
-                                  c_ulong]
+                                  c_ulong, c_bool]
 create_frovedis_float_dvector.restype = py_object
 
 create_frovedis_double_dvector = LIB.create_frovedis_double_dvector
 create_frovedis_double_dvector.argtypes = [c_char_p, c_int,\
                          ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS"),\
-                                  c_ulong]
+                                  c_ulong, c_bool]
 create_frovedis_double_dvector.restype = py_object
 
 create_frovedis_string_dvector = LIB.create_frovedis_string_dvector

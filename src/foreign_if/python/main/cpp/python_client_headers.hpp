@@ -71,6 +71,10 @@ extern "C" {
 
   // --- server info ---
   std::vector<exrpc_node> get_worker_nodes(exrpc_node& fm_node);
+  std::vector<exrpc_node> get_worker_nodes_for_rawsend(exrpc_node& fm_node);
+  std::vector<exrpc_node>
+  get_worker_nodes_for_multi_exrpc(exrpc_node& fm_node,
+                                   std::vector<size_t> blocksz);
 
   // conversion
   std::vector<std::string> to_string_vector(const char** data, ulong sz);
