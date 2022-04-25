@@ -33,7 +33,7 @@ from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     get_python_scalar_type, check_string_or_array_like, \
                     check_stat_error, double_typed_aggregator, \
                     if_mask_vector
-from ..utils import deprecated
+from ..utils import deprecated, str_type
 from pandas.core.common import SettingWithCopyWarning
 
 def read_csv(filepath_or_buffer, sep=',', delimiter=None,
@@ -491,7 +491,11 @@ class DataFrame(object):
         col_names = get_string_array_pointer(strcols)
         dvec_arr = np.asarray([dv.get() for dv in dvec], dtype=c_long)
         dptr = dvec_arr.ctypes.data_as(POINTER(c_long))
-        type_arr = np.asarray(types, dtype=c_short)
+
+        # for STRING column -> read config to decide whether to 
+        # append the column as dvector<std::string> or as node_local<words>
+        type_arr = np.asarray([str_type() if t == DTYPE.STRING else t \
+                                for t in types], dtype=c_short)
         tptr = type_arr.ctypes.data_as(POINTER(c_short))
         self.__types = types[1:]
 

@@ -172,7 +172,7 @@ class FPGrowth(object):
         #
         # debug code to confirm if encoding non-numeric data is correct
         # 
-        p_df = f_df.to_pandas_dataframe()
+        p_df = f_df.to_pandas()
         if self.encode_logic is not None:
             p_df['rowid'] = np.arange(len(p_df))
             logic = pd.DataFrame()
@@ -228,7 +228,7 @@ class FPGrowth(object):
             for each in ldf:
                 res = fpd.DataFrame().load_dummy(each["dfptr"], \
                                        each["names"], each["types"])
-                fis = merge_and_append_fis(fis, res.to_pandas_dataframe(), \
+                fis = merge_and_append_fis(fis, res.to_pandas(), \
                                            self.encode_logic)
             self.__fis = fis.reset_index(drop=True)
         return self.__fis
@@ -265,13 +265,13 @@ class FPGrowth(object):
                                    pred["names"], pred["types"])
         if len(res) >  0:
             pred = adjust_transform_output(
-                                    res.to_pandas_dataframe(), 
-                                    f_df.to_pandas_dataframe())
+                                    res.to_pandas(), 
+                                    f_df.to_pandas())
         else:
             res = pd.DataFrame({'trans_id':[], 'consequent':[]})
             pred = adjust_transform_output(
                                     res, 
-                                    f_df.to_pandas_dataframe())
+                                    f_df.to_pandas())
         return pred
 
     @set_association
@@ -395,7 +395,7 @@ class FPRules(object):
                 res = fpd.DataFrame().load_dummy(each["dfptr"], \
                                        each["names"], each["types"])
                 rules = merge_and_append_rules(rules, \
-                        res.to_pandas_dataframe(), self.encode_logic)
+                        res.to_pandas(), self.encode_logic)
             self.__rule = rules.reset_index(drop=True)
         return self.__rule
 

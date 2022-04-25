@@ -300,3 +300,4 @@ def check_stat_error(func, has_string_column, **kwargs):
                 raise TypeError(func + ": Currently supported only for numeric columns!")
 
     return ret
+

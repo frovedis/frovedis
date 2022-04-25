@@ -75,6 +75,7 @@ extern "C" {
           ret_proxy = exrpc_async(fm_node, get_dfoperator<double>,
                                   opd1, opd2, opt, isImmed).get();
           break;
+        case WORDS:
         case STRING:
           ret_proxy = exrpc_async(fm_node, get_str_dfoperator, 
                                   opd1, opd2, opt, isImmed).get();
@@ -984,6 +985,7 @@ extern "C" {
                                         f_dptr, cname, tid).get(); break;
         // TODO: NULL treatment at server side for string-column case (difficult?)
         // currently it is being done at python side...
+        case WORDS:
         case STRING: dvec = exrpc_async(fm_node, get_df_string_col, 
                                         f_dptr, cname).get(); break;
         default:     REPORT_ERROR(USER_ERROR, 

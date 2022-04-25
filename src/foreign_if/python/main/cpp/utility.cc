@@ -278,6 +278,14 @@ extern "C" {
     return vec;
   }
 
+  // converison : char* (pointer-to-char-array) => std::vector<char>
+  std::vector<char>
+  to_char_vector(char* data, ulong sz) {
+    std::vector<char> vec(sz);
+    for(size_t i = 0; i < sz; ++i) vec[i] = data[i];
+    return vec;
+  }
+
   // converison : int* (pointer-to-int-array) => std::vector<int>
   std::vector<int> 
   to_int_vector(int* data, ulong sz) {

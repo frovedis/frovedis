@@ -35,6 +35,8 @@ exrpc_ptr_t make_node_local_words_from_fixsized_bytes(
 
 std::vector<exrpc_ptr_t> get_node_local_word_pointers(exrpc_ptr_t& words_nl_ptr);
 std::vector<std::string> get_string_vector_from_words(exrpc_ptr_t& wordsptr);
+dummy_vector node_local_words_to_string_dvector(exrpc_ptr_t& words_nl_ptr);
+void show_node_local_words(exrpc_ptr_t& words_nl_ptr);
 
 // --- Functions to enable ML data transfer and handling the same ---
 template <class MATRIX>

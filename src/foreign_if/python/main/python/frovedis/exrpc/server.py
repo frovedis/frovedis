@@ -91,6 +91,13 @@ class FrovedisServer(object):
         return (inst.mnode.get_host(), inst.mnode.get_port())
 
     @classmethod
+    def getSize(cls):
+        """
+        no. of mpi process at server side
+        """
+        return cls().wsize
+
+    @classmethod
     def initialize(cls, command):
         """ 
         to initialize a new server (if no server is running) 

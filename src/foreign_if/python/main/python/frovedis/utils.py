@@ -5,6 +5,7 @@ utils.py: module containing utils like deprecated,
 import warnings
 import numbers
 import numpy as np
+from .config import global_config
 
 def deprecated(message):
     """ definition for deprecated methods """
@@ -46,3 +47,7 @@ def check_sample_weight(self, sample_weight):
             raise ValueError("sample_weight.shape == {}, expected {}!"\
                    .format(sample_weight.shape, (self.n_samples,)))
     return np.asarray(weight, dtype=np.float64)
+
+def str_type():
+    return global_config.get("string_dvector_as")
+

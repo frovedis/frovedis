@@ -57,7 +57,7 @@ class TypeUtil:
             return np.float64
         elif dtype == DTYPE.BOOL:
             return np.bool
-        elif dtype == DTYPE.STRING:
+        elif dtype == DTYPE.STRING or dtype == DTYPE.WORDS:
             return np.dtype(str)
         else:
             raise TypeError("Unknown numpy type for the given TID: %d" % dtype)

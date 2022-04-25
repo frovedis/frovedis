@@ -1,23 +1,27 @@
 """
 dvector.py: contains the implementation of frovedis distributed vector
 """
+import sys
+import numpy as np
+from ctypes import c_char_p, c_int, c_long, c_ulong, c_float, c_double, \
+                   c_byte, POINTER
 
+from ..utils import str_type
 from ..config import global_config
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
 from .dtype import TypeUtil, DTYPE, get_string_array_pointer
-from ctypes import c_char_p, c_int, c_long, c_ulong, c_float, c_double, POINTER
-import numpy as np
 
 class FrovedisDvector:
     """
     A python container for holding Frovedis server side
-    dvector<double> pointers
+    dvector<T> pointers. Supported 'T' types are; int, long, ulong,
+    float, double, string
     """
 
     def __init__(self, vec=None, dtype=None):  # constructor
-        self.__dtype = dtype
+        self.__dtype = None if dtype is None else TypeUtil.to_id_dtype(dtype)
         self.__fdata = None
         self.__size = 0
         if vec is not None:
@@ -44,29 +48,40 @@ class FrovedisDvector:
             raise ValueError("bad input shape {0}".format(shape))
 
         if dtype is not None:
-            self.__dtype = dtype
+            self.__dtype = TypeUtil.to_id_dtype(dtype)
         if self.__dtype is not None:
-            vec = np.asarray(inp, dtype=self.__dtype)
+            vec = np.asarray(inp, dtype=self.get_numpy_dtype())
         else:
             vec = np.asarray(inp)
-        return self.load_numpy_array(vec, dtype=self.__dtype)
+        return self.load_numpy_array(vec, dtype=self.get_numpy_dtype())
 
     def load_numpy_array(self, vec, dtype=None):
         self.release()
         if vec.ndim > 1:
             raise ValueError(\
             "Input dimension is more than 1 (Expected: Array, Got: Matrix)")
-        if dtype is None: dtype = self.__dtype
-        else: self.__dtype = dtype
+        if dtype is None: 
+            dtype = self.get_numpy_dtype()
+        else: 
+            self.__dtype = TypeUtil.to_id_dtype(dtype)
+
         if self.__dtype is None:
-            self.__dtype = vec.dtype
+            self.__dtype = TypeUtil.to_id_dtype(vec.dtype)
         else:
-            vec = np.asarray(vec, dtype=self.__dtype)
+            vec = np.asarray(vec, dtype=self.get_numpy_dtype())
+
         data_vector = vec.T  # returns self, since ndim=1
         data_size = vec.size
         (host, port) = FrovedisServer.getServerInstance()
+
         data_type = self.get_dtype()
+        # StringDvector -> read config to decide whether to create 
+        # dvector<std::string> or node_local<words>
+        if data_type == DTYPE.STRING:
+            data_type = str_type()
+
         rawsend = global_config.get("rawsend_enabled")
+        #print("sending with rawsend_enabled: {}".format(rawsend))
         if data_type == DTYPE.INT:
             dvec = rpclib.create_frovedis_int_dvector(host, port, data_vector,
                                                       data_size, rawsend)
@@ -88,6 +103,15 @@ class FrovedisDvector:
             ptr_arr = get_string_array_pointer(data_vector)
             dvec = rpclib.create_frovedis_string_dvector(host, port, ptr_arr,
                                                          data_size)
+        elif data_type == DTYPE.WORDS:
+            byte_arr = np.asarray(bytearray(data_vector))
+            #print(data_vector)
+            #print(byte_arr)
+            is_utf32_le = sys.version_info[0] >= 3
+            bptr = byte_arr.ctypes.data_as(POINTER(c_byte))
+            dvec = rpclib.create_frovedis_words_node_local(host, port, \
+                            bptr, data_vector.nbytes, data_vector.itemsize, \
+                            is_utf32_le, FrovedisServer.getSize(), rawsend)
         else:
             raise TypeError(
                 "Unsupported dtype is specified for dvector creation!")
@@ -100,10 +124,9 @@ class FrovedisDvector:
     def load_dummy(self, dvec):
         self.release()
         try:
-            self.__fdata = (dvec['dptr'])
-            self.__size = (dvec['size'])
-            self.__dtype = TypeUtil.to_numpy_dtype(
-                dvec['vtype'])  # Must be added from c++ side
+            self.__fdata = dvec['dptr']
+            self.__size  = dvec['size']
+            self.__dtype = dvec['vtype']  # Must be added from c++ side
         except KeyError:
             raise TypeError("[INTERNAL ERROR] Invalid input encountered.")
         return self
@@ -148,16 +171,16 @@ class FrovedisDvector:
 
     @check_association
     def debug_print(self):
+        dtype = self.get_dtype()
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.show_frovedis_dvector(host, port, self.get(),
-                                     self.get_dtype())
+        rpclib.show_frovedis_dvector(host, port, self.get(), dtype)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        if self.get_dtype() == DTYPE.STRING:
+        if dtype == DTYPE.STRING or dtype == DTYPE.WORDS:
             print("dtype: string")
         else:
-            print("dtype: %s" % TypeUtil.to_numpy_dtype(self.get_dtype()))
+            print("dtype: %s" % TypeUtil.to_numpy_dtype(dtype))
 
     def get(self):
         return self.__fdata
@@ -166,7 +189,11 @@ class FrovedisDvector:
         return self.__size
 
     def get_dtype(self):
-        return TypeUtil.to_id_dtype(self.__dtype)
+        return self.__dtype
+
+    def get_numpy_dtype(self):
+        return None if self.__dtype is None \
+                    else TypeUtil.to_numpy_dtype(self.__dtype)
 
     def encode(self, src=None, target=None, need_logic=False):
         if src is None and target is None:
@@ -186,8 +213,9 @@ class FrovedisDvector:
         dummy = {'dptr': proxy, 'size': self.size(), 'vtype': self.get_dtype()}
         ret = FrovedisDvector().load(dummy)
         if need_logic:
-            src = np.asarray(self.get_unique_elements(), dtype=self.__dtype)
-            target = np.arange(src.size, dtype=self.__dtype)
+            dtype = self.get_numpy_dtype()
+            src = np.asarray(self.get_unique_elements(), dtype=dtype)
+            target = np.arange(src.size, dtype=dtype)
             logic = dict(zip(target, src))
             return (ret, logic)
         else:
@@ -196,8 +224,9 @@ class FrovedisDvector:
     @check_association
     def __encode_as_needed(self, src, target, need_logic=False):
         if self.__fdata:
-            src = np.asarray(src, self.__dtype)
-            target = np.asarray(target, self.__dtype)
+            dtype = self.get_numpy_dtype()
+            src = np.asarray(src, dtype=dtype)
+            target = np.asarray(target, dtype=dtype)
             sz = src.size
             if sz != target.size:
                 raise ValueError(\
@@ -273,7 +302,7 @@ class FrovedisDvector:
             ret = np.empty(sz, dtype=np.float32)
         elif dt == DTYPE.DOUBLE:
             ret = np.empty(sz, dtype=np.float64)
-        elif dt == DTYPE.STRING:
+        elif dt == DTYPE.STRING or dt == DTYPE.WORDS:
             pass # handles later
         else:
             raise TypeError(\
@@ -285,6 +314,10 @@ class FrovedisDvector:
             # TODO: improve list to ndarray conversion (as it is slower)
             ret = np.asarray(rpclib.string_dvector_to_numpy_array( \
                              host, port, self.get(), sz))
+        elif dt == DTYPE.WORDS:
+            tmp = self.to_string_dvector()
+            ret = np.asarray(rpclib.string_dvector_to_numpy_array( \
+                             host, port, tmp.get(), sz))
         else:
             retptr = ret.__array_interface__['data'][0]
             rpclib.dvector_to_numpy_array(host, port, \
@@ -293,6 +326,15 @@ class FrovedisDvector:
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return ret
+
+    def to_string_dvector(self):
+        """ convert self to StringDvector """
+        (host, port) = FrovedisServer.getServerInstance()
+        dvec = rpclib.convert_to_string_vector(host, port, \
+                 self.get(), self.get_dtype())
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return FrovedisDvector().load_dummy(dvec)
 
     @staticmethod
     def as_dvec(vec, dtype=None, retIsConverted=False):

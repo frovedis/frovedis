@@ -212,6 +212,24 @@ get_node_local_word_pointers(exrpc_ptr_t& words_nl_ptr) {
                  }).gather();
 }
 
+void show_node_local_words(exrpc_ptr_t& words_nl_ptr) {
+  auto& w_nl = *reinterpret_cast<node_local<words>*>(words_nl_ptr);
+  auto dvec = w_nl.map(+[](words& w) { return words_to_vector_string(w); })
+                  .template moveto_dvector<std::string>();
+  std::cout << "dvector(size: " << dvec.size() << "): \n";
+  debug_print_vector(dvec.gather());
+}
+
+dummy_vector node_local_words_to_string_dvector(exrpc_ptr_t& words_nl_ptr) {
+  auto& w_nl = *reinterpret_cast<node_local<words>*>(words_nl_ptr);
+  auto retp = new dvector<std::string>(
+                w_nl.map(+[](words& w) 
+                       { return words_to_vector_string(w); })
+                    .template moveto_dvector<std::string>());
+  auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+  return dummy_vector(retp_, retp->size(), STRING);
+}
+
 void expose_frovedis_dvector_functions() {
   // --- mostly for debugging rawsend of client side allocated memory ---
   expose(allocate_vector<char>);
@@ -304,6 +322,7 @@ void expose_frovedis_dvector_functions() {
   expose(show_dvector<float>);
   expose(show_dvector<double>);
   expose(show_dvector<std::string>);
+  expose(show_node_local_words);
   expose(release_dvector<int>);
   expose(release_dvector<long>);
   expose(release_dvector<unsigned long>);
@@ -348,4 +367,5 @@ void expose_frovedis_dvector_functions() {
   expose(get_local_vector<float>);
   expose(get_local_vector<double>);
   expose(get_local_vector<std::string>);
+  expose(node_local_words_to_string_dvector);
 }

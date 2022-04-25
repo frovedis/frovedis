@@ -302,7 +302,7 @@ class FrovedisGroupedDataframe(object):
             return self.__agg_with_dict(func)
         else: 
             raise TypeError("agg: Unsupported 'func' of type " +
-                            f"'{type(func).__name__}' is provided.")
+                            "'{}' is provided.".format(type(func).__name__))
 
     def __agg_with_list(self, func):
         """

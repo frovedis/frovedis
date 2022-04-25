@@ -9,7 +9,7 @@ rpclib.py
 import numpy as np
 from ctypes import c_char_p, c_int, c_ulong, c_short, c_float, c_double,\
                    c_long, c_bool, c_char, c_void_p, CDLL, py_object, POINTER,\
-                   c_size_t
+                   c_size_t, c_byte
 from numpy.ctypeslib import ndpointer
 from scipy.sparse.csr import csr_matrix
 
@@ -77,6 +77,16 @@ create_frovedis_string_dvector = LIB.create_frovedis_string_dvector
 create_frovedis_string_dvector.argtypes = [c_char_p, c_int, POINTER(c_char_p),\
                                            c_ulong]
 create_frovedis_string_dvector.restype = py_object
+
+create_frovedis_words_node_local = LIB.create_frovedis_words_node_local
+create_frovedis_words_node_local.argtypes = [c_char_p, c_int, \
+                   POINTER(c_byte), c_ulong, c_ulong, c_bool, \
+                   c_int, c_bool]
+create_frovedis_words_node_local.restype = py_object
+
+convert_to_string_vector = LIB.to_string_vector
+convert_to_string_vector.argtypes = [c_char_p, c_int, c_long, c_short]
+convert_to_string_vector.restype = py_object
 
 #To Print Created dvector
 show_frovedis_dvector = LIB.show_frovedis_dvector
