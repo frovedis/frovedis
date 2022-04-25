@@ -51,6 +51,7 @@ allocate_local_vectors(std::vector<size_t>& sizes,
   return ret;
 }
 
+// for spark (with multi-partition at each process)
 std::vector<int>
 merge_exrpc_vchar_as_vint(exrpc_ptr_t p_vecs_ptr) {
   auto& p_char_vecs = *reinterpret_cast<std::vector<std::vector<char>>*>(p_vecs_ptr);
@@ -95,6 +96,104 @@ exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs,
                                   std::vector<exrpc_ptr_t>& size_ptrs,
                                   bool& do_align) {
   auto ret = make_node_local_words_impl(data_ptrs, size_ptrs, do_align);
+  auto retp = new node_local<words>(std::move(ret));
+  return reinterpret_cast<exrpc_ptr_t>(retp);
+}
+
+// expects input in little endian (4 bytes for each character)
+std::vector<int> 
+get_single_byte_utf32(const std::vector<int>& bytes) { 
+  auto size = bytes.size();
+  auto retlen = size / 4;
+  std::vector<int> ret(retlen);
+  auto rptr = ret.data();
+  auto bptr = bytes.data();
+  for(size_t i = 0; i < retlen; ++i) {
+    auto m = bptr[i * 4 + 0];
+    auto n = bptr[i * 4 + 1];
+    auto o = bptr[i * 4 + 2];
+    auto p = bptr[i * 4 + 3];
+    rptr[i] = (p << 24) | (o << 16) | (n << 8) | m;
+  }
+  return ret;
+}
+
+words create_utf8_words_from_utf32_fixsized_bytes(const std::vector<int>& bytes, 
+                                                  size_t itemsize) {
+  auto nbyte = bytes.size();
+  //std::cout << "nbytes: " << nbyte << "; itemsize: " << itemsize << std::endl;
+  checkAssumption((nbyte % itemsize == 0) && (itemsize % 4 == 0));
+  auto no_of_words = nbyte / itemsize;
+  auto word_size = itemsize / 4;
+
+  auto utf32 = get_single_byte_utf32(bytes);
+  auto non_zero_pos = vector_find_nonzero(utf32);
+
+  std::vector<size_t> starts(no_of_words + 1);
+  auto sptr = starts.data();
+  for(size_t i = 0; i <= no_of_words; ++i) sptr[i] = i * word_size;
+  auto target_pos = lower_bound(non_zero_pos, starts);
+
+  std::vector<size_t> lens(no_of_words);
+  auto lptr = lens.data();
+  auto pptr = target_pos.data();
+  for(size_t i = 0; i < no_of_words; ++i) lptr[i] = pptr[i + 1] - pptr[i];
+
+  starts.pop_back();
+  words ret;
+  ret.chars.swap(utf32);
+  ret.starts.swap(starts);
+  ret.lens.swap(lens);
+  return utf32_to_utf8(ret);
+}
+
+words create_utf8_words_from_utf8_fixsized_bytes(const std::vector<int>& bytes, 
+                                                 size_t itemsize) {
+  auto nbyte = bytes.size();
+  //std::cout << "nbytes: " << nbyte << "; itemsize: " << itemsize << std::endl;
+  checkAssumption(nbyte % itemsize == 0);
+  auto no_of_words = nbyte / itemsize;
+
+  auto non_zero_pos = vector_find_nonzero(bytes);
+
+  std::vector<size_t> starts(no_of_words + 1);
+  auto sptr = starts.data();
+  for(size_t i = 0; i <= no_of_words; ++i) sptr[i] = i * itemsize;
+  auto target_pos = lower_bound(non_zero_pos, starts);
+
+  std::vector<size_t> lens(no_of_words);
+  auto lptr = lens.data();
+  auto pptr = target_pos.data();
+  for(size_t i = 0; i < no_of_words; ++i) lptr[i] = pptr[i + 1] - pptr[i];
+
+  starts.pop_back();
+  words ret;
+  ret.chars = bytes;
+  ret.starts.swap(starts);
+  ret.lens.swap(lens);
+  return ret;
+}
+
+words get_utf8_words(const std::vector<int>& bytes, 
+                     size_t itemsize, bool is_utf32_le) {
+  return is_utf32_le ? create_utf8_words_from_utf32_fixsized_bytes(bytes, itemsize)
+                     : create_utf8_words_from_utf8_fixsized_bytes(bytes, itemsize);
+}
+
+// for python (with single-partition at each process)
+std::vector<int>
+exrpc_vchar_as_vint(exrpc_ptr_t vecptr) {
+  auto& charvec = *reinterpret_cast<std::vector<char>*>(vecptr);
+  return vchar_to_int(charvec);
+}
+
+exrpc_ptr_t make_node_local_words_from_fixsized_bytes(
+              std::vector<exrpc_ptr_t>& data_ptrs,
+              size_t& itemsize, bool& is_utf32_le) {
+  auto each_data_eps = make_node_local_scatter(data_ptrs);
+  auto ret = each_data_eps.map(exrpc_vchar_as_vint)
+                          .map(get_utf8_words, broadcast(itemsize), 
+                               broadcast(is_utf32_le));
   auto retp = new node_local<words>(std::move(ret));
   return reinterpret_cast<exrpc_ptr_t>(retp);
 }
@@ -184,6 +283,7 @@ void expose_frovedis_dvector_functions() {
   expose(get_node_local_word_pointers);
   expose(get_string_vector_from_words);
   // for python (load_local_data, create_and_set_dvector)
+  expose((load_local_data<std::vector<char>>)); // for node_local<words>
   expose((load_local_data<std::vector<int>>));
   expose((load_local_data<std::vector<long>>));
   expose((load_local_data<std::vector<unsigned long>>));
@@ -196,6 +296,7 @@ void expose_frovedis_dvector_functions() {
   expose(create_and_set_dvector<float>);
   expose(create_and_set_dvector<double>);
   expose(create_and_set_dvector<std::string>);
+  expose(make_node_local_words_from_fixsized_bytes);
   //expose common (spark/python) dvector functionalities
   expose(show_dvector<int>);
   expose(show_dvector<long>);
@@ -210,6 +311,7 @@ void expose_frovedis_dvector_functions() {
   expose(release_dvector<double>);
   expose(release_dvector<std::string>);
   expose(release_dvector<int64_t>);
+  expose((release_data<node_local<words>>));
   // frovedis (simple std::vector) vector functionalities
   expose(create_frovedis_vector<int>);
   expose(create_frovedis_vector<long>);
