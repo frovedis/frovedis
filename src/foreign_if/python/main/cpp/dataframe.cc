@@ -1819,4 +1819,61 @@ extern "C" {
     }
     return to_python_llong_list(res);
   }
+
+  PyObject* df_clip(const char* host, int port, long proxy,
+                    const char* lower_limit_col, const char* upper_limit_col) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    std::string lower_limit_col_(lower_limit_col), upper_limit_col_(upper_limit_col);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_clip, df_proxy,
+                        lower_limit_col_, upper_limit_col_).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* df_clip_axis1_numeric(const char* host, int port, long proxy,
+                                double* lower_limit, double* upper_limit,
+                                ulong sz) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+
+    auto lower_limit_ = to_double_vector(lower_limit, sz);
+    auto upper_limit_ = to_double_vector(upper_limit, sz);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_clip_axis1_numeric, df_proxy,
+                        lower_limit_, upper_limit_).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* df_clip_axis1_str(const char* host, int port, long proxy,
+                              const char** lower_limit, const char** upper_limit,
+                              ulong sz) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+
+    auto lower_limit_ = to_string_vector(lower_limit, sz);
+    auto upper_limit_ = to_string_vector(upper_limit, sz);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_clip_axis1_str, df_proxy,
+                        lower_limit_, upper_limit_).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
 }
