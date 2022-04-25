@@ -659,6 +659,23 @@ df_get_index_loc.argtypes = [c_char_p, c_int, c_long,  # host, port, proxy
                              c_short]                  # dtype
 df_get_index_loc.restype = py_object
 
+df_clip = LIB.df_clip
+df_clip.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
+                    c_char_p, c_char_p]          # lower_limit_col, upper_limit_col
+df_clip.restype = py_object
+
+df_clip_axis1_numeric = LIB.df_clip_axis1_numeric
+df_clip_axis1_numeric.argtypes = [c_char_p, c_int, c_long,             # host, port, proxy
+                                 POINTER(c_double), POINTER(c_double), # lower_limit, upper_limit
+                                 c_ulong]                              # size
+df_clip_axis1_numeric.restype = py_object
+
+df_clip_axis1_str = LIB.df_clip_axis1_str
+df_clip_axis1_str.argtypes = [c_char_p, c_int, c_long,            # host, port, proxy
+                            POINTER(c_char_p), POINTER(c_char_p), # lower_limit, upper_limit
+                            c_ulong]                              # size
+df_clip_axis1_str.restype = py_object
+
 # --- Frovedis dftable_to_sparse_info ---
 load_dftable_to_sparse_info = LIB.load_dftable_to_sparse_info
 load_dftable_to_sparse_info.argtypes = [c_char_p, c_int,  #host, port
