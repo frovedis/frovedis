@@ -3791,6 +3791,185 @@ class DataFrame(object):
             ret.is_series = False
         return ret
 
+    def __get_unique_column_name(self, column_names, validate=False):
+        import secrets
+        name = "__col__" + secrets.token_hex(32)
+
+        if validate:
+            column_set = set(column_names)
+            while name in column_set:
+                name = "__col__" + secrets.token_hex(32)
+
+        return name
+
+    def __clip_axis1_helper(self, lower=None, upper=None, axis=None, inplace=False):
+        if isinstance(lower, (numbers.Number, str)):
+            lower = [lower] * len(self.columns)
+        if isinstance(upper, (numbers.Number, str)):
+            upper = [upper] * len(self.columns)
+
+        if len(lower) != len(self.columns):
+            raise ValueError("Unable to align with columns, length must "
+                            "be {}: given {}".format(len(self.columns), len(lower)))
+        if len(upper) != len(self.columns):
+            raise ValueError("Unable to align with columns, length must "
+                            "be {}: given {}".format(len(self.columns), len(upper)))
+
+        is_str_lower = all(isinstance(e, str) for e in lower)
+        is_str_upper = all(isinstance(e, str) for e in upper)
+        is_str_columns = all( e==DTYPE.STRING for e in self.__types )
+
+        if is_str_columns and ( (not is_str_lower) or (not is_str_upper) ) or\
+            (not is_str_columns) and (is_str_lower or is_str_upper):
+            raise TypeError("clip: Cannot perform comparison between string"
+                           " and numeric values!")
+
+        sz = len(lower)
+
+        (host, port) = FrovedisServer.getServerInstance()
+        if is_str_lower and is_str_lower:
+            lower_ptr = get_string_array_pointer(lower)
+            upper_ptr = get_string_array_pointer(upper)
+
+            dummy_df = rpclib.df_clip_axis1_str(host, port, self.get(),
+                                                lower_ptr, upper_ptr, sz)
+        else:
+            lower_arr = np.asarray(lower, dtype=np.float64)
+            lower_ptr = lower_arr.ctypes.data_as(POINTER(c_double))
+           
+            upper_arr = np.asarray(upper, dtype=np.float64)
+            upper_ptr = upper_arr.ctypes.data_as(POINTER(c_double))
+            
+            dummy_df = rpclib.df_clip_axis1_numeric(host, port, self.get(),
+                                                lower_ptr, upper_ptr, sz)
+
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        ret = self if inplace else DataFrame(is_series=self.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        return None if inplace else ret
+
+    def __clip_axis0_helper(self, lower=None, upper=None, axis=None, inplace=False):
+        lower_limit_col = \
+            self.__get_unique_column_name(self.columns, True)
+        upper_limit_col = \
+            self.__get_unique_column_name(self.columns+[lower_limit_col], True)
+
+        self[lower_limit_col] = lower
+        self[upper_limit_col] = upper
+
+        numeric_cols, numeric_cols_types = \
+            self.__get_numeric_columns()
+        
+        is_numeric_lower = lower_limit_col in numeric_cols
+        is_numeric_upper = upper_limit_col in numeric_cols
+
+        if (is_numeric_lower and not is_numeric_upper ) or \
+            ( not is_numeric_lower and is_numeric_upper ):
+            raise TypeError("clip: Invalid comparison between string and"
+                           " numeric columns!")
+
+        if (is_numeric_lower and is_numeric_upper) and \
+            (len(numeric_cols) < len(self.columns)):
+            raise TypeError("clip: Invalid comparison between string and"
+                           " numeric columns!")
+
+        elif (not is_numeric_lower and not is_numeric_upper) and\
+            (len(numeric_cols) > 0 ):
+            raise TypeError("clip: Invalid comparison between string and"
+                           " numeric columns!")
+
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_clip(host, port, self.get(),
+                                lower_limit_col.encode('ascii'),
+                                upper_limit_col.encode('ascii'))
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        ret = self if inplace else DataFrame(is_series=self.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        ret.drop(columns=[lower_limit_col, upper_limit_col], inplace=True)
+        if not inplace:
+            self.drop(columns=[lower_limit_col, upper_limit_col], inplace=True)
+
+        return None if inplace else ret
+
+    def clip(self, lower=None, upper=None, axis=None, inplace=False):
+        """
+        clip the values accordinng to the specified limits
+        """
+        if axis not in (None, 0, 1, "columns", "index"):
+            raise ValueError("clip: Unsupported axis {} is"
+                             " provided!".format(axis))
+        if axis == "index":
+            axis = 0
+        elif axis == "columns":
+            axis = 1
+
+        if not isinstance(lower, (numbers.Number, str, list, pd.Series,
+                                np.ndarray, tuple)):
+            raise TypeError("clip: Unsupported type of limit provided: "
+                            "{} ". format(type(lower)))
+
+        if not isinstance(upper, (numbers.Number, str, list, pd.Series,
+                                np.ndarray, tuple)):
+            raise TypeError("clip: Unsupported type of limit provided: "
+                            "{} ". format(type(upper)))
+
+        if not isinstance(inplace, bool):
+            raise ValueError("clip: For argument 'inplace' expected type "
+                            "bool, received type {}.".format(type(inplace)))
+
+        if lower is None and upper is None:
+            return None if inplace else self.copy()
+
+        if lower is None:
+            lower = np.nan
+        if upper is None:
+            upper = np.nan
+
+        if isinstance(lower, (numbers.Number, str)) and\
+            isinstance(upper, (numbers.Number, str)):
+            axis = 0
+
+        if isinstance(lower, (list, pd.Series, np.ndarray, tuple)):
+            lower = list(lower)
+        if isinstance(upper, (list, pd.Series, np.ndarray, tuple)):
+            upper = list(upper)
+
+        if axis is None:
+            if isinstance(lower, list) or isinstance(upper, list):
+                axis = 1
+            else:
+                axis = 0
+        
+        if axis == 1:
+            res = self.__clip_axis1_helper(lower, upper, axis, inplace)
+        else:
+            res = self.__clip_axis0_helper(lower, upper, axis, inplace)
+
+        return res
+
+
     def __setattr__(self, key, value):
         """ sets the specified attribute """
         if key in self.__dict__: # instance attribute
