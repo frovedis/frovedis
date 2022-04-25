@@ -140,6 +140,10 @@ void expose_frovedis_dataframe_functions() {
   expose(frovedis_gdf_aggr_with_mincount);
   expose(frov_df_mode_cols);
   expose(frov_df_mode_rows);
+  expose(frov_df_clip);
+  expose(frov_df_clip_axis1_numeric);
+  expose(frov_df_clip_axis1_str);
+
   // -- for spark wrapper ---
   expose(append_scalar);
   expose(get_dffunc_id);
