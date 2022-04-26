@@ -486,6 +486,11 @@ class FrovedisColumn(object):
                              ") '" + right_type +"'")
         return ret
 
+    def __len__(self):
+        if self.df is None:
+            raise ValueError("len: column is not associated with a DataFrame!")
+        return len(self.df)
+
     def __add__(self, other):
         """
         returns resultant dataframe(series) after performing self + other
