@@ -1158,15 +1158,18 @@ frov_df_last_element(exrpc_ptr_t&, std::string&);
 dummy_dftable 
 frov_df_clip(exrpc_ptr_t& df_proxy,
             std::string& lower_limit_col,
-            std::string& upper_limit_col);
+            std::string& upper_limit_col,
+            bool& with_index);
 
 dummy_dftable 
 frov_df_clip_axis1_numeric(exrpc_ptr_t& df_proxy,
                           std::vector<double>& lower_limit,
-                          std::vector<double>& upper_limit);
+                          std::vector<double>& upper_limit,
+                          bool& with_index);
 dummy_dftable 
 frov_df_clip_axis1_str(exrpc_ptr_t& df_proxy,
                       std::vector<std::string>& lower_limit,
-                      std::vector<std::string>& upper_limit);
+                      std::vector<std::string>& upper_limit,
+                      bool& with_index);
 
 #endif

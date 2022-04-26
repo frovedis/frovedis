@@ -2660,71 +2660,84 @@ frov_df_last_element(exrpc_ptr_t& df_proxy, std::string& col) {
 dummy_dftable 
 frov_df_clip(exrpc_ptr_t& df_proxy,
             std::string& lower_limit_col,
-            std::string& upper_limit_col) {
-  dftable* dftblp = reinterpret_cast<dftable*>(df_proxy);
-  dftable* retp;
+            std::string& upper_limit_col,
+            bool& with_index) {
+  auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
   auto lower_limit = ~lower_limit_col;
   auto upper_limit = ~upper_limit_col;
 
   auto columns = dftblp->columns();
   auto sz = columns.size();
   std::vector<std::shared_ptr<frovedis::dffunction>> res_cols(sz);
-  res_cols[0] = ~columns[0];
 
-  for(size_t i = 1; i < sz; i++){
+  size_t start = 0;
+  if (with_index) {
+    res_cols[0] = ~columns[0];
+    start = 1;
+  }
+ 
+  for(size_t i = start; i < sz; i++){
     auto curr_col = ~columns[i];
     auto res_col = when({curr_col < lower_limit, curr_col > upper_limit},
                         {lower_limit, upper_limit, curr_col} );
     res_cols[i] = res_col->as(columns[i]);
   }
 
-  retp = new dftable(dftblp->fselect(res_cols));
+  auto retp = new dftable(dftblp->fselect(res_cols));
   return to_dummy_dftable(retp);
 }
 
 dummy_dftable 
 frov_df_clip_axis1_numeric(exrpc_ptr_t& df_proxy,
                           std::vector<double>& lower_limit,
-                          std::vector<double>& upper_limit) {
-  dftable* dftblp = reinterpret_cast<dftable*>(df_proxy);
-  dftable* retp;
-
+                          std::vector<double>& upper_limit,
+                          bool& with_index) {
+  auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
   auto columns = dftblp->columns();
   auto sz = columns.size();
   std::vector<std::shared_ptr<frovedis::dffunction>> res_cols(sz);
-  res_cols[0] = ~columns[0];
-  
-  for(size_t i = 1; i < sz; i++){
+
+  size_t start = 0;
+  if (with_index) {
+    res_cols[0] = ~columns[0];
+    start = 1;
+  }
+
+  for(size_t i = start; i < sz; i++){
       auto curr_col = ~columns[i];
-      auto res_col = when({curr_col < lower_limit[i-1], curr_col > upper_limit[i-1]},
-                          {im(lower_limit[i-1]), im(upper_limit[i-1]), curr_col} );
+      auto res_col = when({curr_col < lower_limit[i-start], curr_col > upper_limit[i-start]},
+                          {im(lower_limit[i-start]), im(upper_limit[i-start]), curr_col} );
       res_cols[i] = res_col->as(columns[i]);
   }
 
-  retp = new dftable(dftblp->fselect(res_cols));
+  auto retp = new dftable(dftblp->fselect(res_cols));
   return to_dummy_dftable(retp);
 }
 
 dummy_dftable 
 frov_df_clip_axis1_str(exrpc_ptr_t& df_proxy,
                       std::vector<std::string>& lower_limit,
-                      std::vector<std::string>& upper_limit) {
-  dftable* dftblp = reinterpret_cast<dftable*>(df_proxy);
-  dftable* retp;
-
+                      std::vector<std::string>& upper_limit,
+                      bool& with_index) {
+  auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
   auto columns = dftblp->columns();
   auto sz = columns.size();
   std::vector<std::shared_ptr<frovedis::dffunction>> res_cols(sz);
-  res_cols[0] = ~columns[0];
 
-  for(size_t i = 1; i < sz; i++){
+  size_t start = 0;
+  if (with_index) {
+    res_cols[0] = ~columns[0];
+    start = 1;
+  }
+
+  for(size_t i = start; i < sz; i++){
     auto curr_col = ~columns[i];
-    auto res_col = when({curr_col < lower_limit[i-1], curr_col > upper_limit[i-1]},
-                        {dic_string_im(lower_limit[i-1]), dic_string_im(upper_limit[i-1]), curr_col});
+    auto res_col = when({curr_col < lower_limit[i-start], curr_col > upper_limit[i-start]},
+                        {dic_string_im(lower_limit[i-start]), dic_string_im(upper_limit[i-start]), curr_col});
     res_cols[i] = res_col->as(columns[i]);
   }
 
-  retp = new dftable(dftblp->fselect(res_cols));
+  auto retp = new dftable(dftblp->fselect(res_cols));
   return to_dummy_dftable(retp);
 }
 
