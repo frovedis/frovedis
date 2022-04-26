@@ -2983,8 +2983,9 @@ dftable dftable_base::is_in_im(const std::string& target_col,
 }
 
 template <class T>
-dftable dftable_base::select_rows(const std::string& target_col,
-                                  const std::vector<T>& target_values) {
+dftable dftable_base::select_rows_by_values(
+                      const std::string& target_col,
+                      const std::vector<T>& target_values) {
   dftable right_t;
   std::string right_col = "__r_key__";
   right_t.append_column(right_col, make_dvector_scatter(target_values));

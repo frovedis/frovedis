@@ -163,8 +163,11 @@ public:
                    const std::vector<T>& target_values); // defined in dfoperator.hpp
 
   template <class T>
-  dftable select_rows(const std::string& target_col,
-                      const std::vector<T>& target_values); // defined in dfoperator.hpp
+  dftable select_rows_by_values(const std::string& target_col,
+                                const std::vector<T>& target_values); // defined in dfoperator.hpp
+
+  // indices:n can contain negative values (-1: nrow - 1, -2: nrow - 2, ...)
+  dftable select_rows_by_indices(const std::vector<int>& indices); // defined in dfoperator.cc
 
   // similar to: SELECT * FROM <this> WHERE <target_col> NOT IN (SELECT <right_col> FROM <right_t>);
   dftable is_not_in(const std::string& target_col,
@@ -1253,7 +1256,7 @@ dftable dftable_base::drop_nulls_by_cols(const std::string& how,
   }
   else {  // uses each column of sliced table for null checks
     auto tcol = target_col == "" ? columns()[0] : target_col;
-    auto sliced_df = select_rows(tcol, target_values);
+    auto sliced_df = select_rows_by_values(tcol, target_values);
     return drop_nulls_by_cols_impl(*this, sliced_df, how);
   }
 }
@@ -1267,7 +1270,7 @@ dftable dftable_base::drop_nulls_by_cols(size_t threshold,
   }
   else {  // uses each column of sliced table for null checks
     auto tcol = target_col == "" ? columns()[0] : target_col;
-    auto sliced_df = select_rows(tcol, target_values);
+    auto sliced_df = select_rows_by_values(tcol, target_values);
     return drop_nulls_by_cols_impl(*this, sliced_df, "", threshold);
   }
 }

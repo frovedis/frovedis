@@ -1295,7 +1295,8 @@ void dftable_base::debug_print() {
 
 std::vector<size_t>
 extract_sliced_idx(size_t my_st, size_t my_end,
-                   size_t g_st, size_t g_end, size_t step) {
+                   size_t g_st, size_t g_end, size_t step,
+                   const std::vector<size_t>& index) {
   size_t lb = 0, ub = 0;
   auto imax = std::numeric_limits<size_t>::max();
   if (my_st > g_st && my_st > g_end)         { lb = ub = imax; } // slice not possible
@@ -1322,10 +1323,11 @@ extract_sliced_idx(size_t my_st, size_t my_end,
   std::cout << "[" << myrank << "] lb: " << lb << "; ub: " << ub << std::endl;
   show("ret: ", ret);
   */
-  return ret;
+  return vector_take<size_t>(index, ret);
 }
 
 dftable make_sliced_dftable(dftable_base& t, size_t st, size_t end, size_t step) {
+  require(step != 0, "make_sliced_dftable: slice step cannot be zero!\n");
   auto nrow = t.num_row();
   end = std::min(end, nrow); // allowed end to be larger than nrow
   auto idx = make_node_local_allocate<std::vector<size_t>>();
@@ -1338,7 +1340,9 @@ dftable make_sliced_dftable(dftable_base& t, size_t st, size_t end, size_t step)
     for(size_t i = 0; i < nproc; ++i) myend[i] = myst[i] + sizes[i];
     auto mst = make_node_local_scatter(myst);
     auto mend = make_node_local_scatter(myend);
-    idx = mst.map(extract_sliced_idx, mend, broadcast(st), broadcast(end), broadcast(step));
+    auto local_index = t.get_local_index();
+    idx = mst.map(extract_sliced_idx, mend, broadcast(st), 
+                  broadcast(end), broadcast(step), local_index);
   }
   return filtered_dftable(t, std::move(idx)).materialize();
 }

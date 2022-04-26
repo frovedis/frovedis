@@ -1788,4 +1788,61 @@ dftable dftable_base::is_not_in(const std::string& target_col,
   return isnotin_impl(*this, target_col, right_t, right_col, false);
 }
 
+dftable dftable_base::select_rows_by_indices(
+    const std::vector<int>& indices) {
+  auto ntargets = indices.size();
+  bool need_reordering = false;
+  auto filtered_idx_loc = make_node_local_allocate<std::vector<size_t>>();
+  std::vector<size_t> sorted, order;
+  if (ntargets) {
+    int nrow = num_row();
+    auto min = vector_amin(indices);
+    auto max = vector_amax(indices);
+    require(min >= -1 * nrow && max < nrow,
+    "positional indexers are out-of-bounds!\n");
+    std::vector<size_t> tidx(ntargets);
+    auto tptr = tidx.data();
+    auto iptr = indices.data();
+    for (size_t i = 0; i < ntargets; ++i) tptr[i] = iptr[i] + nrow * (iptr[i] < 0);
+    auto positive_only = true; // all indices are made to positive
+    order = vector_arrange<size_t>(ntargets);
+    sorted = vector_sort(tidx, order, positive_only);
+    /*
+    frovedis::show("indices: ", indices);
+    frovedis::show("tidx: ", tidx);
+    frovedis::show("sorted: ", sorted);
+    */
+    auto is_unique = set_separate(sorted).size() == ntargets + 1;
+    require(is_unique, "positional indexers are not unqiue!\n");
+    need_reordering = !vector_is_same(tidx, sorted);
+    auto sizes = num_rows();
+    auto nproc = sizes.size();
+    std::vector<size_t> myst(nproc + 1);
+    myst[0] = 0; myst[nproc] = nrow;
+    for(size_t i = 1; i < nproc; ++i) myst[i] = myst[i - 1] + sizes[i - 1];
+    auto findpos = lower_bound(sorted, myst);
+    std::vector<std::vector<size_t>> filtered_idx(nproc);
+    for(size_t i = 0; i < nproc; ++i) {
+      filtered_idx[i] = vector_slice(sorted, findpos[i], findpos[i + 1], myst[i]);
+    }
+    auto local_index = get_local_index();
+    filtered_idx_loc = local_index.map(+[](const std::vector<size_t>& lidx,
+                                           const std::vector<size_t>& pos) {
+                                             return vector_take<size_t>(lidx, pos);
+                                       }, make_node_local_scatter(filtered_idx));
+  }
+  auto ret = filtered_dftable(*this, std::move(filtered_idx_loc)).materialize();
+  if (need_reordering) {
+    dftable tmp;
+    tmp.append_column("__tmp_val__", make_dvector_scatter(sorted));
+    tmp.append_column("__tmp_order__", make_dvector_scatter(order));
+
+    auto cols = ret.columns();
+    ret.append_column("__ret_val__", make_dvector_scatter(sorted));
+    ret = ret.bcast_join(tmp, eq("__ret_val__",  "__tmp_val__"))
+             .sort("__tmp_order__").select(cols);
+  }
+  return ret;
+}
+
 }

@@ -1715,5 +1715,19 @@ vector_ffill(const std::vector<T>& vec, T target) {
   return ffill(vec, target);
 }
 
+template <class T>
+std::vector<T> 
+vector_slice(const std::vector<T>& vec, 
+             size_t start, size_t stop, T norm = 0) { // stop is exclusive
+  auto vsize = vec.size();
+  require(start >= 0 && stop <= vsize, "vector_slice: index is out-of-bound!\n");
+  auto rsize = stop - start;
+  std::vector<T> ret(rsize);
+  auto vdata = vec.data();
+  auto rdata = ret.data();
+  for(size_t i = 0; i < rsize; ++i) rdata[i] = vdata[start + i] - norm; 
+  return ret;
+}
+
 }
 #endif
