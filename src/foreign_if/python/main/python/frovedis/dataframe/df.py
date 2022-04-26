@@ -33,7 +33,7 @@ from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     get_python_scalar_type, check_string_or_array_like, \
                     check_stat_error, double_typed_aggregator, \
                     if_mask_vector
-from ..utils import deprecated, str_type
+from ..utils import deprecated
 from pandas.core.common import SettingWithCopyWarning
 
 def read_csv(filepath_or_buffer, sep=',', delimiter=None,
@@ -491,11 +491,7 @@ class DataFrame(object):
         col_names = get_string_array_pointer(strcols)
         dvec_arr = np.asarray([dv.get() for dv in dvec], dtype=c_long)
         dptr = dvec_arr.ctypes.data_as(POINTER(c_long))
-
-        # for STRING column -> read config to decide whether to 
-        # append the column as dvector<std::string> or as node_local<words>
-        type_arr = np.asarray([str_type() if t == DTYPE.STRING else t \
-                                for t in types], dtype=c_short)
+        type_arr = np.asarray(types, dtype=c_short)
         tptr = type_arr.ctypes.data_as(POINTER(c_short))
         self.__types = types[1:]
 
@@ -3831,12 +3827,13 @@ class DataFrame(object):
         sz = len(lower)
 
         (host, port) = FrovedisServer.getServerInstance()
-        if is_str_lower and is_str_lower:
+        if is_str_lower and is_str_upper:
             lower_ptr = get_string_array_pointer(lower)
             upper_ptr = get_string_array_pointer(upper)
 
             dummy_df = rpclib.df_clip_axis1_str(host, port, self.get(),
-                                                lower_ptr, upper_ptr, sz)
+                                                lower_ptr, upper_ptr,
+                                                self.has_index(), sz)
         else:
             lower_arr = np.asarray(lower, dtype=np.float64)
             lower_ptr = lower_arr.ctypes.data_as(POINTER(c_double))
@@ -3845,7 +3842,8 @@ class DataFrame(object):
             upper_ptr = upper_arr.ctypes.data_as(POINTER(c_double))
             
             dummy_df = rpclib.df_clip_axis1_numeric(host, port, self.get(),
-                                                lower_ptr, upper_ptr, sz)
+                                                    lower_ptr, upper_ptr,
+                                                    self.has_index(), sz)
 
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -3896,7 +3894,8 @@ class DataFrame(object):
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_clip(host, port, self.get(),
                                 lower_limit_col.encode('ascii'),
-                                upper_limit_col.encode('ascii'))
+                                upper_limit_col.encode('ascii'),
+                                self.has_index())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -3919,8 +3918,16 @@ class DataFrame(object):
 
     def clip(self, lower=None, upper=None, axis=None, inplace=False):
         """
-        clip the values accordinng to the specified limits
+        clip the values according to the specified limits
         """
+        if lower is None and upper is None:
+            return None if inplace else self.copy()
+
+        if lower is None:
+            lower = np.nan
+        if upper is None:
+            upper = np.nan
+
         if axis not in (None, 0, 1, "columns", "index"):
             raise ValueError("clip: Unsupported axis {} is"
                              " provided!".format(axis))
@@ -3942,14 +3949,6 @@ class DataFrame(object):
         if not isinstance(inplace, bool):
             raise ValueError("clip: For argument 'inplace' expected type "
                             "bool, received type {}.".format(type(inplace)))
-
-        if lower is None and upper is None:
-            return None if inplace else self.copy()
-
-        if lower is None:
-            lower = np.nan
-        if upper is None:
-            upper = np.nan
 
         if isinstance(lower, (numbers.Number, str)) and\
             isinstance(upper, (numbers.Number, str)):
