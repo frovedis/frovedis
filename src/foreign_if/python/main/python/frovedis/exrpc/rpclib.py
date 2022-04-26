@@ -84,9 +84,9 @@ create_frovedis_words_node_local.argtypes = [c_char_p, c_int, \
                    c_int, c_bool]
 create_frovedis_words_node_local.restype = py_object
 
-convert_to_string_vector = LIB.to_string_vector
-convert_to_string_vector.argtypes = [c_char_p, c_int, c_long, c_short]
-convert_to_string_vector.restype = py_object
+convert_to_string_dvector = LIB.to_string_dvector
+convert_to_string_dvector.argtypes = [c_char_p, c_int, c_long, c_short]
+convert_to_string_dvector.restype = py_object
 
 #To Print Created dvector
 show_frovedis_dvector = LIB.show_frovedis_dvector
@@ -671,19 +671,20 @@ df_get_index_loc.restype = py_object
 
 df_clip = LIB.df_clip
 df_clip.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
-                    c_char_p, c_char_p]          # lower_limit_col, upper_limit_col
+                    c_char_p, c_char_p,          # lower_limit_col, upper_limit_col
+                    c_bool]                      # with_index
 df_clip.restype = py_object
 
 df_clip_axis1_numeric = LIB.df_clip_axis1_numeric
 df_clip_axis1_numeric.argtypes = [c_char_p, c_int, c_long,             # host, port, proxy
                                  POINTER(c_double), POINTER(c_double), # lower_limit, upper_limit
-                                 c_ulong]                              # size
+                                 c_bool, c_ulong]                      # with_index, size
 df_clip_axis1_numeric.restype = py_object
 
 df_clip_axis1_str = LIB.df_clip_axis1_str
 df_clip_axis1_str.argtypes = [c_char_p, c_int, c_long,            # host, port, proxy
                             POINTER(c_char_p), POINTER(c_char_p), # lower_limit, upper_limit
-                            c_ulong]                              # size
+                            c_bool, c_ulong]                      # with_index, size
 df_clip_axis1_str.restype = py_object
 
 # --- Frovedis dftable_to_sparse_info ---

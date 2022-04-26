@@ -330,8 +330,9 @@ class FrovedisDvector:
     def to_string_dvector(self):
         """ convert self to StringDvector """
         (host, port) = FrovedisServer.getServerInstance()
-        dvec = rpclib.convert_to_string_vector(host, port, \
+        dvec = rpclib.convert_to_string_dvector(host, port, \
                  self.get(), self.get_dtype())
+        excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return FrovedisDvector().load_dummy(dvec)
