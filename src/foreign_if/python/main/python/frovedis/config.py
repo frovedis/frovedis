@@ -25,7 +25,7 @@ class global_config(object):
         ''' sets the config parameter '''
         if key not in global_config.__param_key:
             raise ValueError(\
-            "set: '{}' not foudn in global configuration".format(key))
+            "set: '{}' not found in global configuration".format(key))
 
         expected_t = global_config.__param_type[key]
         if type(value) != expected_t:
