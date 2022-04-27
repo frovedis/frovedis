@@ -36,7 +36,7 @@ exrpc_ptr_t make_node_local_words_from_fixsized_bytes(
 std::vector<exrpc_ptr_t> get_node_local_word_pointers(exrpc_ptr_t& words_nl_ptr);
 std::vector<std::string> get_string_vector_from_words(exrpc_ptr_t& wordsptr);
 dummy_vector node_local_words_to_string_dvector(exrpc_ptr_t& words_nl_ptr);
-void show_node_local_words(exrpc_ptr_t& words_nl_ptr);
+void show_node_local_words(exrpc_ptr_t& words_nl_ptr, int& limit);
 
 // --- Functions to enable ML data transfer and handling the same ---
 template <class MATRIX>
@@ -243,10 +243,10 @@ frovedis_mem_pair load_local_glm_data(MATRIX& mat, std::vector<T>& vec) {
 
 // prints frovedis glm data for debugging purpose
 template <class T>
-void show_dvector(exrpc_ptr_t& vptr) {
+void show_dvector(exrpc_ptr_t& vptr, int& limit) {
   auto vecp = reinterpret_cast<dvector<T>*>(vptr);
   std::cout << "dvector(size: " << vecp->size() << "): \n";
-  debug_print_vector(vecp->gather());
+  debug_print_vector(vecp->gather(), limit);
 }
 
 // prints frovedis data for debugging purpose
@@ -258,10 +258,11 @@ void show_data(exrpc_ptr_t& dptr) {
 
 template <class T, class MATRIX>
 void show_glm_data(frovedis_mem_pair& mp) {
+  int limit = 0; // TODO: support limit
   auto mptr = mp.first();
   auto dptr = mp.second();
   show_data<MATRIX>(mptr);
-  show_dvector<T>(dptr);
+  show_dvector<T>(dptr, limit); 
 }
 
 // returns local chunk of dvector (node_local<std::vector<T>>) 

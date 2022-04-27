@@ -100,60 +100,12 @@ exrpc_ptr_t make_node_local_words(std::vector<exrpc_ptr_t>& data_ptrs,
   return reinterpret_cast<exrpc_ptr_t>(retp);
 }
 
-// expects input in little endian (4 bytes for each character)
-std::vector<int> 
-get_single_byte_utf32(const std::vector<int>& bytes) { 
-  auto size = bytes.size();
-  auto retlen = size / 4;
-  std::vector<int> ret(retlen);
-  auto rptr = ret.data();
-  auto bptr = bytes.data();
-  for(size_t i = 0; i < retlen; ++i) {
-    auto m = bptr[i * 4 + 0];
-    auto n = bptr[i * 4 + 1];
-    auto o = bptr[i * 4 + 2];
-    auto p = bptr[i * 4 + 3];
-    rptr[i] = (p << 24) | (o << 16) | (n << 8) | m;
-  }
-  return ret;
-}
-
-words create_utf8_words_from_utf32_fixsized_bytes(const std::vector<int>& bytes, 
-                                                  size_t itemsize) {
-  auto nbyte = bytes.size();
-  //std::cout << "nbytes: " << nbyte << "; itemsize: " << itemsize << std::endl;
-  checkAssumption((nbyte % itemsize == 0) && (itemsize % 4 == 0));
-  auto no_of_words = nbyte / itemsize;
-  auto word_size = itemsize / 4;
-
-  auto utf32 = get_single_byte_utf32(bytes);
-  auto non_zero_pos = vector_find_nonzero(utf32);
-
-  std::vector<size_t> starts(no_of_words + 1);
-  auto sptr = starts.data();
-  for(size_t i = 0; i <= no_of_words; ++i) sptr[i] = i * word_size;
-  auto target_pos = lower_bound(non_zero_pos, starts);
-
-  std::vector<size_t> lens(no_of_words);
-  auto lptr = lens.data();
-  auto pptr = target_pos.data();
-  for(size_t i = 0; i < no_of_words; ++i) lptr[i] = pptr[i + 1] - pptr[i];
-
-  starts.pop_back();
-  words ret;
-  ret.chars.swap(utf32);
-  ret.starts.swap(starts);
-  ret.lens.swap(lens);
-  return utf32_to_utf8(ret);
-}
-
-words create_utf8_words_from_utf8_fixsized_bytes(const std::vector<int>& bytes, 
-                                                 size_t itemsize) {
+words create_utf8_words_from_fixsized_bytes(std::vector<int>& bytes, 
+                                            size_t itemsize) {
   auto nbyte = bytes.size();
   //std::cout << "nbytes: " << nbyte << "; itemsize: " << itemsize << std::endl;
   checkAssumption(nbyte % itemsize == 0);
   auto no_of_words = nbyte / itemsize;
-
   auto non_zero_pos = vector_find_nonzero(bytes);
 
   std::vector<size_t> starts(no_of_words + 1);
@@ -168,31 +120,30 @@ words create_utf8_words_from_utf8_fixsized_bytes(const std::vector<int>& bytes,
 
   starts.pop_back();
   words ret;
-  ret.chars = bytes;
+  ret.chars.swap(bytes);
   ret.starts.swap(starts);
   ret.lens.swap(lens);
   return ret;
 }
 
-words get_utf8_words(const std::vector<int>& bytes, 
+words get_utf8_words(exrpc_ptr_t vecptr,
                      size_t itemsize, bool is_utf32_le) {
-  return is_utf32_le ? create_utf8_words_from_utf32_fixsized_bytes(bytes, itemsize)
-                     : create_utf8_words_from_utf8_fixsized_bytes(bytes, itemsize);
-}
-
-// for python (with single-partition at each process)
-std::vector<int>
-exrpc_vchar_as_vint(exrpc_ptr_t vecptr) {
-  auto& charvec = *reinterpret_cast<std::vector<char>*>(vecptr);
-  return vchar_to_int(charvec);
+  if (is_utf32_le) {
+    auto& bytes = *reinterpret_cast<std::vector<int>*>(vecptr);
+    auto utf32_words = create_utf8_words_from_fixsized_bytes(bytes, itemsize);
+    return utf32_to_utf8(utf32_words);
+  } else {
+    auto& charvec = *reinterpret_cast<std::vector<char>*>(vecptr);
+    auto bytes = vchar_to_int(charvec);
+    return create_utf8_words_from_fixsized_bytes(bytes, itemsize);
+  }
 }
 
 exrpc_ptr_t make_node_local_words_from_fixsized_bytes(
               std::vector<exrpc_ptr_t>& data_ptrs,
               size_t& itemsize, bool& is_utf32_le) {
   auto each_data_eps = make_node_local_scatter(data_ptrs);
-  auto ret = each_data_eps.map(exrpc_vchar_as_vint)
-                          .map(get_utf8_words, broadcast(itemsize), 
+  auto ret = each_data_eps.map(get_utf8_words, broadcast(itemsize), 
                                broadcast(is_utf32_le));
   auto retp = new node_local<words>(std::move(ret));
   return reinterpret_cast<exrpc_ptr_t>(retp);
@@ -212,12 +163,12 @@ get_node_local_word_pointers(exrpc_ptr_t& words_nl_ptr) {
                  }).gather();
 }
 
-void show_node_local_words(exrpc_ptr_t& words_nl_ptr) {
+void show_node_local_words(exrpc_ptr_t& words_nl_ptr, int& limit) {
   auto& w_nl = *reinterpret_cast<node_local<words>*>(words_nl_ptr);
   auto dvec = w_nl.map(+[](words& w) { return words_to_vector_string(w); })
                   .template moveto_dvector<std::string>();
   std::cout << "dvector(size: " << dvec.size() << "): \n";
-  debug_print_vector(dvec.gather());
+  debug_print_vector(dvec.gather(), limit);
 }
 
 dummy_vector node_local_words_to_string_dvector(exrpc_ptr_t& words_nl_ptr) {
