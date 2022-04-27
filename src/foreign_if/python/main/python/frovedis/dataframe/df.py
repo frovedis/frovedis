@@ -33,8 +33,74 @@ from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     get_python_scalar_type, check_string_or_array_like, \
                     check_stat_error, double_typed_aggregator, \
                     if_mask_vector
-from ..utils import deprecated
+from ..utils import deprecated, str_type
 from pandas.core.common import SettingWithCopyWarning
+
+class SeriesHelper(object):
+    """ defines methods applicable for series """
+
+    def __gt__(self, other):
+        """
+        gt: for comparison of column: series case
+        """
+        if not self.is_series:
+            raise TypeError("gt: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name] > other
+
+    def __ge__(self, other):
+        """
+        ge: for comparison of column: series case
+        """
+        if not self.is_series:
+            raise TypeError("ge: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name] >= other
+
+    def __lt__(self, other):
+        """
+        lt: for comparison of column: series case
+        """
+        if not self.is_series:
+            raise TypeError("lt: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name] < other
+
+    def __le__(self, other):
+        """
+        le: for comparison of column: series case
+        """
+        if not self.is_series:
+            raise TypeError("le: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name] <= other
+
+    def __eq__(self, other):
+        """
+        eq: for comparison of column: series case
+        """
+        if not self.is_series:
+            raise TypeError("eq: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name] == other
+
+    def __ne__(self, other):
+        """
+        ne: for comparison of column: series case
+        """
+        if not self.is_series:
+            raise TypeError("ne: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name] != other
+
+    def between(self, left, right, inclusive="both"):
+        """
+        filtering rows according to the specified bounds
+        """
+        if not self.is_series:
+            raise AttributeError("'DataFrame' object has no attribute 'between'\n")
+        name = self.columns[0]
+        return self.__dict__[name].between(left, right, inclusive)
 
 def read_csv(filepath_or_buffer, sep=',', delimiter=None,
              header="infer", names=None, index_col=None,
@@ -256,7 +322,7 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
     res.num_row = dummy_df["nrow"]
     return res
 
-class DataFrame(object):
+class DataFrame(SeriesHelper):
     """
     DataFrame
     """
@@ -491,7 +557,11 @@ class DataFrame(object):
         col_names = get_string_array_pointer(strcols)
         dvec_arr = np.asarray([dv.get() for dv in dvec], dtype=c_long)
         dptr = dvec_arr.ctypes.data_as(POINTER(c_long))
-        type_arr = np.asarray(types, dtype=c_short)
+
+        # for STRING column -> read config to decide whether to 
+        # append the column as dvector<std::string> or as node_local<words>
+        type_arr = np.asarray([str_type() if t == DTYPE.STRING else t \
+                                for t in types], dtype=c_short)
         tptr = type_arr.ctypes.data_as(POINTER(c_short))
         self.__types = types[1:]
 
@@ -531,12 +601,14 @@ class DataFrame(object):
                 return self.filter_frovedis_dataframe(target)
             elif isinstance(target, slice):
                 return self.__filter_slice_range(target)
-            elif isinstance(target, np.ndarray):
-                if target.dtype == "bool":
-                    return self.__filter_using_mask(target)
-                return self.select_frovedis_dataframe(target.tolist())
+            elif isinstance(target, (np.ndarray, pd.Series)):
+                t2 = np.asarray(target)
+                if t2.dtype == "bool":
+                    return self.__filter_using_mask(t2)
+                return self.select_frovedis_dataframe(t2)
             else:
-                raise TypeError("Unsupported indexing input type!")
+                raise TypeError(\
+                "Unsupported indexing input of type '{}'".format(type(target)))
         else:
             raise ValueError("Operation on invalid frovedis dataframe!")
 
@@ -1947,9 +2019,7 @@ class DataFrame(object):
         return self.__append_column_impl(col_name, data_type, dvec, pos, drop_old)
 
     def __append_column_impl(self, col_name, data_type, dvec, pos, drop_old):
-        df_proxy = -1
-        if self.__fdata:
-            df_proxy = self.get()
+        df_proxy = self.get() if self.__fdata else -1 # supports empty case
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_append_column(host, port, df_proxy,
                                            col_name.encode("ascii"),
@@ -1967,16 +2037,10 @@ class DataFrame(object):
         names = dummy_df["names"]
         types = dummy_df["types"]
 
+        self.__mark_boolean_columns(names, types)
         if data_type == DTYPE.BOOL:
             ind = names.index(col_name)
             types[ind] = DTYPE.BOOL
-
-        bool_cols = set([self.__cols[i] for i in range(len(self.__types)) \
-                        if self.__types[i] == DTYPE.BOOL])
-        if len(bool_cols) > 0:
-            for i in range(len(names)):
-                if names[i] in bool_cols:
-                    types[i] = DTYPE.BOOL
 
         self.num_row = dummy_df["nrow"]
         if self.has_index() or \
@@ -3264,8 +3328,14 @@ class DataFrame(object):
         ret.num_row = dummy_df["nrow"]
         ret.load_dummy(dummy_df["dfptr"], names, types)
         ret = ret.to_numpy()[0][0]
-        if np.isnan(ret) and skipna == True:
-            raise ValueError("first_element: input dataframe is empty!")
+
+        if isinstance(ret, str):
+            if ret == "NULL" and param.skipna_ == True:
+                raise ValueError("first_element: No valid value found in column {}!".format(col_name))
+        else:
+            if np.isnan(ret) and param.skipna_ == True:
+                raise ValueError("first_element: No valid value found in column {}!".format(col_name))
+
         return ret
 
     @check_association
@@ -3289,8 +3359,14 @@ class DataFrame(object):
         ret.num_row = dummy_df["nrow"]
         ret.load_dummy(dummy_df["dfptr"], names, types)
         ret = ret.to_numpy()[0][0]
-        if np.isnan(ret) and skipna == True:
-            raise ValueError("last_element: input dataframe is empty!")
+
+        if isinstance(ret, str):
+            if ret == "NULL" and param.skipna_ == True:
+                raise ValueError("last_element: No valid value found in column {}!".format(col_name))
+        else:
+            if np.isnan(ret) and param.skipna_ == True:
+                raise ValueError("last_element: No valid value found in column {}!".format(col_name))
+
         return ret
 
     @check_association
@@ -3743,17 +3819,18 @@ class DataFrame(object):
         """
         res = None
         if isinstance(key[0], slice):
-            start = self.get_index_loc(key[0].start)
+            a, b, c = key[0].start, key[0].stop, key[0].step
+            start = 0 if a is None else self.get_index_loc(a)
             if not isinstance(start, (str, int, float)):
                 raise \
                 KeyError("Cannot get left slice bound for non-unique" + \
                          " label:", key[0].start)
-            stop = self.get_index_loc(key[0].stop) + 1
+            stop = len(self) if b is None else self.get_index_loc(b) + 1
             if not isinstance(stop, (str, int, float)):
                 raise \
                 KeyError("Cannot get right slice bound for non-unique" + \
                          " label:", key[0].stop)
-            step = key[0].step
+            step = 1 if c is None else c
             res = self[start : stop : step]
         elif (isinstance(key[0], list)):
             ret = (self.index == key[0][0])
@@ -3842,7 +3919,7 @@ class DataFrame(object):
             upper_ptr = upper_arr.ctypes.data_as(POINTER(c_double))
             
             dummy_df = rpclib.df_clip_axis1_numeric(host, port, self.get(),
-                                                    lower_ptr, upper_ptr,
+                                                    lower_ptr, upper_ptr, 
                                                     self.has_index(), sz)
 
         excpt = rpclib.check_server_exception()
