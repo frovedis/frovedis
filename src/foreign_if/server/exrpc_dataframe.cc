@@ -2642,18 +2642,18 @@ long calc_memory_size(exrpc_ptr_t& df_proxy) {
 }
 
 dummy_dftable
-frov_df_first_element(exrpc_ptr_t& df_proxy, std::string& col) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
-  auto dfp = new dftable(df.aggregate({first(col)}));
-  dfp->prepend_rowid<size_t>("index");
+frov_df_first_element(exrpc_ptr_t& df_proxy, std::string& col,
+                      bool& skipna) {
+  auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
+  auto dfp = new dftable(dftblp->aggregate({first(col, skipna)}));
   return to_dummy_dftable(dfp);
 }
 
 dummy_dftable
-frov_df_last_element(exrpc_ptr_t& df_proxy, std::string& col) {
-  auto& df = *reinterpret_cast<dftable*>(df_proxy);
-  auto dfp = new dftable(df.aggregate({last(col)}));
-  dfp->prepend_rowid<size_t>("index");
+frov_df_last_element(exrpc_ptr_t& df_proxy, std::string& col,
+                     bool& skipna) {
+  auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
+  auto dfp = new dftable(dftblp->aggregate({last(col, skipna)}));
   return to_dummy_dftable(dfp);
 }
 
