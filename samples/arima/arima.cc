@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
     ("moving-average-order,q", value<size_t>(), "moving average order")
     ("seasonal,s", value<size_t>(), "seasonality")
     ("solver", value<string>(), "solver used to perform linear regression (default: lapack)")
-    ("auto_arima,a", "use auto_arima or not (default: False)")
+    ("auto_arima,a", value<bool>(), "use auto_arima or not (default: False)")
     ("verbose", "set loglevel to DEBUG")
     ("verbose2", "set loglevel to TRACE");
 
@@ -134,7 +134,7 @@ if(argmap.count("step")){
   }    
     
   if(argmap.count("auto_arima")){
-    auto_arima = true;
+    auto_arima = argmap["auto_arima"].as<bool>();
   }
 
   if(argmap.count("solver")){
