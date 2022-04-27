@@ -5,7 +5,7 @@ CPPMAN := core/dvector.md core/node_local.md core/dunordered_map.md matrix/rowma
 
 SPARKMAN := spark/exrpc/frovedis_sparse_data.md spark/matrix/blockcyclic_matrix.md spark/matrix/pblas_wrapper.md spark/matrix/scalapack_wrapper.md spark/matrix/getrf_result.md spark/matrix/gesvd_result.md spark/ml/linear_regression_model.md spark/ml/linear_regression.md spark/ml/lasso_regression.md spark/ml/ridge_regression.md spark/ml/logistic_regression_model.md spark/ml/logistic_regression.md spark/ml/svm_model.md spark/ml/linear_svm.md spark/ml/matrix_factorization_model.md spark/ml/als.md spark/ml/kmeans_model.md spark/ml/kmeans.md
 
-PYTHONMAN := python/matrix/dvector.md python/matrix/crs_matrix.md python/matrix/blockcyclic_matrix.md python/matrix/pblas_wrapper.md python/matrix/scalapack_wrapper.md python/matrix/getrf_result.md python/matrix/gesvd_result.md  python/ml/linear_regression.md python/ml/lasso_regression.md python/ml/ridge_regression.md python/ml/logistic_regression.md python/ml/linear_svm.md python/ml/als.md python/ml/kmeans.md python/ml/spectral_clustering.md python/ml/spectral_embedding.md
+PYTHONMAN := python/dataframe/df_intro.md python/dataframe/df_generic_func.md python/dataframe/df_conversion.md python/dataframe/df_sort.md python/dataframe/df_agg_func.md python/dataframe/df_math_func.md python/dataframe/grouped_df_intro.md python/dataframe/grouped_df_agg_func.md python/graph/graph.md python/graph/pagerank.md python/graph/bfs.md python/graph/sssp.md python/graph/connected_components.md python/linalg/linalg.md python/linalg/scalapack.md python/matrix/dvector.md python/matrix/crs_matrix.md python/matrix/blockcyclic_matrix.md python/matrix/pblas_wrapper.md python/matrix/scalapack_wrapper.md python/matrix/getrf_result.md python/matrix/gesvd_result.md python/ml/agglomerative_clustering.md python/ml/als.md python/ml/bernoulli_naive_bayes.md python/ml/dbscan.md python/ml/decision_tree_classifier.md python/ml/decision_tree_regressor.md python/ml/fm_classifier.md python/ml/fm_regressor.md python/ml/fpgrowth.md python/ml/gaussian_mixture.md python/ml/gradient_boosting_classifier.md python/ml/gradient_boosting_regressor.md python/ml/kmeans.md python/ml/kneighbors_classifier.md python/ml/kneighbors_regressor.md python/ml/lasso_regression.md python/ml/lda.md python/ml/linear_regression.md python/ml/linear_svc.md python/ml/linear_svr.md python/ml/logistic_regression.md python/ml/multinomial_naive_bayes.md python/ml/nearest_neighbors.md python/ml/pca.md python/ml/random_forest_classifier.md python/ml/random_forest_regressor.md python/ml/ridge_regression.md python/ml/sgd_classifier.md python/ml/sgd_regressor.md python/ml/spectral_clustering.md python/ml/spectral_embedding.md python/ml/standard_scaler.md python/ml/svc.md python/ml/tsne.md python/ml/word2vec.md
 
 all:
 	cd core; make
@@ -17,6 +17,9 @@ all:
 	cd spark/matrix; make
 	cd spark/ml; make
 	(cp intro_spark.md manual_spark.md; for file in ${SPARKMAN}; do sed -e 's/^\#/\#\#/' < $$file > tmp; sed -e 's/^%\(.*\)/\n\n\#\1/' < tmp >> manual_spark.md; done; pandoc -N --toc --toc-depth=1 -V documentclass=book -V geometry:margin=1in -o manual_spark.pdf manual_spark.md; rm tmp)
+	cd python/dataframe; make
+	cd python/graph; make
+	cd python/linalg; make
 	cd python/matrix; make
 	cd python/ml; make
 	(cp intro_python.md manual_python.md; for file in ${PYTHONMAN}; do sed -e 's/^\#/\#\#/' < $$file > tmp; sed -e 's/^%\(.*\)/\n\n\#\1/' < tmp >> manual_python.md; done; pandoc -N --toc --toc-depth=1 -V documentclass=book -V geometry:margin=1in -o manual_python.pdf manual_python.md; rm tmp)
