@@ -3727,20 +3727,6 @@ class DataFrame(SeriesHelper):
         """iloc"""
         return Iloc_handler(self)
 
-    def iloc_scalar(self, key):
-        """
-        DESC: Implementation for handling scalar key type for iloc.
-        PARAM: key -> Input data, can be:
-                                  - int
-        EXAMPLE: df.loc[<row idx>]
-        """
-        idx = self.index.name
-        self.add_index("__tmp_index")
-        ret = self[self.index == key]
-        ret.set_index(idx, inplace=True)
-        self.set_index(idx, inplace=True)
-        return ret #df
-
     def iloc_tuple(self, key):
         """
         DESC: Implementation for handling tuple key type for iloc.
@@ -3753,8 +3739,15 @@ class DataFrame(SeriesHelper):
                  df.iloc[<row idx>, [<col idx1>,<col idx2>]]
                  df.iloc[<row idx1>:<row idx2>, <col idx1>:<col idx2>]
         """
+        index_flg = False
         idx = self.index.name
-        self.add_index("__tmp_index")
+        if idx == "index":
+            index_flg = True
+            __tmp_index = self.__get_unique_column_name(self.columns, True)
+            self.rename_index(__tmp_index, inplace=True)
+            idx = __tmp_index
+        __rowid = self.__get_unique_column_name(self.columns, True)
+        self.add_index(__rowid)
         ret = None
         #row handling
         if isinstance(key[0], slice):
@@ -3771,6 +3764,9 @@ class DataFrame(SeriesHelper):
             ret = self[self.index == key[0]]
         ret.set_index(idx, inplace=True)
         self.set_index(idx, inplace=True)
+        if index_flg == True:
+            ret.rename_index("index", inplace=True)
+            self.rename_index("index", inplace=True)
         #column handling
         if isinstance(key[1], slice):
             filtered_cols = self.columns[key[1].start: key[1].stop : key[1].step]
@@ -4120,7 +4116,7 @@ class Iloc_handler():
         __getitem__
         """
         if isinstance(key, (int)):
-            return self.df.iloc_scalar(key)
+            return self.df.iloc[[key], :]
         elif isinstance(key, slice):
             return self.df.iloc[key, :]
         elif isinstance(key, tuple):
