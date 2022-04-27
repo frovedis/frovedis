@@ -19,7 +19,7 @@ from ..matrix.dvector import FrovedisIntDvector, FrovedisLongDvector
 from ..matrix.dvector import FrovedisULongDvector
 from ..matrix.dvector import FrovedisFloatDvector, FrovedisDoubleDvector
 from ..matrix.dvector import FrovedisStringDvector
-from ..matrix.dtype import DTYPE, TypeUtil, get_string_array_pointer
+from ..matrix.dtype import DTYPE, TypeUtil, get_string_array_pointer, str_encode
 from ..matrix.dtype import get_result_type
 from ..matrix.dense import FrovedisRowmajorMatrix
 from ..matrix.dense import FrovedisColmajorMatrix
@@ -287,12 +287,12 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
 
     (host, port) = FrovedisServer.getServerInstance()
     dummy_df = rpclib.load_dataframe_from_csv(host, port,
-                                            filepath_or_buffer.encode('ascii'),
+                                            str_encode(filepath_or_buffer),
                                             type_arr, name_arr,
                                             len(type_arr), len(name_arr),
-                                            delimiter.encode('ascii'),
+                                            str_encode(delimiter),
                                             na_ptr, na_sz,
-                                            comment.encode("ascii"),
+                                            str_encode(comment),
                                             rows_to_see, separate_mb,
                                             partial_type_info,
                                             dtype_keys_arr, dtype_vals_arr,
@@ -730,7 +730,7 @@ class DataFrame(SeriesHelper):
         ptr_arr = get_string_array_pointer(sort_by)
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_ksort(host, port, self.get(),
-                                   n, ptr_arr, sz, keep.encode('ascii'),
+                                   n, ptr_arr, sz, str_encode(keep),
                                    is_desc)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -1080,8 +1080,8 @@ class DataFrame(SeriesHelper):
         (host, port) = FrovedisServer.getServerInstance()
         proxy = rpclib.merge_frovedis_dataframe(host, port, df_left.get(), \
                                      df_right.get(), dfopt.get(), \
-                                     frov_how.encode('ascii'), \
-                                     join_type.encode('ascii'))
+                                     str_encode(frov_how), \
+                                     str_encode(join_type))
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -1502,7 +1502,7 @@ class DataFrame(SeriesHelper):
 
         (host, port) = FrovedisServer.getServerInstance()
         indx_dvec = rpclib.get_frovedis_col(host, port, self.get(),
-                                       self.index.name.encode('ascii'),
+                                       str_encode(self.index.name),
                                        self.index.dtype)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -1533,7 +1533,7 @@ class DataFrame(SeriesHelper):
             cc = self.__cols[i]
             tt = self.__types[i]
             dvec = rpclib.get_frovedis_col(host, port, self.get(),
-                                           cc.encode('ascii'), tt)
+                                           str_encode(cc), tt)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
@@ -1829,7 +1829,7 @@ class DataFrame(SeriesHelper):
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.drop_frovedis_duplicate_rows(host, port, \
                            self.get(), targets_ptr, sz, \
-                           keep.encode('ascii'))
+                           str_encode(keep))
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -1916,7 +1916,7 @@ class DataFrame(SeriesHelper):
 
         sz = len(targets)
         dtype = self.index.dtype
-        index_col = self.index.name.encode('ascii')
+        index_col = str_encode(self.index.name)
         (host, port) = FrovedisServer.getServerInstance()
 
         if dtype == DTYPE.INT:
@@ -2022,7 +2022,7 @@ class DataFrame(SeriesHelper):
         df_proxy = self.get() if self.__fdata else -1 # supports empty case
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_append_column(host, port, df_proxy,
-                                           col_name.encode("ascii"),
+                                           str_encode(col_name),
                                            data_type, dvec.get(),
                                            pos, drop_old)
         excpt = rpclib.check_server_exception()
@@ -2246,8 +2246,8 @@ class DataFrame(SeriesHelper):
                                "existing columns!" % (new_index_name))
             (host, port) = FrovedisServer.getServerInstance()
             dummy_df = rpclib.df_set_index(host, port, ret.get(), \
-                                  cur_index_name.encode("ascii"), \
-                                  new_index_name.encode("ascii"), \
+                                  str_encode(cur_index_name), \
+                                  str_encode(new_index_name), \
                                   verify_integrity)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -2318,7 +2318,7 @@ class DataFrame(SeriesHelper):
 
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_copy_index(host, port, ret.get(), from_df.get(), \
-                             from_df.index.name.encode("ascii"), \
+                             str_encode(from_df.index.name), \
                              from_df.index.dtype)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -2382,7 +2382,7 @@ class DataFrame(SeriesHelper):
         """ adds index column to self """
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_add_index(host, port, self.get(),
-                                    name.encode("ascii"))
+                                    str_encode(name))
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -2613,7 +2613,7 @@ class DataFrame(SeriesHelper):
 
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_fillna(host, port, \
-                       self.get(), value.encode('ascii'), \
+                       self.get(), str_encode(value), \
                        self.has_index())
         names = dummy_df["names"]
         types = dummy_df["types"]
@@ -2668,12 +2668,12 @@ class DataFrame(SeriesHelper):
             targets_ptr = get_string_array_pointer(subset)
             dummy_df = rpclib.df_dropna_by_rows(host, port, \
                            self.get(), targets_ptr, sz, \
-                           how.encode('ascii'), thresh)
+                           str_encode(how), thresh)
         elif axis == 1: # dropna by cols (extraction subset: index values)
             if not self.has_index():
                 raise ValueError(
                 "dropna: input dataframe doesn't have an index column!")
-            index_nm = self.index.name.encode('ascii')
+            index_nm = str_encode(self.index.name)
             if subset is None:
                 subset = np.asarray([], dtype=np.int32) # int32: dummy type
                 sz = len(subset)
@@ -2681,7 +2681,7 @@ class DataFrame(SeriesHelper):
                 dummy_df = rpclib.df_dropna_by_cols_with_numeric_icol( \
                                host, port, \
                                self.get(), index_nm, targets_ptr, sz, \
-                               how.encode('ascii'), thresh, DTYPE.INT)
+                               str_encode(how), thresh, DTYPE.INT)
             else:
                 tt = self.index.dtype
                 subset = np.asarray(subset, dtype=TypeUtil.to_numpy_dtype(tt))
@@ -2691,13 +2691,13 @@ class DataFrame(SeriesHelper):
                     dummy_df = rpclib.df_dropna_by_cols_with_numeric_icol( \
                                    host, port, \
                                    self.get(), index_nm, targets_ptr, sz, \
-                                   how.encode('ascii'), thresh, tt)
+                                   str_encode(how), thresh, tt)
                 else:
                     targets_ptr = get_string_array_pointer(subset)
                     dummy_df = rpclib.df_dropna_by_cols_with_string_icol( \
                                    host, port, \
                                    self.get(), index_nm, targets_ptr, sz, \
-                                   how.encode('ascii'), thresh)
+                                   str_encode(how), thresh)
         else:
             raise ValueError(\
             "dropna: Unsupported axis parameter: '%d'" % (axis))
@@ -2813,18 +2813,18 @@ class DataFrame(SeriesHelper):
             if other is np.nan:
                 nan_is_null = True
             dummy_df = rpclib.df_immed_binary_operation(host, port, \
-                       self.get(), immed_val.encode('ascii'), \
-                       immed_dt.encode('ascii'), \
-                       op_type.encode('ascii'), is_rev, nan_is_null)
+                       self.get(), str_encode(immed_val), \
+                       str_encode(immed_dt), \
+                       str_encode(op_type), is_rev, nan_is_null)
         else:
             if is_rev:
                 left, right = other, self
             else:
                 left, right = self, other
             dummy_df = rpclib.df_binary_operation(host, port, left.get(), \
-                       right.get(), is_series, fillv.encode('ascii'), \
-                       fillv_dt.encode('ascii'), \
-                       op_type.encode('ascii'), nan_is_null)
+                       right.get(), is_series, str_encode(fillv), \
+                       str_encode(fillv_dt), \
+                       str_encode(op_type), nan_is_null)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
@@ -3243,8 +3243,8 @@ class DataFrame(SeriesHelper):
 
         (host, port) = FrovedisServer.getServerInstance()
         ret = rpclib.df_get_index_loc(host, port, self.get(), \
-                                      index_name.encode('ascii'), \
-                                      str(value).encode('ascii'), \
+                                      str_encode(index_name), \
+                                      str_encode(str(value)), \
                                       dtype)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -3317,7 +3317,7 @@ class DataFrame(SeriesHelper):
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_first(host, port, \
                                    self.get(), \
-                                   col_name.encode('ascii'), \
+                                   str_encode(col_name), \
                                    param.skipna_)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -3348,7 +3348,7 @@ class DataFrame(SeriesHelper):
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_last(host, port, \
                                   self.get(), \
-                                  col_name.encode('ascii'), \
+                                  str_encode(col_name), \
                                   param.skipna_)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -3970,8 +3970,8 @@ class DataFrame(SeriesHelper):
 
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_clip(host, port, self.get(),
-                                lower_limit_col.encode('ascii'),
-                                upper_limit_col.encode('ascii'),
+                                str_encode(lower_limit_col),
+                                str_encode(upper_limit_col),
                                 self.has_index())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:

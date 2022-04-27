@@ -5,13 +5,22 @@ import sys
 import numpy as np
 from ctypes import c_char_p
 
+def str_encode(x):
+    return x.encode("utf-8") if sys.version_info[0] >= 3 else x
+
 def get_string_array_pointer(str_vec):
-    str_vec = np.asarray(str_vec)
+    tmp = np.asarray(str_vec)
     str_ptr = (c_char_p * len(str_vec))()
-    if sys.version_info[0] >= 3:
-        str_ptr[:] = np.array([e.encode('utf-8') for e in str_vec.T])
+    if sys.version_info[0] >= 3: # encoding would be required
+        if len(tmp) > 0:
+            def encode_utf8(x):
+                return x.encode("utf-8")
+
+            vencode = np.vectorize(encode_utf8)
+            tmp = vencode(tmp)
+        str_ptr[:] = tmp.T
     else:
-        str_ptr[:] = str_vec.T
+        str_ptr[:] = tmp.T
     return str_ptr
 
 class DTYPE:
