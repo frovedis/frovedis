@@ -6,7 +6,7 @@ frovedis_column.py
 import numpy as np
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
-from ..matrix.dtype import TypeUtil, DTYPE
+from ..matrix.dtype import TypeUtil, DTYPE, str_encode
 from .dfoperator import dfoperator
 from .dfutil import check_stat_error
 from .optype import *
@@ -57,7 +57,28 @@ class FrovedisColumn(object):
     def to_pandas(self):
         """ to pandas series """
         return self.get_frovedis_series().to_pandas()
-        
+
+    def to_numpy(self, dtype=None, copy=False, na_value=None):
+        """
+        frovedis column to numpy array conversion
+        """
+        ret = self.get_frovedis_series().to_numpy(dtype=dtype, \
+                                         copy=copy, na_value=na_value)
+        return np.ravel(ret)
+
+    @property
+    def values(self):
+        """
+        frovedis column to numpy array conversion
+        """
+        return self.to_numpy()
+
+    @values.setter
+    def values(self, val):
+        """values setter"""
+        raise AttributeError(\
+            "attribute 'values' of FrovedisColumn object is not writable")
+
     @property
     def name(self):
         """
@@ -70,8 +91,8 @@ class FrovedisColumn(object):
         """
         name
         """
-        raise AttributeError("attribute 'name' of FrovedisColumn object"
-                            " is not writable!")
+        raise AttributeError("attribute 'name' of FrovedisColumn object " +
+                             "is not writable!")
 
     @property
     def colName(self):
@@ -85,8 +106,8 @@ class FrovedisColumn(object):
         """
         colName
         """
-        raise AttributeError("attribute 'colName' of FrovedisColumn object"
-                            " is not writable!")
+        raise AttributeError("attribute 'colName' of FrovedisColumn object " +
+                             "is not writable!")
 
     @property
     def dtype(self):
@@ -100,8 +121,8 @@ class FrovedisColumn(object):
         """
         dtype
         """
-        raise AttributeError("attribute 'dtype' of FrovedisColumn object"
-                            " is not writable!")
+        raise AttributeError("attribute 'dtype' of FrovedisColumn object " +
+                             "is not writable!")
 
     def __lt__(self, other):
         """
@@ -111,8 +132,8 @@ class FrovedisColumn(object):
         if isinstance(other, FrovedisColumn):
             #print ('Filtering dataframe where', self.colName, '<', other.colName)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   other.colName.encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(other.colName),
                                                    self.dtype, OPT.LT, False)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -121,8 +142,8 @@ class FrovedisColumn(object):
         else:
             #print ('Filtering dataframe where', self.colName, '<', other)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   str(other).encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(str(other)),
                                                    self.dtype, OPT.LT, True)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -137,8 +158,8 @@ class FrovedisColumn(object):
         if isinstance(other, FrovedisColumn):
             #print ('Filtering dataframe where', self.colName, '>', other.colName)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   other.colName.encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(other.colName),
                                                    self.dtype, OPT.GT, False)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -147,8 +168,8 @@ class FrovedisColumn(object):
         else:
             #print ('Filtering dataframe where', self.colName, '>', other)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   str(other).encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(str(other)),
                                                    self.dtype, OPT.GT, True)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -163,8 +184,8 @@ class FrovedisColumn(object):
         if isinstance(other, FrovedisColumn):
             #print ('Filtering dataframe where', self.colName, '==', other.colName)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   other.colName.encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(other.colName),
                                                    self.dtype, OPT.EQ, False)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -173,8 +194,8 @@ class FrovedisColumn(object):
         else:
             #print ('Filtering dataframe where', self.colName, '==', other)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   str(other).encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(str(other)),
                                                    self.dtype, OPT.EQ, True)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -189,8 +210,8 @@ class FrovedisColumn(object):
         if isinstance(other, FrovedisColumn):
             #print ('Filtering dataframe where', self.colName, '!=', other.colName)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   other.colName.encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(other.colName),
                                                    self.dtype, OPT.NE, False)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -199,8 +220,8 @@ class FrovedisColumn(object):
         else:
             #print ('Filtering dataframe where', self.colName, '!=', other)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   str(other).encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(str(other)),
                                                    self.dtype, OPT.NE, True)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -215,8 +236,8 @@ class FrovedisColumn(object):
         if isinstance(other, FrovedisColumn):
             #print ('Filtering dataframe where', self.colName, '<=', other.colName)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   other.colName.encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(other.colName),
                                                    self.dtype, OPT.LE, False)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -225,8 +246,8 @@ class FrovedisColumn(object):
         else:
             #print ('Filtering dataframe where', self.colName, '<=', other)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   str(other).encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(str(other)),
                                                    self.dtype, OPT.LE, True)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -241,8 +262,8 @@ class FrovedisColumn(object):
         if isinstance(other, FrovedisColumn):
             #print ('Filtering dataframe where', self.colName, '>=', other.colName)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   other.colName.encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(other.colName),
                                                    self.dtype, OPT.GE, False)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -251,8 +272,8 @@ class FrovedisColumn(object):
         else:
             #print ('Filtering dataframe where', self.colName, '>=', other)
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   str(other).encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(str(other)),
                                                    self.dtype, OPT.GE, True)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
@@ -310,8 +331,8 @@ class FrovedisColumn(object):
 
         (host, port) = FrovedisServer.getServerInstance()
         ret = rpclib.series_covariance(host, port, \
-                                       self.df.get(), c1.encode('ascii'), \
-                                       other.df.get(), c2.encode('ascii'), \
+                                       self.df.get(), str_encode(c1), \
+                                       other.df.get(), str_encode(c2), \
                                        param.min_periods_, param.ddof_)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -636,8 +657,8 @@ class FrovedisStringMethods(object):
             raise RuntimeError("like operator can be applied on pattern only!")
         else:
             proxy = rpclib.get_frovedis_dfoperator(host, port,
-                                                   self.colName.encode('ascii'),
-                                                   str(other).encode('ascii'),
+                                                   str_encode(self.colName),
+                                                   str_encode(str(other)),
                                                    self.dtype, OPT.LIKE, True)
             excpt = rpclib.check_server_exception()
             if excpt["status"]:

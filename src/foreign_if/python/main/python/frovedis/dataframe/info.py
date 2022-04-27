@@ -5,6 +5,7 @@ info
 
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
+from ..matrix.dtype import str_encode
 from ..mllib.model_util import ModelID
 
 class df_to_sparse_info(object):
@@ -29,7 +30,7 @@ class df_to_sparse_info(object):
         info_id = ModelID.get()#getting unique id for conversion info to be registered
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.load_dftable_to_sparse_info(host, port, info_id,
-                                           dirname.encode('ascii'))
+                                           str_encode(dirname))
         self.__uid = info_id
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -47,7 +48,7 @@ class df_to_sparse_info(object):
             raise TypeError("Expected String, Found: " + type(dirname).__name__)
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.save_dftable_to_sparse_info(host, port, self.get(),
-                                           dirname.encode('ascii'))
+                                           str_encode(dirname))
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])

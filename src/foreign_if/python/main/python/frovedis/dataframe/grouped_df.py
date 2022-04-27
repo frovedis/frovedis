@@ -10,7 +10,7 @@ import pandas as pd
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
-from ..matrix.dtype import DTYPE, get_string_array_pointer
+from ..matrix.dtype import DTYPE, get_string_array_pointer, str_encode
 from .frovedisColumn import FrovedisColumn
 from .df import DataFrame
 from .dfutil import check_string_or_array_like, check_stat_error, \
@@ -129,7 +129,7 @@ class FrovedisGroupedDataframe(object):
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.gdf_aggr_with_mincount(host, port, self.__fdata,
                                                  g_cols_arr, sz1,
-                                                 func.encode("ascii"),
+                                                 str_encode(func),
                                                  a_col_arr,
                                                  a_col_as_arr, sz2,
                                                  param.min_count_) 
@@ -222,7 +222,7 @@ class FrovedisGroupedDataframe(object):
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.gdf_aggr_with_ddof(host, port, self.__fdata,
                                             g_cols_arr, sz1,
-                                            func.encode("ascii"),
+                                            str_encode(func),
                                             a_col_arr, a_col_as_arr, sz2,
                                             ddof_)
         excpt = rpclib.check_server_exception()
