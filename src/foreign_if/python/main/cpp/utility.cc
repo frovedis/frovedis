@@ -294,6 +294,16 @@ extern "C" {
     return vec;
   }
 
+  // converison : char* (pointer-to-char-array) => std::vector<int>
+  std::vector<int>
+  to_int_vector_from_char(char* data, ulong sz) {
+    size_t size = sz / 4; // assumes sz is correct
+    std::vector<int> vec(size);
+    auto iptr = reinterpret_cast<int*>(data);
+    for(size_t i = 0; i < size; ++i) vec[i] = iptr[i];
+    return vec;
+  }
+
   // converison : long* (pointer-to-long-array) => std::vector<long>
   std::vector<long> 
   to_long_vector(long* data, ulong sz) {

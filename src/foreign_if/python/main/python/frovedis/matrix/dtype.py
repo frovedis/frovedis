@@ -1,13 +1,17 @@
 """dtype.py"""
 #!/usr/bin/env python
 
+import sys
 import numpy as np
 from ctypes import c_char_p
 
 def get_string_array_pointer(str_vec):
     str_vec = np.asarray(str_vec)
     str_ptr = (c_char_p * len(str_vec))()
-    str_ptr[:] = np.array([e.encode('ascii') for e in str_vec.T])
+    if sys.version_info[0] >= 3:
+        str_ptr[:] = np.array([e.encode('utf-8') for e in str_vec.T])
+    else:
+        str_ptr[:] = str_vec.T
     return str_ptr
 
 class DTYPE:

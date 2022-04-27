@@ -170,10 +170,10 @@ class FrovedisDvector:
         return self.__fdata is not None
 
     @check_association
-    def debug_print(self):
+    def debug_print(self, limit=5):
         dtype = self.get_dtype()
         (host, port) = FrovedisServer.getServerInstance()
-        rpclib.show_frovedis_dvector(host, port, self.get(), dtype)
+        rpclib.show_frovedis_dvector(host, port, self.get(), dtype, limit)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])

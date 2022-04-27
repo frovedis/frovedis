@@ -642,14 +642,14 @@ extern "C" {
   }
 
   PyObject* df_first(const char* host, int port, long proxy,
-                     const char* col) {
+                     const char* col, bool skipna) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
     dummy_dftable ret;
     try {
       ret = exrpc_async(fm_node, frov_df_first_element, 
-                        df_proxy, std::string(col)).get();
+                        df_proxy, std::string(col), skipna).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -658,14 +658,14 @@ extern "C" {
   }
 
   PyObject* df_last(const char* host, int port, long proxy,
-                    const char* col) {
+                    const char* col, bool skipna) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
     dummy_dftable ret;
     try {
       ret = exrpc_async(fm_node, frov_df_last_element, 
-                        df_proxy, std::string(col)).get();
+                        df_proxy, std::string(col), skipna).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());

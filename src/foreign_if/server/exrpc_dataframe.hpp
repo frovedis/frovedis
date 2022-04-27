@@ -1151,9 +1151,9 @@ frov_df_min(exrpc_ptr_t& df_proxy,
 }
 
 dummy_dftable
-frov_df_first_element(exrpc_ptr_t&, std::string&);
+frov_df_first_element(exrpc_ptr_t&, std::string&, bool& skipna);
 dummy_dftable
-frov_df_last_element(exrpc_ptr_t&, std::string&);
+frov_df_last_element(exrpc_ptr_t&, std::string&, bool& skipna);
 
 dummy_dftable 
 frov_df_clip(exrpc_ptr_t& df_proxy,

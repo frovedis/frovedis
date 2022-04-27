@@ -81,6 +81,7 @@ extern "C" {
   std::vector<short> to_short_vector(short* data, ulong sz);
   std::vector<char> to_char_vector(char* data, ulong sz);
   std::vector<int> to_int_vector(int* data, ulong sz);
+  std::vector<int> to_int_vector_from_char(char* data, ulong sz);
   std::vector<long> to_long_vector(long* data, ulong sz);
   std::vector<unsigned long> to_ulong_vector(unsigned long* data, ulong sz);
   std::vector<float> to_float_vector(float* data, ulong sz);

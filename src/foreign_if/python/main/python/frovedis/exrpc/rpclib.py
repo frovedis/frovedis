@@ -90,7 +90,7 @@ convert_to_string_dvector.restype = py_object
 
 #To Print Created dvector
 show_frovedis_dvector = LIB.show_frovedis_dvector
-show_frovedis_dvector.argtypes = [c_char_p, c_int, c_long, c_int]
+show_frovedis_dvector.argtypes = [c_char_p, c_int, c_long, c_int, c_int]
 
 release_frovedis_dvector = LIB.release_frovedis_dvector
 release_frovedis_dvector.argtypes = [c_char_p, c_int, c_long, c_int]
@@ -411,12 +411,12 @@ df_sum.restype = py_object
 
 df_first = LIB.df_first
 df_first.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
-                    c_char_p]                    # col_name
+                     c_char_p, c_bool]           # col_name, skipna
 df_first.restype = py_object
 
 df_last = LIB.df_last
 df_last.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
-                    c_char_p]                    # col_name
+                    c_char_p, c_bool]            # col_name, skipna
 df_last.restype = py_object
 
 df_min = LIB.df_min

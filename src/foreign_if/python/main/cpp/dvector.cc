@@ -265,20 +265,28 @@ extern "C" {
   }
 
   // --- dvector creation/show/release ---
-  void show_frovedis_dvector(const char* host, int port, long dptr, int vtype) {
+  void show_frovedis_dvector(const char* host, int port, long dptr, 
+                             int vtype, int limit) {
     ASSERT_PTR(host); 
     exrpc_node fm_node(host,port);
     auto f_dptr = (exrpc_ptr_t) dptr;
     try {
       switch(vtype) {
         case BOOL:
-        case INT:    exrpc_oneway(fm_node,show_dvector<int>,f_dptr); break;
-        case LONG:   exrpc_oneway(fm_node,show_dvector<long>,f_dptr); break;
-        case ULONG:  exrpc_oneway(fm_node,show_dvector<unsigned long>,f_dptr); break;
-        case FLOAT:  exrpc_oneway(fm_node,show_dvector<float>,f_dptr); break;
-        case DOUBLE: exrpc_oneway(fm_node,show_dvector<double>,f_dptr); break;
-        case STRING: exrpc_oneway(fm_node,show_dvector<std::string>,f_dptr); break;
-        case WORDS:  exrpc_oneway(fm_node,show_node_local_words,f_dptr); break;
+        case INT:    exrpc_oneway(fm_node, show_dvector<int>,
+                                  f_dptr, limit); break;
+        case LONG:   exrpc_oneway(fm_node, show_dvector<long>,
+                                  f_dptr, limit); break;
+        case ULONG:  exrpc_oneway(fm_node, show_dvector<unsigned long>,
+                                  f_dptr, limit); break;
+        case FLOAT:  exrpc_oneway(fm_node, show_dvector<float>,
+                                  f_dptr, limit); break;
+        case DOUBLE: exrpc_oneway(fm_node, show_dvector<double>,
+                                  f_dptr, limit); break;
+        case STRING: exrpc_oneway(fm_node, show_dvector<std::string>,
+                                  f_dptr, limit); break;
+        case WORDS:  exrpc_oneway(fm_node, show_node_local_words,
+                                  f_dptr, limit); break;
         default:  REPORT_ERROR(USER_ERROR,
                   "Unknown type for frovedis dvector: " + std::to_string(vtype));
       }
@@ -677,12 +685,12 @@ extern "C" {
   }
 
   std::vector<exrpc_ptr_t>
-  get_each_dist_vec_char_pointers_for_given_offset(
+  get_each_dist_vec_char_pointers_for_utf8_bytes(
       const char* host, int port,
       char* vv, ulong size,
       bool rawsend,
       std::vector<size_t>& starts,
-      std::vector<size_t>& sizes) { // uses the given offset (starts, sizes) for rawsend
+      std::vector<size_t>& sizes) { // uses the given offset (starts, sizes)
     ASSERT_PTR(vv);
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
 
@@ -724,6 +732,58 @@ extern "C" {
     return eps;
   }
 
+  std::vector<exrpc_ptr_t>
+  get_each_dist_vec_int_pointers_for_utf32_bytes(
+      const char* host, int port,
+      char* vv, ulong size,
+      bool rawsend,
+      std::vector<size_t>& starts,
+      std::vector<size_t>& sizes) { // uses the given offset (starts, sizes)
+    ASSERT_PTR(vv);
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+
+    // getting Frovedis server information
+    exrpc_node fm_node(host,port);
+    auto nodes = rawsend ? get_worker_nodes_for_rawsend(fm_node)
+                         : get_worker_nodes(fm_node);
+    auto wsize = nodes.size();
+
+    // sending the scattered pieces to Frovedis server
+    std::vector<exrpc_ptr_t> eps(wsize);
+    if (rawsend) {
+      std::vector<frovedis_mem_pair> mempair(wsize);
+      for(size_t i = 0; i < wsize; ++i) {
+        auto int_size = sizes[i] / 4;
+        mempair[i] = exrpc_async(nodes[i], allocate_vector<int>,
+                                 int_size).get(); // <conptr, rawptr>
+      }
+
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        eps[i] = mempair[i].first();
+        auto recvbufp = mempair[i].second();
+        auto sendbufp = vv + starts[i];
+        auto int_size = sizes[i] / 4;
+        exrpc_rawsend(nodes[i], sendbufp, recvbufp, sizeof(int) * int_size);
+      }
+    } else {
+      // scattering vector locally at client side
+      auto vec = to_int_vector_from_char(vv, size);
+      auto int_sizes = sizes / 4;
+      auto int_starts = starts / 4;
+      auto evs = prepare_scattered_vectors_as(vec, wsize, int_starts, int_sizes);
+
+      std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        res[i] = exrpc_async(nodes[i], (load_local_data<std::vector<int>>), evs[i]);
+      }
+      get_exrpc_result(eps, res, wsize);
+    }
+
+    return eps;
+  }
+
   PyObject* create_frovedis_words_node_local(const char* host, int port,
                                              char* vv, ulong nbytes,
                                              ulong itemsize, bool is_utf32_le,
@@ -741,13 +801,23 @@ extern "C" {
       starts[i] *= itemsize;
       sizes[i] *= itemsize;
     }
-    auto bptrs = get_each_dist_vec_char_pointers_for_given_offset(host, port,
+
+    std::vector<exrpc_ptr_t> bptrs;
+
+    size_t eachsize = itemsize;
+    if (is_utf32_le) {
+      eachsize = itemsize / 4;
+      bptrs = get_each_dist_vec_int_pointers_for_utf32_bytes(host, port,
                    vv, nbytes, rawsend, starts, sizes);
+    } else {
+      bptrs = get_each_dist_vec_char_pointers_for_utf8_bytes(host, port,
+                   vv, nbytes, rawsend, starts, sizes);
+    }
 
     exrpc_ptr_t dptr = 0;
     try {
       dptr = exrpc_async(fm_node, make_node_local_words_from_fixsized_bytes, 
-                         bptrs, itemsize, is_utf32_le).get(); 
+                         bptrs, eachsize, is_utf32_le).get(); 
     }
     catch (std::exception& e) {
       set_status(true, e.what());
