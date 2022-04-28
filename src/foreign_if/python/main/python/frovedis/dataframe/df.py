@@ -1595,7 +1595,10 @@ class DataFrame(SeriesHelper):
         frovedis dataframe to numpy array conversion
         """
         out_data = self.__to_dict_impl(orient="list", include_index=False)
-        return np.array(list(out_data.values()), dtype=dtype).T
+        if self.is_series:
+            return np.array(list(out_data.values()), dtype=dtype).ravel()
+        else:
+            return np.array(list(out_data.values()), dtype=dtype).T
 
     @property
     def values(self):
@@ -1987,7 +1990,7 @@ class DataFrame(SeriesHelper):
             raise ValueError("Unsupported dtype for creating dvector: {0}!\n"
                             .format(dtype))
         if dtype == DTYPE.BOOL:
-            val = np.array(val).astype(np.int32)
+            val = np.asarray(val, dtype=np.int32)
         res = dvec_constructor_map[dtype](val)
         return res
 
@@ -2016,6 +2019,11 @@ class DataFrame(SeriesHelper):
 
         data_type = TypeUtil.to_id_dtype(data_type)
         dvec = self.__get_dvec(data_type, data)
+        # for STRING column -> read config to decide whether to 
+        # append the column as dvector<std::string> or as node_local<words>
+        if data_type == DTYPE.STRING:
+            data_type = str_type()
+
         return self.__append_column_impl(col_name, data_type, dvec, pos, drop_old)
 
     def __append_column_impl(self, col_name, data_type, dvec, pos, drop_old):
