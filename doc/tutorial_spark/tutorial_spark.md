@@ -591,7 +591,7 @@ chained.
 
     df1.join(df2, df1("Country") === df2("CName"))
        .select("EName","Age","CCode","CName")
-       .when($$"Age" > 19)
+       .where($$"Age" > 19)
        .sort($$"CCode", $$"Age").show()
 
 It produces output like:
