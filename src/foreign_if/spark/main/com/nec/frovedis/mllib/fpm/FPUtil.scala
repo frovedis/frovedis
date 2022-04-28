@@ -27,7 +27,7 @@ object FPUtil {
     val spark = SparkSession.builder().getOrCreate()
     import spark.implicits._
     return tr.zipWithIndex()
-             .mapPartitions(get_table).toDF("trans_id","item")
+             .mapPartitions(get_table).toDF("trans_id","item").cache
   }
 }
 
