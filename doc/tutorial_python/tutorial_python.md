@@ -543,7 +543,7 @@ It should produce output like:
 
 To filter the rows, you can write like:
 
-    fdf1[fdf1.Age > 19 and fdf1.Country == 'Japan'].show()
+    fdf1[(fdf1.Age > 19) & (fdf1.Country == 'Japan')].show()
 
 It should produce output like:
 
@@ -652,7 +652,7 @@ convert to Pandas DataFrame or use Pandas DataFrame together.
 Here, Frovedis DataFrame is joined with Pandas DataFrame. The output
 should be the same as previous join.
 
-You can convert Frovedis DataFrame using `to_pandas_dataframe()`.
+You can convert Frovedis DataFrame using `to_pandas()`.
 
 Frovedis DataFrame can be converted to matrix. Please see
 "src/tut6-2/tut.py". 

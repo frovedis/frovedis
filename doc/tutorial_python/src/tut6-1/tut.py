@@ -33,7 +33,7 @@ fdf1[["Ename","Age"]].show()
 
 # filter demo
 print ("* filter by Age > 19 and Contry == 'Japan'")
-fdf1[fdf1.Age > 19 and fdf1.Country == 'Japan'].show()
+fdf1[(fdf1.Age > 19) & (fdf1.Country == 'Japan')].show()
 
 # sort demo 
 print ("* sort by Age (descending order)")
@@ -78,7 +78,7 @@ joined.show()
 
 # conversion
 print ("* convert Frovedis DataFrame to Pandas DataFrame")
-print (fdf1.to_pandas_dataframe())
+print (fdf1.to_pandas())
 print ("\n")
 
 FrovedisServer.shut_down()
