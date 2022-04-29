@@ -3,6 +3,7 @@ package main.scala
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.functions.sum
+import org.apache.spark.sql.functions.year
 import org.apache.spark.sql.functions.udf
 
 /**
@@ -36,7 +37,8 @@ class Q07 extends TpchQuery {
       .filter($"supp_nation" === "FRANCE" && $"cust_nation" === "GERMANY"
         || $"supp_nation" === "GERMANY" && $"cust_nation" === "FRANCE")
       .select($"supp_nation", $"cust_nation",
-        getYear($"l_shipdate").as("l_year"),
+        //getYear($"l_shipdate").as("l_year"),
+        year($"l_shipdate").as("l_year"),
         decrease($"l_extendedprice", $"l_discount").as("volume"))
       .groupBy($"supp_nation", $"cust_nation", $"l_year")
       .agg(sum($"volume").as("revenue"))

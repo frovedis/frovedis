@@ -64,7 +64,7 @@ class Q07 extends TpchQuery {
     val forder = new FrovedisDataFrame(order, "o_custkey", "o_orderkey")
     t.show("data transfer: ")
 
-    val CgetYear = $$"l_shipdate".substr(0, 4)
+    val CgetYear = $$"l_shipdate".year
     val Cdecrease = $$"l_extendedprice" * (lit(1) - $$"l_discount")
 
     val fnations = fnation.filter($$"n_name" === "FRANCE" || $$"n_name" === "GERMANY")

@@ -1,6 +1,8 @@
 package main.scala
 
 import org.apache.spark.SparkContext
+import org.apache.spark.storage.StorageLevel
+import org.apache.spark.sql.functions.to_date
 
 // TPC-H table schemas
 case class Customer(
@@ -24,9 +26,9 @@ case class Lineitem(
   l_tax: Double,
   l_returnflag: String,
   l_linestatus: String,
-  l_shipdate: String,
-  l_commitdate: String,
-  l_receiptdate: String,
+  l_shipdate2: String,
+  l_commitdate2: String,
+  l_receiptdate2: String,
   l_shipinstruct: String,
   l_shipmode: String,
   l_comment: String)
@@ -42,7 +44,7 @@ case class Order(
   o_custkey: Long,
   o_orderstatus: String,
   o_totalprice: Double,
-  o_orderdate: String,
+  o_orderdate2: String,
   o_orderpriority: String,
   o_clerk: String,
   o_shippriority: Long,
@@ -93,7 +95,9 @@ class TpchSchemaProvider(sc: SparkContext, inputDir: String) {
       Customer(p(0).trim.toLong, p(1).trim, p(2).trim, p(3).trim.toLong, p(4).trim, p(5).trim.toDouble, p(6).trim, p(7).trim)).toDF(),
 
     "lineitem" -> sc.textFile(inputDir + "/lineitem.tbl*").map(_.split('|')).map(p =>
-      Lineitem(p(0).trim.toLong, p(1).trim.toLong, p(2).trim.toLong, p(3).trim.toLong, p(4).trim.toDouble, p(5).trim.toDouble, p(6).trim.toDouble, p(7).trim.toDouble, p(8).trim, p(9).trim, p(10).trim, p(11).trim, p(12).trim, p(13).trim, p(14).trim, p(15).trim)).toDF(),
+      Lineitem(p(0).trim.toLong, p(1).trim.toLong, p(2).trim.toLong, p(3).trim.toLong, p(4).trim.toDouble, p(5).trim.toDouble, p(6).trim.toDouble, p(7).trim.toDouble, p(8).trim, p(9).trim, p(10).trim, p(11).trim, p(12).trim, p(13).trim, p(14).trim, p(15).trim)).toDF().withColumn("l_shipdate", to_date($"l_shipdate2"))
+          .withColumn("l_commitdate", to_date($"l_commitdate2"))
+          .withColumn("l_receiptdate", to_date($"l_receiptdate2")),
 
     "nation" -> sc.textFile(inputDir + "/nation.tbl*").map(_.split('|')).map(p =>
       Nation(p(0).trim.toLong, p(1).trim, p(2).trim.toLong, p(3).trim)).toDF(),
@@ -102,7 +106,7 @@ class TpchSchemaProvider(sc: SparkContext, inputDir: String) {
       Region(p(0).trim.toLong, p(1).trim, p(2).trim)).toDF(),
 
     "order" -> sc.textFile(inputDir + "/orders.tbl*").map(_.split('|')).map(p =>
-      Order(p(0).trim.toLong, p(1).trim.toLong, p(2).trim, p(3).trim.toDouble, p(4).trim, p(5).trim, p(6).trim, p(7).trim.toLong, p(8).trim)).toDF(),
+      Order(p(0).trim.toLong, p(1).trim.toLong, p(2).trim, p(3).trim.toDouble, p(4).trim, p(5).trim, p(6).trim, p(7).trim.toLong, p(8).trim)).toDF().withColumn("o_orderdate", to_date($"o_orderdate2")),
 
     "part" -> sc.textFile(inputDir + "/part.tbl*").map(_.split('|')).map(p =>
       Part(p(0).trim.toLong, p(1).trim, p(2).trim, p(3).trim, p(4).trim, p(5).trim.toLong, p(6).trim, p(7).trim.toDouble, p(8).trim)).toDF(),
@@ -114,14 +118,14 @@ class TpchSchemaProvider(sc: SparkContext, inputDir: String) {
       Supplier(p(0).trim.toLong, p(1).trim, p(2).trim, p(3).trim.toLong, p(4).trim, p(5).trim.toDouble, p(6).trim)).toDF())
 
   // for implicits
-  val customer = dfMap.get("customer").get.cache
-  val lineitem = dfMap.get("lineitem").get.cache
-  val nation = dfMap.get("nation").get.cache
-  val region = dfMap.get("region").get.cache
-  val order = dfMap.get("order").get.cache
-  val part = dfMap.get("part").get.cache
-  val partsupp = dfMap.get("partsupp").get.cache
-  val supplier = dfMap.get("supplier").get.cache
+  val customer = dfMap.get("customer").get.persist(StorageLevel.MEMORY_ONLY)
+  val lineitem = dfMap.get("lineitem").get.persist(StorageLevel.MEMORY_ONLY)
+  val nation = dfMap.get("nation").get.persist(StorageLevel.MEMORY_ONLY)
+  val region = dfMap.get("region").get.persist(StorageLevel.MEMORY_ONLY)
+  val order = dfMap.get("order").get.persist(StorageLevel.MEMORY_ONLY)
+  val part = dfMap.get("part").get.persist(StorageLevel.MEMORY_ONLY)
+  val partsupp = dfMap.get("partsupp").get.persist(StorageLevel.MEMORY_ONLY)
+  val supplier = dfMap.get("supplier").get.persist(StorageLevel.MEMORY_ONLY)
 
   dfMap.foreach {
     case (key, value) => value.createOrReplaceTempView(key)

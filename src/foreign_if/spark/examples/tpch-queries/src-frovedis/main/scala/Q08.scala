@@ -69,7 +69,7 @@ class Q08 extends TpchQuery {
     val fpart = new FrovedisDataFrame(part, "p_type", "p_partkey")
     t.show("data transfer: ")
 
-    val CgetYear = $$"o_orderdate".substr(0, 4)
+    val CgetYear = $$"o_orderdate".year
     val Cdecrease = $$"l_extendedprice" * (lit(1) - $$"l_discount")
     val CisBrazil = when($$"n_name" === "BRAZIL", $$"volume").otherwise(lit(0))
 

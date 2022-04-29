@@ -3,6 +3,7 @@ package main.scala
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.functions.sum
+import org.apache.spark.sql.functions.year
 import org.apache.spark.sql.functions.udf
 
 /**
@@ -31,7 +32,8 @@ class Q09 extends TpchQuery {
       .join(partsupp, $"l_suppkey" === partsupp("ps_suppkey")
         && $"l_partkey" === partsupp("ps_partkey"))
       .join(order, $"l_orderkey" === order("o_orderkey"))
-      .select($"n_name", getYear($"o_orderdate").as("o_year"),
+      //.select($"n_name", getYear($"o_orderdate").as("o_year"),
+      .select($"n_name", year($"o_orderdate").as("o_year"),
         expr($"l_extendedprice", $"l_discount", $"ps_supplycost", $"l_quantity").as("amount"))
       .groupBy($"n_name", $"o_year")
       .agg(sum($"amount"))

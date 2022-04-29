@@ -13,4 +13,4 @@ export LD_LIBRARY_PATH="../../lib"
 
 QID=0
 mkdir -p output
-spark-submit --class "main.scala.TpchQuery" --master local[8] --jars ${JARS} --conf spark.driver.memory=10g target/scala-2.12/spark-tpc-h-queries_2.12-1.0.jar "${COMMAND}" ${QID}
+spark-submit --class "main.scala.TpchQuery" --master local[12] --jars ${JARS} --conf spark.driver.memory=100g target/scala-2.12/spark-tpc-h-queries_2.12-1.0.jar "${COMMAND}" ${QID}

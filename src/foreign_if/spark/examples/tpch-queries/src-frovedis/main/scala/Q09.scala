@@ -60,7 +60,7 @@ class Q09 extends TpchQuery {
     val forder = new FrovedisDataFrame(order, "o_orderdate", "o_orderkey")
     t.show("data transfer: ")
 
-    val CgetYear = $$"o_orderdate".substr(0, 4)
+    val CgetYear = $$"o_orderdate".year
     val Cexpr = $$"l_extendedprice" * (lit(1) - $$"l_discount") - ($$"ps_supplycost" * $$"l_quantity")
 
     val linePart = fpart.filter($$"p_name".contains("green"))
