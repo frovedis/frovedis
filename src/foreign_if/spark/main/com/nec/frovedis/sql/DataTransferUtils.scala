@@ -816,10 +816,13 @@ object sDFTransfer extends java.io.Serializable {
         next_t.lap_start()
         var cond = x.hasNext
         next_t.lap_stop()
+
+        val has_str = (types contains DTYPE.STRING) || (types contains DTYPE.WORDS)
         while(cond) {
           copy_t.lap_start()
           val row = x.next.asInstanceOf[UnsafeRow]
-          obj += row.getBytes()
+          val tmp = row.getBytes()
+          obj += (if (has_str) tmp else tmp.slice(0, tmp.size)) // no copy is required in presence of string
           off += row.getBaseOffset()
           k += 1
           copy_t.lap_stop()
