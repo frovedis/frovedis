@@ -43,6 +43,7 @@ card/node, unless otherwise specified.
 <tr><td>Standard Scaler</td> <td></td> </tr>
 <tr><td>Recommendation</td> <td>ALS</td> <td></td> </tr>
 <tr><td>Basket Analysis</td> <td>FP Growth</td> <td></td> </tr>
+<tr><td>Time Series Analysis</td> <td>ARIMA</td> <td>Only C++</td> </tr>
 <tr><td rowspan="2">Natural Language</td>
 <td>word2vec</td> <td>[*2]</td> </tr>
 <tr><td>Latent Dirichlet Allocation</td> <td></td> </tr>
