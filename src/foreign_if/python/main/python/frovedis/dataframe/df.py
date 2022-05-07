@@ -3760,7 +3760,7 @@ class DataFrame(SeriesHelper):
         #row handling
         if isinstance(key[0], slice):
             ret = self[key[0].start : key[0].stop : key[0].step]
-        elif (isinstance(key[0], list)):
+        elif (isinstance(key[0], (list, tuple))):
             if all(isinstance(e, bool) for e in key[0]):
                 ret = self.__filter_using_mask(key[0])
             else:
@@ -3779,7 +3779,7 @@ class DataFrame(SeriesHelper):
         if isinstance(key[1], slice):
             filtered_cols = self.columns[key[1].start: key[1].stop : key[1].step]
             ret = ret[filtered_cols]
-        elif (isinstance(key[1], list)):
+        elif (isinstance(key[1], (list, tuple))):
             if all(isinstance(e, bool) for e in key[1]):
                 cols = [self.columns[i] for i in range(0, len(key[1])) if key[1][i]] #boolean case
             else:
@@ -3792,6 +3792,17 @@ class DataFrame(SeriesHelper):
         else:
             ret.is_series = False
         return ret
+
+    def take(self, indices, axis=0, is_copy=None, **kwargs):
+        """
+        DESC: Return the elements in the given positional indices along an
+        axis.
+        """
+        param = check_stat_error("take", DTYPE.STRING in self.__types, \
+                                axis_ = axis)
+        if param.axis_ == 0:
+            return self.iloc_tuple((indices, slice(0,len(self.columns))))
+        return self.iloc_tuple((slice(0,self.num_row), indices))
 
     @property
     def loc(self):
@@ -3836,11 +3847,50 @@ class DataFrame(SeriesHelper):
                          " label:", key[0].stop)
             step = 1 if c is None else c
             res = self[start : stop : step]
-        elif (isinstance(key[0], list)):
-            ret = (self.index == key[0][0])
-            for i in range(1, len(key[0])):
-                ret = ret | (self.index == key[0][i])
-            res = self[ret]
+        elif (isinstance(key[0], (list, tuple))):
+            if all(isinstance(e, bool) for e in key[0]):
+                res = self.__filter_using_mask(key[0])
+            else:
+                dtype = self.index.dtype
+                index_col = str_encode(self.index.name)
+                (host, port) = FrovedisServer.getServerInstance()
+                if dtype == DTYPE.STRING:
+                    kptr = get_string_array_pointer(key[0])
+                    dummy_df = rpclib.df_sel_rows_by_val_string(host, port, \
+                                  self.get(), index_col, kptr, len(key[0]))
+                else:
+                    if dtype == DTYPE.INT:
+                        rpc_call = {'dtype':np.int32, 'rpctype':c_int, \
+                                    'func':"df_sel_rows_by_val_int"}
+                    elif dtype == DTYPE.LONG:
+                        rpc_call = {'dtype':np.int64, 'rpctype':c_long, \
+                                    'func':"df_sel_rows_by_val_long"}
+                    elif dtype == DTYPE.ULONG:
+                        rpc_call = {'dtype':np.uint, 'rpctype':c_ulong, \
+                                    'func':"df_sel_rows_by_val_ulong"}
+                    elif dtype == DTYPE.FLOAT:
+                        rpc_call = {'dtype':np.float32, 'rpctype':c_float, \
+                                    'func':"df_sel_rows_by_val_float"}
+                    elif dtype == DTYPE.DOUBLE:
+                        rpc_call = {'dtype':np.float64, 'rpctype':c_double, \
+                                    'func':"df_sel_rows_by_val_double"}
+                    else:
+                        raise \
+                        TypeError ("Unexpected column datatype encountered!")
+                    key_arr = np.asarray(key[0], dtype=rpc_call['dtype'])
+                    kptr = key_arr.ctypes.data_as(POINTER(rpc_call['rpctype']))
+                    dummy_df = getattr(rpclib, rpc_call['func'])(host, port, \
+                                               self.get(), index_col, kptr, \
+                                               len(key[0]))
+                excpt = rpclib.check_server_exception()
+                if excpt["status"]:
+                    raise RuntimeError(excpt["info"])
+                names = dummy_df["names"]
+                types = dummy_df["types"]
+                res = DataFrame(is_series = self.is_series)
+                res.index = FrovedisColumn(names[0], types[0]) #setting index
+                res.num_row = dummy_df["nrow"]
+                res.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         else:
             tmp_key = key[0]
             if isinstance(key[0], bool):
@@ -3864,7 +3914,13 @@ class DataFrame(SeriesHelper):
             step = key[1].step
             filtered_cols = self.columns[start : stop + 1 : step]
             ret = res[filtered_cols]
-        else:
+        elif (isinstance(key[1], (list, tuple))):
+            if all(isinstance(e, bool) for e in key[1]):
+                cols = [self.columns[i] for i in range(0, len(key[1])) if key[1][i]] #boolean case
+                ret = res[cols]
+            else:
+                ret = res[key[1]]
+        else: #scalar
             ret = res[key[1]]
         if isinstance(key[1], str):
             ret.is_series = True
@@ -4119,6 +4175,7 @@ class Iloc_handler():
     """Iloc handler"""
     def __init__(self, df):
         self.df = df
+
     def __getitem__(self, key):
         """
         __getitem__
@@ -4143,10 +4200,18 @@ class Iloc_handler():
             return self.df.iloc[key, :]
         raise ValueError("Unexpected key received!")
 
+    def __setitem__(self, key, val):
+        """
+        __setitem__
+        """
+        raise AttributeError(\
+            "attribute 'iloc' of DataFrame object is not writable")
+
 class Loc_handler():
     """Loc handler"""
     def __init__(self, df):
         self.df = df
+
     def __getitem__(self, key):
         """
         __getitem__
@@ -4168,10 +4233,19 @@ class Loc_handler():
             return self.df.loc[key, :]
         raise ValueError("Unexpected key received!")
 
+    def __setitem__(self, key, val):
+        """
+        __setitem__
+        """
+        raise AttributeError(\
+            "attribute 'loc' of DataFrame object is not writable")
+
+
 class At_handler():
     """At handler"""
     def __init__(self, df):
         self.df = df
+
     def __getitem__(self, key):
         """
         __getitem__
@@ -4188,10 +4262,18 @@ class At_handler():
             raise IndexingError("Too many indexers.")
         raise ValueError("Unexpected key type received!")
 
+    def __setitem__(self, key, val):
+        """
+        __setitem__
+        """
+        raise AttributeError(\
+            "attribute 'at' of DataFrame object is not writable")
+
 class Iat_handler():
     """Iat handler"""
     def __init__(self, df):
         self.df = df
+
     def __getitem__(self, key):
         """
         __getitem__
@@ -4208,3 +4290,10 @@ class Iat_handler():
                     "iat based indexing can only have integer indexers.")
             raise IndexingError("Too many indexers.")
         raise ValueError("Unexpected key type received!")
+
+    def __setitem__(self, key, val):
+        """
+        __setitem__
+        """
+        raise AttributeError(\
+            "attribute 'iat' of DataFrame object is not writable")

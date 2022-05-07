@@ -1880,4 +1880,124 @@ extern "C" {
     }
     return to_py_dummy_df(ret);
   }
+  
+  PyObject* df_sel_rows_by_val_int(const char* host, int port, 
+                                   long proxy,
+                                   const char* target_col, 
+                                   int* target_val, ulong sz) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tvals = to_int_vector(target_val, sz);
+    std::string col_str(target_col);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_sel_rows_by_val<int>, 
+                        df_proxy, col_str, tvals).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+  
+  PyObject* df_sel_rows_by_val_long(const char* host, int port, 
+                                   long proxy,
+                                   const char* target_col, 
+                                   long* target_val, ulong sz) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tvals = to_long_vector(target_val, sz);
+    std::string col_str(target_col);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_sel_rows_by_val<long>, 
+                        df_proxy, col_str, tvals).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+  
+  PyObject* df_sel_rows_by_val_ulong(const char* host, int port, 
+                                   long proxy,
+                                   const char* target_col, 
+                                   ulong* target_val, ulong sz) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tvals = to_ulong_vector(target_val, sz);
+    std::string col_str(target_col);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_sel_rows_by_val<unsigned long>, 
+                        df_proxy, col_str, tvals).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+  
+  PyObject* df_sel_rows_by_val_float(const char* host, int port, 
+                                   long proxy,
+                                   const char* target_col, 
+                                   float* target_val, ulong sz) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tvals = to_float_vector(target_val, sz);
+    std::string col_str(target_col);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_sel_rows_by_val<float>, 
+                        df_proxy, col_str, tvals).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+  
+  PyObject* df_sel_rows_by_val_double(const char* host, int port, 
+                                   long proxy,
+                                   const char* target_col, 
+                                   double* target_val, ulong sz) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tvals = to_double_vector(target_val, sz);
+    std::string col_str(target_col);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_sel_rows_by_val<double>, 
+                        df_proxy, col_str, tvals).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+  
+  PyObject* df_sel_rows_by_val_string(const char* host, int port, 
+                                   long proxy,
+                                   const char* target_col, 
+                                   const char** target_val, ulong sz) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto tvals = to_string_vector(target_val, sz);
+    std::string col_str(target_col);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_sel_rows_by_val<std::string>, 
+                        df_proxy, col_str, tvals).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
 }

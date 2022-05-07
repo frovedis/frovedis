@@ -1172,4 +1172,14 @@ frov_df_clip_axis1_str(exrpc_ptr_t& df_proxy,
                       std::vector<std::string>& upper_limit,
                       bool& with_index);
 
+template <class T>
+dummy_dftable
+frov_df_sel_rows_by_val(exrpc_ptr_t& df_proxy,
+                        std::string& target_col,
+                        std::vector<T>& target_val) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto ret = df.select_rows_by_values(target_col, target_val);
+  auto retp = new dftable(std::move(ret));
+  return to_dummy_dftable(retp);
+}
 #endif

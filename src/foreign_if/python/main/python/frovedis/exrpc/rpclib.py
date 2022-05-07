@@ -2392,3 +2392,41 @@ get_scaler_var.restype = py_object
 get_scaler_std = LIB.get_scaler_std_vector
 get_scaler_std.argtypes = [c_char_p, c_int, c_int, c_short]
 get_scaler_std.restype = py_object
+
+#----loc----#
+df_sel_rows_by_val_int = LIB.df_sel_rows_by_val_int
+df_sel_rows_by_val_int.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                          c_char_p, POINTER(c_int), # col_name, val_vec
+                          c_ulong]          # sz
+df_sel_rows_by_val_int.restype = py_object
+
+df_sel_rows_by_val_long = LIB.df_sel_rows_by_val_long
+df_sel_rows_by_val_long.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                          c_char_p, POINTER(c_long), # col_name, val_vec
+                          c_ulong]           # sz
+df_sel_rows_by_val_long.restype = py_object
+
+df_sel_rows_by_val_ulong = LIB.df_sel_rows_by_val_ulong
+df_sel_rows_by_val_ulong.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                          c_char_p, POINTER(c_ulong), # col_name, val_vec
+                          c_ulong]            # sz
+df_sel_rows_by_val_ulong.restype = py_object
+
+df_sel_rows_by_val_float = LIB.df_sel_rows_by_val_float
+df_sel_rows_by_val_float.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                          c_char_p, POINTER(c_float), # col_name, val_vec
+                          c_ulong]            # sz
+df_sel_rows_by_val_float.restype = py_object
+
+df_sel_rows_by_val_double = LIB.df_sel_rows_by_val_double
+df_sel_rows_by_val_double.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                          c_char_p, POINTER(c_double), # col_name, val_vec
+                          c_ulong]             # sz
+df_sel_rows_by_val_double.restype = py_object
+
+df_sel_rows_by_val_string = LIB.df_sel_rows_by_val_string
+df_sel_rows_by_val_string.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                          c_char_p, POINTER(c_char_p), # col_name, val_vec
+                          c_ulong]             # sz
+df_sel_rows_by_val_string.restype = py_object
+

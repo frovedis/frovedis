@@ -6,7 +6,8 @@ from collections import Iterable
 from ..matrix.dtype import DTYPE, TypeUtil, get_result_type
 
 # add future aggregator supporting non-numerics
-non_numeric_supporter = ["first", "last", "mode", "count", "size"]
+
+non_numeric_supporter = ["first", "last", "mode", "count", "size", "take"]
 ulong_typed_aggregator = ["count", "size"]
 double_typed_aggregator = ["mean", "avg", "std", "mad", "var", "median", "sem"]
  

@@ -143,6 +143,13 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_clip);
   expose(frov_df_clip_axis1_numeric);
   expose(frov_df_clip_axis1_str);
+  //loc
+  expose(frov_df_sel_rows_by_val<int>);
+  expose(frov_df_sel_rows_by_val<long>);
+  expose(frov_df_sel_rows_by_val<unsigned long>);
+  expose(frov_df_sel_rows_by_val<float>);
+  expose(frov_df_sel_rows_by_val<double>);
+  expose(frov_df_sel_rows_by_val<std::string>);
 
   // -- for spark wrapper ---
   expose(append_scalar);
