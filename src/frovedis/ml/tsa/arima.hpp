@@ -1,21 +1,14 @@
 #ifndef ARIMA_H
 #define ARIMA_H
+#include <cmath>
 #include <frovedis.hpp>
 #include <frovedis/core/vector_operations.hpp>
 #include <frovedis/matrix/colmajor_matrix.hpp>
 #include <frovedis/ml/glm/linear_regression.hpp>
- 
-// #define DEBUG = 1
-#define NaN std::numeric_limits<T>::max()
+#define TMAX std::numeric_limits<T>::max()
+#define NaN std::numeric_limits<T>::quiet_NaN()
 
 namespace frovedis {
-
-template <class T>
-void log_helper(std::vector<T>& vec) {
-  auto sz = vec.size();
-  auto l_vec = vec.data();
-  for (size_t i = 0; i < sz; i++) l_vec[i] = log(l_vec[i]); 
-}
    
 template <class T>	
 void diff_helper(std::vector<T>& l_vec, 
@@ -28,20 +21,13 @@ void diff_helper(std::vector<T>& l_vec,
   size_t  s_count = 0;
   auto less = sz + interval - s_sz;
   if (sz && s_sz) {
-    for (size_t j = 0; l_shadowp[j] == NaN && j < sz; j++) s_count++ ;
+    for (size_t j = 0; isnan(l_shadowp[j]) && j < sz; j++) s_count++ ;
     size_t lim = sz;
     if ((less + s_count) < sz) lim = less + s_count;
     for (size_t j = 0; j < lim; j++)  l_vecp[j] = NaN; 
     for (size_t j = s_count + less; j < sz; j++)
         l_vecp[j] = l_vecp[j] - l_shadowp[j - less];
   }
-}
-
-template <class T>	
-void exp_helper(std::vector<T>& vec) {
-  auto sz = vec.size();
-  auto l_vec = vec.data();
-  for (size_t i = 0; i < sz; i++) l_vec[i] = exp(l_vec[i]);
 }
 
 template<class T>
@@ -62,7 +48,7 @@ dropNaN_helper (const std::vector<T>& diffnum, size_t NaNs){
   else {
     size_t count = 0;
     for (size_t i = 0; i < diffnum_size ; ++i) {
-      if (diffnum_data[i] == NaN) {
+      if (isnan(diffnum_data[i])) {
         count++;
       }
       else break;
@@ -121,7 +107,7 @@ dropall_NaN_helper(const std::vector<T>& vec){
   size_t  count = 0;
   if (vec_size) {
     for (size_t i = 0; i < vec_size; ++i) {
-      if( vec_data[i] == NaN) count++;
+      if( isnan(vec_data[i])) count++;
       else break;
     }
   }
@@ -371,17 +357,18 @@ class Arima{
    
  
     void validate_params(size_t sz) {
-      if (ar_lag < 1)
+      if (int(ar_lag) < 1)
         REPORT_ERROR(USER_ERROR, 
                     "AR(p) order cannot be less than 1!\n");
-      if (ma_lag < 0)
+      if (int(ma_lag) < 0)
         REPORT_ERROR(USER_ERROR, 
                     "MA(q) order cannot be negative!\n");
-
-      if (diff_order < 0)
+      if (int(diff_order) < 0)
         REPORT_ERROR(USER_ERROR, 
                     "I(d) order cannot be negative!\n");
-
+      if (int(seasonal) < 0)
+        REPORT_ERROR(USER_ERROR, 
+                    "seasonal cannot be negative!\n");
       if (sample_size < ma_lag + ar_lag + diff_order + seasonal + 2)
         REPORT_ERROR(USER_ERROR, 
                    "Number of samples in input is too less for time series analysis!\n");
@@ -392,8 +379,8 @@ class Arima{
         sample_data = sample_data.template moveto_dvector<T>()
 			         .align_as(vec_size)
 				 .moveto_node_local();
-        std::cout << "Sample size is too less for distribution. Realighning" << 
-                     "data  on single worker node"<<std::endl;
+        std::cout << "Sample size is too small for distribution. Re-aligning " << 
+                     "data on a single worker node."<<std::endl;
       } 
     } 
 
@@ -447,20 +434,9 @@ class Arima{
       auto l_s = l;
       l.mapv(diff_helper<T>, l_s, broadcast(interval));
     }
- 
-    void 
-    log_handler(node_local<std::vector<T>>& n){
-      n.mapv(log_helper<T>);
-    }
-   
-    void
-    exp_handler(node_local<std::vector<T>>& n){
-      n.mapv(exp_helper<T>);
-    }
    
     void
     differencing(node_local<std::vector<T>>& l) {
-      log_handler(l);
       for (int i = 1; i <= diff_order; ++i)
         diff_handler(l, 1); 
       if (seasonal)
@@ -559,7 +535,6 @@ class Arima{
     undifferencing (const node_local<std::vector<T>>& numbers, 
                     node_local<std::vector<T>>& diffnum) {
       auto n1 = numbers;
-      log_handler(n1);
       if (diff_order) {
         auto nshift = n1;
         nshift = shift2(nshift, 1);
@@ -581,7 +556,6 @@ class Arima{
         }
         diffnum =  dropNaN (diffnum);
       }
-      exp_handler(diffnum);
       return diffnum;
     }
        
@@ -589,7 +563,6 @@ class Arima{
     single_undifferencing_new (node_local<std::vector<T>>& numbers,
                                T& diffnum, size_t pos) {
       auto n1 = numbers;
-      log_handler(n1);
       if (diff_order){
         auto nshift = n1;
         nshift = shiftex_handler(nshift, 1);
@@ -610,7 +583,6 @@ class Arima{
           diffnum += nd.template as_dvector<T>().get(pos+seasonal-1);
         }
       }
-      diffnum = exp(diffnum);
     }
     
     node_local<std::vector<T>>
@@ -734,7 +706,7 @@ class Arima{
                   node_local<std::vector<T>>& _predict, 
                   node_local<std::vector<T>>& _value, std::vector<T>& _coeff, 
                   T& _intercept, size_t& _lag, bool _is_AR, std::string _x) {
-      T best_RMSE = NaN;
+      T best_RMSE = TMAX;
       if (auto_arima){
         size_t max_ar_iter = _lag;
         for (size_t i = 1; i <= max_ar_iter; ++i){
@@ -745,18 +717,14 @@ class Arima{
             _lag = i;
           }
         }
-#ifdef DEBUG
-        std::cout << "Best " << _x << " RMSE for lag " 
-                  << _lag << "is " 
-                  << best_RMSE << std::endl;
-#endif
+      RLOG(DEBUG) << "Best " << _x << " RMSE for lag " << _lag << " is " << best_RMSE << "\n";
       }
     }
 
     void fit() {
       diff_data = sample_data;
       differencing (diff_data);
-      T rmse = NaN;
+      T rmse = TMAX;
       node_local<std::vector<T>> ar_predict;
       node_local<std::vector<T>> ar_value;
       std::vector<T> ar_coeff;
@@ -771,7 +739,7 @@ class Arima{
       if (ma_lag){
         node_local<std::vector<T>> residuals = ar_value.map(calc_subtract<T>, 
                                                             ar_predict);
-        rmse = NaN;
+        rmse = TMAX;
         T ma_intercept = 0.0;
         std::vector<T> ma_coeff;
         node_local<std::vector<T>> ma_value;
@@ -884,14 +852,12 @@ class Arima{
 
     std::vector<T>
     predict(size_t start_step, size_t stop_step) {
-      auto steps = stop_step - start_step + 1;
       if(stop_step < start_step)
         REPORT_ERROR(USER_ERROR, "Stop index cannot be less than Start index\n");
-      if(steps <= 0) 
-        REPORT_ERROR(USER_ERROR, "Steps  not valid\n");
-      if(start_step - ma_lag - ar_lag - diff_order - seasonal  <= 0)
-        REPORT_ERROR(USER_ERROR, "Index provided cannot be less than total  ARIMA order\n");
-
+      auto steps = stop_step - start_step + 1;
+      if(int(start_step - ma_lag - ar_lag - diff_order - seasonal) <= 0) {
+          REPORT_ERROR(USER_ERROR, "Index provided cannot be less than total ARIMA order\n");
+      }
       node_local <std::vector<T>> lag_data;
       size_t start, stp;
       if (!is_fitted)

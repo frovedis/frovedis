@@ -3,7 +3,7 @@
 #include <boost/program_options.hpp>
 
 // usage:
-// mpirun -np 1 arima_updated -i ./shampoo -p 1 -d 1 -q 1 -s 0 --auto-arima 0 --solver lapack -o out.txt --start-index 32 --stop-index 35 --step 1
+// mpirun -np 1 arima -i ./shampoo -p 1 -d 1 -q 1 -s 0 --auto_arima true --solver lapack --predict-start-index 32 --predict-stop-index 35 --forecast-step 1
 
 using namespace boost;
 using namespace frovedis;
@@ -25,7 +25,8 @@ void do_train(const string& input,
   auto data = make_dvector_load<T>(input,"\n" ).moveto_node_local();
   t.show("load sample data: ");
   t.lap_start();
-  auto ar_obj = Arima<T>(data, ar_lag, diff_order, ma_lag, seasonality, auto_arima, solver);  
+  auto ar_obj = Arima<T>(data, ar_lag, diff_order, ma_lag, 
+                         seasonality, auto_arima, solver);  
   ar_obj.fit();  
   t.lap_stop();  
   t.show("train time: ");
@@ -51,15 +52,20 @@ int main(int argc, char* argv[]) {
   opt.add_options()
     ("help,h", "print help")
     ("input,i", value<string>(), "input time series data")
-    ("start-index,f", value<size_t>(), "start index for predicting future points")
-    ("stop-index,e", value<size_t>(), "stop index for predicting future points")
-    ("step", value<size_t>(), "steps used for forecasting future points")
-    ("dtype", value<string>(), "target data type for input (double or float) (default: double)")
+    ("predict-start-index,f", value<size_t>(), 
+        "start index for predicting future points")
+    ("predict-stop-index,e", value<size_t>(), 
+        "stop index for predicting future points")
+    ("forecast-step,g", value<size_t>(), 
+        "steps used for forecasting future points")
+    ("dtype", value<string>(), 
+        "target data type for input (double or float) (default: double)")
     ("auto-regressive-order,p", value<size_t>(), "auto regressive order")
     ("differencing-order,d", value<size_t>(), "differencing order")
     ("moving-average-order,q", value<size_t>(), "moving average order")
     ("seasonal,s", value<size_t>(), "seasonality")
-    ("solver", value<string>(), "solver used to perform linear regression (default: lapack)")
+    ("solver", value<string>(), 
+        "solver used to perform linear regression (default: lapack)")
     ("auto_arima,a", value<bool>(), "use auto_arima or not (default: False)")
     ("verbose", "set loglevel to DEBUG")
     ("verbose2", "set loglevel to TRACE");
@@ -94,23 +100,23 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
-  if(argmap.count("start-index")){
-    start_step = argmap["start-index"].as<size_t>();
+  if(argmap.count("predict-start-index")){
+    start_step = argmap["predict-start-index"].as<size_t>();
   } else {
     cerr << "start step was not provided for prediction" << endl;
     cerr << opt << endl;
     exit(1);
   }
-  if(argmap.count("stop-index")){
-    stop_step = argmap["stop-index"].as<size_t>();
+  if(argmap.count("predict-stop-index")){
+    stop_step = argmap["predict-stop-index"].as<size_t>();
   } else {
     cerr << "stop step was not provided for prediction" << endl;
     cerr << opt << endl;
     exit(1);
   }
 
-if(argmap.count("step")){
-    step = argmap["step"].as<size_t>();
+if(argmap.count("forecast-step")){
+    step = argmap["forecast-step"].as<size_t>();
   } else {
     cerr << "step was not provided for forecasting" << endl;
     cerr << opt << endl;
