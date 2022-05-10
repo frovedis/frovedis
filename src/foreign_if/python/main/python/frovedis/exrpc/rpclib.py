@@ -1228,6 +1228,12 @@ get_distinct_elements.argtypes = [c_char_p, c_int, c_long, c_short] #host, port,
                                   #proxy, dtype
 get_distinct_elements.restype = py_object
 
+dvector_replace = LIB.frov_dvector_replace
+dvector_replace.argtypes = [c_char_p, c_int,            # host, port
+                            c_long, c_short,            # proxy, dtype
+                            c_char_p, c_char_p, c_bool] # from, to, inplace
+dvector_replace.restype = c_long
+
 dvector_to_numpy_array = LIB.dvector_to_numpy_array
 dvector_to_numpy_array.argtypes = [c_char_p, c_int,    # host, port
                                    c_long, c_void_p,   # proxy, retp

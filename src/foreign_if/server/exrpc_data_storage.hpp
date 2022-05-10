@@ -76,6 +76,25 @@ std::vector<T> get_distinct_elements(exrpc_ptr_t& dptr) {
 }
 
 template <class T>
+exrpc_ptr_t dvector_replace(exrpc_ptr_t& dptr, 
+                            T& from, T& to, 
+                            bool& inplace) {
+  auto& dvec = *reinterpret_cast<dvector<T>*>(dptr);
+  exrpc_ptr_t ret = dptr;
+  if (inplace) {
+    dvec.viewas_node_local().mapv(vector_replace_inplace<T>, 
+                                  broadcast(from), broadcast(to));
+  } else {
+    auto tmp = dvec.viewas_node_local().map(vector_replace<T>, 
+                                            broadcast(from), 
+                                            broadcast(to));
+    auto retp = new dvector<T>(tmp.template moveto_dvector<T>());
+    ret = reinterpret_cast<exrpc_ptr_t>(retp); 
+  }
+  return ret;
+}
+
+template <class T>
 exrpc_ptr_t get_encoded_dvector(exrpc_ptr_t& dptr, 
                                 std::vector<T>& src,
                                 std::vector<T>& target) {

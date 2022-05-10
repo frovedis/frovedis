@@ -1729,5 +1729,32 @@ vector_slice(const std::vector<T>& vec,
   return ret;
 }
 
+template <class T>
+void vector_replace_inplace(std::vector<T>& vec, T& from, T& to) {
+  auto pos = vector_find_eq(vec, from);
+  auto vptr = vec.data();
+  auto pptr = pos.data();
+  auto len = pos.size();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < len; ++i) vptr[pptr[i]] = to;
+}
+
+template <class T>
+std::vector<T> 
+vector_replace(const std::vector<T>& vec, T& from, T& to) {
+  auto ret = vec;
+  auto pos = vector_find_eq(vec, from);
+  auto vptr = ret.data();
+  auto pptr = pos.data();
+  auto len = pos.size();
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < len; ++i) vptr[pptr[i]] = to;
+  return ret;
+}
+
 }
 #endif

@@ -231,6 +231,60 @@ extern "C" {
     return (long) proxy;
   }
 
+  long frov_dvector_replace(const char* host, int port, long dptr, short dtype, 
+                            const char* src, const char *target, bool inplace) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    exrpc_ptr_t proxy = 0;
+    try {
+      switch(dtype) {
+        case BOOL:
+        case INT: {
+          auto from = do_cast<int>(src);
+          auto to = do_cast<int>(target);
+          proxy = exrpc_async(fm_node, dvector_replace<int>, 
+                              f_dptr, from, to, inplace).get(); break;
+        }
+        case LONG: {
+          auto from = do_cast<long>(src);
+          auto to = do_cast<long>(target);
+          proxy = exrpc_async(fm_node, dvector_replace<long>, 
+                              f_dptr, from, to, inplace).get(); break;
+        }
+        case ULONG: {
+          auto from = do_cast<unsigned long>(src);
+          auto to = do_cast<unsigned long>(target);
+          proxy = exrpc_async(fm_node, dvector_replace<unsigned long>, 
+                              f_dptr, from, to, inplace).get(); break;
+        }
+        case FLOAT: {
+          auto from = do_cast<float>(src);
+          auto to = do_cast<float>(target);
+          proxy = exrpc_async(fm_node, dvector_replace<float>, 
+                              f_dptr, from, to, inplace).get(); break;
+        }
+        case DOUBLE: {
+          auto from = do_cast<double>(src);
+          auto to = do_cast<double>(target);
+          proxy = exrpc_async(fm_node, dvector_replace<double>, 
+                              f_dptr, from, to, inplace).get(); break;
+        }
+        case STRING: {
+          auto from = do_cast<std::string>(src);
+          auto to = do_cast<std::string>(target);
+          proxy = exrpc_async(fm_node, dvector_replace<std::string>, 
+                              f_dptr, from, to, inplace).get(); break;
+        }
+        default:  REPORT_ERROR(USER_ERROR, "replace: Unsupported dtype is encountered!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (long) proxy;
+  }
+
   PyObject* distinct_elements(const char* host, int port, long dptr, int vtype) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host,port);

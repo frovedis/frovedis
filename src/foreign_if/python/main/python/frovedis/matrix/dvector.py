@@ -11,7 +11,7 @@ from ..config import global_config
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
-from .dtype import TypeUtil, DTYPE, get_string_array_pointer
+from .dtype import TypeUtil, DTYPE, get_string_array_pointer, str_encode
 
 class FrovedisDvector:
     """
@@ -277,6 +277,25 @@ class FrovedisDvector:
                 return (ret, logic)
             else:
                 return ret
+
+    @check_association
+    def replace(self, src, target, inplace=False):
+        """ replace 'src' by 'target' """
+        (host, port) = FrovedisServer.getServerInstance()
+        proxy = rpclib.dvector_replace(host, port, self.get(), \
+                                       self.get_dtype(), \
+                                       str_encode(str(src)), \
+                                       str_encode(str(target)), inplace)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        if inplace:
+            ret = self
+        else:
+            dummy = {'dptr': proxy, 'size': self.size(), \
+                     'vtype': self.get_dtype()}
+            ret = FrovedisDvector().load(dummy)
+        return ret
 
     @check_association
     def get_unique_elements(self):

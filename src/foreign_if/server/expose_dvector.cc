@@ -282,6 +282,12 @@ void expose_frovedis_dvector_functions() {
   expose(release_dvector<std::string>);
   expose(release_dvector<int64_t>);
   expose((release_data<node_local<words>>));
+  expose(dvector_replace<int>);
+  expose(dvector_replace<long>);
+  expose(dvector_replace<unsigned long>);
+  expose(dvector_replace<float>);
+  expose(dvector_replace<double>);
+  expose(dvector_replace<std::string>);
   // frovedis (simple std::vector) vector functionalities
   expose(create_frovedis_vector<int>);
   expose(create_frovedis_vector<long>);
