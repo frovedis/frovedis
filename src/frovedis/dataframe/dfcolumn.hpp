@@ -1132,7 +1132,7 @@ public:
   sort_with_idx_desc(node_local<std::vector<size_t>>& idx,
                      node_local<std::vector<size_t>>& ret_idx);
   virtual void debug_print();
-  virtual node_local<std::vector<size_t>> get_nulls();
+  virtual node_local<std::vector<size_t>> get_nulls(){return nulls;}
   node_local<std::vector<std::string>> get_val();
   virtual dvector<std::string> as_string();
   virtual node_local<words> as_words(size_t precision = 6,

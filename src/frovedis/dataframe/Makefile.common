@@ -1,6 +1,6 @@
-HEADERS := dfcolumn.hpp dfcolumn_impl.hpp dftable.hpp dfoperator.hpp hashtable.hpp join.hpp dfaggregator.hpp time_extract.hpp make_dftable_dvector.hpp make_dftable_string.hpp dftable_to_string.hpp dftable_to_words.hpp dftable_to_dvector.hpp make_dftable_loadtext.hpp dfutil.hpp dfscalar.hpp dffunction.hpp
+HEADERS := dfcolumn.hpp dftable.hpp dfoperator.hpp hashtable.hpp join.hpp dfaggregator.hpp time_extract.hpp make_dftable_dvector.hpp make_dftable_string.hpp dftable_to_string.hpp dftable_to_words.hpp dftable_to_dvector.hpp make_dftable_loadtext.hpp dfutil.hpp dfscalar.hpp dffunction.hpp dfcolumn_helper.hpp
 
-OBJS := dfcolumn.o typed_dfcolumns.o dfoperator.o dftable.o dfaggregator.o join.o dftable_to_string.o dftable_to_words.o make_dftable_string.o make_dftable_loadtext.o dffunction.o dfutil.o dfscalar.o
+OBJS := dfcolumn.o dfoperator.o dftable.o dfaggregator.o join.o dftable_to_string.o dftable_to_words.o make_dftable_string.o make_dftable_loadtext.o dffunction.o dfutil.o dfscalar.o dfcolumn_misc.o dfcolumn_filter_eq.o dfcolumn_filter_gt.o dfcolumn_filter_ge.o dfcolumn_filter_lt.o dfcolumn_filter_le.o dfcolumn_filter_other.o dfcolumn_join.o dfcolumn_sort.o dfcolumn_groupby.o dfcolumn_grouped_agg.o dfcolumn_agg.o dfcolumn_arith_op.o dfcolumn_pred_op.o typed_dfcolumn_dic_string.o typed_dfcolumn_raw_string.o typed_dfcolumn_string.o typed_dfcolumn_datetime.o
 
 TARGETS := libfrovedis_dataframe.a
 
@@ -17,19 +17,35 @@ install: ${TARGETS}
 	cp ${HEADERS} ${INSTALLPATH}/include/frovedis/dataframe/
 	cp ../dataframe.hpp ${INSTALLPATH}/include/frovedis/
 
-dfcolumn.o: dfcolumn.cc dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp
-typed_dfcolumns.o : typed_dfcolumn_datetime.cc typed_dfcolumn_dic_string.cc typed_dfcolumn_raw_string.cc typed_dfcolumn_string.cc typed_dfcolumn_uint.cc typed_dfcolumn_int.cc typed_dfcolumn_double.cc typed_dfcolumn_float.cc typed_dfcolumn_ulong.cc typed_dfcolumn_long.cc dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp
-dftable.o: dftable.cc dftable.hpp dffunction.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp dfaggregator.hpp make_dftable_loadtext.hpp
-make_dftable_string.o: make_dftable_string.cc make_dftable_string.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
-dftable_to_string.o: dftable_to_string.cc dftable_to_string.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
-dftable_to_words.o: dftable_to_words.cc dftable_to_words.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
-dfoperator.o: dfoperator.cc dfoperator.hpp dffunction.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
-dfaggregator.o: dfaggregator.cc dfaggregator.hpp dftable.hpp dffunction.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
+dfcolumn.o: dfcolumn.cc dfcolumn.hpp dfutil.hpp hashtable.hpp join.hpp
+dftable.o: dftable.cc dftable.hpp dffunction.hpp dfoperator.hpp dfcolumn.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp dfaggregator.hpp make_dftable_loadtext.hpp
+make_dftable_string.o: make_dftable_string.cc make_dftable_string.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
+dftable_to_string.o: dftable_to_string.cc dftable_to_string.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
+dftable_to_words.o: dftable_to_words.cc dftable_to_words.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
+dfoperator.o: dfoperator.cc dfoperator.hpp dffunction.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
+dfaggregator.o: dfaggregator.cc dfaggregator.hpp dftable.hpp dffunction.hpp dfoperator.hpp dfcolumn.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
 join.o: join.cc join.hpp hashtable.hpp
-make_dftable_loadtext.o: make_dftable_loadtext.cc make_dftable_loadtext.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
-dffunction.o: dffunction.hpp dfoperator.hpp dfcolumn.hpp dfcolumn_impl.hpp dfutil.hpp dftable.hpp
+make_dftable_loadtext.o: make_dftable_loadtext.cc make_dftable_loadtext.hpp dftable.hpp dfoperator.hpp dfcolumn.hpp dfutil.hpp hashtable.hpp join.hpp dftable_to_string.hpp
+dffunction.o: dffunction.hpp dfoperator.hpp dfcolumn.hpp dfutil.hpp dftable.hpp
 dfutil.o: dfutil.cc dfutil.hpp
 dfscalar.o: dfscalar.cc dfscalar.hpp
+dfcolumn_misc.o: dfcolumn_misc.cc dfcolumn.hpp dfcolumn_helper.hpp
+dfcolumn_filter_eq.o: dfcolumn_filter_eq.cc dfcolumn.hpp dfcolumn_helper.hpp
+dfcolumn_filter_gt.o: dfcolumn_filter_gt.cc dfcolumn.hpp
+dfcolumn_filter_ge.o: dfcolumn_filter_ge.cc dfcolumn.hpp
+dfcolumn_filter_lt.o: dfcolumn_filter_lt.cc dfcolumn.hpp
+dfcolumn_filter_le.o: dfcolumn_filter_le.cc dfcolumn.hpp
+dfcolumn_filter_other.o: dfcolumn_filter_other.cc dfcolumn.hpp dfcolumn_helper.hpp
+dfcolumn_sort.o: dfcolumn_sort.cc dfcolumn.hpp
+dfcolumn_groupby.o: dfcolumn_sort.cc dfcolumn.hpp dfcolumn_helper.hpp
+dfcolumn_grouped_agg.o: dfcolumn_grouped_agg.cc dfcolumn.hpp dfcolumn_helper.hpp
+dfcolumn_agg.o: dfcolumn_agg.cc dfcolumn.hpp
+dfcolumn_arith_op.o: dfcolumn_arith_op.cc dfcolumn.hpp dfcolumn_helper.hpp
+dfcolumn_pred_op.o: dfcolumn_pred_op.cc dfcolumn.hpp dfcolumn_helper.hpp
+typed_dfcolumn_dic_string.o: typed_dfcolumn_dic_string.cc dfcolumn.hpp
+typed_dfcolumn_raw_string.o: typed_dfcolumn_raw_string.cc dfcolumn.hpp
+typed_dfcolumn_string.o: typed_dfcolumn_string.cc dfcolumn.hpp
+typed_dfcolumn_datetime.o: typed_dfcolumn_datetime.cc dfcolumn.hpp
 
 clean:
 	${RM} ${TO_CLEAN} ${TARGETS} 
