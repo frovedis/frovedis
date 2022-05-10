@@ -1,7 +1,7 @@
 # site definitions: modify these lines if necessary
 INSTALLPATH := /opt/nec/frovedis/x86
 MPICXX := mpic++
-CXXFLAGS_COMMON := -fPIC -g -Wall -O3 -std=c++11 -Wno-unknown-pragmas -Wno-sign-compare -pthread
+CXXFLAGS_COMMON := -fPIC -Wall -O3 -std=c++11 -Wno-unknown-pragmas -Wno-sign-compare -pthread
 
 # check the library name of your distribution
 LIBS_COMMON := -lparpack -lscalapack -llapack -lcblas -lblas -lboost_program_options -lboost_serialization -lboost_system -lpthread -lgfortran -lrt `mpif90 -showme:link`
