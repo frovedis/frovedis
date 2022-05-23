@@ -4,6 +4,7 @@
 #include <limits>
 #include <cmath>
 #include "utility.hpp"
+#include "dvector.hpp"
 #include "exceptions.hpp"
 #include "set_operations.hpp"
 #include "vector_fill.hpp"
@@ -1754,6 +1755,37 @@ vector_replace(const std::vector<T>& vec, T& from, T& to) {
 #pragma _NEC vob
   for(size_t i = 0; i < len; ++i) vptr[pptr[i]] = to;
   return ret;
+}
+
+// string version: defined in text/words.cc
+template <>
+void vector_replace_inplace(std::vector<std::string>& vec,
+                            std::string& from, std::string& to);
+
+template <>
+std::vector<std::string>
+vector_replace(const std::vector<std::string>& vec,
+               std::string& from, std::string& to);
+
+// defined in vector_operations.cc
+node_local<std::vector<size_t>>
+make_sliced_impl(const std::vector<size_t> sizes,
+                 size_t nrow, size_t st, size_t end,
+                 size_t step = 1);
+
+template <class T>
+dvector<T>
+make_sliced_dvector(dvector<T>& dv, size_t st, size_t end, size_t step = 1) {
+  require(step != 0, "make_sliced_dvector: slice step cannot be zero!\n");
+  auto nrow = dv.size();
+  auto sizes = dv.sizes();
+  auto idx = make_sliced_impl(sizes, nrow, st, end, step);
+  auto ret = dv.viewas_node_local()
+               .map(+[](const std::vector<T>& lvec,
+                        const std::vector<size_t> indices) {
+                          return vector_take<T>(lvec, indices);
+                   }, idx);
+  return ret.template moveto_dvector<T>();
 }
 
 }

@@ -2502,4 +2502,22 @@ hamming_distance(const words& w1, const words& w2, bool& all_valid) {
                           w2.chars, w2.starts, w2.lens, all_valid);
 }
 
+// declared in core/vector_operations.hpp
+template <>
+void vector_replace_inplace(std::vector<std::string>& vec,
+                            std::string& from, std::string& to) {
+  auto w = vector_string_to_words(vec);
+  w.replace(from, to);
+  vec = words_to_vector_string(w);
+}
+
+template <>
+std::vector<std::string>
+vector_replace(const std::vector<std::string>& vec,
+               std::string& from, std::string& to) {
+  auto w = vector_string_to_words(vec);
+  w.replace(from, to);
+  return words_to_vector_string(w);
+}
+
 }
