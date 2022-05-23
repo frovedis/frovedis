@@ -687,6 +687,13 @@ df_clip_axis1_str.argtypes = [c_char_p, c_int, c_long,            # host, port, 
                             c_bool, c_ulong]                      # with_index, size
 df_clip_axis1_str.restype = py_object
 
+df_datetime_operation = LIB.df_datetime_operation
+df_datetime_operation.argtypes = [c_char_p, c_int, c_long,            # host, port, proxy
+                                  c_char_p, c_char_p, c_char_p,       # left_col, right_col, as_name
+                                  c_ulong, c_bool]                    # opt, with_index
+df_datetime_operation.restype = py_object
+
+
 # --- Frovedis dftable_to_sparse_info ---
 load_dftable_to_sparse_info = LIB.load_dftable_to_sparse_info
 load_dftable_to_sparse_info.argtypes = [c_char_p, c_int,  #host, port
@@ -2435,4 +2442,40 @@ df_sel_rows_by_val_string.argtypes = [c_char_p, c_int, c_long,    # host, port, 
                           c_char_p, POINTER(c_char_p), # col_name, val_vec
                           c_ulong]             # sz
 df_sel_rows_by_val_string.restype = py_object
+
+#----iloc----#
+df_sel_rows_by_indices = LIB.df_sel_rows_by_indices
+df_sel_rows_by_indices.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
+                                  POINTER(c_int),   # indices_arr
+                                  c_ulong]          # sz
+df_sel_rows_by_indices.restype = py_object
+
+# -------- ARIMA APIs ----------------------
+#------------ fit() ------------------------#
+arima_fit = LIB.arima_fit
+arima_fit.argtypes = [c_char_p, c_int, c_long,    #host, port, endog
+                      c_ulong, c_ulong, c_ulong,  #ar_lag, diff_order, ma_lag
+                      c_ulong, c_bool, c_char_p,  #seasonal, auto_arima, solver
+                      c_int, c_int, c_short]      #vb, mid, dtype 
+
+#-------- fittedvalue attribute ------------#
+get_fitted_vector = LIB.get_fitted_vector
+get_fitted_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
+get_fitted_vector.restype = py_object
+
+#------------- predict() -------------------#
+arima_predict = LIB.arima_predict
+arima_predict.argtypes = [c_char_p, c_int,   #host, port
+                          c_ulong, c_ulong,  #start, stop
+                          c_int, c_short]    #mid, dtype
+
+arima_predict.restype = py_object
+
+#------------- forecast() -------------------#
+arima_forecast = LIB.arima_forecast
+arima_forecast.argtypes = [c_char_p, c_int,   #host, port
+                           c_ulong, c_int,    #steps, mid
+                           c_short]           #dtype
+
+arima_forecast.restype = py_object
 

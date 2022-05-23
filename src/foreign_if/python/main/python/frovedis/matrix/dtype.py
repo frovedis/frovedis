@@ -33,6 +33,7 @@ class DTYPE:
     BOOL = 6
     ULONG = 7
     WORDS = 8
+    DATETIME = 10
 
 class TypeUtil:
     @staticmethod
@@ -52,6 +53,8 @@ class TypeUtil:
             return DTYPE.BOOL
         elif dtype == np.dtype(str) or dtype.char == 'S' or dtype.char == 'U':
             return DTYPE.STRING
+        elif dtype == np.datetime64:
+            return DTYPE.DATETIME
         else:
             raise TypeError("Unsupported numpy dtype: %s" % dtype)
 
@@ -72,6 +75,8 @@ class TypeUtil:
             return np.bool
         elif dtype == DTYPE.STRING or dtype == DTYPE.WORDS:
             return np.dtype(str)
+        elif dtype == DTYPE.DATETIME:
+            return np.datetime64
         else:
             raise TypeError("Unknown numpy type for the given TID: %d" % dtype)
 

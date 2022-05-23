@@ -2741,4 +2741,38 @@ frov_df_clip_axis1_str(exrpc_ptr_t& df_proxy,
   return to_dummy_dftable(retp);
 }
 
+dummy_dftable
+frov_df_sel_rows_by_indices(exrpc_ptr_t& df_proxy,
+                            std::vector<int>& indices) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto ret = df.select_rows_by_indices(indices);
+  auto retp = new dftable(std::move(ret));
+  return to_dummy_dftable(retp);
+}
+
+dummy_dftable frov_df_datetime_operation(exrpc_ptr_t& df_proxy,
+                                      std::string& left_col,
+                                      std::string& right_col,
+                                      std::string& as_name,
+                                      short& op_id,
+                                      bool& with_index) {
+  auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
+  std::shared_ptr<dffunction> dffunc;
+  switch(op_id) {
+      case GETDAYOFMONTH:   dffunc = datetime_extract_col_as(left_col, datetime_type::day, as_name); break;
+      case GETDAYOFWEEK:    dffunc = datetime_extract_col_as(left_col, datetime_type::dayofweek, as_name); break;
+      default: REPORT_ERROR(USER_ERROR,
+               "Unsupported conditional operation is encountered!\n");
+  }
+  
+  std::vector<std::shared_ptr<frovedis::dffunction>> res_cols;
+
+  if (with_index){
+    res_cols = { ~dftblp->columns()[0], dffunc };
+  }
+  else res_cols = {dffunc};
+
+  auto retp = new dftable(dftblp->fselect(res_cols));
+  return to_dummy_dftable(retp);
+}
 

@@ -32,7 +32,7 @@ from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     infer_column_type_from_first_notna, get_string_typename, \
                     get_python_scalar_type, check_string_or_array_like, \
                     check_stat_error, double_typed_aggregator, \
-                    if_mask_vector
+                    if_mask_vector, get_null_value
 from ..utils import deprecated, str_type
 from pandas.core.common import SettingWithCopyWarning
 
@@ -338,6 +338,7 @@ class DataFrame(SeriesHelper):
         self.__multi_cols = None
         self.__multi_index = None
         self.is_series = is_series
+        self.datetime_cols_info = {}
         if df is not None:
             self.load(df)
 
@@ -397,6 +398,7 @@ class DataFrame(SeriesHelper):
         self.__types = None
         self.index = None
         self.is_series = None
+        self.datetime_cols_info = {}
 
     @do_if_active_association
     def __release_server_heap(self):
@@ -544,6 +546,19 @@ class DataFrame(SeriesHelper):
             elif vtype == 'bool' or vtype == 'bool_':
                 dt = DTYPE.BOOL
                 dvec[idx] = FrovedisIntDvector(np.asarray(val, dtype=np.int32))
+            elif vtype.startswith('datetime64'):
+                self.datetime_cols_info[s_cname] = val.dt.tz.zone if val.dt.tz else None
+
+                arr = val.dt.tz_localize(None).view("int64")
+
+                from frovedis.config import global_config
+                nat_int_value = global_config.get("NaT")
+
+                dt = DTYPE.DATETIME
+                dvec[idx] = FrovedisLongDvector(arr)
+
+                dvec[idx].replace(nat_int_value, get_null_value(DTYPE.LONG), inplace=True)
+
             else:
                 raise TypeError("Unsupported column type '%s' in creation of "\
                                 "frovedis dataframe: " % (vtype))
@@ -648,6 +663,7 @@ class DataFrame(SeriesHelper):
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
             ret.load_dummy(proxy, list(self.__cols), list(self.__types))
+            ret.datetime_cols_info = self.__get_zone_info(ret.columns)
         return ret
 
     @check_association
@@ -666,6 +682,7 @@ class DataFrame(SeriesHelper):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         ret.load_dummy(proxy, list(self.__cols), list(self.__types))
+        ret.datetime_cols_info = self.__get_zone_info(ret.columns)
         return ret
 
     @check_association
@@ -697,6 +714,7 @@ class DataFrame(SeriesHelper):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         ret.load_dummy(proxy, ret_cols, ret_types)
+        ret.datetime_cols_info = self.__get_zone_info(ret.columns)
         return ret
 
     @check_association
@@ -831,6 +849,7 @@ class DataFrame(SeriesHelper):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         ret.load_dummy(proxy, list(self.__cols), list(self.__types))
+        ret.datetime_cols_info = self.__get_zone_info(ret.columns)
         return ret
 
     def sort(self, columns=None, axis=0, ascending=True,
@@ -1569,6 +1588,11 @@ class DataFrame(SeriesHelper):
             # NULL treatment for string columns
             elif (self.__dict__[col].dtype == DTYPE.STRING):
                 res[col].replace(to_replace={"NULL": None}, inplace=True)
+            elif (self.__dict__[col].dtype == DTYPE.DATETIME):
+                res[col] = pd.to_datetime(res[col])
+                if col in self.datetime_cols_info:
+                    zone = self.datetime_cols_info[col]
+                    res[col] = res[col].dt.tz_localize(zone)
 
         if self.is_series:
             res = res[self.columns[0]]
@@ -2065,6 +2089,10 @@ class DataFrame(SeriesHelper):
             c = names[i]
             if c in self.columns and self.__dict__[c].dtype == DTYPE.BOOL:
                 types[i] = DTYPE.BOOL
+
+    def __get_zone_info(self, names):
+        """ get timezone information """
+        return {n: z for n, z in self.datetime_cols_info.items() if n in names}
 
     def __get_dtype_name(self, arr): #TODO: improve
         """get_dtype_name"""
@@ -3236,6 +3264,7 @@ class DataFrame(SeriesHelper):
             ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         else:
             ret.load_dummy(dummy_df["dfptr"], names, types)
+        ret.datetime_cols_info = self.__get_zone_info(ret.columns)
         return ret
 
     @check_association
@@ -3760,14 +3789,27 @@ class DataFrame(SeriesHelper):
         #row handling
         if isinstance(key[0], slice):
             ret = self[key[0].start : key[0].stop : key[0].step]
-        elif (isinstance(key[0], (list, tuple))):
+        elif (isinstance(key[0], list)):
             if all(isinstance(e, bool) for e in key[0]):
-                ret = self.__filter_using_mask(key[0])
+                tmp_key0 = key[0]
+                if len(tmp_key0) == 0:
+                    tmp_key0 = [False] * len(self)
+                ret = self.__filter_using_mask(tmp_key0)
             else:
-                df_opt = (self.index == key[0][0])
-                for i in range(1, len(key[0])):
-                    df_opt = df_opt | (self.index == key[0][i])
-                ret = self[df_opt]
+                (host, port) = FrovedisServer.getServerInstance()
+                key_arr = np.asarray(key[0], dtype=np.int32)
+                kptr = key_arr.ctypes.data_as(POINTER(c_int))
+                dummy_df = rpclib.df_sel_rows_by_indices(host, port, \
+                              self.get(), kptr, len(key[0]))
+                excpt = rpclib.check_server_exception()
+                if excpt["status"]:
+                    raise RuntimeError(excpt["info"])
+                names = dummy_df["names"]
+                types = dummy_df["types"]
+                ret = DataFrame(is_series = self.is_series)
+                ret.index = FrovedisColumn(names[0], types[0]) #setting index
+                ret.num_row = dummy_df["nrow"]
+                ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         else:
             ret = self[self.index == key[0]]
         ret.set_index(idx, inplace=True)
@@ -3779,7 +3821,7 @@ class DataFrame(SeriesHelper):
         if isinstance(key[1], slice):
             filtered_cols = self.columns[key[1].start: key[1].stop : key[1].step]
             ret = ret[filtered_cols]
-        elif (isinstance(key[1], (list, tuple))):
+        elif (isinstance(key[1], list)):
             if all(isinstance(e, bool) for e in key[1]):
                 cols = [self.columns[i] for i in range(0, len(key[1])) if key[1][i]] #boolean case
             else:
@@ -3802,7 +3844,7 @@ class DataFrame(SeriesHelper):
                                 axis_ = axis)
         if param.axis_ == 0:
             return self.iloc_tuple((indices, slice(0,len(self.columns))))
-        return self.iloc_tuple((slice(0,self.num_row), indices))
+        return self.iloc_tuple((slice(0, len(self)), indices))
 
     @property
     def loc(self):
@@ -3847,9 +3889,12 @@ class DataFrame(SeriesHelper):
                          " label:", key[0].stop)
             step = 1 if c is None else c
             res = self[start : stop : step]
-        elif (isinstance(key[0], (list, tuple))):
+        elif (isinstance(key[0], list)):
             if all(isinstance(e, bool) for e in key[0]):
-                res = self.__filter_using_mask(key[0])
+                tmp_key0 = key[0]
+                if len(tmp_key0) == 0:
+                    tmp_key0 = [False] * len(self)
+                res = self.__filter_using_mask(tmp_key0)
             else:
                 dtype = self.index.dtype
                 index_col = str_encode(self.index.name)
@@ -3914,7 +3959,7 @@ class DataFrame(SeriesHelper):
             step = key[1].step
             filtered_cols = self.columns[start : stop + 1 : step]
             ret = res[filtered_cols]
-        elif (isinstance(key[1], (list, tuple))):
+        elif (isinstance(key[1], list)):
             if all(isinstance(e, bool) for e in key[1]):
                 cols = [self.columns[i] for i in range(0, len(key[1])) if key[1][i]] #boolean case
                 ret = res[cols]

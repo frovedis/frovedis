@@ -1,13 +1,19 @@
 """
 config: to manipulate several configuration parameters
 """
+import numpy as np
+import pandas as pd
 from .matrix.dtype import DTYPE
+
+def get_pandas_nat():
+  return pd.to_datetime("").value
 
 class global_config(object):
     __param_key = \
       { 
         "rawsend_enabled": True,
-        "string_dvector_as": DTYPE.WORDS
+        "string_dvector_as": DTYPE.WORDS,
+        "NaT": get_pandas_nat()
       }
 
     __param_type = \
@@ -16,6 +22,8 @@ class global_config(object):
         "string_dvector_as": type(DTYPE.WORDS)
       }
 
+    read_only = ["NaT"]
+
     def __init__(self):
         '''  initializes global configuration '''
         pass
@@ -23,6 +31,10 @@ class global_config(object):
     @staticmethod
     def set(key, value):
         ''' sets the config parameter '''
+        if key in global_config.read_only:
+            raise ValueError(\
+            "set: '{}' is prohibited being a read-only parameter".format(key))
+
         if key not in global_config.__param_key:
             raise ValueError(\
             "set: '{}' not found in global configuration".format(key))
@@ -38,6 +50,6 @@ class global_config(object):
         ''' return the set value for the given config key '''
         if key not in global_config.__param_key:
             raise ValueError(\
-            "set: '{}' not found in global configuration".format(key))
+            "get: '{}' not found in global configuration".format(key))
         return global_config.__param_key[key]
 

@@ -246,6 +246,7 @@ extern "C" {
           proxy = exrpc_async(fm_node, dvector_replace<int>, 
                               f_dptr, from, to, inplace).get(); break;
         }
+        case DATETIME:
         case LONG: {
           auto from = do_cast<long>(src);
           auto to = do_cast<long>(target);
@@ -329,6 +330,7 @@ extern "C" {
         case BOOL:
         case INT:    exrpc_oneway(fm_node, show_dvector<int>,
                                   f_dptr, limit); break;
+        case DATETIME:
         case LONG:   exrpc_oneway(fm_node, show_dvector<long>,
                                   f_dptr, limit); break;
         case ULONG:  exrpc_oneway(fm_node, show_dvector<unsigned long>,
@@ -360,6 +362,7 @@ extern "C" {
         case INT:
           exrpc_oneway(fm_node,release_dvector<int>,f_dptr);
           break;
+        case DATETIME:
         case LONG:
           exrpc_oneway(fm_node,release_dvector<long>,f_dptr);
           break;
@@ -1094,6 +1097,7 @@ extern "C" {
         case BOOL:
         case INT:    eps = exrpc_async(fm_node, get_dvector_local_pointers<int>, 
                                        proxy_).get(); break;
+        case DATETIME:
         case LONG:   eps = exrpc_async(fm_node, get_dvector_local_pointers<long>, 
                                        proxy_).get(); break;
         case ULONG:  eps = exrpc_async(fm_node, get_dvector_local_pointers<unsigned long>, 
@@ -1116,6 +1120,7 @@ extern "C" {
                                                         is_except, wsize, dvsz);
                        omp_merge_vectors_impl(evs, (int*) retp, dvsz); break;
                      }
+        case DATETIME:
         case LONG:   { auto evs = get_local_long_vectors(nodes, eps, exps,
                                                          is_except, wsize, dvsz);
                        omp_merge_vectors_impl(evs, (long*) retp, dvsz); break;

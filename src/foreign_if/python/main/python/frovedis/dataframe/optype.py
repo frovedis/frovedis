@@ -12,3 +12,5 @@ class OPT(object):
     LT = 5
     LE = 6
     LIKE = 14
+    GETDAYOFMONTH = 203
+    GETDAYOFWEEK = 208

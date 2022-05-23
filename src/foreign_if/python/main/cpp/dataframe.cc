@@ -975,6 +975,7 @@ extern "C" {
         case BOOL:   
         case INT:    dvec = exrpc_async(fm_node, get_df_col<int>, 
                                         f_dptr, cname, tid).get(); break;
+        case DATETIME:
         case LONG:   dvec = exrpc_async(fm_node, get_df_col<long>, 
                                         f_dptr, cname, tid).get(); break;
         case ULONG:  dvec = exrpc_async(fm_node, get_df_col<unsigned long>, 
@@ -2000,4 +2001,43 @@ extern "C" {
     }
     return to_py_dummy_df(ret);
   }
+
+  PyObject* df_sel_rows_by_indices(const char* host, int port, 
+                                   long proxy,
+                                   int* indices, ulong sz) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    auto indices_vec = to_int_vector(indices, sz);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_sel_rows_by_indices, 
+                        df_proxy, indices_vec).get(); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* df_datetime_operation(const char* host, int port, long proxy,
+                                  const char* left_col, const char* right_col,
+                                  const char* as_name, short opt,
+                                  bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::string left_col_(left_col), right_col_(right_col), as_name_(as_name);
+
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_datetime_operation, df_proxy,
+                        left_col_, right_col_, as_name_, opt, with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+  
 }

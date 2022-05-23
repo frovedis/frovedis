@@ -309,6 +309,15 @@ class FrovedisColumn(object):
         ret.df = self.df
         return ret
 
+    @property
+    def dt(self):
+        """returns a FrovedisDatetimeProperties object, for: \
+        datetime related operations
+        """
+        ret = FrovedisDatetimeProperties(self.name, self.dtype)
+        ret.df = self.df
+        return ret
+
     def cov(self, other, min_periods=None, ddof=1):
         """
         Covariance for series
@@ -699,3 +708,81 @@ class FrovedisStringMethods(object):
                              " currently unsupported!")
         return self.like("%" + pat)
 
+
+class FrovedisDatetimeProperties(object):
+    """
+    FrovedisDatetimeProperties
+    """
+    def __init__(self, colName, dtype):
+        """
+        __init__
+        """
+        self.__colName = colName
+        self.__dtype = dtype
+        self.df = None
+    
+    @property
+    def day(self):
+        """
+        day
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        left_col = self.__colName
+        right_col = ""
+        as_name = left_col
+
+        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
+                                                str_encode(left_col),
+                                                str_encode(right_col),
+                                                str_encode(as_name),
+                                                OPT.GETDAYOFMONTH,
+                                                self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        from .df import DataFrame
+        ret = DataFrame(is_series=self.df.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.df.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        return ret
+
+    @property
+    def dayofweek(self):
+        """
+        dayofweek
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        left_col = self.__colName
+        right_col = ""
+        as_name = left_col
+        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
+                                                str_encode(left_col),
+                                                str_encode(right_col),
+                                                str_encode(as_name),
+                                                OPT.GETDAYOFWEEK,
+                                                self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        from .df import DataFrame
+        ret = DataFrame(is_series=self.df.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.df.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        ret[ret.columns[0]] = (ret[ret.columns[0]] + 5) % 7
+        return ret

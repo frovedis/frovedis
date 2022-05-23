@@ -111,6 +111,20 @@ void treat_null_as_nan_inplace(std::vector<T>& vec,
   for(size_t i = 0; i < nsz; ++i) rptr[nptr[i]] = mynan;
 }
 
+template <class T> // for T: long
+void treat_null_as_nat_inplace(std::vector<T>& vec,
+                               const std::vector<size_t>& nulls) {
+  auto mynat = std::numeric_limits<T>::max() + 1;
+  auto rptr = vec.data();
+  auto nptr = nulls.data();
+  auto nsz = nulls.size();
+#pragma cdir nodep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
+  for(size_t i = 0; i < nsz; ++i) rptr[nptr[i]] = mynat;
+}
+
 exrpc_ptr_t create_dataframe (std::vector<short>& types,
                               std::vector<std::string>& cols,
                               std::vector<exrpc_ptr_t>& dvec_proxies,
@@ -434,6 +448,11 @@ dummy_vector get_df_col(exrpc_ptr_t& df_proxy,
     if (col->dtype() == "float" || col->dtype() == "double") { // no need for casting, null-treatment can be in-place
       auto retp = new dvector<T>(vec.mapv_partitions(
                     treat_null_as_nan_inplace<T>, nullpos));
+      auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
+      dvec = dummy_vector(retp_, retp->size(), ctype);
+    } else if (col->dtype() == "datetime") { // long dvector
+      auto retp = new dvector<T>(vec.mapv_partitions(
+                    treat_null_as_nat_inplace<T>, nullpos));
       auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
       dvec = dummy_vector(retp_, retp->size(), ctype);
     } else {
@@ -1182,4 +1201,16 @@ frov_df_sel_rows_by_val(exrpc_ptr_t& df_proxy,
   auto retp = new dftable(std::move(ret));
   return to_dummy_dftable(retp);
 }
+
+dummy_dftable
+frov_df_sel_rows_by_indices(exrpc_ptr_t& df_proxy,
+                            std::vector<int>& indices);
+
+dummy_dftable frov_df_datetime_operation(exrpc_ptr_t& df_proxy,
+                                        std::string& left_col,
+                                        std::string& right_col,
+                                        std::string& as_name,
+                                        short& op_id,
+                                        bool& with_index);
+
 #endif
