@@ -166,7 +166,7 @@ public:
   dftable select_rows_by_values(const std::string& target_col,
                                 const std::vector<T>& target_values); // defined in dfoperator.hpp
 
-  // indices:n can contain negative values (-1: nrow - 1, -2: nrow - 2, ...)
+  // indices: can contain negative values (-1: nrow - 1, -2: nrow - 2, ...)
   dftable select_rows_by_indices(const std::vector<int>& indices); // defined in dfoperator.cc
 
   // similar to: SELECT * FROM <this> WHERE <target_col> NOT IN (SELECT <right_col> FROM <right_t>);
