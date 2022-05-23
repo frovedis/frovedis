@@ -12,6 +12,7 @@
 #include "frovedis/ml/glm/linear_svc.hpp"
 #include "frovedis/ml/glm/linear_svr.hpp"
 #include "frovedis/ml/glm/linear_regression.hpp"
+#include "frovedis/ml/tsa/arima.hpp"
 #include "short_hand_dtype.hpp"
 
 using namespace frovedis;
@@ -82,4 +83,6 @@ typedef gradient_boosted_trees_model<DT1> GBT1;
 typedef gradient_boosted_trees_model<DT2> GBT2;
 typedef standard_scaler<DT1> STANDARDSCALER1;
 typedef standard_scaler<DT2> STANDARDSCALER2;
+typedef Arima<DT1> ARM1;
+typedef Arima<DT2> ARM2;
 #endif

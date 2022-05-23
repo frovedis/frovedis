@@ -65,3 +65,7 @@ python graph_pagerank.py "$COMMAND"
 python graph_sssp.py "$COMMAND"
 python graph_bfs.py "$COMMAND"
 python graph_cc.py "$COMMAND"
+
+# ----- Time Series Analysis Demo --------------
+python arima_demo.py "$COMMAND"
+

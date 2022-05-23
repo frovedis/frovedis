@@ -49,7 +49,8 @@ enum MODEL_KIND {
   RR,
   LSR,
   GMM,
-  STANDARDSCALER    
+  STANDARDSCALER,
+  ARM
 };
 
 enum MAT_KIND {

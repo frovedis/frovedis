@@ -852,18 +852,30 @@ class Arima{
 
     std::vector<T>
     predict(size_t start_step, size_t stop_step) {
-      if(stop_step < start_step)
-        REPORT_ERROR(USER_ERROR, "Stop index cannot be less than Start index\n");
+      if(ssize_t(start_step) < 0)
+        REPORT_ERROR(USER_ERROR, "Start index cannot be negative\n");
+      if(ssize_t(stop_step) < ssize_t(start_step))
+        REPORT_ERROR(USER_ERROR, 
+                     "Stop index cannot be less than Start index\n");
       auto steps = stop_step - start_step + 1;
-      if(int(start_step - ma_lag - ar_lag - diff_order - seasonal) <= 0) {
-          REPORT_ERROR(USER_ERROR, "Index provided cannot be less than total ARIMA order\n");
-      }
+      auto order = ar_lag + diff_order + ma_lag + seasonal;
       node_local <std::vector<T>> lag_data;
       size_t start, stp;
       if (!is_fitted)
         REPORT_ERROR(USER_ERROR, "Cannot use predict before fit()!\n");
-
-      if (start_step > sample_size) {
+      
+      if (start_step <= order) {
+        if (stop_step <= order){
+          auto dv = fitted_values.template as_dvector<T>();
+          return make_sliced_dvector<T>(dv, start_step, 
+                                        stop_step + 1, 1).gather();
+        }
+        else{
+          start = order + 1;
+          stp = stop_step - start + 1;
+        }
+      }
+      else if (start_step > sample_size) {
         start = sample_size;
         stp = steps + start_step - sample_size;
       }
@@ -881,7 +893,8 @@ class Arima{
                                              start - ma_gap, 
                                              ma_lag);
 
-      auto smp_undiff = create_distdifflag (sample_data, start, diff_order + seasonal); 
+      auto smp_undiff = create_distdifflag(sample_data, start, 
+                                           diff_order + seasonal); 
   
       for (size_t i = 0; i < stp; ++i){
         lag_data =  create_lag(predict_diff_data, ar_lag + i, ar_lag);
@@ -896,8 +909,8 @@ class Arima{
         }
         predict_diff_data = push_back_element(predict_diff_data, result[i]);
       
-  
-        single_undifferencing_new(smp_undiff,result[i], diff_order + seasonal + i);
+        single_undifferencing_new(smp_undiff,result[i], 
+                                  diff_order + seasonal + i);
         smp_undiff = push_back_element(smp_undiff, result[i]);
       }
 
@@ -910,14 +923,20 @@ class Arima{
 
         return new_res;
       }
+      else if (start_step <= order){
+        std::vector<T> pred(steps);
+        auto dv = fitted_values.template viewas_dvector<T>();
+        pred = make_sliced_dvector<T>(dv, start_step, order + 1, 1).gather();
+        pred = vector_concat(pred, result);
+        return pred;
+      }
       return result;
     }
 
     std::vector<T> 
     forecast(size_t steps = 1) {
        return predict(sample_size, sample_size + steps - 1);
-    } 
-
+    }
 };
 }
 #endif

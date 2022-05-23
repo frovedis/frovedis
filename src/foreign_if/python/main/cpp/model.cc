@@ -1,5 +1,6 @@
 #include "python_client_headers.hpp"
 #include "exrpc_model.hpp"
+#include "exrpc_tsa.hpp"
 #include "short_hand_dense_type.hpp"
 #include "short_hand_sparse_type.hpp"
 #include "short_hand_model_type.hpp"
@@ -127,7 +128,8 @@ extern "C" {
           case FPR:    exrpc_oneway(fm_node, release_model<FPR1>,mid); break; // not template based
           case FMM:    exrpc_oneway(fm_node,release_model<FMM2>,mid); break;
           case NBM:    exrpc_oneway(fm_node,release_model<NBM2>,mid); break;
-          case STANDARDSCALER:    exrpc_oneway(fm_node,release_model<STANDARDSCALER2>,mid); break;      
+          case STANDARDSCALER:    exrpc_oneway(fm_node,release_model<STANDARDSCALER2>,mid); break;
+          case ARM:    exrpc_oneway(fm_node,release_model<ARM2>,mid); break;
           case KNN: 
             if(dense) {   
               exrpc_oneway(fm_node,release_model<KNNR2>,mid); 
@@ -187,7 +189,8 @@ extern "C" {
           case FPR:    exrpc_oneway(fm_node, release_model<FPR1>,mid); break; // not template based
           case FMM:    exrpc_oneway(fm_node,release_model<FMM1>,mid); break;
           case NBM:    exrpc_oneway(fm_node,release_model<NBM1>,mid); break;
-          case STANDARDSCALER:    exrpc_oneway(fm_node,release_model<STANDARDSCALER1>,mid); break;      
+          case STANDARDSCALER:    exrpc_oneway(fm_node,release_model<STANDARDSCALER1>,mid); break;
+          case ARM:    exrpc_oneway(fm_node,release_model<ARM1>,mid); break;
           case KNN: 
             if(dense) {   
               exrpc_oneway(fm_node,release_model<KNNR1>,mid); 
@@ -3325,6 +3328,87 @@ void fpgrowth_rules(const char* host, int port,
     }
     return ret_ptr;
   }
-    
-    
+
+  //ARIMA    
+  PyObject* get_fitted_vector(const char* host, int port,
+                              int mid, short mkind,
+                              short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    PyObject* ret_ptr = NULL;
+    try {
+      if (mkind != ARM) REPORT_ERROR(USER_ERROR, 
+         "Unknown model for fitted_values vector extraction!\n");
+      if (mdtype == FLOAT) {
+        std::vector<float> ret;
+        ret = exrpc_async(fm_node, (get_fitted_vector<DT2>), mid).get();
+        ret_ptr = to_python_float_list(ret);
+      }
+      else if (mdtype == DOUBLE) {
+        std::vector<double> ret;
+        ret = exrpc_async(fm_node, (get_fitted_vector<DT1>), mid).get();
+        ret_ptr = to_python_double_list(ret);
+      }
+      else REPORT_ERROR(USER_ERROR,
+                        "model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret_ptr;
+  }
+
+  PyObject* arima_predict(const char* host, int port, ulong start, 
+                          ulong stop, int mid, short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    PyObject* ret_ptr = NULL;
+    try {
+      if (mdtype == FLOAT) {
+        std::vector<float> pred;
+        pred = exrpc_async(fm_node, frovedis_arima_predict<DT2>, 
+                           mid, start, stop).get();
+        ret_ptr = to_python_float_list(pred);
+      }
+      else if (mdtype == DOUBLE) {
+        std::vector<double> pred;
+        pred = exrpc_async(fm_node, frovedis_arima_predict<DT1>, 
+                           mid, start, stop).get();
+        ret_ptr = to_python_double_list(pred);
+      }
+      else REPORT_ERROR(USER_ERROR,
+                        "model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret_ptr;
+  }
+
+  PyObject* arima_forecast(const char* host, int port, ulong steps, 
+                           int mid, short mdtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    PyObject* ret_ptr = NULL;
+    try {
+      if (mdtype == FLOAT) {
+        std::vector<float> fc;
+        fc = exrpc_async(fm_node, frovedis_arima_forecast<DT2>, 
+                         mid, steps).get();
+        ret_ptr = to_python_float_list(fc);
+      }
+      else if (mdtype == DOUBLE) {
+        std::vector<double> fc;
+        fc = exrpc_async(fm_node, frovedis_arima_forecast<DT1>, 
+                         mid, steps).get();
+        ret_ptr = to_python_double_list(fc);
+      }
+      else REPORT_ERROR(USER_ERROR,
+                        "model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret_ptr;
+  }    
 }

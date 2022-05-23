@@ -43,6 +43,7 @@ class M_KIND(object):
     LSR = 27
     GMM = 28
     STANDARDSCALER = 29
+    ARM = 30
 
 class ModelID(object):
     """A python container for generating model IDs for ML"""

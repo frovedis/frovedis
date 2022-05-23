@@ -19,6 +19,7 @@ void expose_frovedis_NL_functions();
 void expose_frovedis_pattern_mining_functions();
 void expose_frovedis_model_functions();
 void expose_frovedis_graph_functions();
+void expose_frovedis_tsa();
 
 int main(int argc, char* argv[]) {
   frovedis::use_frovedis use(argc, argv);
@@ -34,6 +35,7 @@ int main(int argc, char* argv[]) {
   expose_frovedis_glm_regression_functions();
   expose_frovedis_tree_functions();
   expose_frovedis_other_classification_functions();
+  expose_frovedis_tsa();
   expose_frovedis_clustering_functions();
   expose_frovedis_neighbor_functions();
   expose_frovedis_recommendation_functions();

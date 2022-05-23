@@ -1,5 +1,6 @@
 #include "python_client_headers.hpp"
 #include "exrpc_ml.hpp"
+#include "exrpc_tsa.hpp"
 #include "short_hand_dense_type.hpp"
 #include "short_hand_sparse_type.hpp"
 
@@ -2060,5 +2061,31 @@ extern "C" {
     }
     return to_py_dummy_matrix(dmat);
   }
-    
+
+  void arima_fit(const char* host, int port, long xptr, ulong ar_lag,
+                 ulong diff_order, ulong ma_lag, ulong seasonal,
+                 bool auto_arima, const char* solver,
+                 int vb, int mid, short dtype) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    std::string sol = solver;
+    try {
+      if (dtype == FLOAT){
+        exrpc_oneway(fm_node, (frovedis_arima_fit<DT2>),
+                     f_xptr, ar_lag, diff_order, ma_lag, seasonal, auto_arima, 
+                     sol, vb, mid);
+      }
+      else if (dtype == DOUBLE){
+        exrpc_oneway(fm_node, (frovedis_arima_fit<DT1>),
+                     f_xptr, ar_lag, diff_order, ma_lag, seasonal, auto_arima, 
+                     sol, vb, mid);
+      }
+      else REPORT_ERROR(USER_ERROR, 
+                        "Unsupported dtype of input time series data!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
 }
