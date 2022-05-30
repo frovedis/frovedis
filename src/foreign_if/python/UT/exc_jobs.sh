@@ -4,7 +4,7 @@ export PYTHONPATH=../main/python:$PYTHONPATH
 export LD_LIBRARY_PATH=../lib:$LD_LIBRARY_PATH
 
 #list of source targets
-src=( nb dt fm bfs cc pagerank sssp tsne eigen scaler )
+src=( nb dt fm bfs cc pagerank sssp tsne eigen scaler arima)
 
 #list of target frovedis worker nodes to test with
 frov_worker=( 1 2 4 )
@@ -28,7 +28,7 @@ echo "TARGET, TEST_ID, FROV_WORKER, STATUS" > ${REPORT}
 
 # loop iterating over all tests, build them and execute one-by-one
 for each in "${src[@]}"; do
-  all=`ls src/$each/test*`
+  all=`ls src/$each/test_*`
   for i in ${all}; do
     name=`echo ${i} | cut -d '/' -f 3 | cut -d '.' -f 1`
     for k in "${frov_worker[@]}"; do
