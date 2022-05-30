@@ -852,11 +852,6 @@ class Arima{
 
     std::vector<T>
     predict(size_t start_step, size_t stop_step) {
-      if(ssize_t(start_step) < 0)
-        REPORT_ERROR(USER_ERROR, "Start index cannot be negative\n");
-      if(ssize_t(stop_step) < ssize_t(start_step))
-        REPORT_ERROR(USER_ERROR, 
-                     "Stop index cannot be less than Start index\n");
       auto steps = stop_step - start_step + 1;
       auto order = ar_lag + diff_order + ma_lag + seasonal;
       node_local <std::vector<T>> lag_data;
