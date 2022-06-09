@@ -2761,6 +2761,15 @@ dummy_dftable frov_df_datetime_operation(exrpc_ptr_t& df_proxy,
   switch(op_id) {
       case GETDAYOFMONTH:   dffunc = datetime_extract_col_as(left_col, datetime_type::day, as_name); break;
       case GETDAYOFWEEK:    dffunc = datetime_extract_col_as(left_col, datetime_type::dayofweek, as_name); break;
+      case GETHOUR:      dffunc = datetime_extract_col_as(left_col, datetime_type::hour, as_name); break;
+      case GETMINUTE:    dffunc = datetime_extract_col_as(left_col, datetime_type::minute, as_name); break;
+      case GETSECOND:    dffunc = datetime_extract_col_as(left_col, datetime_type::second, as_name); break;
+      case GETNANOSECOND:    dffunc = datetime_extract_col_as(left_col, datetime_type::nanosecond, as_name); break;
+      case GETYEAR:   dffunc = datetime_extract_col_as(left_col, datetime_type::year, as_name); break;
+      case GETMONTH:   dffunc = datetime_extract_col_as(left_col, datetime_type::month, as_name); break;
+      case GETQUARTER:   dffunc = datetime_extract_col_as(left_col, datetime_type::quarter, as_name); break;
+      case GETDAYOFYEAR:   dffunc = datetime_extract_col_as(left_col, datetime_type::dayofyear, as_name); break;
+      case GETWEEKOFYEAR:   dffunc = datetime_extract_col_as(left_col, datetime_type::weekofyear, as_name); break;
       default: REPORT_ERROR(USER_ERROR,
                "Unsupported conditional operation is encountered!\n");
   }
