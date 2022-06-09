@@ -786,3 +786,300 @@ class FrovedisDatetimeProperties(object):
 
         ret[ret.columns[0]] = (ret[ret.columns[0]] + 5) % 7
         return ret
+
+    @property
+    def hour(self):
+        """
+        hour
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        left_col = self.__colName
+        right_col = ""
+        as_name = left_col
+
+        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
+                                                str_encode(left_col),
+                                                str_encode(right_col),
+                                                str_encode(as_name),
+                                                OPT.GETHOUR,
+                                                self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        from .df import DataFrame
+        ret = DataFrame(is_series=self.df.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.df.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        return ret
+
+    @property
+    def minute(self):
+        """
+        minute
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        left_col = self.__colName
+        right_col = ""
+        as_name = left_col
+
+        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
+                                                str_encode(left_col),
+                                                str_encode(right_col),
+                                                str_encode(as_name),
+                                                OPT.GETMINUTE,
+                                                self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        from .df import DataFrame
+        ret = DataFrame(is_series=self.df.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.df.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        return ret
+
+    @property
+    def second(self):
+        """
+        second
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        left_col = self.__colName
+        right_col = ""
+        as_name = left_col
+
+        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
+                                                str_encode(left_col),
+                                                str_encode(right_col),
+                                                str_encode(as_name),
+                                                OPT.GETSECOND,
+                                                self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        from .df import DataFrame
+        ret = DataFrame(is_series=self.df.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.df.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        return ret
+
+    @property
+    def nanosecond(self):
+        """
+        nanosecond
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        left_col = self.__colName
+        right_col = ""
+        as_name = left_col
+
+        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
+                                                str_encode(left_col),
+                                                str_encode(right_col),
+                                                str_encode(as_name),
+                                                OPT.GETNANOSECOND,
+                                                self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        from .df import DataFrame
+        ret = DataFrame(is_series=self.df.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.df.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        return ret
+
+    @property
+    def year(self):
+        """
+        year
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        left_col = self.__colName
+        right_col = ""
+        as_name = left_col
+
+        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
+                                                str_encode(left_col),
+                                                str_encode(right_col),
+                                                str_encode(as_name),
+                                                OPT.GETYEAR,
+                                                self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        from .df import DataFrame
+        ret = DataFrame(is_series=self.df.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.df.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        return ret
+
+    @property
+    def month(self):
+        """
+        month
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        left_col = self.__colName
+        right_col = ""
+        as_name = left_col
+
+        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
+                                                str_encode(left_col),
+                                                str_encode(right_col),
+                                                str_encode(as_name),
+                                                OPT.GETMONTH,
+                                                self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        from .df import DataFrame
+        ret = DataFrame(is_series=self.df.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.df.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        return ret
+
+    @property
+    def quarter(self):
+        """
+        quarter
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        left_col = self.__colName
+        right_col = ""
+        as_name = left_col
+
+        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
+                                                str_encode(left_col),
+                                                str_encode(right_col),
+                                                str_encode(as_name),
+                                                OPT.GETQUARTER,
+                                                self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        from .df import DataFrame
+        ret = DataFrame(is_series=self.df.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.df.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        return ret
+
+    @property
+    def dayofyear(self):
+        """
+        dayofyear
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        left_col = self.__colName
+        right_col = ""
+        as_name = left_col
+
+        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
+                                                str_encode(left_col),
+                                                str_encode(right_col),
+                                                str_encode(as_name),
+                                                OPT.GETDAYOFYEAR,
+                                                self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        from .df import DataFrame
+        ret = DataFrame(is_series=self.df.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.df.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        return ret
+
+    @property
+    def weekofyear(self):
+        """
+        weekofyear
+        """
+        (host, port) = FrovedisServer.getServerInstance()
+        left_col = self.__colName
+        right_col = ""
+        as_name = left_col
+
+        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
+                                                str_encode(left_col),
+                                                str_encode(right_col),
+                                                str_encode(as_name),
+                                                OPT.GETWEEKOFYEAR,
+                                                self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+
+        from .df import DataFrame
+        ret = DataFrame(is_series=self.df.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.df.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        return ret
