@@ -378,7 +378,7 @@ typed_dfcolumn<datetime>::datetime_add_im(int right,
     newval.mapv(reset_null<datetime_t>, nulls);
     auto newnulls = nulls;
     return std::make_shared<typed_dfcolumn<datetime>>(std::move(newval),
-                                                      std::move(nulls));
+                                                      std::move(newnulls));
   } else {
     auto dvval = newval.template moveto_dvector<datetime_t>();
     return std::make_shared<typed_dfcolumn<datetime>>(std::move(dvval));
@@ -489,7 +489,7 @@ typed_dfcolumn<datetime>::datetime_sub_im(int right,
     newval.mapv(reset_null<datetime_t>, nulls);
     auto newnulls = nulls;
     return std::make_shared<typed_dfcolumn<datetime>>(std::move(newval),
-                                                      std::move(nulls));
+                                                      std::move(newnulls));
   } else {
     auto dvval = newval.template moveto_dvector<datetime_t>();
     return std::make_shared<typed_dfcolumn<datetime>>(std::move(dvval));
@@ -648,7 +648,7 @@ typed_dfcolumn<datetime>::datetime_next_day_im(int right) {
     newval.mapv(reset_null<datetime_t>, nulls);
     auto newnulls = nulls;
     return std::make_shared<typed_dfcolumn<datetime>>(std::move(newval),
-                                                      std::move(nulls));
+                                                      std::move(newnulls));
   } else {
     auto dvval = newval.template moveto_dvector<datetime_t>();
     return std::make_shared<typed_dfcolumn<datetime>>(std::move(dvval));
