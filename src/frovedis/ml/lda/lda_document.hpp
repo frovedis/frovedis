@@ -247,9 +247,9 @@ void lda_document<TD,TW,TK>::distribute_doc(std::vector<TD>& token_per_doc,
           tok_left -= token_per_thread[k];
           num_doc_now = 1;
           num_tok_now = num_tok_doc;
+          k++;
+          if (k == nproc - 1) break; 
         } 
-        k++;
-        if (k == nproc - 1) break; 
       }           
       doc_per_thread[k] = doc_left;
       token_per_thread[k] = tok_left;
