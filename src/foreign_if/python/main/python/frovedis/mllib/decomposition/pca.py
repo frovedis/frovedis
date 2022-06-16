@@ -62,7 +62,11 @@ class PCA(BaseEstimator):
 
         inp_data = FrovedisFeatureData(X, \
                      caller = "[" + self.__class__.__name__ + "] fit: ",\
-                     dense_kind='rowmajor', densify=True)
+                     dense_kind='rowmajor', densify=False)
+        if not inp_data.is_dense():
+            raise TypeError('PCA does not support sparse input. See ' + \
+                            'TruncatedSVD for a possible alternative.')
+
         self.n_samples_ = inp_data.numRows()
         self.n_features_ = inp_data.numCols()
         # handling n_components == None case with arpack solver
@@ -230,7 +234,11 @@ class PCA(BaseEstimator):
             raise AttributeError("transform: PCA object is not fitted!")
         inp_data = FrovedisFeatureData(X, \
                      caller = "[" + self.__class__.__name__ + "] transform: ",\
-                     dense_kind='rowmajor', densify=True, dtype=self.__dtype)
+                     dense_kind='rowmajor', densify=False, dtype=self.__dtype)
+        if not inp_data.is_dense():
+            raise TypeError('PCA does not support sparse input. See ' + \
+                            'TruncatedSVD for a possible alternative.')
+
         input_x = inp_data.get()
         x_dtype = inp_data.get_dtype()
         if x_dtype != self.pca_res_.get_dtype():
@@ -262,7 +270,11 @@ class PCA(BaseEstimator):
                 "inverse_transform: PCA object is not fitted!")
         inp_data = FrovedisFeatureData(X, \
            caller = "[" + self.__class__.__name__ + "] inverse_transform: ",\
-           dense_kind='rowmajor', densify=True, dtype=self.__dtype)
+           dense_kind='rowmajor', densify=False, dtype=self.__dtype)
+        if not inp_data.is_dense():
+            raise TypeError('PCA does not support sparse input. See ' + \
+                            'TruncatedSVD for a possible alternative.')
+
         input_x = inp_data.get()
         x_dtype = inp_data.get_dtype()
         if x_dtype != self.pca_res_.get_dtype():
