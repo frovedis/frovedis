@@ -594,7 +594,7 @@ class AgglomerativeClustering(BaseEstimator):
     def check_input(self, X, F):
         inp_data = FrovedisFeatureData(X, \
                      caller = "[" + self.__class__.__name__ + "] "+ F +": ",\
-                     dense_kind='rowmajor', densify=True)
+                     dense_kind='rowmajor', densify=False)
         X = inp_data.get()        
         dtype = inp_data.get_dtype()
         itype = inp_data.get_itype()
