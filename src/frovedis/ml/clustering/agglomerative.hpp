@@ -92,7 +92,6 @@ namespace frovedis {
                             : agglomerative_training<T>(mat, link);
       is_fitted = true;
       labels = agglomerative_assign_cluster(model, n_clusters, threshold, nclusters_);
-      mat.debug_print();
       return *this; 
     }
  
