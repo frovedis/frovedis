@@ -6,6 +6,9 @@
 #include "../../core/set_operations.hpp"
 #include "../../matrix/matrix_operations.hpp"
 
+#define KMEANS_CALC_SUM_ROWMAJOR_VLEN 256
+#define KMEANS_CALC_SUM_ROWMAJOR_THR 64
+
 namespace frovedis {
 
 template <class T, class I, class O>
@@ -120,16 +123,70 @@ void kmeans_calc_sum_rowmajor(rowmajor_matrix_local<T>& mat,
   auto sep = set_separate(minloc);
   auto sep_size = sep.size();
   auto sepp = sep.data();
-  for(size_t i = 0; i < sep_size-1; i++) {
-    auto begin = sepp[i];
-    auto end = sepp[i+1];
-    auto pos = minlocp[begin];
-    for(size_t c = 0; c < dim; c++) {
-      T crnt_sum = 0;
-      for(size_t j = begin; j < end; j++) {
-        crnt_sum += valp[dim * idxp[j] + c];
+  if(dim > KMEANS_CALC_SUM_ROWMAJOR_THR) {
+    for(size_t i = 0; i < sep_size-1; i++) {
+      auto begin = sepp[i];
+      auto end = sepp[i+1];
+      auto pos = minlocp[begin];
+      T crnt_sum[KMEANS_CALC_SUM_ROWMAJOR_VLEN];
+#pragma _NEC vreg(crnt_sum)
+      int num_block = dim / KMEANS_CALC_SUM_ROWMAJOR_VLEN;
+      int rest = dim - num_block * KMEANS_CALC_SUM_ROWMAJOR_VLEN;
+      for(int b = 0; b < num_block; b++) {
+        for(int k = 0; k < KMEANS_CALC_SUM_ROWMAJOR_VLEN; k++) crnt_sum[k] = 0;
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t j = begin; j < end; j++) {
+#pragma _NEC ivdep
+          for(size_t k = 0; k < KMEANS_CALC_SUM_ROWMAJOR_VLEN; k++) {
+            int c = b * KMEANS_CALC_SUM_ROWMAJOR_VLEN + k;
+            crnt_sum[k] += valp[dim * idxp[j] + c];
+          }
+        }
+        for(size_t k = 0; k < KMEANS_CALC_SUM_ROWMAJOR_VLEN; k++) {
+          int c = b * KMEANS_CALC_SUM_ROWMAJOR_VLEN + k;
+          sump[num_centroids * c + pos] = crnt_sum[k];
+        }
       }
-      sump[num_centroids * c + pos] = crnt_sum;
+      if(rest > KMEANS_CALC_SUM_ROWMAJOR_THR) {
+        T crnt_sum_rest[KMEANS_CALC_SUM_ROWMAJOR_VLEN];
+#pragma _NEC vreg(crnt_sum_rest)
+        for(int k = 0; k < rest; k++) crnt_sum_rest[k] = 0;
+#pragma _NEC vovertake
+#pragma _NEC vob
+        for(size_t j = begin; j < end; j++) {
+          for(size_t k = 0; k < rest; k++) {
+            int c = num_block * KMEANS_CALC_SUM_ROWMAJOR_VLEN + k;
+            crnt_sum_rest[k] += valp[dim * idxp[j] + c];
+          }
+        }
+        for(size_t k = 0; k < rest; k++) {
+          int c =  num_block * KMEANS_CALC_SUM_ROWMAJOR_VLEN + k;
+          sump[num_centroids * c + pos] = crnt_sum_rest[k];
+        }
+      } else {
+        for(size_t k = 0; k < rest; k++) {
+          int c =  num_block * KMEANS_CALC_SUM_ROWMAJOR_VLEN + k;
+          T crnt_sum = 0;
+          for(size_t j = begin; j < end; j++) {
+            crnt_sum += valp[dim * idxp[j] + c];
+          }
+          sump[num_centroids * c + pos] = crnt_sum;
+        }
+      }
+    }    
+  } else {
+    for(size_t i = 0; i < sep_size-1; i++) {
+      auto begin = sepp[i];
+      auto end = sepp[i+1];
+      auto pos = minlocp[begin];
+      for(size_t c = 0; c < dim; c++) {
+        T crnt_sum = 0;
+        for(size_t j = begin; j < end; j++) {
+          crnt_sum += valp[dim * idxp[j] + c];
+        }
+        sump[num_centroids * c + pos] = crnt_sum;
+      }
     }
   }
 #else
