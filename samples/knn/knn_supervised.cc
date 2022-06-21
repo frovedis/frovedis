@@ -30,9 +30,12 @@ int main(int argc, char** argv) {
     ("neighbors,k", value<int>(), "number of required neighbors (default: 2)")
     ("metric,m", value<std::string>(), "metric for distance calculation (default: euclidean)")
     ("algorithm,a", value<std::string>(), "algorithm for knn (default: brute)")
+    ("batch_fraction,s", value<double>(), "batch fraction (0 to 1) for processing large data (default: 1 if small data, else decided based on some heuristic)")
     ("save_proba,p", value<int>(), "whether to save probability_matrix (1/0) (default: 0)")
-    //("need_distance,d", value<int>(), "need distance as output (1/0) (default: 1)")
-    ("chunk_size,s", value<float>(), "chunk size in MB for controlling runtime memory requirement (default: 1.0)");
+    ("sparse,s", "use sparse matrix")
+    ("dense,d", "use dense matrix (default)")
+    ("verbose", "set loglevel to DEBUG")
+    ("verbose2", "set loglevel to TRACE");
     
   variables_map argmap;
   store(command_line_parser(argc,argv).options(opt).allow_unregistered().
@@ -41,11 +44,12 @@ int main(int argc, char** argv) {
 
   std::string input, label, target;
   int k = 2;
-  float chunk_size = 1.0;
+  float chunk_size = 1.0; // not much meaningful when batch-processing will take place
+  double batch_fraction = std::numeric_limits<double>::max();
   std::string metric = "euclidean";
   std::string algorithm = "brute";
   bool save_proba = false;
-  //bool need_distance = true;
+  bool dense = true;
   
   if(argmap.count("help")){
     std::cerr << opt << std::endl;
@@ -59,7 +63,6 @@ int main(int argc, char** argv) {
     std::cerr << opt << std::endl;
     exit(1);
   }
-  auto data = make_rowmajor_matrix_load<double>(input);
   
   if(argmap.count("label")){
     label = argmap["label"].as<std::string>();
@@ -94,41 +97,90 @@ int main(int argc, char** argv) {
     save_proba = argmap["save_proba"].as<int>() == 1;
   }
 
-/*
-  if(argmap.count("need_distance")){
-    need_distance = argmap["need_distance"].as<int>() == 1;
+  if(argmap.count("batch_fraction")){
+    batch_fraction = argmap["batch_fraction"].as<double>();
   }
-*/
-  
-  if(argmap.count("chunk_size")){
-    chunk_size = argmap["chunk_size"].as<float>();
+
+  if(argmap.count("sparse")){
+    dense = false;
+  }
+
+  if(argmap.count("dense")){
+    dense = true;
+  }
+
+  if(argmap.count("verbose")){
+    set_loglevel(DEBUG);
+  }
+
+  if(argmap.count("verbose2")){
+    set_loglevel(TRACE);
   }
 
   time_spent calc_knn(INFO);
-  if (target == "classification") {
-    calc_knn.lap_start();
-    kneighbors_classifier<double, rowmajor_matrix<double>> obj(k, algorithm, metric, chunk_size);
-    obj.fit(data, lbl);
-    auto pred = obj.predict(data, save_proba);
-    calc_knn.lap_stop();
-    calc_knn.show_lap("total knn fit-predict time: ");
-    std::cout << "prediction: "; debug_print_vector(pred.gather());    
-    std::cout << "score: " << obj.score(data, lbl) << std::endl;
+  try {
+    if (dense) {
+      auto data = make_rowmajor_matrix_load<double>(input);
+      if (target == "classification") {
+        calc_knn.lap_start();
+        kneighbors_classifier<double, rowmajor_matrix<double>> obj(k, algorithm, metric, 
+                                                                   chunk_size, batch_fraction);
+        obj.fit(data, lbl);
+        auto pred = obj.predict(data, save_proba);
+        calc_knn.lap_stop();
+        calc_knn.show_lap("total knn fit-predict time: ");
+        std::cout << "prediction: "; debug_print_vector(pred.gather(), 10);   
+        auto score = accuracy_score(lbl.gather(), pred.gather());
+        std::cout << "score: " << score << std::endl;
+      } else if (target == "regression") {
+        calc_knn.lap_start();
+        kneighbors_regressor<double, rowmajor_matrix<double>> obj(k, algorithm, metric, 
+                                                                  chunk_size, batch_fraction);
+        obj.fit(data, lbl);
+        auto pred = obj.predict(data);
+        calc_knn.lap_stop();
+        calc_knn.show_lap("total knn fit-predict time: ");
+        std::cout << "prediction: "; debug_print_vector(pred.gather(), 10);    
+        auto score = r2_score(lbl.gather(), pred.gather()) ;
+        std::cout << "score: " << score << std::endl;
+      } else {
+        std::cerr << "Unknown target: " << target << " for Supervised KNN!\n";
+        std::cerr << opt << std::endl;
+        exit(1);
+      }
+    } else {
+      auto data = make_crs_matrix_load<double>(input);
+      if (target == "classification") {
+        calc_knn.lap_start();
+        kneighbors_classifier<double, crs_matrix<double>> obj(k, algorithm, metric,
+                                                              chunk_size, batch_fraction);
+        obj.fit(data, lbl);
+        auto pred = obj.predict(data, save_proba);
+        calc_knn.lap_stop();
+        calc_knn.show_lap("total knn fit-predict time: ");
+        std::cout << "prediction: "; debug_print_vector(pred.gather(), 10);
+        auto score = accuracy_score(lbl.gather(), pred.gather());
+        std::cout << "score: " << score << std::endl;
+      } else if (target == "regression") {
+        calc_knn.lap_start();
+        kneighbors_regressor<double, crs_matrix<double>> obj(k, algorithm, metric,
+                                                             chunk_size, batch_fraction);
+        obj.fit(data, lbl);
+        auto pred = obj.predict(data);
+        calc_knn.lap_stop();
+        calc_knn.show_lap("total knn fit-predict time: ");
+        std::cout << "prediction: "; debug_print_vector(pred.gather(), 10);
+        auto score = r2_score(lbl.gather(), pred.gather());
+        std::cout << "score: " << score << std::endl;
+      } else {
+        std::cerr << "Unknown target: " << target << " for Supervised KNN!\n";
+        std::cerr << opt << std::endl;
+        exit(1);
+      }
+    }
   }
-  else if (target == "regression") {
-    calc_knn.lap_start();
-    kneighbors_regressor<double, rowmajor_matrix<double>> obj(k, algorithm, metric, chunk_size);
-    obj.fit(data, lbl);
-    auto pred = obj.predict(data);
-    calc_knn.lap_stop();
-    calc_knn.show_lap("total knn fit-predict time: ");
-    std::cout << "prediction: "; debug_print_vector(pred.gather());    
-    std::cout << "score: " << obj.score(data, lbl) << std::endl;
-  }
-  else {
-    std::cerr << "Unknown target: " << target << " for Supervised KNN!\n";
-    std::cerr << opt << std::endl;
-    exit(1);
+  catch(std::exception& e) {
+    std::cout << "exception caught: " << e.what() << std::endl;
   }
 
   return 0;
