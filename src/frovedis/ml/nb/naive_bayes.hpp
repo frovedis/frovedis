@@ -105,6 +105,11 @@ std::vector<T> get_pi (std::vector<T>& cls_counts,
 template <class LOC_MATRIX>
 size_t get_local_row(LOC_MATRIX& mat) { return mat.local_num_row; }
 
+template <class LOC_MATRIX>
+int check_negative(LOC_MATRIX& mat) { 
+  return vector_find_negative(mat.val).size() > 0; 
+}
+
 // this is the common naive bayes implementation
 // which computes theta, pi and unique labels in-place
 template <class T, class MATRIX>
@@ -124,6 +129,12 @@ void naive_bayes_common(MATRIX& mat,
   auto nfeatures = mat.num_col;
   if (mat.num_row != label.size())
     REPORT_ERROR(USER_ERROR,"number of samples is not same in data and label.\n");
+
+  if (modelType == "multinomial") {
+    auto has_neg = mat.data.map(check_negative<typename MATRIX::local_mat_type>)
+                           .reduce(frovedis::add<int>);
+    require(!has_neg, "Negative values in data passed to MultinomialNB (input X)");
+  }
   auto& weight = const_cast<std::vector<T>&>(sample_weight);
   if (weight.empty()) weight = vector_ones<T>(nsamples);
 
