@@ -64,6 +64,7 @@ extract_rmm_batch(rowmajor_matrix_local<T>& mat,
     
   auto nrows = end - start;  
   rowmajor_matrix_local<T> ret(nrows, local_col);
+  if(end == start) return ret; // quick return when no slice is possible
   auto ret_sz = ret.val.size();
   auto retptr = ret.val.data();
   auto matptr = mat.val.data() + local_col * start;
@@ -91,6 +92,7 @@ extract_crs_batch(crs_matrix_local<T,I,O>& mat,
   size_t num_elements = offp[end] - offp[start];
 
   crs_matrix_local<T,I,O> ret(nrows, local_col);
+  if(end == start) return ret; // quick return when no slice is possible
   ret.val.resize(num_elements);
   ret.idx.resize(num_elements);
   ret.off.resize(nrows + 1);  
@@ -210,10 +212,13 @@ mult_a_with_trans_b (crs_matrix_local<T,I,O>& a,
                      crs_matrix_local<T,I,O>& b,
                      bool needs_transpose = false, 
                      bool use_spgemm = false) {
-  auto& trans_b = b; //assuming b is already a transposed matrix
-  if(needs_transpose) trans_b = b.transpose();
-  if(use_spgemm) return spgemm(a, trans_b).to_rowmajor();
-  else           return crs_mm(a, trans_b); 
+  if(needs_transpose) {
+    auto trans_b = b.transpose();
+    return use_spgemm ? spgemm(a, trans_b).to_rowmajor() : crs_mm(a, trans_b);
+  } else {
+    //assuming b is already a transposed matrix
+    return use_spgemm ? spgemm(a, b).to_rowmajor() : crs_mm(a, b);
+  }
 }
 
 template <class T, class I, class O>
@@ -327,9 +332,16 @@ struct compute_dist {
   rowmajor_matrix_local<T>
   operator()(MATRIX1& a,
              MATRIX2& b) {
+    auto d1 = a.local_num_row;
+    auto d2 = is_trans_b ? b.local_num_col : b.local_num_row;
+    rowmajor_matrix_local<T> ab(d1, d2);
+    if (d1 == 0 || d2 == 0) return ab;
+
+    time_spent t(DEBUG);
     std::vector<T> a2, b2;
     const T *a2ptr, *b2ptr;
     a2ptr = b2ptr = NULL;
+    auto myrank = get_selfid();
 #ifdef COMPUTE_ONLY_B2_FOR_PARTIAL_DISTANCE
     /*partial distance only applies currently for euclidean distances*/
     if(((metric == "euclidean" || metric == "seuclidean")  
@@ -350,10 +362,13 @@ struct compute_dist {
       b2ptr = b2.data();        
     }
 #endif
-    auto ab = mult_a_with_trans_b(a, b, !is_trans_b, use_spgemm);
+    if (myrank == 0) t.show("a2/b2 calc: ");
+
+    ab = mult_a_with_trans_b(a, b, !is_trans_b, use_spgemm);
     auto abptr = ab.val.data();
     auto nrow = ab.local_num_row;
     auto ncol = ab.local_num_col;
+    if (myrank == 0) t.show("ab calc: ");
 
     if(metric == "cosine") {
       if (nrow > ncol) {
@@ -460,6 +475,7 @@ struct compute_dist {
     else
       REPORT_ERROR(USER_ERROR,
       "Currently frovedis supports only euclidean/seuclidean/cosine distance!\n");
+    if (myrank == 0) t.show("metric-wise adjustment: ");
     return ab;
   }
   std::string metric;
@@ -484,8 +500,6 @@ construct_distance_matrix(M1& x_mat,
   rowmajor_matrix<T> dist_mat;
 
   try {
-    time_spent calc_dist(DEBUG);
-    calc_dist.lap_start();
     // a simple heuristic to decide which matrix to broadcast
     if (nsamples/100 <= nquery) {
       auto g_x_mat = x_mat.gather();
@@ -505,6 +519,7 @@ construct_distance_matrix(M1& x_mat,
       dist_mat.num_col = nsamples; // no tranpose required, since Y * Xt is performed 
     }
     else { // nsamples >> nquery (more than 100 times)
+      auto nrows = y_mat.get_local_num_rows();
       auto g_y_mat = y_mat.gather();
 #ifdef NEED_TRANS_FOR_MULT
       auto b_mat = broadcast(g_y_mat.transpose());
@@ -521,9 +536,8 @@ construct_distance_matrix(M1& x_mat,
       tmp_dist_mat.num_row = nsamples;
       tmp_dist_mat.num_col = nquery;
       dist_mat = tmp_dist_mat.transpose(); // transpose is needed, since X * Yt is performed
+      dist_mat.align_as(nrows); // to ensure the result is in same alignment as per y_mat
     }
-    calc_dist.lap_stop();
-    calc_dist.show_lap("dist calculation: ");
   }
   catch(std::exception& excpt) {
     std::string msg = excpt.what();

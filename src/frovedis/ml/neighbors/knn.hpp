@@ -211,6 +211,7 @@ struct find_kneighbor {
                   size_t iter) {
     auto nrow = dist_mat.local_num_row;
     auto ncol = dist_mat.local_num_col;
+    if (nrow == 0) return; // nothing to do
 
     /*
     model_dist and model_indx is already allocated. Fetch the index from where
@@ -274,7 +275,7 @@ struct find_kneighbor {
       copy_t.show_lap("  \\_ copy back time: ");
       radix_t.show_lap("radix sorting time: ");
       extract_t.show_lap("extraction time: ");
-    }      
+    }
   }    
 
   template <class T, class I>
@@ -402,13 +403,16 @@ knn_model<T, I> compute_kneigbor_in_batch(MATRIX1& x_mat,
              
   RLOG(DEBUG) << "Very large input data is detected. KNN computation "
               << "would be performed in " << niters << " batches!\n"; 
-  time_spent t(DEBUG);
+  time_spent t(DEBUG), t1(TRACE);
   for(size_t i = 0; i < niters; ++i) { 
     auto partial_query = extract_batch(y_mat, batch_size_per_node, i);     
+    t1.show("batch extraction: ");
     auto partial_dist_mat = construct_distance_matrix<T>(x_mat, partial_query, metric, need_distance); 
+    t1.show("dist calculation: ");
     partial_dist_mat.data.mapv(find_kneighbor(k, need_distance, chunk_size), 
                                ret.distances.data, ret.indices.data, 
                                broadcast(batch_size_per_node), broadcast(i)); 
+    t1.show("find kneighbors: ");
     if (get_loglevel() <= DEBUG) {
       std::ostringstream os;
       os << "processed batch: " << i + 1 << " (nsamples: " << x_mat.num_row
