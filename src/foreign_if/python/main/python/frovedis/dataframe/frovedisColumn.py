@@ -314,6 +314,9 @@ class FrovedisColumn(object):
         """returns a FrovedisDatetimeProperties object, for: \
         datetime related operations
         """
+        if self.__dtype != DTYPE.DATETIME:
+            raise AttributeError("Can only use .dt accessor with datetimelike values")
+
         ret = FrovedisDatetimeProperties(self.name, self.dtype)
         ret.df = self.df
         return ret
@@ -521,6 +524,12 @@ class FrovedisColumn(object):
             raise ValueError("len: column is not associated with a DataFrame!")
         return len(self.df)
 
+    def add(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing self + other
+        """
+        return self.df[[self.__colName]].add(other, axis=axis, fill_value=fill_value)
+
     def __add__(self, other):
         """
         returns resultant dataframe(series) after performing self + other
@@ -532,6 +541,12 @@ class FrovedisColumn(object):
         returns resultant dataframe(series) after performing other + self
         """
         return self.__binop_impl(other, "radd")
+
+    def sub(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing self - other
+        """
+        return self.df[[self.__colName]].sub(other, axis=axis, fill_value=fill_value)
 
     def __sub__(self, other):
         """

@@ -102,15 +102,50 @@ class SeriesHelper(object):
         name = self.columns[0]
         return self.__dict__[name].between(left, right, inclusive)
 
+def infer_datetime_column_format(df, col):
+    """
+    infer datetime format for a column
+    """
+    from pandas._libs.tslibs.parsing import guess_datetime_format
+    all_formats = [ guess_datetime_format(e) for e in df[col] ]
+
+    cnt = {}
+    for e in all_formats:
+        if e in cnt:
+            cnt[e] += 1
+        else:
+            cnt[e] = 1
+
+    res = max(cnt, key=cnt.get)
+    return res
+
+def infer_combination_datetime_format(df, cols):
+    """
+    infer datetime format for combination of columns
+    """
+    all_objs = [df[e] for e in cols]
+    from functools import reduce
+    res_series = reduce(lambda x, y: x.str.cat(y, sep=" "), all_objs)
+
+    res_df = res_series.to_frame()
+    res_df.columns = ["tmp_col"]
+    fmt = infer_datetime_column_format(res_df, "tmp_col" )
+
+    return fmt
+
+
 def read_csv(filepath_or_buffer, sep=',', delimiter=None,
              header="infer", names=None, index_col=None,
              usecols=None, squeeze=False, prefix=None,
              mangle_dupe_cols=True, dtype=None, na_values=None,
              verbose=False, comment=None, low_memory=True,
-             rows_to_see=1024, separate_mb=1024):
+             rows_to_see=1024, separate_mb=1024,
+             parse_dates=None, datetime_format=None, infer_datetime_format=False,
+             date_parser=None, keep_date_col=False):
     """
     loads frovedis dataframe from csv file
     """
+    org_names = list(names) if names is not None else None
 
     #TODO: support index_col parameter (currently gets ignored)
     if comment is not None:
@@ -239,6 +274,80 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
     else:
         raise ValueError("read_csv: Frovedis currently supports only bool and int types for index_col !")
 
+    if date_parser is not None:
+        raise ValueError("read_csv: Frovedis currently doesn't support "
+                        "'date_parser' parameter, use parameter "
+                        "'datetime_format'(str/list/dict) instead !")
+
+    combine_cols = False
+
+    if parse_dates is None:
+        parse_dates = []
+
+    if len(parse_dates) > 0:
+        if all(isinstance(e, int) for e in parse_dates):
+            col_names = list(org_names) if org_names is not None else list(row1)
+            parse_dates = [ col_names[i] for i in parse_dates ]
+        elif all(isinstance(e, list) for e in parse_dates):
+            sz = len(parse_dates)
+            col_names = list(org_names) if org_names is not None else list(row1)
+            for k in range(sz):
+                if all(isinstance(e, int) for e in parse_dates[k]):
+                    parse_dates[k] = [ col_names[i] for i in parse_dates[k] ]
+
+        dtype = dict(dtype) if dtype is not None else {}
+        
+        if all(isinstance(e, list) for e in parse_dates):
+            for col_list in parse_dates:
+                for col in col_list:
+                    dtype[col] = "str"
+            combine_cols = True
+        elif all(isinstance(e, str) for e in parse_dates):
+            if datetime_format is None and infer_datetime_format is False:
+                raise ValueError("read_csv: Provide format in 'datetime_format'"
+                                " parmeter or specify infer_datetime_format=True"
+                                " for parsing datetime columns !")
+
+            if datetime_format is None:
+                datetime_format = {}
+
+            if isinstance(datetime_format, str):
+                datetime_types = {col: "datetime:" + datetime_format \
+                                for col in parse_dates}
+            elif isinstance(datetime_format, list):
+                if len(parse_dates) != len(datetime_format):
+                    raise ValueError("read_csv: datetime_format for all columnns"
+                                    " in parse_dates not provided!")
+
+                datetime_types = {parse_dates[i]: "datetime:" + datetime_format[i]\
+                                for i in range(len(parse_dates))}
+            elif isinstance(datetime_format, dict):
+                if not (set(parse_dates) <= set(datetime_format.keys())) \
+                    and infer_datetime_format is False:
+                    raise ValueError("read_csv: Provide format in 'datetime_format'"
+                                " parmeter or specify infer_datetime_format=True"
+                                " for parsing datetime columns !")
+
+                datetime_types = {k: "datetime:" + v \
+                                for k,v in datetime_format.items()}
+                for col in parse_dates:
+                    if col not in datetime_types:
+                        df_tmp = pd.read_csv(filepath_or_buffer=filepath_or_buffer,
+                                            names=org_names, usecols=[col],
+                                            nrows=100)
+
+                        fmt = infer_datetime_column_format(df_tmp, col)
+                        if fmt is None:
+                            datetime_types[col] = "str"
+                        else:
+                            datetime_types[col] = "datetime:" + fmt
+            else:
+                raise ValueError("read_csv: Invalid type for datetime_format: {}".format(type(datetime_format)))
+
+            dtype.update(datetime_types)
+        else:
+            raise ValueError("read_csv: Invalid value for 'parse_dates' : ", parse_dates )
+
     single_dtype = None
     types = []
     partial_type_info = False
@@ -320,6 +429,44 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
     #TODO: handle index/num_row setting inside load_dummy()
     res.index = FrovedisColumn(names[0], types[0]) #setting index
     res.num_row = dummy_df["nrow"]
+
+    if combine_cols:
+        new_col_order = []
+        org_cols = list(res.columns)
+
+        for col_list in parse_dates:
+            df_tmp = pd.read_csv( filepath_or_buffer=filepath_or_buffer,
+                                names=org_names, usecols=col_list, nrows=100,
+                                dtype="str")
+
+            fmt = infer_combination_datetime_format(df_tmp, col_list)
+            cast_as_datetime = False
+
+            if fmt is not None:
+                cast_as_datetime = True
+            else:
+                fmt = ""
+
+            res_concat_df = res.concat_columns(cols=col_list, sep=" ",
+                                            cast_as_datetime=cast_as_datetime,
+                                            fmt=fmt)
+            col_name = res_concat_df.columns[0]
+            res[col_name] = res_concat_df
+            new_col_order.append(col_name)
+
+        new_col_order += org_cols
+
+        if res.has_index():
+            new_col_order = [res.index.name] + new_col_order
+
+        res.set_col_order(new_col_order)
+
+        if keep_date_col == False:
+            old_columns = []
+            for col_list in parse_dates:
+                old_columns.extend(col_list)
+            res.drop(columns=old_columns, inplace=True)
+
     return res
 
 class DataFrame(SeriesHelper):
@@ -558,7 +705,13 @@ class DataFrame(SeriesHelper):
                 dvec[idx] = FrovedisLongDvector(arr)
 
                 dvec[idx].replace(nat_int_value, get_null_value(DTYPE.LONG), inplace=True)
-
+            elif vtype.startswith('timedelta64'):
+                arr = val.view("int64")//10**9
+                #from frovedis.config import global_config
+                #nat_int_value = global_config.get("NaT")
+                dt = DTYPE.TIMEDELTA
+                dvec[idx] = FrovedisIntDvector(arr)
+                #dvec[idx].replace(nat_int_value, get_null_value(DTYPE.LONG), inplace=True)
             else:
                 raise TypeError("Unsupported column type '%s' in creation of "\
                                 "frovedis dataframe: " % (vtype))
@@ -1593,6 +1746,8 @@ class DataFrame(SeriesHelper):
                 if col in self.datetime_cols_info:
                     zone = self.datetime_cols_info[col]
                     res[col] = res[col].dt.tz_localize(zone)
+            elif (self.__dict__[col].dtype == DTYPE.TIMEDELTA):
+                res[col] = pd.to_timedelta(res[col], unit='s')
 
         if self.is_series:
             res = res[self.columns[0]]
@@ -2795,6 +2950,49 @@ class DataFrame(SeriesHelper):
             immed_val = str(other)
             immed_dt = get_python_scalar_type(other)
             is_series = self.is_series
+        elif isinstance(other, pd.Timedelta):
+            for t in self.__types:
+                if t != DTYPE.DATETIME:
+                    raise TypeError(col + \
+                    ": supported type of column is 'datetime'."\
+                    "Received: '%s'" % type(col).__name__)
+            if is_rev == True and op_type != "add":
+                raise TypeError(col + \
+                ": supported reverse operation on columns is 'radd' only." +\
+                "Received: '%s'" % op_type)
+
+            immed = True
+            immed_val = str(other.value//10**9)
+            immed_dt = "timedelta"
+            is_series = self.is_series
+            if op_type == "add":
+                op_type = "timedelta_add"
+            elif op_type == "sub":
+                op_type = "timedelta_sub"
+            else:
+                raise TypeError("cannot {} DatetimeArray" \
+                                " and TimeDelta".format(op_type))
+        elif isinstance(other, pd.Timestamp):
+            for t in self.__types:
+                if t != DTYPE.DATETIME:
+                    raise TypeError(col + \
+                    ": supported type of column is 'datetime'."\
+                    "Received: '%s'" % type(col).__name__)
+            if is_rev == True and op_type != "sub":
+                raise TypeError(col + \
+                ": supported reverse operation on columns is 'rsub' only." +\
+                "Received: '%s'" % op_type)
+
+            immed = True
+            immed_val = str(other.value)
+            #immed_val = str(other.value//10**9)
+            immed_dt = "timestamp"
+            is_series = self.is_series
+            if op_type == "sub":
+                op_type = "timestamp_sub"
+            else:
+                raise TypeError("cannot {} DatetimeArray and " \
+                                " Timestamp".format(op_type))
         elif isinstance(other, (list, np.ndarray)):
             other = np.asarray(other)
             is_numeric = all([isinstance(e, numbers.Number) for e in other])
@@ -2835,6 +3033,18 @@ class DataFrame(SeriesHelper):
                 "on string column is not supported currently!")
             immed = False
             is_series = self.is_series and other.is_series
+            if is_series or (len(self.columns) == 1 and len(other.columns) == 1):
+                if DTYPE.DATETIME == self.__types[0] and DTYPE.TIMEDELTA == other.__types[0]:
+                    if op_type == "add":
+                        op_type = "date_DT_TD_add"
+                    elif op_type == "sub":
+                        op_type = "date_DT_TD_sub"
+                elif DTYPE.DATETIME == self.__types[0] and DTYPE.DATETIME == other.__types[0]:
+                    if op_type == "add":
+                        raise TypeError("cannot {} DatetimeArray " \
+                                "and DatetimeArray".format(op_type))
+                    elif op_type == "sub":
+                        op_type = "date_DT_DT_sub"
 
         (host, port) = FrovedisServer.getServerInstance()
         # nan values can be generated during pow, div, mod operations
@@ -2872,6 +3082,15 @@ class DataFrame(SeriesHelper):
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         #sorting columns as per pandas result
         ret.set_col_order([names[0]] + sorted(names[1:]))
+        if isinstance(other, DataFrame):
+            if DTYPE.DATETIME == self.__types[0] and DTYPE.DATETIME == other.__types[0]:
+                #TODO: handles single column df, update for handling multi column df
+                ret.__types[0] = DTYPE.TIMEDELTA
+                ret.__dict__[ret.columns[0]] = FrovedisColumn(ret.columns[0], DTYPE.TIMEDELTA)
+        elif isinstance(other, pd.Timestamp):
+            if DTYPE.DATETIME == self.__types[0]:
+                ret.__types[0] = DTYPE.TIMEDELTA
+                ret.__dict__[ret.columns[0]] = FrovedisColumn(ret.columns[0], DTYPE.TIMEDELTA)
         return ret
 
     @check_association
@@ -4154,6 +4373,35 @@ class DataFrame(SeriesHelper):
 
         return res
 
+    def concat_columns(self, cols, sep=" ",cast_as_datetime=False, fmt=""):
+        if not isinstance(cols, list):
+            raise ValueError("concat_columns: 'cols' must be provided as list!")
+
+        res_col_name = "_".join(cols)
+        sz = len(cols)
+        cols_ptr = get_string_array_pointer(cols)
+
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_concat_columns(host, port, self.get(),
+                                            str_encode(sep), cols_ptr,
+                                            str_encode(res_col_name),
+                                            cast_as_datetime, str_encode(fmt),
+                                            self.has_index(), sz)                   
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        ret = DataFrame(is_series=self.is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+
+        return ret
 
     def __setattr__(self, key, value):
         """ sets the specified attribute """

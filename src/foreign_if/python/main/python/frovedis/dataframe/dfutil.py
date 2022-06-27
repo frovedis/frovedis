@@ -33,6 +33,9 @@ def get_string_typename(numpy_type):
     """
     return frovedis types from numpy types
     """
+    if numpy_type.startswith("datetime"):
+        return numpy_type
+
     numpy_to_string_type = { "int32": "int",
                              "int64": "long",
                              "float32": "float",
