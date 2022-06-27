@@ -1,10 +1,10 @@
 """Frovedis word2vec python module"""
-
 import os
 import shutil
 import fnmatch
 from types import GeneratorType
 import numpy as np
+import pandas as pd
 from collections import Iterable
 from ...exrpc.server import FrovedisServer
 from ...exrpc.rpclib import w2v_build_vocab_and_dump, w2v_train
@@ -17,6 +17,9 @@ class w2v_result(object):
         self.result = res
         self.hiddenSize = hiddenSize
         self.gensim_result = None
+
+    def __len__(self):
+        return len(self.result)
 
     def keys(self):
         return self.result.keys()
@@ -183,7 +186,9 @@ class Word2Vec:
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
 
-        vocabList = np.loadtxt(self.__vocabPath, usecols=(0,), dtype=str)
+        vocab_count = pd.read_csv(self.__vocabPath, sep=' ', header=None, \
+                                  encoding="utf-8", quotechar=None, quoting=3) 
+        vocabList = vocab_count[0]
         self.vocabSize = len(vocabList)
         initWeight = np.zeros(shape=self.hiddenSize)
         self.wv = w2v_result(dict.fromkeys(vocabList, initWeight), 
@@ -238,7 +243,9 @@ class Word2Vec:
         if vocabSize != self.vocabSize:
             raise RuntimeError("fit: error in vocabsize, report bug!\n")
 
-        vocab = np.loadtxt(self.__vocabPath, usecols=(0,), dtype=str)
+        vocab_count = pd.read_csv(self.__vocabPath, sep=' ', header=None, \
+                                  encoding="utf-8", quotechar=None, quoting=3) 
+        vocab = vocab_count[0]
         weight_vector = np.asarray(res).reshape(self.vocabSize, \
                                                 self.hiddenSize)
         for ind in range(len(vocab)):
