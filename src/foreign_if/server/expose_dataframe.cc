@@ -144,6 +144,7 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_clip_axis1_numeric);
   expose(frov_df_clip_axis1_str);
   expose(frov_df_datetime_operation);
+  expose(frov_df_concat_columns);
   //loc
   expose(frov_df_sel_rows_by_val<int>);
   expose(frov_df_sel_rows_by_val<long>);

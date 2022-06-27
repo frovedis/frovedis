@@ -114,7 +114,7 @@ void treat_null_as_nan_inplace(std::vector<T>& vec,
 template <class T> // for T: long
 void treat_null_as_nat_inplace(std::vector<T>& vec,
                                const std::vector<size_t>& nulls) {
-  auto mynat = std::numeric_limits<T>::max() + 1;
+  auto mynat = std::numeric_limits<T>::min();
   auto rptr = vec.data();
   auto nptr = nulls.data();
   auto nsz = nulls.size();
@@ -1212,5 +1212,13 @@ dummy_dftable frov_df_datetime_operation(exrpc_ptr_t& df_proxy,
                                         std::string& as_name,
                                         short& op_id,
                                         bool& with_index);
+
+dummy_dftable frov_df_concat_columns(exrpc_ptr_t& df_proxy,
+                                    std::string& sep,
+                                    std::vector<std::string>& cols,
+                                    std::string& as_name,
+                                    bool& cast_as_datetime,
+                                    std::string& fmt,
+                                    bool& with_index);
 
 #endif

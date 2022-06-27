@@ -124,6 +124,7 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
   if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   for(size_t i=0; i<cols.size(); ++i) {
     switch(types[i]) {
+      case TIMEDELTA:
       case INT:    { auto v1 = reinterpret_cast<dvector<int>*>(dvec_proxies[i]);
                      dftblp->append_column(cols[i],std::move(*v1),true);
                      delete v1; break; }
@@ -198,6 +199,7 @@ exrpc_ptr_t create_dataframe_from_local_vectors (
       for (size_t j = 0; j < nproc; ++j) pp[j] = vp[j];
       switch(types[i]) {
         case BOOL:
+        case TIMEDELTA:
         case INT:    { auto dv = merge_and_get_dvector_impl<int>(proxies, do_align);
                        dftblp->append_column(cols[i], std::move(dv), true);
                        break; }
@@ -1209,6 +1211,10 @@ void copy_column_helper(dftable& to_df,
   switch(dtype) {
     case INT:    to_df.append_column(cname_as, from_df.as_dvector<int>(cname), 
                                      true); break;
+    case DATETIME:   to_df.append_datetime_column(
+                                    cname_as, 
+                                    from_df.as_dvector<datetime_t>(cname),
+                                    true); break;
     case LONG:   to_df.append_column(cname_as, from_df.as_dvector<long>(cname),
                                      true); break;
     case ULONG:  to_df.append_column(cname_as, from_df.as_dvector<unsigned long>(cname),
@@ -1219,6 +1225,7 @@ void copy_column_helper(dftable& to_df,
                                      true); break;
     case STRING: to_df.append_column(cname_as, from_df.as_dvector<std::string>(cname),
                                      true); break;
+
     default: REPORT_ERROR(USER_ERROR, 
              std::string("copy: unsupported dtype, '") + STR(dtype) + 
              std::string("' encountered!"));
@@ -2785,3 +2792,34 @@ dummy_dftable frov_df_datetime_operation(exrpc_ptr_t& df_proxy,
   return to_dummy_dftable(retp);
 }
 
+dummy_dftable frov_df_concat_columns(exrpc_ptr_t& df_proxy,
+                                    std::string& sep,
+                                    std::vector<std::string>& cols,
+                                    std::string& as_name,
+                                    bool& cast_as_datetime,
+                                    std::string& fmt,
+                                    bool& with_index) {
+  auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
+  auto sz = cols.size();
+  std::vector<std::shared_ptr<dffunction>> cols_dffuncs(sz);
+  std::vector<std::shared_ptr<frovedis::dffunction>> res_cols;
+
+  for(size_t i=0; i<sz; i++) cols_dffuncs[i] = ~cols[i];
+
+  if (cast_as_datetime) {
+    size_t pad_length = 2;
+    for(size_t i=0; i<sz; i++)
+      cols_dffuncs[i] = lpad_im_as(cols_dffuncs[i], pad_length, "0", cols[i]);
+  }  
+  
+  auto dffunc = concat_multi_ws_as(sep, cols_dffuncs, as_name);
+  if (cast_as_datetime) dffunc = cast_col_as(dffunc, "datetime:"+fmt, as_name);
+
+  if (with_index){
+    res_cols = { ~dftblp->columns()[0], dffunc };
+  }
+  else res_cols = {dffunc};
+
+  auto retp = new dftable(dftblp->fselect(res_cols));
+  return to_dummy_dftable(retp);
+}
