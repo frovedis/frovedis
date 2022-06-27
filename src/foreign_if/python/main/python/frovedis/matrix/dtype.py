@@ -34,6 +34,7 @@ class DTYPE:
     ULONG = 7
     WORDS = 8
     DATETIME = 10
+    TIMEDELTA = 12
 
 class TypeUtil:
     @staticmethod
@@ -55,6 +56,8 @@ class TypeUtil:
             return DTYPE.STRING
         elif dtype == np.datetime64:
             return DTYPE.DATETIME
+        elif dtype == np.timedelta64:
+            return DTYPE.TIMEDELTA
         else:
             raise TypeError("Unsupported numpy dtype: %s" % dtype)
 
@@ -77,6 +80,8 @@ class TypeUtil:
             return np.dtype(str)
         elif dtype == DTYPE.DATETIME:
             return np.datetime64
+        elif dtype == DTYPE.TIMEDELTA:
+            return np.timedelta64
         else:
             raise TypeError("Unknown numpy type for the given TID: %d" % dtype)
 

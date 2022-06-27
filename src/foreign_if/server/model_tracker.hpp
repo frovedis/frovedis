@@ -81,7 +81,8 @@ enum DTYPE {
   WORDS = 8,
   BYTE = 9,
   DATETIME = 10,
-  TIMESTAMP = 11
+  TIMESTAMP = 11,
+  TIMEDELTA = 12
 };
 
 enum OPTYPE {

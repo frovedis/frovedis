@@ -34,6 +34,7 @@ allocate_local_vectors(std::vector<size_t>& sizes,
       std::vector<exrpc_ptr_t> tmp;
       switch(dtypes[i]) {
         case BOOL:
+        case TIMEDELTA:
         case INT:    tmp = allocate_local_vector<std::vector<int>>(sizes); break;
         case LONG:   tmp = allocate_local_vector<std::vector<long>>(sizes); break;
         case FLOAT:  tmp = allocate_local_vector<std::vector<float>>(sizes); break;

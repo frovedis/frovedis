@@ -48,6 +48,10 @@ get_function(const std::string& op_id,
   std::shared_ptr<dffunction> ret = NULL;
   if (op_id == "add")       ret = add_col(lcol,  rcol);
   else if (op_id == "sub")  ret = sub_col(lcol,  rcol);
+  else if (op_id == "date_DT_TD_add")  ret = datetime_add_col_as(lcol, rcol,
+                                                  datetime_type::second, lcol);
+  else if (op_id == "date_DT_DT_sub")  ret = datetime_diff_col_as(lcol, rcol,
+                                                  datetime_type::second, lcol);
   else if (op_id == "mul")  ret = mul_col(lcol,  rcol);
   else if (op_id == "idiv") ret = idiv_col(lcol, rcol);
   else if (op_id == "fdiv") ret = fdiv_col(lcol, rcol);
@@ -209,7 +213,7 @@ frov_df_immed_binary_operation(exrpc_ptr_t& df,
   ret.append_column(lindex, left.column(lindex));
 
   for(size_t i = 1; i < lcol.size(); ++i) {
-    if (vtype == "int" || vtype == "int32") {
+    if (vtype == "int" || vtype == "int32" || vtype == "timedelta") {
       auto right_val = do_cast<int>(value);
       auto func = get_immed_function<int>(op_id, lcol[i], right_val, is_reversed);
       use_dfcolumn use(func->columns_to_use(left));
@@ -235,6 +239,11 @@ frov_df_immed_binary_operation(exrpc_ptr_t& df,
     } else if (vtype == "double" || vtype == "float64") {
       auto right_val = do_cast<double>(value);
       auto func = get_immed_function<double>(op_id, lcol[i], right_val, is_reversed);
+      use_dfcolumn use(func->columns_to_use(left));
+      ret.append_column(lcol[i], func->execute(left));
+    } else if (vtype == "timestamp") {
+      auto right_val = do_cast<datetime_t>(value);
+      auto func = get_immed_function<datetime_t>(op_id, lcol[i], right_val, is_reversed);
       use_dfcolumn use(func->columns_to_use(left));
       ret.append_column(lcol[i], func->execute(left));
     } else {
