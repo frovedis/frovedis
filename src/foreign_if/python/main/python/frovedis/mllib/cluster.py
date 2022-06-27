@@ -87,8 +87,9 @@ class KMeans(BaseEstimator):
         nfeatures = inp_data.numCols()
         movable = inp_data.is_movable()
         if dense and self.use_shrink:
-            raise ValueError(F + ": use_shrink is applicable only for " \
-                             + "sparse data!")
+            warnings.warn("{}: use_shrink is applicable only ".format(F) + \
+                          "for sparse data!")
+
         if self.n_clusters is None:
             self.n_clusters = min(8, nsamples)
         if self.n_clusters < 1 or self.n_clusters > nsamples:

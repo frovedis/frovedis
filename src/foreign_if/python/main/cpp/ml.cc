@@ -37,7 +37,6 @@ extern "C" {
            set_is_mult(mult).
            set_hist_size(hs);
 
-    if(shrink) config.set_solver("shrink-sgd");
     try {
       if(dense) {
         switch(dtype) {
@@ -62,6 +61,7 @@ extern "C" {
         }
       }
       else {
+        if(shrink && std::string(solver) == "sgd") config.set_solver("shrink-sgd");
         switch(dtype) {
           case FLOAT: 
             {

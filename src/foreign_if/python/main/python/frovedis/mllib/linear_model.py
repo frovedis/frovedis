@@ -93,13 +93,10 @@ class LogisticRegression(BaseEstimator):
         self.__mdtype = dtype
 
         if dense and self.use_shrink:
-            raise ValueError("fit: use_shrink is applicable only for " \
-                             + "sparse data!")
+            warnings.warn("fit: use_shrink is applicable only for sparse data!")
 
-        if self.use_shrink:
-            if self.solver == "lbfgs":
-                raise ValueError("fit: use_shrink is applicable only for " \
-                                 + "sgd solver!")
+        if self.solver == "lbfgs" and self.use_shrink:
+            warnings.warn("fit: use_shrink is applicable only for sag solver!")
 
         self.__mkind = M_KIND.LR
         if self.multi_class == 'auto' or self.multi_class == 'ovr':
