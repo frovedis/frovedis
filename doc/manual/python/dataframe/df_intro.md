@@ -596,7 +596,7 @@ DataFrame has methods for carrying out binary operations like add(), sub(), etc 
 
 ### Indexing in frovedis Dataframe  
 
-Indexing means simply selecting particular rows and columns of data from a dataframe. Indexing can also be known as Subset Selection.  
+Indexing means simply selecting particular rows and columns of data from a dataframe. Indexing can also be considered as Subset Selection.  
 
 There are a lot of ways to pull the rows and columns from a dataframe. There are some indexing method which help in getting an element from a dataframe. These indexing methods appear very similar but behave very differently. **Currently, frovedis supports only one type of indexing**. It is:  
 
