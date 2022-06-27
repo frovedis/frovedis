@@ -6,6 +6,8 @@ import warnings
 import numbers
 import numpy as np
 from .config import global_config
+from .exrpc.server import FrovedisServer
+from .exrpc import rpclib
 
 def deprecated(message):
     """ definition for deprecated methods """
@@ -50,4 +52,22 @@ def check_sample_weight(self, sample_weight):
 
 def str_type():
     return global_config.get("string_dvector_as")
+
+def exec_rpc_call(func=None, rpc_args=()):
+    '''
+    DESC: rpclib call wrapper
+    PARAMS: func - a function pointer/object
+            rpc_args - a tuple containing function parameters
+    RETURN VALUE: It returns result given by rpclib execution for given func
+    '''
+    if callable(func):
+        (host, port) = FrovedisServer.getServerInstance()
+        res = func(host, port, *rpc_args)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return res
+    else:
+        raise ValueError("func should be a valid function pointer/object, " + \
+                         "but received {}".format(func))
 
