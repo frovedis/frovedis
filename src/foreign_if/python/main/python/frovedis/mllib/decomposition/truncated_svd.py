@@ -1,7 +1,6 @@
 """truncated_svd.py"""
 
-#!/usr/bin/env python
-
+import warnings
 from ...base import *
 from ...exrpc.server import FrovedisServer, set_association, \
                             check_association, do_if_active_association
@@ -43,13 +42,16 @@ class TruncatedSVD(BaseEstimator):
         if self.algorithm != "arpack":
             raise ValueError("algorithm: currently Frovedis supports only " \
                               + "arpack!")
-        if isinstance(X, FrovedisCRSMatrix):
-            self.var_sum = None
-        elif isinstance(X, FrovedisRowmajorMatrix):
+        # if X is not a sparse data, it would be converted as rowmajor matrix
+        inp_data = FrovedisFeatureData(X, \
+                     caller = "[" + self.__class__.__name__ + "] fit: ",\
+                     dense_kind='rowmajor', densify=False)
+        dense = inp_data.is_dense()
+        if dense:
+            X = inp_data.get()
             to_sample = False # ddof = 0 in np.var(...)
-            isdense = True
             self.var_sum = compute_var_sum(host, port, X.get(),
-                                           to_sample, isdense, X.get_dtype())
+                                           to_sample, dense, X.get_dtype())
             excpt = check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
@@ -58,22 +60,16 @@ class TruncatedSVD(BaseEstimator):
                 from sklearn.utils.sparsefuncs import mean_variance_axis
                 _, full_var = mean_variance_axis(X, axis=0)
                 self.var_sum = full_var.sum()
-            except: #for system without sklearn
+            except: # for system without sklearn
                 self.var_sum = None
         else:
-            self.var_sum = np.var(X, axis=0).sum()
-        # if X is not a sparse data, it would be converted as rowmajor matrix
-        inp_data = FrovedisFeatureData(X, \
-                     caller = "[" + self.__class__.__name__ + "] fit: ",\
-                     dense_kind='rowmajor', densify=False)
+            self.var_sum = None
         X = inp_data.get()
         x_dtype = inp_data.get_dtype()
         x_itype = inp_data.get_itype()
-        dense = inp_data.is_dense()
         self.__mdtype = x_dtype
         if dense and self.use_shrink:
-            raise ValueError("fit: use_shrink is applicable only for " \
-                             + "sparse data!")
+            warnings.warn("fit: use_shrink is applicable only for sparse data!")
 
         res = compute_truncated_svd(host, port, X.get(),
                                     self.n_components,
