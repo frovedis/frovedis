@@ -5,6 +5,7 @@ from scipy.sparse import issparse, csr_matrix
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
+from ..config import global_config
 from .dtype import TypeUtil, DTYPE
 from .vector import FrovedisVector
 from .dense import FrovedisRowmajorMatrix, FrovedisColmajorMatrix
@@ -221,38 +222,40 @@ class FrovedisCRSMatrix(object):
         ddt = self.get_dtype()
         idt = self.get_itype()
         (host, port) = FrovedisServer.getServerInstance()
+        rawsend = global_config.get("rawsend_enabled")
+        #print(rawsend)
         if ddt == DTYPE.INT and idt == DTYPE.INT:
             dmat = rpclib.create_frovedis_crs_II_matrix(host, port, nrow, ncol,
                                                         m_data, m_indices,
-                                                        m_offset, nelem)
+                                                        m_offset, nelem, rawsend)
         elif ddt == DTYPE.INT and idt == DTYPE.LONG:
             dmat = rpclib.create_frovedis_crs_IL_matrix(host, port, nrow, ncol,
                                                         m_data, m_indices,
-                                                        m_offset, nelem)
+                                                        m_offset, nelem, rawsend)
         elif ddt == DTYPE.LONG and idt == DTYPE.INT:
             dmat = rpclib.create_frovedis_crs_LI_matrix(host, port, nrow, ncol,
                                                         m_data, m_indices,
-                                                        m_offset, nelem)
+                                                        m_offset, nelem, rawsend)
         elif ddt == DTYPE.LONG and idt == DTYPE.LONG:
             dmat = rpclib.create_frovedis_crs_LL_matrix(host, port, nrow, ncol,
                                                         m_data, m_indices,
-                                                        m_offset, nelem)
+                                                        m_offset, nelem, rawsend)
         elif ddt == DTYPE.FLOAT and idt == DTYPE.INT:
             dmat = rpclib.create_frovedis_crs_FI_matrix(host, port, nrow, ncol,
                                                         m_data, m_indices,
-                                                        m_offset, nelem)
+                                                        m_offset, nelem, rawsend)
         elif ddt == DTYPE.FLOAT and idt == DTYPE.LONG:
             dmat = rpclib.create_frovedis_crs_FL_matrix(host, port, nrow, ncol,
                                                         m_data, m_indices,
-                                                        m_offset, nelem)
+                                                        m_offset, nelem, rawsend)
         elif ddt == DTYPE.DOUBLE and idt == DTYPE.INT:
             dmat = rpclib.create_frovedis_crs_DI_matrix(host, port, nrow, ncol,
                                                         m_data, m_indices,
-                                                        m_offset, nelem)
+                                                        m_offset, nelem, rawsend)
         elif ddt == DTYPE.DOUBLE and idt == DTYPE.LONG:
             dmat = rpclib.create_frovedis_crs_DL_matrix(host, port, nrow, ncol,
                                                         m_data, m_indices,
-                                                        m_offset, nelem)
+                                                        m_offset, nelem, rawsend)
         else:
             raise TypeError("Unsupported dtype/itype for crs_matrix creation!")
         excpt = rpclib.check_server_exception()
