@@ -973,6 +973,7 @@ extern "C" {
     try {
       switch (tid) {
         case BOOL:   
+        case TIMEDELTA:
         case INT:    dvec = exrpc_async(fm_node, get_df_col<int>, 
                                         f_dptr, cname, tid).get(); break;
         case DATETIME:
@@ -2033,6 +2034,28 @@ extern "C" {
     try {
       ret = exrpc_async(fm_node, frov_df_datetime_operation, df_proxy,
                         left_col_, right_col_, as_name_, opt, with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+  
+  PyObject* df_concat_columns(const char* host, int port, long proxy,
+                              const char* sep, const char** cols, 
+                              const char* as_name, bool cast_as_datetime,
+                              const char* fmt, bool with_index,
+                              ulong sz) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
+    std::string sep_(sep), as_name_(as_name), fmt_(fmt);
+    auto cols_ = to_string_vector(cols, sz);
+
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frov_df_concat_columns, df_proxy, sep_, cols_,
+                      as_name_, cast_as_datetime, fmt_, with_index).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
