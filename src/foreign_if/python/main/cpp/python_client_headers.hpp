@@ -12,6 +12,15 @@ extern std::string info;
 
 using namespace frovedis;
 
+std::vector<size_t> get_starts(const std::vector<size_t>& sizes);
+
+void get_start_size_info(size_t vecsz, size_t wsize,
+                         std::vector<size_t>& starts,
+                         std::vector<size_t>& sizes);
+std::vector<size_t>
+get_crs_row_division(long* dataoffp, size_t nrow, 
+                     size_t nelem, size_t wsize);
+
 extern "C" {
   // --- exception handling ---
   void set_status(bool stat, const std::string&);
@@ -71,7 +80,7 @@ extern "C" {
 
   // --- server info ---
   std::vector<exrpc_node> get_worker_nodes(exrpc_node& fm_node);
-  std::vector<exrpc_node> get_worker_nodes_for_rawsend(exrpc_node& fm_node);
+  std::vector<exrpc_node> get_worker_nodes_for_vector_rawsend(exrpc_node& fm_node);
   std::vector<exrpc_node>
   get_worker_nodes_for_multi_exrpc(exrpc_node& fm_node,
                                    std::vector<size_t> blocksz);

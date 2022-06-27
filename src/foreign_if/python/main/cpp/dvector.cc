@@ -38,21 +38,6 @@ prepare_scattered_vectors_as(const std::vector<T>& vec, size_t wsize,
   return ret;
 }
 
-std::vector<size_t>
-get_starts(const std::vector<size_t>& sizes) {
-  auto size = sizes.size();
-  std::vector<size_t> sidx(size); sidx[0] = 0;
-  for(size_t i = 1; i < size; ++i) sidx[i] = sidx[i - 1] + sizes[i - 1];
-  return sidx;
-}
-
-void get_start_size_info(size_t vecsz, size_t wsize,
-                         std::vector<size_t>& starts,
-                         std::vector<size_t>& sizes) {
-  sizes = get_block_sizes(vecsz, wsize);
-  starts = get_starts(sizes);
-}
-
 template <class T>
 void omp_merge_vectors_impl(const std::vector<std::vector<T>>& vec,
                             T* retp, ulong rsize) {
@@ -91,6 +76,7 @@ extern "C" {
     try {
       switch(vtype) {
         case BOOL:
+        case TIMEDELTA:
         case INT:    count = exrpc_async(fm_node,count_distinct<int>,
                                          f_dptr).get(); break;
         case LONG:   count = exrpc_async(fm_node,count_distinct<long>,
@@ -359,6 +345,7 @@ extern "C" {
     try {
       switch(vtype) {
         case BOOL:
+        case TIMEDELTA:
         case INT:
           exrpc_oneway(fm_node,release_dvector<int>,f_dptr);
           break;
@@ -399,7 +386,7 @@ extern "C" {
 
     // getting Frovedis server information
     exrpc_node fm_node(host,port);
-    auto nodes = rawsend ? get_worker_nodes_for_rawsend(fm_node)
+    auto nodes = rawsend ? get_worker_nodes_for_vector_rawsend(fm_node)
                          : get_worker_nodes(fm_node);
     auto wsize = nodes.size();
 
@@ -460,7 +447,7 @@ extern "C" {
 
     // getting Frovedis server information
     exrpc_node fm_node(host,port);
-    auto nodes = rawsend ? get_worker_nodes_for_rawsend(fm_node) 
+    auto nodes = rawsend ? get_worker_nodes_for_vector_rawsend(fm_node) 
                          : get_worker_nodes(fm_node);
     auto wsize = nodes.size();
 
@@ -522,7 +509,7 @@ extern "C" {
 
     // getting Frovedis server information
     exrpc_node fm_node(host,port);
-    auto nodes = rawsend ? get_worker_nodes_for_rawsend(fm_node) 
+    auto nodes = rawsend ? get_worker_nodes_for_vector_rawsend(fm_node) 
                          : get_worker_nodes(fm_node);
     auto wsize = nodes.size();
 
@@ -584,7 +571,7 @@ extern "C" {
 
     // getting Frovedis server information
     exrpc_node fm_node(host,port);
-    auto nodes = rawsend ? get_worker_nodes_for_rawsend(fm_node) 
+    auto nodes = rawsend ? get_worker_nodes_for_vector_rawsend(fm_node) 
                          : get_worker_nodes(fm_node);
     auto wsize = nodes.size();
 
@@ -646,7 +633,7 @@ extern "C" {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     // getting Frovedis server information
     exrpc_node fm_node(host,port);
-    auto nodes = rawsend ? get_worker_nodes_for_rawsend(fm_node) 
+    auto nodes = rawsend ? get_worker_nodes_for_vector_rawsend(fm_node) 
                          : get_worker_nodes(fm_node);
     auto wsize = nodes.size();
 
@@ -753,7 +740,7 @@ extern "C" {
 
     // getting Frovedis server information
     exrpc_node fm_node(host,port);
-    auto nodes = rawsend ? get_worker_nodes_for_rawsend(fm_node)
+    auto nodes = rawsend ? get_worker_nodes_for_vector_rawsend(fm_node)
                          : get_worker_nodes(fm_node);
     auto wsize = nodes.size();
 
@@ -801,7 +788,7 @@ extern "C" {
 
     // getting Frovedis server information
     exrpc_node fm_node(host,port);
-    auto nodes = rawsend ? get_worker_nodes_for_rawsend(fm_node)
+    auto nodes = rawsend ? get_worker_nodes_for_vector_rawsend(fm_node)
                          : get_worker_nodes(fm_node);
     auto wsize = nodes.size();
 
@@ -1095,6 +1082,7 @@ extern "C" {
       std::vector<exrpc_ptr_t> eps;
       switch(dtype) {
         case BOOL:
+        case TIMEDELTA:
         case INT:    eps = exrpc_async(fm_node, get_dvector_local_pointers<int>, 
                                        proxy_).get(); break;
         case DATETIME:
@@ -1116,6 +1104,7 @@ extern "C" {
       std::vector<int> is_except(wsize);
       switch(dtype) {
         case BOOL:
+        case TIMEDELTA:
         case INT:    { auto evs = get_local_int_vectors(nodes, eps, exps,
                                                         is_except, wsize, dvsz);
                        omp_merge_vectors_impl(evs, (int*) retp, dvsz); break;

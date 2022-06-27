@@ -2,6 +2,37 @@
 
 using namespace frovedis;
 
+std::vector<size_t>
+get_starts(const std::vector<size_t>& sizes) {
+  auto size = sizes.size();
+  std::vector<size_t> sidx(size); sidx[0] = 0;
+  for(size_t i = 1; i < size; ++i) sidx[i] = sidx[i - 1] + sizes[i - 1];
+  return sidx;
+}
+
+void get_start_size_info(size_t vecsz, size_t wsize,
+                         std::vector<size_t>& starts,
+                         std::vector<size_t>& sizes) {
+  sizes = get_block_sizes(vecsz, wsize);
+  starts = get_starts(sizes);
+}
+
+std::vector<size_t>
+get_crs_row_division(long* dataoffp, size_t nrow, size_t nelem, size_t wsize) {
+  size_t each_size = frovedis::ceil_div(nelem, wsize);
+  std::vector<size_t> divide_row(wsize + 1);
+  for(size_t i = 0; i < wsize; i++) {
+    auto it = std::lower_bound(dataoffp, dataoffp + nrow + 1, each_size * i);
+    if(it != dataoffp + nrow + 1) {
+      divide_row[i] = it - dataoffp;
+    } else {
+      divide_row[i] = nrow;
+    }
+  }
+  divide_row[wsize] = nrow;
+  return divide_row;
+}
+
 extern "C" {
   // std::string => python string object
   PyObject* to_python_string_object (const std::string& val) {

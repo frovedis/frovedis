@@ -9,6 +9,10 @@ void expose_frovedis_dense_matrix_functions() {
   expose(load_local_data<R_LMAT2>);
   expose(load_local_data<R_LMAT3>);
   expose(load_local_data<R_LMAT4>);
+  expose(create_local_rowmajor<double>);
+  expose(create_local_rowmajor<float>);
+  expose(create_local_rowmajor<long>);
+  expose(create_local_rowmajor<int>);
   expose(create_rmm_data<DT1>);
   expose(create_rmm_data<DT2>);
   expose(create_rmm_data<DT3>);

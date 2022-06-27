@@ -47,7 +47,7 @@ extern "C" {
     return nodes;
   }
 
-  std::vector<exrpc_node> get_worker_nodes_for_rawsend(exrpc_node& fm_node) {
+  std::vector<exrpc_node> get_worker_nodes_for_vector_rawsend(exrpc_node& fm_node) {
     auto info = prepare_parallel_exrpc(fm_node);
     auto nodes = get_parallel_exrpc_nodes(fm_node, info);
     // for rawsend: 2 exrpc operations will be performed on each node

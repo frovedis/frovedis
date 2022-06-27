@@ -4,6 +4,7 @@ import numpy as np
 from frovedis.exrpc import rpclib
 from frovedis.exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
+from ..config import global_config
 from .dtype import TypeUtil, DTYPE
 
 # dtype: Currently supports float/double/int/long datatypes.
@@ -67,28 +68,34 @@ class FrovedisDenseMatrix(object):
         (nrow, ncol) = mat.shape
         (host, port) = FrovedisServer.getServerInstance()
         data_type = self.get_dtype()
+        rawsend = global_config.get("rawsend_enabled")
+        #print(rawsend)
         if data_type == DTYPE.DOUBLE:
             dmat = rpclib.create_frovedis_double_dense_matrix(host, port,
                                                               nrow, ncol,
                                                               m_data,
                                                               self.__mtype.
-                                                              encode('ascii'))
+                                                              encode('ascii'),
+                                                              rawsend)
         elif data_type == DTYPE.FLOAT:
             dmat = rpclib.create_frovedis_float_dense_matrix(host, port,
                                                              nrow, ncol,
                                                              m_data,
                                                              self.__mtype.
-                                                             encode('ascii'))
+                                                             encode('ascii'),
+                                                             rawsend)
         elif data_type == DTYPE.LONG:
             dmat = rpclib.create_frovedis_long_dense_matrix(host, port,
                                                             nrow, ncol, m_data,
                                                             self.__mtype.
-                                                            encode('ascii'))
+                                                            encode('ascii'),
+                                                            rawsend)
         elif data_type == DTYPE.INT:
             dmat = rpclib.create_frovedis_int_dense_matrix(host, port,
                                                            nrow, ncol, m_data,
                                                            self.__mtype.
-                                                           encode('ascii'))
+                                                           encode('ascii'),
+                                                           rawsend)
         else:
             raise TypeError("Unsupported input type: " + self.__dtype)
         excpt = rpclib.check_server_exception()

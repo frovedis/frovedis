@@ -43,8 +43,8 @@ template <class MATRIX>
 void set_matrix_data(MATRIX& mat,
                      std::vector<exrpc_ptr_t>& eps) {
   size_t iam = get_selfid();
-  auto mem_ptr = reinterpret_cast<MATRIX*>(eps[iam]);
-  mat = *mem_ptr;
+  auto matbuf = reinterpret_cast<MATRIX*>(eps[iam]);
+  mat = std::move(*matbuf); // [TODO: confirm] moved insted of copy
 }
 
 template <class T>
@@ -168,6 +168,49 @@ frovedis_mem_pair allocate_vector(size_t& size) {
   auto f = reinterpret_cast<exrpc_ptr_t>(retp);
   auto s = reinterpret_cast<exrpc_ptr_t>(retp->data());
   return frovedis_mem_pair(f, s);
+}
+
+template <class T>
+exrpc_ptr_t 
+create_local_rowmajor(exrpc_ptr_t& vptr,
+                      size_t& nrow, size_t& ncol) {
+  auto& val = *reinterpret_cast<std::vector<T>*>(vptr);
+  rowmajor_matrix_local<T> ret;
+  ret.val.swap(val);
+  ret.set_local_num(nrow, ncol);
+  auto retp = new rowmajor_matrix_local<T>(std::move(ret));
+  return reinterpret_cast<exrpc_ptr_t>(retp);
+}
+
+template <class T, class I, class O,    // to-types
+          class TT, class II, class OO> // from-types
+exrpc_ptr_t
+create_local_crs(exrpc_ptr_t& vptr,
+                 exrpc_ptr_t& iptr,
+                 exrpc_ptr_t& optr,
+                 size_t& nrow, size_t& ncol) {
+  auto valp = reinterpret_cast<std::vector<TT>*>(vptr);
+  auto idxp = reinterpret_cast<std::vector<II>*>(iptr);
+  auto offp = reinterpret_cast<std::vector<OO>*>(optr);
+  auto& val = *valp;
+  auto& idx = *idxp;
+  auto& off = *offp;
+  checkAssumption(nrow == off.size() - 1);
+
+  auto retp = new crs_matrix_local<T, I, O>;
+  retp->val = vector_astype<T>(val);
+  retp->idx = vector_astype<I>(idx);
+
+  retp->off.resize(nrow + 1);
+  auto roffp = retp->off.data(); roffp[0] = 0;
+  auto ioffp = off.data();
+  for (size_t i = 0; i < nrow; ++i) {
+    roffp[i + 1] = static_cast<O>(ioffp[i + 1] - ioffp[0]);
+  }
+  retp->local_num_row = nrow;
+  retp->local_num_col = ncol;
+  delete valp; delete idxp; delete offp; // deleting vectors after copying
+  return reinterpret_cast<exrpc_ptr_t>(retp);
 }
 
 // CAUTION: vecp: accepts base address of the allocated memory pointer, 
@@ -393,6 +436,14 @@ create_crs_data(std::vector<exrpc_ptr_t>& mat_eps,
                 size_t& nrows, size_t& ncols) {
   return create_and_set_data<crs_matrix<T,I,O>,
          crs_matrix_local<T,I,O>>(mat_eps,nrows,ncols);
+}
+
+template <class T, class I=size_t, class O=size_t>
+dummy_matrix 
+to_crs_dummy_matrix(std::vector<exrpc_ptr_t>& mat_eps,
+                    size_t& nrows, size_t& ncols) {
+  auto matp = create_crs_data<T,I,O>(mat_eps, nrows, ncols);
+  return to_dummy_matrix<crs_matrix<T,I,O>, crs_matrix_local<T,I,O>>(matp);
 }
 
 // spmv

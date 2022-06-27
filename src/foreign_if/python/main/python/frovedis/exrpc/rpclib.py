@@ -693,6 +693,12 @@ df_datetime_operation.argtypes = [c_char_p, c_int, c_long,            # host, po
                                   c_ulong, c_bool]                    # opt, with_index
 df_datetime_operation.restype = py_object
 
+df_concat_columns = LIB.df_concat_columns
+df_concat_columns.argtypes = [c_char_p, c_int, c_long,                 # host, port, proxy
+                              c_char_p, POINTER(c_char_p), c_char_p,   # sep, cols, as_name
+                              c_bool, c_char_p,                        # cast_as_datetime, fmt
+                              c_bool, c_ulong]                         # with_index, size
+df_concat_columns.restype = py_object
 
 # --- Frovedis dftable_to_sparse_info ---
 load_dftable_to_sparse_info = LIB.load_dftable_to_sparse_info
@@ -718,7 +724,7 @@ create_frovedis_crs_II_matrix.argtypes = [c_char_p, c_int,
                                           flags="C_CONTIGUOUS"),\
                                           ndpointer(c_long, ndim=1,\
                                           flags="C_CONTIGUOUS"),\
-                                          c_ulong]
+                                          c_ulong, c_bool]
 create_frovedis_crs_II_matrix.restype = py_object
 
 create_frovedis_crs_IL_matrix = LIB.create_frovedis_crs_IL_matrix
@@ -730,7 +736,7 @@ create_frovedis_crs_IL_matrix.argtypes = [c_char_p, c_int,
                                           flags="C_CONTIGUOUS"),\
                                           ndpointer(c_long, ndim=1,\
                                           flags="C_CONTIGUOUS"),\
-                                          c_ulong]
+                                          c_ulong, c_bool]
 create_frovedis_crs_IL_matrix.restype = py_object
 
 create_frovedis_crs_LI_matrix = LIB.create_frovedis_crs_LI_matrix
@@ -742,7 +748,7 @@ create_frovedis_crs_LI_matrix.argtypes = [c_char_p, c_int,
                                           flags="C_CONTIGUOUS"),\
                                           ndpointer(c_long, ndim=1,\
                                           flags="C_CONTIGUOUS"),\
-                                          c_ulong]
+                                          c_ulong, c_bool]
 create_frovedis_crs_LI_matrix.restype = py_object
 
 create_frovedis_crs_LL_matrix = LIB.create_frovedis_crs_LL_matrix
@@ -754,7 +760,7 @@ create_frovedis_crs_LL_matrix.argtypes = [c_char_p, c_int,
                                           flags="C_CONTIGUOUS"),\
                                           ndpointer(c_long, ndim=1,\
                                           flags="C_CONTIGUOUS"),\
-                                          c_ulong]
+                                          c_ulong, c_bool]
 create_frovedis_crs_LL_matrix.restype = py_object
 
 create_frovedis_crs_FI_matrix = LIB.create_frovedis_crs_FI_matrix
@@ -766,7 +772,7 @@ create_frovedis_crs_FI_matrix.argtypes = [c_char_p, c_int,
                                           flags="C_CONTIGUOUS"),\
                                           ndpointer(c_long, ndim=1,\
                                           flags="C_CONTIGUOUS"),\
-                                          c_ulong]
+                                          c_ulong, c_bool]
 create_frovedis_crs_FI_matrix.restype = py_object
 
 create_frovedis_crs_FL_matrix = LIB.create_frovedis_crs_FL_matrix
@@ -778,7 +784,7 @@ create_frovedis_crs_FL_matrix.argtypes = [c_char_p, c_int,
                                           flags="C_CONTIGUOUS"),\
                                           ndpointer(c_long, ndim=1,\
                                           flags="C_CONTIGUOUS"),\
-                                          c_ulong]
+                                          c_ulong, c_bool]
 create_frovedis_crs_FL_matrix.restype = py_object
 
 create_frovedis_crs_DI_matrix = LIB.create_frovedis_crs_DI_matrix
@@ -790,7 +796,7 @@ create_frovedis_crs_DI_matrix.argtypes = [c_char_p, c_int,
                                           flags="C_CONTIGUOUS"),
                                           ndpointer(c_long, ndim=1,\
                                           flags="C_CONTIGUOUS"),
-                                          c_ulong]
+                                          c_ulong, c_bool]
 create_frovedis_crs_DI_matrix.restype = py_object
 
 create_frovedis_crs_DL_matrix = LIB.create_frovedis_crs_DL_matrix
@@ -802,7 +808,7 @@ create_frovedis_crs_DL_matrix.argtypes = [c_char_p, c_int,
                                           flags="C_CONTIGUOUS"),\
                                           ndpointer(c_long, ndim=1,\
                                           flags="C_CONTIGUOUS"),
-                                          c_ulong]
+                                          c_ulong, c_bool]
 create_frovedis_crs_DL_matrix.restype = py_object
 
 get_crs_matrix_components = LIB.get_crs_matrix_components
@@ -961,7 +967,7 @@ create_frovedis_double_dense_matrix.argtypes = [c_char_p, c_int,\
                                        c_ulong, c_ulong,\
                                        ndpointer(c_double, ndim=1,\
                                        flags="C_CONTIGUOUS"),\
-                                       c_char]
+                                       c_char, c_bool]
 create_frovedis_double_dense_matrix.restype = py_object
 
 create_frovedis_float_dense_matrix = LIB.create_frovedis_float_dense_matrix
@@ -969,7 +975,7 @@ create_frovedis_float_dense_matrix.argtypes = [c_char_p, c_int,\
                                        c_ulong, c_ulong,\
                                        ndpointer(c_float, ndim=1,\
                                        flags="C_CONTIGUOUS"),\
-                                       c_char]
+                                       c_char, c_bool]
 create_frovedis_float_dense_matrix.restype = py_object
 
 
@@ -979,7 +985,7 @@ create_frovedis_long_dense_matrix.argtypes = [c_char_p, c_int,\
                                        c_ulong, c_ulong,\
                                        ndpointer(c_long, ndim=1,\
                                        flags="C_CONTIGUOUS"),\
-                                       c_char]
+                                       c_char, c_bool]
 create_frovedis_long_dense_matrix.restype = py_object
 
 
@@ -989,7 +995,7 @@ create_frovedis_int_dense_matrix.argtypes = [c_char_p, c_int,\
                                        c_ulong, c_ulong,\
                                        ndpointer(c_int, ndim=1,\
                                        flags="C_CONTIGUOUS"),\
-                                       c_char]
+                                       c_char, c_bool]
 create_frovedis_int_dense_matrix.restype = py_object
 
 

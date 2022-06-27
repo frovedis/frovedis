@@ -123,197 +123,434 @@ prepare_scattered_rowmajor_matrices(T* valp, size_t nrow, size_t ncol,
                            
 extern "C" {
 
+  std::vector<exrpc_ptr_t>
+  vector_raw_transfer(exrpc_node& fm_node,
+                      char* vv, short dtype,
+                      std::vector<size_t>& sizes,
+                      std::vector<size_t>& starts) {
+    auto nodes = get_worker_nodes_for_vector_rawsend(fm_node);
+    auto wsize = nodes.size();
+
+    // step #1: allocate memory for vector
+    std::vector<frovedis_mem_pair> mempair(wsize); // <conptr, rawptr>
+    switch(dtype) {
+      case DOUBLE: {
+#pragma omp parallel for num_threads(wsize)
+        for(size_t i = 0; i < wsize; ++i) {
+          mempair[i] = exrpc_async(nodes[i], allocate_vector<double>,
+                                   sizes[i]).get();
+        } break;
+      }
+      case FLOAT: {
+#pragma omp parallel for num_threads(wsize)
+        for(size_t i = 0; i < wsize; ++i) {
+          mempair[i] = exrpc_async(nodes[i], allocate_vector<float>,
+                                   sizes[i]).get();
+        } break;
+      }
+      case LONG: {
+#pragma omp parallel for num_threads(wsize)
+        for(size_t i = 0; i < wsize; ++i) {
+          mempair[i] = exrpc_async(nodes[i], allocate_vector<long>,
+                                   sizes[i]).get();
+        } break;
+      }
+      case INT: {
+#pragma omp parallel for num_threads(wsize)
+        for(size_t i = 0; i < wsize; ++i) {
+          mempair[i] = exrpc_async(nodes[i], allocate_vector<int>,
+                                   sizes[i]).get();
+        } break;
+      }
+      default: REPORT_ERROR(INTERNAL_ERROR,
+               "Unsupported dtype for vector_raw_transfer!\n");
+    }
+
+    // step #2: transfer raw data to fill allocated vector at server side
+    std::vector<exrpc_ptr_t> evec(wsize);
+    switch(dtype) {
+      case DOUBLE: {
+#pragma omp parallel for num_threads(wsize)
+        for(size_t i = 0; i < wsize; ++i) {
+          evec[i] = mempair[i].first();
+          auto recvbufp = mempair[i].second();
+          auto sendbufp = vv + starts[i] * sizeof(double);
+          exrpc_rawsend(nodes[i], sendbufp, recvbufp, sizeof(double) * sizes[i]);
+        }
+        break;
+      }
+      case FLOAT: {
+#pragma omp parallel for num_threads(wsize)
+        for(size_t i = 0; i < wsize; ++i) {
+          evec[i] = mempair[i].first();
+          auto recvbufp = mempair[i].second();
+          auto sendbufp = vv + starts[i] * sizeof(float);
+          exrpc_rawsend(nodes[i], sendbufp, recvbufp, sizeof(float) * sizes[i]);
+        }
+        break;
+      }
+      case LONG: {
+#pragma omp parallel for num_threads(wsize)
+        for(size_t i = 0; i < wsize; ++i) {
+          evec[i] = mempair[i].first();
+          auto recvbufp = mempair[i].second();
+          auto sendbufp = vv + starts[i] * sizeof(long);
+          exrpc_rawsend(nodes[i], sendbufp, recvbufp, sizeof(long) * sizes[i]);
+        }
+        break;
+      }
+      case INT: {
+#pragma omp parallel for num_threads(wsize)
+        for(size_t i = 0; i < wsize; ++i) {
+          evec[i] = mempair[i].first();
+          auto recvbufp = mempair[i].second();
+          auto sendbufp = vv + starts[i] * sizeof(int);
+          exrpc_rawsend(nodes[i], sendbufp, recvbufp, sizeof(int) * sizes[i]);
+        }
+        break;
+      }
+      default: REPORT_ERROR(INTERNAL_ERROR,
+               "Unsupported dtype for vector_raw_transfer!\n");
+    }
+    return evec;
+  }
+
+  std::vector<exrpc_ptr_t>
+  crs_serialize_transfer(exrpc_node& fm_node,
+                         char* valbufp, char* idxbufp, long* oo,
+                         ulong nrow, ulong ncol, ulong nelem,
+                         short dtype, short itype) {
+    auto nodes = get_worker_nodes(fm_node);
+    auto wsize = nodes.size();
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+
+    if (dtype == INT && itype == INT) { // II
+       auto vv = reinterpret_cast<int*>(valbufp);
+       auto ii = reinterpret_cast<int*>(idxbufp);
+       auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, 
+                                                   ncol, nelem, wsize);
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        res[i] = exrpc_async(nodes[i], load_local_data<S_LMAT44>, mdist[i]);
+      }
+    } else if (dtype == INT && itype == LONG) { // IL
+       auto vv = reinterpret_cast<int*>(valbufp);
+       auto ii = reinterpret_cast<long*>(idxbufp);
+       auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, 
+                                                   ncol, nelem, wsize);
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        res[i] = exrpc_async(nodes[i], load_local_data<S_LMAT45>, mdist[i]);
+      }
+    } else if (dtype == LONG && itype == INT) { // LI
+       auto vv = reinterpret_cast<long*>(valbufp);
+       auto ii = reinterpret_cast<int*>(idxbufp);
+       auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, 
+                                                   ncol, nelem, wsize);
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        res[i] = exrpc_async(nodes[i], load_local_data<S_LMAT34>, mdist[i]);
+      }
+    } else if (dtype == LONG && itype == LONG) { // LL
+       auto vv = reinterpret_cast<long*>(valbufp);
+       auto ii = reinterpret_cast<long*>(idxbufp);
+       auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, 
+                                                   ncol, nelem, wsize);
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        res[i] = exrpc_async(nodes[i], load_local_data<S_LMAT35>, mdist[i]);
+      }
+    } else if (dtype == FLOAT && itype == INT) { // FI
+       auto vv = reinterpret_cast<float*>(valbufp);
+       auto ii = reinterpret_cast<int*>(idxbufp);
+       auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, 
+                                                   ncol, nelem, wsize);
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        res[i] = exrpc_async(nodes[i], load_local_data<S_LMAT24>, mdist[i]);
+      }
+    } else if (dtype == FLOAT && itype == LONG) { // FL
+       auto vv = reinterpret_cast<float*>(valbufp);
+       auto ii = reinterpret_cast<long*>(idxbufp);
+       auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, 
+                                                   ncol, nelem, wsize);
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        res[i] = exrpc_async(nodes[i], load_local_data<S_LMAT25>, mdist[i]);
+      }
+    } else if (dtype == DOUBLE && itype == INT) { // DI
+       auto vv = reinterpret_cast<double*>(valbufp);
+       auto ii = reinterpret_cast<int*>(idxbufp);
+       auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, 
+                                                   ncol, nelem, wsize);
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        res[i] = exrpc_async(nodes[i], load_local_data<S_LMAT14>, mdist[i]);
+      }
+    } else if (dtype == DOUBLE && itype == LONG) { // DL
+       auto vv = reinterpret_cast<double*>(valbufp);
+       auto ii = reinterpret_cast<long*>(idxbufp);
+       auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, 
+                                                   ncol, nelem, wsize);
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        res[i] = exrpc_async(nodes[i], load_local_data<S_LMAT15>, mdist[i]);
+      }
+    } else {
+      REPORT_ERROR(INTERNAL_ERROR, 
+                   "Unsupported dtype/itype for crs_serialize_transfer!\n");
+    }
+
+    std::vector<exrpc_ptr_t> eps(wsize);
+    get_exrpc_result(eps, res, wsize);      
+    return eps;
+  }
+
+  std::vector<exrpc_ptr_t>
+  crs_raw_transfer(exrpc_node& fm_node,
+                   char* valbufp, char* idxbufp, long* offbufp,
+                   ulong nrow, ulong ncol, ulong nelem,
+                   short dtype, short itype) {
+    // calculation for distributing input buffers among server processes
+    auto wsize = exrpc_async0(fm_node, get_nodesize).get();
+    auto div_row = get_crs_row_division(offbufp, nrow, nelem, wsize);
+
+    std::vector<size_t> nrows(wsize), valstarts(wsize), valsizes(wsize);
+    std::vector<size_t> offstarts(wsize), offsizes(wsize);
+    for (size_t i = 0; i < wsize; ++i) {
+      auto start_row = div_row[i];
+      auto end_row = div_row[i + 1];
+      nrows[i] = end_row - start_row;
+      valsizes[i]  = offbufp[end_row] - offbufp[start_row];
+      valstarts[i] = offbufp[start_row];
+      offstarts[i] = start_row;
+      offsizes[i]  = end_row - start_row + 1;
+    }
+
+    // transfer val, idx and offset vectors
+    auto eval = vector_raw_transfer(fm_node, valbufp, dtype, valsizes, valstarts);
+    auto eidx = vector_raw_transfer(fm_node, idxbufp, itype, valsizes, valstarts);
+    auto char_offbufp = reinterpret_cast<char*>(offbufp);
+    auto eoff = vector_raw_transfer(fm_node, char_offbufp, LONG, offsizes, offstarts);
+
+    auto nodes = get_worker_nodes(fm_node);
+    std::vector<exrpc_ptr_t> eps(wsize);
+
+    // create object of crs_matrix_local<T,I,O> at server side
+    if (dtype == INT && itype == INT) {
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        eps[i] = exrpc_async(nodes[i], (create_local_crs<int,int,size_t,int,int,long>),
+                             eval[i], eidx[i], eoff[i], nrows[i], ncol).get();
+      }
+    } else if (dtype == INT && itype == LONG) {
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        eps[i] = exrpc_async(nodes[i], (create_local_crs<int,size_t,size_t,int,long,long>),
+                             eval[i], eidx[i], eoff[i], nrows[i], ncol).get();
+      }
+    } else if (dtype == LONG && itype == INT) {
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        eps[i] = exrpc_async(nodes[i], (create_local_crs<long,int,size_t,long,int,long>),
+                             eval[i], eidx[i], eoff[i], nrows[i], ncol).get();
+      }
+    } else if (dtype == LONG && itype == LONG) {
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        eps[i] = exrpc_async(nodes[i], (create_local_crs<long,size_t,size_t,long,long,long>),
+                             eval[i], eidx[i], eoff[i], nrows[i], ncol).get();
+      }
+    } else if (dtype == FLOAT && itype == INT) {
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        eps[i] = exrpc_async(nodes[i], (create_local_crs<float,int,size_t,float,int,long>),
+                             eval[i], eidx[i], eoff[i], nrows[i], ncol).get();
+      }
+    } else if (dtype == FLOAT && itype == LONG) {
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        eps[i] = exrpc_async(nodes[i], (create_local_crs<float,size_t,size_t,float,long,long>),
+                             eval[i], eidx[i], eoff[i], nrows[i], ncol).get();
+      }
+    } else if (dtype == DOUBLE && itype == INT) {
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        eps[i] = exrpc_async(nodes[i], (create_local_crs<double,int,size_t,double,int,long>),
+                             eval[i], eidx[i], eoff[i], nrows[i], ncol).get();
+      }
+    } else if (dtype == DOUBLE && itype == LONG) {
+#pragma omp parallel for num_threads(wsize)
+      for(size_t i = 0; i < wsize; ++i) {
+        eps[i] = exrpc_async(nodes[i], (create_local_crs<double,size_t,size_t,double,long,long>),
+                             eval[i], eidx[i], eoff[i], nrows[i], ncol).get();
+      }
+    } else {
+      REPORT_ERROR(INTERNAL_ERROR, 
+                   "Unsupported dtype/itype for crs_raw_transfer!\n");
+    }
+    return eps;
+  }
+
   // --- frovedis crs matrx create/load/save/view/release ---
   std::vector<exrpc_ptr_t>
   get_each_II_crs_matrix_local_pointers(const char* host, int port,
                                         ulong nrow, ulong ncol,
                                         int* vv, int* ii, long* oo, 
-                                        ulong nelem) {
+                                        ulong nelem, bool rawsend) {
     ASSERT_PTR(vv); ASSERT_PTR(ii); ASSERT_PTR(oo);
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    // getting frovedis worker information
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
     exrpc_node fm_node(host,port);
-    auto nodes = get_worker_nodes(fm_node);
-    auto wsize = nodes.size();
-    // scattering scipy crs-data in (python) client side
-    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
-                                                wsize);
-    std::vector<exrpc_ptr_t> eps(wsize);
-    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for num_threads(wsize)
-    for(size_t i=0; i<wsize; ++i) {
-      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT44>,mdist[i]);
+
+    auto valbufp = reinterpret_cast<char*>(vv);
+    auto idxbufp = reinterpret_cast<char*>(ii);
+    if (rawsend) {
+      return crs_raw_transfer(fm_node, valbufp, idxbufp, oo, 
+                              nrow, ncol, nelem, INT, INT);
+    } else {
+      return crs_serialize_transfer(fm_node, valbufp, idxbufp, oo, 
+                                    nrow, ncol, nelem, INT, INT);
     }
-    get_exrpc_result(eps, res, wsize);
-    return eps;
   }
 
   std::vector<exrpc_ptr_t>
   get_each_IL_crs_matrix_local_pointers(const char* host, int port,
                                         ulong nrow, ulong ncol,
                                         int* vv, long* ii, long* oo, 
-                                        ulong nelem) {
+                                        ulong nelem, bool rawsend) {
     ASSERT_PTR(vv); ASSERT_PTR(ii); ASSERT_PTR(oo);
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    // getting frovedis worker information
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
     exrpc_node fm_node(host,port);
-    auto nodes = get_worker_nodes(fm_node);
-    auto wsize = nodes.size();
-    // scattering scipy crs-data in (python) client side    
-    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
-                                                wsize);
-    std::vector<exrpc_ptr_t> eps(wsize);
-    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for num_threads(wsize)
-    for(size_t i=0; i<wsize; ++i) {
-      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT45>,mdist[i]);
+
+    auto valbufp = reinterpret_cast<char*>(vv);
+    auto idxbufp = reinterpret_cast<char*>(ii);
+    if (rawsend) {
+      return crs_raw_transfer(fm_node, valbufp, idxbufp, oo,
+                              nrow, ncol, nelem, INT, LONG);
+    } else {
+      return crs_serialize_transfer(fm_node, valbufp, idxbufp, oo,
+                                    nrow, ncol, nelem, INT, LONG);
     }
-    get_exrpc_result(eps, res, wsize);
-    return eps;
   }
 
   std::vector<exrpc_ptr_t>
   get_each_LI_crs_matrix_local_pointers(const char* host, int port,
                                         ulong nrow, ulong ncol,
                                         long* vv, int* ii, long* oo, 
-                                        ulong nelem) {
+                                        ulong nelem, bool rawsend) {
     ASSERT_PTR(vv); ASSERT_PTR(ii); ASSERT_PTR(oo);
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    // getting frovedis worker information
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
     exrpc_node fm_node(host,port);
-    auto nodes = get_worker_nodes(fm_node);
-    auto wsize = nodes.size();
-    // scattering scipy crs-data in (python) client side    
-    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
-                                                wsize);
-    std::vector<exrpc_ptr_t> eps(wsize);
-    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for num_threads(wsize)
-    for(size_t i=0; i<wsize; ++i) {
-      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT34>,mdist[i]);
+
+    auto valbufp = reinterpret_cast<char*>(vv);
+    auto idxbufp = reinterpret_cast<char*>(ii);
+    if (rawsend) {
+      return crs_raw_transfer(fm_node, valbufp, idxbufp, oo,
+                              nrow, ncol, nelem, LONG, INT);
+    } else {
+      return crs_serialize_transfer(fm_node, valbufp, idxbufp, oo,
+                                    nrow, ncol, nelem, LONG, INT);
     }
-    get_exrpc_result(eps, res, wsize);
-    return eps;
   }
 
   std::vector<exrpc_ptr_t>
   get_each_LL_crs_matrix_local_pointers(const char* host, int port,
                                         ulong nrow, ulong ncol,
                                         long* vv, long* ii, long* oo, 
-                                        ulong nelem) {
+                                        ulong nelem, bool rawsend) {
     ASSERT_PTR(vv); ASSERT_PTR(ii); ASSERT_PTR(oo);
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    // getting frovedis worker information
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
     exrpc_node fm_node(host,port);
-    auto nodes = get_worker_nodes(fm_node);
-    auto wsize = nodes.size();
-    // scattering scipy crs-data in (python) client side    
-    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
-                                                wsize);
-    std::vector<exrpc_ptr_t> eps(wsize);
-    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for num_threads(wsize)
-    for(size_t i=0; i<wsize; ++i) {
-      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT35>,mdist[i]);
+
+    auto valbufp = reinterpret_cast<char*>(vv);
+    auto idxbufp = reinterpret_cast<char*>(ii);
+    if (rawsend) {
+      return crs_raw_transfer(fm_node, valbufp, idxbufp, oo,
+                              nrow, ncol, nelem, LONG, LONG);
+    } else {
+      return crs_serialize_transfer(fm_node, valbufp, idxbufp, oo,
+                                    nrow, ncol, nelem, LONG, LONG);
     }
-    get_exrpc_result(eps, res, wsize);
-    return eps;
   }
 
   std::vector<exrpc_ptr_t>
   get_each_FI_crs_matrix_local_pointers(const char* host, int port,
                                         ulong nrow, ulong ncol,
                                         float* vv, int* ii, long* oo, 
-                                        ulong nelem) {
+                                        ulong nelem, bool rawsend) {
     ASSERT_PTR(vv); ASSERT_PTR(ii); ASSERT_PTR(oo);
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    // getting frovedis worker information
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
     exrpc_node fm_node(host,port);
-    auto nodes = get_worker_nodes(fm_node);
-    auto wsize = nodes.size();
-    // scattering scipy crs-data in (python) client side    
-    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
-                                                wsize);
-    std::vector<exrpc_ptr_t> eps(wsize);
-    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for num_threads(wsize)
-    for(size_t i=0; i<wsize; ++i) {
-      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT24>,mdist[i]);
+
+    auto valbufp = reinterpret_cast<char*>(vv);
+    auto idxbufp = reinterpret_cast<char*>(ii);
+    if (rawsend) {
+      return crs_raw_transfer(fm_node, valbufp, idxbufp, oo,
+                              nrow, ncol, nelem, FLOAT, INT);
+    } else {
+      return crs_serialize_transfer(fm_node, valbufp, idxbufp, oo,
+                                    nrow, ncol, nelem, FLOAT, INT);
     }
-    get_exrpc_result(eps, res, wsize);
-    return eps;
   }
 
   std::vector<exrpc_ptr_t>
   get_each_FL_crs_matrix_local_pointers(const char* host, int port,
                                         ulong nrow, ulong ncol,
                                         float* vv, long* ii, long* oo, 
-                                        ulong nelem) {
+                                        ulong nelem, bool rawsend) {
     ASSERT_PTR(vv); ASSERT_PTR(ii); ASSERT_PTR(oo);
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    // getting frovedis worker information
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
     exrpc_node fm_node(host,port);
-    auto nodes = get_worker_nodes(fm_node);
-    auto wsize = nodes.size();
-    // scattering scipy crs-data in (python) client side    
-    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
-                                                wsize);
-    std::vector<exrpc_ptr_t> eps(wsize);
-    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for num_threads(wsize)
-    for(size_t i=0; i<wsize; ++i) {
-      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT25>,mdist[i]);
+
+    auto valbufp = reinterpret_cast<char*>(vv);
+    auto idxbufp = reinterpret_cast<char*>(ii);
+    if (rawsend) {
+      return crs_raw_transfer(fm_node, valbufp, idxbufp, oo,
+                              nrow, ncol, nelem, FLOAT, LONG);
+    } else {
+      return crs_serialize_transfer(fm_node, valbufp, idxbufp, oo,
+                                    nrow, ncol, nelem, FLOAT, LONG);
     }
-    get_exrpc_result(eps, res, wsize);
-    return eps;
   }
 
   std::vector<exrpc_ptr_t>
   get_each_DI_crs_matrix_local_pointers(const char* host, int port,
                                         ulong nrow, ulong ncol,
                                         double* vv, int* ii, long* oo, 
-                                        ulong nelem) {
+                                        ulong nelem, bool rawsend) {
     ASSERT_PTR(vv); ASSERT_PTR(ii); ASSERT_PTR(oo);
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    // getting frovedis worker information
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
     exrpc_node fm_node(host,port);
-    auto nodes = get_worker_nodes(fm_node);
-    auto wsize = nodes.size();
-    // scattering scipy crs-data in (python) client side    
-    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
-                                                wsize);
-    std::vector<exrpc_ptr_t> eps(wsize);
-    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for num_threads(wsize)
-    for(size_t i=0; i<wsize; ++i) {
-      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT14>,mdist[i]);
+
+    auto valbufp = reinterpret_cast<char*>(vv);
+    auto idxbufp = reinterpret_cast<char*>(ii);
+    if (rawsend) {
+      return crs_raw_transfer(fm_node, valbufp, idxbufp, oo,
+                              nrow, ncol, nelem, DOUBLE, INT);
+    } else {
+      return crs_serialize_transfer(fm_node, valbufp, idxbufp, oo,
+                                    nrow, ncol, nelem, DOUBLE, INT);
     }
-    get_exrpc_result(eps, res, wsize);
-    return eps;
   }
 
   std::vector<exrpc_ptr_t>
   get_each_DL_crs_matrix_local_pointers(const char* host, int port,
                                         ulong nrow, ulong ncol,
                                         double* vv, long* ii, long* oo, 
-                                        ulong nelem) {
+                                        ulong nelem, bool rawsend) {
     ASSERT_PTR(vv); ASSERT_PTR(ii); ASSERT_PTR(oo);
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    // getting frovedis worker information
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
     exrpc_node fm_node(host,port);
-    auto nodes = get_worker_nodes(fm_node);
-    auto wsize = nodes.size();
-    // scattering scipy crs-data in (python) client side    
-    auto mdist = prepare_scattered_crs_matrices(vv, ii, oo, nrow, ncol, nelem,
-                                                wsize);
-    std::vector<exrpc_ptr_t> eps(wsize);
-    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for num_threads(wsize)
-    for(size_t i=0; i<wsize; ++i) {
-      res[i] = exrpc_async(nodes[i],load_local_data<S_LMAT15>,mdist[i]);
+
+    auto valbufp = reinterpret_cast<char*>(vv);
+    auto idxbufp = reinterpret_cast<char*>(ii);
+    if (rawsend) {
+      return crs_raw_transfer(fm_node, valbufp, idxbufp, oo,
+                              nrow, ncol, nelem, DOUBLE, LONG);
+    } else {
+      return crs_serialize_transfer(fm_node, valbufp, idxbufp, oo,
+                                    nrow, ncol, nelem, DOUBLE, LONG);
     }
-    get_exrpc_result(eps, res, wsize);
-    return eps;
   }
 
   void get_dist_crs_II_matrix_local(exrpc_node& fm_node,
@@ -856,9 +1093,9 @@ void get_crs_DI_matrix_components(const char* host, int port,
    }
 
 
-void get_crs_DL_matrix_components(const char* host, int port,
-                         ulong dptr, double* vv, long* ii, size_t* oo){
-
+  void get_crs_DL_matrix_components(const char* host, int port,
+                                    ulong dptr, double* vv, long* ii, 
+                                    size_t* oo){
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host,port);
     auto f_dptr = (exrpc_ptr_t) dptr;
@@ -876,22 +1113,21 @@ void get_crs_DL_matrix_components(const char* host, int port,
    }
 #endif
 
-
   PyObject* create_frovedis_crs_II_matrix(const char* host, int port,
                                           ulong nrow, ulong ncol,
                                           int* vv, int* ii, long* oo,
-                                          ulong nelem) {
-    auto eps = get_each_II_crs_matrix_local_pointers(host,port,nrow,ncol,
-                                                     vv,ii,oo,nelem);
+                                          ulong nelem, bool rawsend) {
+    auto eps = get_each_II_crs_matrix_local_pointers(host, port, nrow, ncol,
+                                                     vv, ii, oo, 
+                                                     nelem, rawsend);
     // creating (frovedis) server side global matrix from dist local pointers
     exrpc_node fm_node(host,port);
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
-    exrpc_ptr_t m = 0;
     dummy_matrix dmat;
     try {
-      m = exrpc_async(fm_node,(create_crs_data<DT4,DT4,DT5>),eps,r,c).get();
-      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT44,S_LMAT44>),m).get();
+      dmat = exrpc_async(fm_node, (to_crs_dummy_matrix<DT4,DT4,DT5>), 
+                         eps, r, c).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -902,18 +1138,18 @@ void get_crs_DL_matrix_components(const char* host, int port,
   PyObject* create_frovedis_crs_IL_matrix(const char* host, int port,
                                           ulong nrow, ulong ncol,
                                           int* vv, long* ii, long* oo,
-                                          ulong nelem) {
-    auto eps = get_each_IL_crs_matrix_local_pointers(host,port,nrow,ncol,
-                                                     vv,ii,oo,nelem);
+                                          ulong nelem, bool rawsend) {
+    auto eps = get_each_IL_crs_matrix_local_pointers(host, port, nrow, ncol,
+                                                     vv, ii, oo, 
+                                                     nelem, rawsend);
     // creating (frovedis) server side global matrix from dist local pointers
     exrpc_node fm_node(host,port);
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
-    exrpc_ptr_t m = 0;
     dummy_matrix dmat;
     try {
-      m = exrpc_async(fm_node,(create_crs_data<DT4,DT5,DT5>),eps,r,c).get();
-      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT45,S_LMAT45>),m).get();
+      dmat = exrpc_async(fm_node, (to_crs_dummy_matrix<DT4,DT5,DT5>),
+                         eps, r, c).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -924,18 +1160,18 @@ void get_crs_DL_matrix_components(const char* host, int port,
   PyObject* create_frovedis_crs_LI_matrix(const char* host, int port,
                                           ulong nrow, ulong ncol,
                                           long* vv, int* ii, long* oo,
-                                          ulong nelem) {
-    auto eps = get_each_LI_crs_matrix_local_pointers(host,port,nrow,ncol,
-                                                     vv,ii,oo,nelem);
+                                          ulong nelem, bool rawsend) {
+    auto eps = get_each_LI_crs_matrix_local_pointers(host, port, nrow, ncol,
+                                                     vv, ii, oo, 
+                                                     nelem, rawsend);
     // creating (frovedis) server side global matrix from dist local pointers
     exrpc_node fm_node(host,port);
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
-    exrpc_ptr_t m = 0;
     dummy_matrix dmat;
     try {
-      m = exrpc_async(fm_node,(create_crs_data<DT3,DT4,DT5>),eps,r,c).get();
-      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT34,S_LMAT34>),m).get();
+      dmat = exrpc_async(fm_node, (to_crs_dummy_matrix<DT3,DT4,DT5>),
+                         eps, r, c).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -946,18 +1182,18 @@ void get_crs_DL_matrix_components(const char* host, int port,
   PyObject* create_frovedis_crs_LL_matrix(const char* host, int port,
                                           ulong nrow, ulong ncol,
                                           long* vv, long* ii, long* oo,
-                                          ulong nelem) {
-    auto eps = get_each_LL_crs_matrix_local_pointers(host,port,nrow,ncol,
-                                                     vv,ii,oo,nelem);
+                                          ulong nelem, bool rawsend) {
+    auto eps = get_each_LL_crs_matrix_local_pointers(host, port, nrow, ncol,
+                                                     vv, ii, oo, 
+                                                     nelem, rawsend);
     // creating (frovedis) server side global matrix from dist local pointers
     exrpc_node fm_node(host,port);
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
-    exrpc_ptr_t m = 0;
     dummy_matrix dmat;
     try {
-      m = exrpc_async(fm_node,(create_crs_data<DT3,DT5,DT5>),eps,r,c).get();
-      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT35,S_LMAT35>),m).get();
+      dmat = exrpc_async(fm_node, (to_crs_dummy_matrix<DT3,DT5,DT5>),
+                         eps, r, c).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -968,18 +1204,18 @@ void get_crs_DL_matrix_components(const char* host, int port,
   PyObject* create_frovedis_crs_FI_matrix(const char* host, int port,
                                           ulong nrow, ulong ncol,
                                           float* vv, int* ii, long* oo,
-                                          ulong nelem) {
-    auto eps = get_each_FI_crs_matrix_local_pointers(host,port,nrow,ncol,
-                                                     vv,ii,oo,nelem);
+                                          ulong nelem, bool rawsend) {
+    auto eps = get_each_FI_crs_matrix_local_pointers(host, port, nrow, ncol,
+                                                     vv, ii, oo, 
+                                                     nelem, rawsend);
     // creating (frovedis) server side global matrix from dist local pointers
     exrpc_node fm_node(host,port);
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
-    exrpc_ptr_t m = 0;
     dummy_matrix dmat;
     try {
-      m = exrpc_async(fm_node,(create_crs_data<DT2,DT4,DT5>),eps,r,c).get();
-      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT24,S_LMAT24>),m).get();
+      dmat = exrpc_async(fm_node, (to_crs_dummy_matrix<DT2,DT4,DT5>),
+                         eps, r, c).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -990,18 +1226,18 @@ void get_crs_DL_matrix_components(const char* host, int port,
   PyObject* create_frovedis_crs_FL_matrix(const char* host, int port,
                                           ulong nrow, ulong ncol,
                                           float* vv, long* ii, long* oo,
-                                          ulong nelem) {
-    auto eps = get_each_FL_crs_matrix_local_pointers(host,port,nrow,ncol,
-                                                     vv,ii,oo,nelem);
+                                          ulong nelem, bool rawsend) {
+    auto eps = get_each_FL_crs_matrix_local_pointers(host, port, nrow, ncol,
+                                                     vv, ii, oo, 
+                                                     nelem, rawsend);
     // creating (frovedis) server side global matrix from dist local pointers
     exrpc_node fm_node(host,port);
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
-    exrpc_ptr_t m = 0;
     dummy_matrix dmat;
     try {
-      m = exrpc_async(fm_node,(create_crs_data<DT2,DT5,DT5>),eps,r,c).get();
-      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT25,S_LMAT25>),m).get();
+      dmat = exrpc_async(fm_node, (to_crs_dummy_matrix<DT2,DT5,DT5>),
+                         eps, r, c).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -1012,18 +1248,18 @@ void get_crs_DL_matrix_components(const char* host, int port,
   PyObject* create_frovedis_crs_DI_matrix(const char* host, int port,
                                           ulong nrow, ulong ncol,
                                           double* vv, int* ii, long* oo,
-                                          ulong nelem) {
-    auto eps = get_each_DI_crs_matrix_local_pointers(host,port,nrow,ncol,
-                                                     vv,ii,oo,nelem);
+                                          ulong nelem, bool rawsend) {
+    auto eps = get_each_DI_crs_matrix_local_pointers(host, port, nrow, ncol,
+                                                     vv, ii, oo, 
+                                                     nelem, rawsend);
     // creating (frovedis) server side global matrix from dist local pointers
     exrpc_node fm_node(host,port);
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
-    exrpc_ptr_t m = 0;
     dummy_matrix dmat;
     try {
-      m = exrpc_async(fm_node,(create_crs_data<DT1,DT4,DT5>),eps,r,c).get();
-      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT14,S_LMAT14>),m).get();
+      dmat = exrpc_async(fm_node, (to_crs_dummy_matrix<DT1,DT4,DT5>),
+                         eps, r, c).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -1034,18 +1270,18 @@ void get_crs_DL_matrix_components(const char* host, int port,
   PyObject* create_frovedis_crs_DL_matrix(const char* host, int port,
                                           ulong nrow, ulong ncol,
                                           double* vv, long* ii, long* oo,
-                                          ulong nelem) {
-    auto eps = get_each_DL_crs_matrix_local_pointers(host,port,nrow,ncol,
-                                                     vv,ii,oo,nelem);
+                                          ulong nelem, bool rawsend) {
+    auto eps = get_each_DL_crs_matrix_local_pointers(host, port, nrow, ncol,
+                                                     vv, ii, oo, 
+                                                     nelem, rawsend);
     // creating (frovedis) server side global matrix from dist local pointers
     exrpc_node fm_node(host,port);
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
-    exrpc_ptr_t m = 0;
     dummy_matrix dmat;
     try {
-      m = exrpc_async(fm_node,(create_crs_data<DT1,DT5,DT5>),eps,r,c).get();
-      dmat = exrpc_async(fm_node,(to_dummy_matrix<S_MAT15,S_LMAT15>),m).get();
+      dmat = exrpc_async(fm_node, (to_crs_dummy_matrix<DT1,DT5,DT5>),
+                         eps, r, c).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
@@ -1184,102 +1420,181 @@ void get_crs_DL_matrix_components(const char* host, int port,
     }
   }
 
+  std::vector<exrpc_ptr_t>
+  rowmajor_raw_transfer(exrpc_node& fm_node, 
+                        char* sendbufp, ulong nrow, ulong ncol,
+                        short dtype) {
+    auto wsize = exrpc_async0(fm_node, get_nodesize).get();
+
+    std::vector<size_t> nrows, sizes, starts;
+    get_start_size_info(nrow, wsize, starts, nrows);
+
+    sizes.resize(wsize);
+    for (size_t i = 0; i < wsize; ++i) { 
+      sizes[i]  = nrows[i] * ncol; 
+      starts[i] = starts[i] * ncol; 
+    }
+    auto evec = vector_raw_transfer(fm_node, sendbufp, dtype, sizes, starts);
+
+    auto nodes = get_worker_nodes(fm_node);
+    std::vector<exrpc_ptr_t> eps(wsize);
+    // create object of rowmajor_matrix_local<T> at server side
+#pragma omp parallel for num_threads(wsize)
+    for(size_t i = 0; i < wsize; ++i) {
+      switch(dtype) {
+        case DOUBLE: {
+          eps[i] = exrpc_async(nodes[i], create_local_rowmajor<double>, 
+                               evec[i], nrows[i], ncol).get(); break;
+        }
+        case FLOAT: {
+          eps[i] = exrpc_async(nodes[i], create_local_rowmajor<float>,
+                               evec[i], nrows[i], ncol).get(); break;
+        }
+        case LONG: {
+          eps[i] = exrpc_async(nodes[i], create_local_rowmajor<long>,
+                               evec[i], nrows[i], ncol).get(); break;
+        }
+        case INT: {
+          eps[i] = exrpc_async(nodes[i], create_local_rowmajor<int>,
+                               evec[i], nrows[i], ncol).get(); break;
+        }
+        default: REPORT_ERROR(INTERNAL_ERROR, 
+                 "Unsupported dtype for rowmajor_raw_transfer!\n");
+      }
+    }
+    return eps;
+  }
+
+  std::vector<exrpc_ptr_t>
+  rowmajor_serialize_transfer(exrpc_node& fm_node, 
+                              char* vv, ulong nrow, ulong ncol,
+                              short dtype) {
+    auto nodes = get_worker_nodes(fm_node);
+    auto wsize = nodes.size();
+    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
+    switch(dtype) {
+      case DOUBLE: {
+        auto sendbufp = reinterpret_cast<double*>(vv);
+        auto mdist = prepare_scattered_rowmajor_matrices(sendbufp, nrow, 
+                                                         ncol, wsize);
+#pragma omp parallel for num_threads(wsize)
+        for(size_t i = 0; i < wsize; ++i) { 
+          res[i] = exrpc_async(nodes[i], load_local_data<R_LMAT1>, mdist[i]);
+        }
+        break;
+      }
+      case FLOAT: {
+        auto sendbufp = reinterpret_cast<float*>(vv);
+        auto mdist = prepare_scattered_rowmajor_matrices(sendbufp, nrow, 
+                                                         ncol, wsize);
+#pragma omp parallel for num_threads(wsize)
+        for(size_t i = 0; i < wsize; ++i) { 
+          res[i] = exrpc_async(nodes[i], load_local_data<R_LMAT2>, mdist[i]);
+        }
+        break;
+      }
+      case LONG: {
+        auto sendbufp = reinterpret_cast<long*>(vv);
+        auto mdist = prepare_scattered_rowmajor_matrices(sendbufp, nrow, 
+                                                         ncol, wsize);
+#pragma omp parallel for num_threads(wsize)
+        for(size_t i = 0; i < wsize; ++i) { 
+          res[i] = exrpc_async(nodes[i], load_local_data<R_LMAT3>, mdist[i]);
+        }
+        break;
+      }
+      case INT: {
+        auto sendbufp = reinterpret_cast<int*>(vv);
+        auto mdist = prepare_scattered_rowmajor_matrices(sendbufp, nrow, 
+                                                         ncol, wsize);
+#pragma omp parallel for num_threads(wsize)
+        for(size_t i = 0; i < wsize; ++i) { 
+          res[i] = exrpc_async(nodes[i], load_local_data<R_LMAT4>, mdist[i]);
+        }
+        break;
+      }
+      default: REPORT_ERROR(INTERNAL_ERROR, 
+               "Unsupported dtype for rowmajor_serialize_transfer!\n");
+    }
+    std::vector<exrpc_ptr_t> eps(wsize);
+    get_exrpc_result(eps, res, wsize);
+    return eps;
+  }
+
   // --- Frovedis Dense matrices load/save/transpose/view/release ---
   std::vector<exrpc_ptr_t>
   get_each_double_rml_pointers_from_numpy_matrix(const char* host, int port,
                                                  ulong nrow, ulong ncol, 
-                                                 double* vv) {
-    ASSERT_PTR(vv); 
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    // getting frovedis worker information
-    exrpc_node fm_node(host,port);
-    auto nodes = get_worker_nodes(fm_node);
-    auto wsize = nodes.size();
-    // scattering numpy matrix in (python) client side
-    auto mdist = prepare_scattered_rowmajor_matrices(vv,nrow,ncol,wsize);
-    std::vector<exrpc_ptr_t> eps(wsize);
-    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for num_threads(wsize)
-    for(size_t i=0; i<wsize; ++i) { 
-      res[i] = exrpc_async(nodes[i],load_local_data<R_LMAT1>,mdist[i]);
+                                                 double* vv, bool rawsend) {
+    ASSERT_PTR(vv);
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+
+    auto sendbufp = reinterpret_cast<char*>(vv);
+    if (rawsend) {
+      return rowmajor_raw_transfer(fm_node, sendbufp, nrow, ncol, DOUBLE);
+    } else {
+      return rowmajor_serialize_transfer(fm_node, sendbufp, nrow, ncol, DOUBLE);
     }
-    get_exrpc_result(eps, res, wsize);
-    return eps;
   }
 
   std::vector<exrpc_ptr_t>
   get_each_float_rml_pointers_from_numpy_matrix(const char* host, int port,
                                                 ulong nrow, ulong ncol, 
-                                                float* vv) {
+                                                float* vv, bool rawsend) {
     ASSERT_PTR(vv);
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    // getting frovedis worker information
-    exrpc_node fm_node(host,port);
-    auto nodes = get_worker_nodes(fm_node);
-    auto wsize = nodes.size();
-    // scattering numpy matrix in (python) client side
-    auto mdist = prepare_scattered_rowmajor_matrices(vv,nrow,ncol,wsize);
-    std::vector<exrpc_ptr_t> eps(wsize);
-    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for num_threads(wsize)
-    for(size_t i=0; i<wsize; ++i) {
-      res[i] = exrpc_async(nodes[i],load_local_data<R_LMAT2>,mdist[i]);
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+
+    auto sendbufp = reinterpret_cast<char*>(vv);
+    if (rawsend) {
+      return rowmajor_raw_transfer(fm_node, sendbufp, nrow, ncol, FLOAT);
+    } else {
+      return rowmajor_serialize_transfer(fm_node, sendbufp, nrow, ncol, FLOAT);
     }
-    get_exrpc_result(eps, res, wsize);
-    return eps;
   }
   
   std::vector<exrpc_ptr_t>
   get_each_long_rml_pointers_from_numpy_matrix(const char* host, int port,
                                                ulong nrow, ulong ncol, 
-                                               long* vv) {
+                                               long* vv, bool rawsend) {
     ASSERT_PTR(vv);
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    // getting frovedis worker information
-    exrpc_node fm_node(host,port);
-    auto nodes = get_worker_nodes(fm_node);
-    auto wsize = nodes.size();
-    // scattering numpy matrix in (python) client side
-    auto mdist = prepare_scattered_rowmajor_matrices(vv,nrow,ncol,wsize);
-    std::vector<exrpc_ptr_t> eps(wsize);
-    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for num_threads(wsize)
-    for(size_t i=0; i<wsize; ++i) {
-      res[i] = exrpc_async(nodes[i],load_local_data<R_LMAT3>,mdist[i]);
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+
+    auto sendbufp = reinterpret_cast<char*>(vv);
+    if (rawsend) {
+      return rowmajor_raw_transfer(fm_node, sendbufp, nrow, ncol, LONG);
+    } else {
+      return rowmajor_serialize_transfer(fm_node, sendbufp, nrow, ncol, LONG);
     }
-    get_exrpc_result(eps, res, wsize);
-    return eps;
   }
 
   std::vector<exrpc_ptr_t>
   get_each_int_rml_pointers_from_numpy_matrix(const char* host, int port,
                                               ulong nrow, ulong ncol, 
-                                              int* vv) {
+                                              int* vv, bool rawsend) {
     ASSERT_PTR(vv);
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    // getting frovedis worker information
-    exrpc_node fm_node(host,port);
-    auto nodes = get_worker_nodes(fm_node);
-    auto wsize = nodes.size();
-    // scattering numpy matrix in (python) client side
-    auto mdist = prepare_scattered_rowmajor_matrices(vv,nrow,ncol,wsize);
-    std::vector<exrpc_ptr_t> eps(wsize);
-    std::vector<exrpc_result<exrpc_ptr_t>> res(wsize);
-#pragma omp parallel for num_threads(wsize)
-    for(size_t i=0; i<wsize; ++i) {
-      res[i] = exrpc_async(nodes[i],load_local_data<R_LMAT4>,mdist[i]);
+    if(!host) REPORT_ERROR(USER_ERROR, "Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+
+    auto sendbufp = reinterpret_cast<char*>(vv);
+    if (rawsend) {
+      return rowmajor_raw_transfer(fm_node, sendbufp, nrow, ncol, INT);
+    } else {
+      return rowmajor_serialize_transfer(fm_node, sendbufp, nrow, ncol, INT);
     }
-    get_exrpc_result(eps, res, wsize);
-    return eps;
   }
 
   // create from python (numpy) data
   PyObject* create_frovedis_double_dense_matrix(const char* host, int port,
                                                 ulong nrow, ulong  ncol, 
-                                                double* vv, char mtype) {
-    auto eps = get_each_double_rml_pointers_from_numpy_matrix(host,port,nrow,ncol,vv);
+                                                double* vv, char mtype,
+                                                bool rawsend) {
+    auto eps = get_each_double_rml_pointers_from_numpy_matrix(
+                 host, port, nrow, ncol, vv, rawsend);
     // creating (frovedis) server side dense matrix from local pointers
-    exrpc_node fm_node(host,port);
+    exrpc_node fm_node(host, port);
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
     exrpc_ptr_t m = 0;
@@ -1299,10 +1614,12 @@ void get_crs_DL_matrix_components(const char* host, int port,
    
   PyObject* create_frovedis_float_dense_matrix(const char* host, int port,
                                                ulong nrow, ulong ncol,
-                                               float* vv, char mtype) {
-    auto eps = get_each_float_rml_pointers_from_numpy_matrix(host,port,nrow,ncol,vv);
+                                               float* vv, char mtype,
+                                               bool rawsend) {
+    auto eps = get_each_float_rml_pointers_from_numpy_matrix(
+                 host, port, nrow, ncol, vv, rawsend);
     // creating (frovedis) server side dense matrix from local pointers
-    exrpc_node fm_node(host,port);
+    exrpc_node fm_node(host, port);
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
     exrpc_ptr_t m = 0;
@@ -1322,10 +1639,12 @@ void get_crs_DL_matrix_components(const char* host, int port,
 
   PyObject* create_frovedis_long_dense_matrix(const char* host, int port,
                                               ulong nrow, ulong ncol,
-                                              long* vv, char mtype) {
-    auto eps = get_each_long_rml_pointers_from_numpy_matrix(host,port,nrow,ncol,vv);
+                                              long* vv, char mtype, 
+                                              bool rawsend) {
+    auto eps = get_each_long_rml_pointers_from_numpy_matrix(
+                 host, port, nrow, ncol, vv, rawsend);
     // creating (frovedis) server side dense matrix from local pointers
-    exrpc_node fm_node(host,port);
+    exrpc_node fm_node(host, port);
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
     exrpc_ptr_t m = 0;
@@ -1345,10 +1664,12 @@ void get_crs_DL_matrix_components(const char* host, int port,
   
   PyObject* create_frovedis_int_dense_matrix(const char* host, int port,
                                              ulong nrow, ulong ncol,
-                                             int* vv, char mtype) {
-    auto eps = get_each_int_rml_pointers_from_numpy_matrix(host,port,nrow,ncol,vv);
+                                             int* vv, char mtype,
+                                             bool rawsend) {
+    auto eps = get_each_int_rml_pointers_from_numpy_matrix(
+                 host, port, nrow, ncol, vv, rawsend);
     // creating (frovedis) server side dense matrix from local pointers
-    exrpc_node fm_node(host,port);
+    exrpc_node fm_node(host, port);
     auto r = static_cast<size_t>(nrow);
     auto c = static_cast<size_t>(ncol);
     exrpc_ptr_t m = 0;
