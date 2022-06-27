@@ -2186,7 +2186,9 @@ crs_mm(const crs_matrix_local<T,I,O>& mat1,
 
   for(size_t r1 = 0; r1 < mat1.local_num_row; ++r1) {
     for(O c1 = offp1[r1]; c1 < offp1[r1 + 1]; ++c1) {
-      #pragma _NEC ivdep
+#pragma _NEC ivdep
+#pragma _NEC vovertake
+#pragma _NEC vob
       for(O c2 = offp2[idxp1[c1]]; c2 < offp2[idxp1[c1] + 1]; ++c2) {
         retp[r1 * mat2.local_num_col + idxp2[c2]] += valp1[c1] * valp2[c2];
       }
