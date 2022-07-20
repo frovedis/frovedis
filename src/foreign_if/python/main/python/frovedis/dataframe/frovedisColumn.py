@@ -361,7 +361,7 @@ class FrovedisColumn(object):
                    .sum(skipna=skipna, \
                         numeric_only=numeric_only, \
                         min_count=min_count) \
-                   .to_numpy()[0][0]
+                   .to_numpy()[0]
 
     def min(self, skipna=None, numeric_only=None):
         """
@@ -371,7 +371,7 @@ class FrovedisColumn(object):
         return self.get_frovedis_series() \
                    .min(skipna=skipna, \
                         numeric_only=numeric_only) \
-                   .to_numpy()[0][0]
+                   .to_numpy()[0]
 
     def max(self, skipna=None, numeric_only=None):
         """
@@ -381,7 +381,7 @@ class FrovedisColumn(object):
         return self.get_frovedis_series() \
                    .max(skipna=skipna, \
                         numeric_only=numeric_only) \
-                   .to_numpy()[0][0]
+                   .to_numpy()[0]
 
     def mean(self, skipna=None, numeric_only=None):
         """
@@ -391,7 +391,7 @@ class FrovedisColumn(object):
         return self.get_frovedis_series() \
                    .mean(skipna=skipna, \
                          numeric_only=numeric_only) \
-                   .to_numpy()[0][0]
+                   .to_numpy()[0]
 
     def mode(self, numeric_only=None, dropna=True):
         """
@@ -410,7 +410,7 @@ class FrovedisColumn(object):
         return self.get_frovedis_series() \
                    .median(skipna=skipna, \
                            numeric_only=numeric_only) \
-                   .to_numpy()[0][0]
+                   .to_numpy()[0]
 
     def var(self, skipna=None, ddof=1, numeric_only=None):
         """
@@ -421,7 +421,7 @@ class FrovedisColumn(object):
                    .var(skipna=skipna, \
                         ddof=ddof, \
                         numeric_only=numeric_only) \
-                   .to_numpy()[0][0]
+                   .to_numpy()[0]
 
     def sem(self, skipna=None, ddof=1, numeric_only=None):
         """
@@ -432,7 +432,7 @@ class FrovedisColumn(object):
                    .sem(skipna=skipna, \
                         ddof=ddof, \
                         numeric_only=numeric_only) \
-                   .to_numpy()[0][0]
+                   .to_numpy()[0]
 
     def std(self, skipna=None, ddof=1, numeric_only=None):
         """
@@ -443,7 +443,7 @@ class FrovedisColumn(object):
                    .std(skipna=skipna, \
                         ddof=ddof, \
                         numeric_only=numeric_only) \
-                   .to_numpy()[0][0]
+                   .to_numpy()[0]
 
     def mad(self, skipna=None, numeric_only=None):
         """
@@ -453,7 +453,7 @@ class FrovedisColumn(object):
         return self.get_frovedis_series() \
                    .mad(skipna=skipna, \
                         numeric_only=numeric_only) \
-                   .to_numpy()[0][0]
+                   .to_numpy()[0]
 
     def first_element(self, skipna=None):
         """

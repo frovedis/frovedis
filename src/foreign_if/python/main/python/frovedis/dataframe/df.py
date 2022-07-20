@@ -1774,10 +1774,8 @@ class DataFrame(SeriesHelper):
         frovedis dataframe to numpy array conversion
         """
         out_data = self.__to_dict_impl(orient="list", include_index=False)
-        if self.is_series:
-            return np.array(list(out_data.values()), dtype=dtype).ravel()
-        else:
-            return np.array(list(out_data.values()), dtype=dtype).T
+        arr = np.array(list(out_data.values()), dtype=dtype)
+        return arr.ravel() if self.is_series else arr.T
 
     @property
     def values(self):
@@ -3583,7 +3581,8 @@ class DataFrame(SeriesHelper):
         types = dummy_df["types"]
         ret.num_row = dummy_df["nrow"]
         ret.load_dummy(dummy_df["dfptr"], names, types)
-        ret = ret.to_numpy()[0][0]
+        arr = ret.to_numpy()
+        ret = arr[0] if self.is_series else arr[0][0]
 
         if isinstance(ret, str):
             if ret == "NULL" and param.skipna_ == True:
@@ -3614,7 +3613,8 @@ class DataFrame(SeriesHelper):
         types = dummy_df["types"]
         ret.num_row = dummy_df["nrow"]
         ret.load_dummy(dummy_df["dfptr"], names, types)
-        ret = ret.to_numpy()[0][0]
+        arr = ret.to_numpy()
+        ret = arr[0] if self.is_series else arr[0][0]
 
         if isinstance(ret, str):
             if ret == "NULL" and param.skipna_ == True:
