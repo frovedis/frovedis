@@ -25,8 +25,8 @@ aggregate operations on frovedis dataframe are illustrated here.
 An essential piece of analysis of large data is efficient summarization:
 computing aggregations like sum(), mean(), median(), min(), and max(),
 which gives insight into the nature of a potentially large dataset.
-In this section, we\[cq]ll explore list of all such aggregation
-operations done on frovedis dataframe.
+In this section, we will explore list of all such aggregation operations
+done on frovedis dataframe.
 .PP
 Aggregation can be performed in \f[B]two ways\f[R] on frovedis
 dataframe:
@@ -43,7 +43,7 @@ on frovedis dataframe.
 .IP
 .nf
 \f[C]
-1. agg(func)  
+1. agg(func=None, axis=0, *args, **kwargs)  
 2. cov((min_periods = None, ddof = 1.0, low_memory = True, other = None)
 3. mad(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
 4. max(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
@@ -59,7 +59,7 @@ on frovedis dataframe.
 \f[R]
 .fi
 .SS Detailed Description
-.SS 1. DataFrame.agg(func)
+.SS 1. DataFrame.agg(func=None, axis=0, *args, **kwargs)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -86,10 +86,27 @@ list of functions and/or function names, For example, [`max', `mean'].
 .IP \[bu] 2
 dictionary with keys as column labels and values as function name or
 list of such functions.
+.IP \[bu] 2
+In case func is None, then it will confirm if any keyword arguments are
+provided.
+If **kwargs are not provided then it will raise an Exception.
+.PP
+For Example, {`Age': [`max',`min',`mean'], `Ename': [`count']}
+.PP
+\f[B]\f[BI]axis\f[B]\f[R]: It accepts an integer or string object as
+parameter.
+It is used to decide whether to perform aggregation along the columns or
+rows.
+(Default: 0)
+.IP \[bu] 2
+\f[B]0 or `index'\f[R]: perform aggregation along the indices.
+.PP
+\f[I]\f[BI]*args\f[I]\f[R]: This is an unused parameter.
 .PD 0
 .P
 .PD
-For Example, {`Age': [`max',`min',`mean'], `Ename': [`count']}
+\f[I]\f[BI]**kwargs\f[I]\f[R]: Additional keyword arguments to be passed
+to the function.
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -98,8 +115,8 @@ For Example, {`Age': [`max',`min',`mean'], `Ename': [`count']}
 It computes an aggregate operation based on the condition specified in
 `func'.
 .PP
-\f[B]Currently, this method will perform aggregation operation along the
-rows.\f[R]
+\f[B]Currently, this method will perform aggregation operation to each
+column.\f[R]
 .PP
 \f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
@@ -196,13 +213,14 @@ std    4.853202
 \f[R]
 .fi
 .PP
-\f[B]Aggregation along the rows where func is a list of functions:\f[R]
+However, when aggregation is performed where func = `cov', then it will
+perfom covariance only on numeric columns.
 .PP
 For example,
 .IP
 .nf
 \f[C]
-print(fdf1[\[aq]Age\[aq]].agg([\[aq]max\[aq],\[aq]min\[aq],\[aq]mean\[aq]])
+print(fdf1.agg(\[aq]cov\[aq]))
 \f[R]
 .fi
 .PP
@@ -210,10 +228,72 @@ Output
 .IP
 .nf
 \f[C]
-         Age
-max   36.000
-min   22.000
-mean  29.125
+index   Age     Score
+Age     23.5535 31.8
+Score   31.8    123.766
+\f[R]
+.fi
+.PP
+\f[B]Aggregation along the rows where func is a list of functions:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print(fdf1.agg([\[aq]max\[aq],\[aq]min\[aq],\[aq]mean\[aq]]))
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+      Name     Age  City  Qualification      Score
+max    NaN  36.000   NaN            NaN  52.000000
+min    NaN  22.000   NaN            NaN  23.000000
+mean   NaN  29.125   NaN            NaN  39.833333
+\f[R]
+.fi
+.PP
+However, when list of functions contain combination of cov + other func,
+currently it will not compute covariance rather compute only aggregation
+on other function.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+print(fdf1.agg([\[aq]cov\[aq],\[aq]min\[aq]]))
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+    Name  Age City Qualification  Score
+min  nan   22  nan           nan   23.0
+\f[R]
+.fi
+.PP
+\f[B]Using keyword arguments in order to perform aggregation
+operation:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fdf1.agg(sum_age = (\[dq]Age\[dq], \[dq]sum\[dq]), min_score = (\[dq]Score\[dq], \[dq]min\[dq]))
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+             Age  Score
+sum_age    233.0    NaN
+min_score    NaN   23.0
 \f[R]
 .fi
 .PP
@@ -2815,6 +2895,11 @@ specified aggregate operation.
 .SH SEE ALSO
 .IP \[bu] 2
 \f[B]DataFrame - Introduction\f[R]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame - Indexing Operations\f[R]
 .PD 0
 .P
 .PD

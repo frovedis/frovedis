@@ -57,21 +57,23 @@ generally/frequently used with it to perform operations:
 10. dropna(axis = 0, how = \[aq]any\[aq], thresh = None, subset = None, inplace = False)
 11. fillna(value = None, method = None, axis = None, inplace = False, limit = None, downcast = None)
 12. filter(items = None, like = None, regex = None, axis = None)
-13. get_index_loc(value)
-14. head(n = 5)
-15. insert(loc, column, value, allow_duplicates = False)
-16. isna()
-17. isnull()
-18. join(right, on, how = \[aq]inner\[aq], lsuffix = \[aq]_left\[aq], rsuffix = \[aq]_right\[aq], 
+13. first_element(col_name, skipna = None)
+14. get_index_loc(value)
+15. head(n = 5)
+16. insert(loc, column, value, allow_duplicates = False)
+17. isna()
+18. isnull()
+19. join(right, on, how = \[aq]inner\[aq], lsuffix = \[aq]_left\[aq], rsuffix = \[aq]_right\[aq], 
          sort = False, join_type = \[aq]bcast\[aq])
-19. merge(right, on = None, how = \[aq]inner\[aq], left_on = None, right_on = None, 
+20. last_element(col_name, skipna = None)
+21. merge(right, on = None, how = \[aq]inner\[aq], left_on = None, right_on = None, 
           left_index = False, right_index = False, sort = False, suffixes = (\[aq]_x\[aq], \[aq]_y\[aq]), 
           copy = True, indicator = False, join_type = \[aq]bcast\[aq])
-20. rename(columns, inplace = False)
-21. reset_index(drop = False, inplace = False)
-22. set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
-23. show()
-24. tail(n = 5)
+22. rename(columns, inplace = False)
+23. reset_index(drop = False, inplace = False)
+24. set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
+25. show()
+26. tail(n = 5)
 \f[R]
 .fi
 .SS Detailed Description
@@ -98,7 +100,7 @@ values 0 to n - 1, where n is the number of rows in the DataFrame.
 parameter.
 If it is set to True, it checks `index' label for duplicate entries
 before appending and when there are duplicate entries in the DataFrame,
-it doesn\[cq]t append.
+it does not append.
 Otherwise duplicate entries in the `index' label will be appended.
 It will also append duplicate entries when `ignore_index' = True.
 (Default: False)
@@ -764,9 +766,9 @@ import frovedis.dataframe as fdf
 # a dictionary
 peopleDF = {
             \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]],
-            \[aq]Age\[aq] : [29, 30, 27, 19, 31],
-            \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
-            \[aq]isMale\[aq]: [False, False, False, False, True]
+    \[aq]Age\[aq] : [29, 30, 27, 19, 31],
+    \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
+    \[aq]isMale\[aq]: [False, False, False, False, True]
            }
 # converting to pandas dataframe  
 pd_df = pd.DataFrame(peopleDF)
@@ -825,11 +827,11 @@ import frovedis.dataframe as fdf
 
 # a dictionary
 peopleDF = {
-            \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]],
-            \[aq]Age\[aq] : [29, 30, 27, 19, 31],
-            \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
-            \[aq]isMale\[aq]: [\[aq]F\[aq], \[aq]No\[aq], \[aq]Off\[aq], False, \[aq]Y\[aq]]
-           }
+    \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]],
+    \[aq]Age\[aq] : [29, 30, 27, 19, 31],
+    \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
+    \[aq]isMale\[aq]: [\[aq]F\[aq], \[aq]No\[aq], \[aq]Off\[aq], False, \[aq]Y\[aq]]
+       }
 # converting to pandas dataframe  
 pd_df = pd.DataFrame(peopleDF)
 
@@ -1091,7 +1093,7 @@ Output
 \f[R]
 .fi
 .PP
-\f[B]With `inclusive=\[cq]right':\f[R]
+\f[B]With inclusive=`right':\f[R]
 .PP
 For example,
 .IP
@@ -1110,7 +1112,7 @@ Output
 \f[R]
 .fi
 .PP
-\f[B]With `inclusive=\[cq]neither':\f[R]
+\f[B]With inclusive=`neither':\f[R]
 .PP
 For example,
 .IP
@@ -1147,17 +1149,16 @@ copy operation.
 .P
 .PD
 When it is True (not specified explicitly), it creates a deep copy
-i.e.\ the copy includes copy of the original DataFrame\[cq]s data and
-the indices.
-\f[B]Currently this parameter doesn\[cq]t support shallow copy (deep =
+i.e.\ the copy includes copy of data and indices of the original
+DataFrame.
+\f[B]Currently this parameter does not support shallow copy (deep =
 False).\f[R]
 .PP
 \f[B]Purpose\f[R]
 .PD 0
 .P
 .PD
-It creates a deep copy of the Frovedis DataFrame object\[cq]s indices
-and data.
+It creates a deep copy of the Frovedis DataFrame object.
 .PP
 \f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
@@ -1169,15 +1170,15 @@ import pandas as pd
 import frovedis.dataframe as fdf
 
 peopleDF = {
-            \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]],
-            \[aq]Age\[aq] : [29, 30, 27, 19, 31],
-            \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
-            \[aq]isMale\[aq]: [False, False, False, False, True]
-           }
+    \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]],
+    \[aq]Age\[aq] : [29, 30, 27, 19, 31],
+    \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
+    \[aq]isMale\[aq]: [False, False, False, False, True]
+       }
 # creating a pandas dataframe
 pd_df = pd.DataFrame(peopleDF)
 
-#creating a frovedis dataframe
+# creating a frovedis dataframe
 fd_df = fdf.DataFrame(pd_df)
 
 print(\[aq]displaying original dataframe object\[aq])
@@ -1907,8 +1908,8 @@ import frovedis.dataframe as fdf
 
 # creating a pandas dataframe
 pd_df = pd.DataFrame({\[dq]name\[dq]: [\[aq]Alfred\[aq], \[aq]Batman\[aq], \[aq]Catwoman\[aq]],
-                   \[dq]toy\[dq]: [np.nan, \[aq]Batmobile\[aq], \[aq]Bullwhip\[aq]],
-                   \[dq]born\[dq]: [np.nan, \[dq]1940-04-25\[dq], np.nan]})
+              \[dq]toy\[dq]: [np.nan, \[aq]Batmobile\[aq], \[aq]Bullwhip\[aq]],
+          \[dq]born\[dq]: [np.nan, \[dq]1940-04-25\[dq], np.nan]})
 
 # creating a frovedis dataframe from pandas dataframe
 fd_df = fdf.DataFrame(pd_df)
@@ -2451,7 +2452,179 @@ rabbit  6
 .PD
 It returns a new Frovedis DataFrame instance with the column labels that
 matches the given conditions.
-.SS 13. DataFrame.get_index_loc(value)
+.SS 13. DataFrame.first_element(col_name, skipna = None)
+.PP
+\f[B]Parameters\f[R]
+.PD 0
+.P
+.PD
+\f[B]\f[BI]col_name\f[B]\f[R]: It accepts a string parameter as column
+name.
+.PD 0
+.P
+.PD
+\f[B]\f[BI]skipna\f[B]\f[R]: It accepts boolean as parameter.
+When set to True, it will exclude the missing values while fetching the
+first element from dataframe.
+(Default: None)
+.PD 0
+.P
+.PD
+When it is None (not specified explicitly), it excludes missing values
+while fetching the first element.
+.PP
+\f[B]Purpose\f[R]
+.PD 0
+.P
+.PD
+It fetches the first element from the given column (numeric/non-numeric)
+in a dataframe.
+.PP
+By default, it will exclude missing values while fetching first element
+from the given column.
+.PP
+\f[B]It is present only in frovedis\f[R].
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+
+peopleDF = {
+            \[aq]Name\[aq]:[\[aq]Jai\[aq], \[aq]Anuj\[aq], \[aq]Jai\[aq], \[aq]Princi\[aq], \[aq]Gaurav\[aq], \[aq]Anuj\[aq], \[aq]Princi\[aq], \[aq]Abhi\[aq]],
+            \[aq]Age\[aq]:[27, 24, 22, 32, 33, 36, 27, 32],
+            \[aq]City\[aq]:[\[aq]Nagpur\[aq], \[aq]Kanpur\[aq], \[aq]Allahabad\[aq], \[aq]Kannuaj\[aq], \[aq]Allahabad\[aq],
+                    \[aq]Kanpur\[aq], \[aq]Kanpur\[aq], \[aq]Kanpur\[aq]],
+            \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq], \[aq]Phd\[aq], \[aq]B.Tech\[aq], \[aq]Phd\[aq], \[aq]Phd\[aq], 
+                             \[aq]B.Tech\[aq], \[aq]Phd\[aq], \[aq]B.Tech\[aq]],
+            \[aq]Score\[aq]: [np.nan, 34, 35, 45, np.nan, 50, 52, np.nan]
+           }
+
+pd_df = pd.DataFrame(peopleDF)
+fd_df = fdf.DataFrame(pd_df)
+
+# display frovedis dataframe
+fd_df.show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   Name    Age     City       Qualification   Score
+0       Jai     27      Nagpur     B.Tech          NULL
+1       Anuj    24      Kanpur     Phd             34
+2       Jai     22      Allahabad  B.Tech          35
+3       Princi  32      Kannuaj    Phd             45
+4       Gaurav  33      Allahabad  Phd             NULL
+5       Anuj    36      Kanpur     B.Tech          50
+6       Princi  27      Kanpur     Phd             52
+7       Abhi    32      Kanpur     B.Tech          NULL
+\f[R]
+.fi
+.PP
+\f[B]Fetching the first element from `Score' column (numeric column)
+:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fdf1.first_element(col_name=\[aq]Score\[aq]).show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+34
+\f[R]
+.fi
+.PP
+Also, the above call can be expressed in two ways as follows,
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fdf1.Score.first_element().show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+34
+\f[R]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fdf1[\[dq]Score\[dq]].first_element().show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+34
+\f[R]
+.fi
+.PP
+\f[B]Fetching the first element from `Name' column (non-numeric column)
+:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fdf1.first_element(col_name=\[aq]Name\[aq]).show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Jai
+\f[R]
+.fi
+.PP
+\f[B]Using skipna=False in order to fetch first element (including Nan)
+from `Score' column:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fdf1.first_element(col_name=\[aq]Score\[aq], skipna=False).show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+nan
+\f[R]
+.fi
+.PP
+\f[B]Return Value\f[R]
+.PD 0
+.P
+.PD
+It returns a scalar value.
+.SS 14. DataFrame.get_index_loc(value)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2664,7 +2837,7 @@ in index.
 .PD
 3.
 \f[B]mask:\f[R] it returns a list of boolean values.
-.SS 14. DataFrame.head(n = 5)
+.SS 15. DataFrame.head(n = 5)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2804,7 +2977,7 @@ rows.
 .IP \[bu] 2
 If n is negative integer, it returns a new DataFrame with all rows
 except last n rows.
-.SS 15. DataFrame.insert(loc, column, value, allow_duplicates = False)
+.SS 16. DataFrame.insert(loc, column, value, allow_duplicates = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -2913,7 +3086,7 @@ index   col0    col1    col2
 .P
 .PD
 It returns a self reference.
-.SS 16. DataFrame.isna()
+.SS 17. DataFrame.isna()
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -2938,11 +3111,11 @@ import frovedis.dataframe as fdf
 
 # show which entries in a DataFrame are NA.
 peopleDF = {
-        \[aq]Ename\[aq] : [\[aq]Michael\[aq], None, \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]\[aq]],
-        \[aq]Age\[aq] : [29, 30, 27, 19, 0],
-        \[aq]Country\[aq] : [\[aq]USA\[aq], np.inf, \[aq]Japan\[aq], np.nan, \[aq]Japan\[aq]],
-        \[aq]isMale\[aq]: [False, False, False, False, True]
-       }
+            \[aq]Ename\[aq] : [\[aq]Michael\[aq], None, \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]\[aq]],
+            \[aq]Age\[aq] : [29, 30, 27, 19, 0],
+            \[aq]Country\[aq] : [\[aq]USA\[aq], np.inf, \[aq]Japan\[aq], np.nan, \[aq]Japan\[aq]],
+            \[aq]isMale\[aq]: [False, False, False, False, True]
+           }
 
 # creating a pandas dataframe
 pd_df = pd.DataFrame(peopleDF)
@@ -3052,7 +3225,7 @@ index   0
 It returns a new Frovedis DataFrame having all boolean values (0, 1)
 corresponding to each of the Frovedis DataFrame values depending on
 whether it is a valid NaN (True i.e.\ 1) value or not (False i.e.\ 0).
-.SS 17. DataFrame.isnull()
+.SS 18. DataFrame.isnull()
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -3078,10 +3251,10 @@ import frovedis.dataframe as fdf
 
 # show which entries in a DataFrame are NA.
 peopleDF = {
-            \[aq]Ename\[aq] : [\[aq]Michael\[aq], None, \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]\[aq]],
-            \[aq]Age\[aq] : [29, 30, 27, 19, 0],
-            \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], np.nan, \[aq]Japan\[aq]],
-            \[aq]isMale\[aq]: [False, False, False, False, True]
+    \[aq]Ename\[aq] : [\[aq]Michael\[aq], None, \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]\[aq]],
+    \[aq]Age\[aq] : [29, 30, 27, 19, 0],
+    \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], np.nan, \[aq]Japan\[aq]],
+    \[aq]isMale\[aq]: [False, False, False, False, True]
            }
            
 # creating a pandas dataframe
@@ -3193,7 +3366,7 @@ index   0
 It returns a Frovedis DataFrame having boolean values (0, 1)
 corresponding to each of the Frovedis DataFrame value depending of
 whether it is a valid NaN (True i.e.\ 1) value or not (False i.e.\ 0).
-.SS 18. DataFrame.join(right, on, how = `inner', lsuffix = `_left', rsuffix = `_right', sort = False, join_type = `bcast')
+.SS 19. DataFrame.join(right, on, how = `inner', lsuffix = `_left', rsuffix = `_right', sort = False, join_type = `bcast')
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -3403,7 +3576,160 @@ index   key     A       B
 .PD
 It returns a new Frovedis DataFrame containing columns from both the
 DataFrame instances.
-.SS 19. DataFrame.merge(right, on = None, how = `inner', left_on = None, right_on = None, left_index = False, right_index = False, sort = False, suffixes = (`_x', `_y'), copy = True, indicator = False, join_type = `bcast')
+.SS 20. DataFrame.last_element(col_name, skipna = None)
+.PP
+\f[B]Parameters\f[R] \f[B]\f[BI]col_name\f[B]\f[R]: It accepts a string
+parameter as column name.
+\f[B]\f[BI]skipna\f[B]\f[R]: It accepts boolean as parameter.
+When set to True, it will exclude the missing values while fetching the
+last element from dataframe.
+(Default: None) When it is None (not specified explicitly), it excludes
+missing values while fetching the last element.
+.PP
+\f[B]Purpose\f[R] It fetches the last element from the given column
+(numeric/non-numeric) in a dataframe.
+.PP
+By default, it will exclude missing values while fetching last element
+from the given column.
+.PP
+\f[B]It is present only in frovedis\f[R].
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+import pandas as pd
+import frovedis.dataframe as fdf
+
+peopleDF = {
+            \[aq]Name\[aq]:[\[aq]Jai\[aq], \[aq]Anuj\[aq], \[aq]Jai\[aq], \[aq]Princi\[aq], \[aq]Gaurav\[aq], \[aq]Anuj\[aq], \[aq]Princi\[aq], \[aq]Abhi\[aq]],
+            \[aq]Age\[aq]:[27, 24, 22, 32, 33, 36, 27, 32],
+            \[aq]City\[aq]:[\[aq]Nagpur\[aq], \[aq]Kanpur\[aq], \[aq]Allahabad\[aq], \[aq]Kannuaj\[aq], \[aq]Allahabad\[aq],
+                    \[aq]Kanpur\[aq], \[aq]Kanpur\[aq], \[aq]Kanpur\[aq]],
+            \[aq]Qualification\[aq]:[\[aq]B.Tech\[aq], \[aq]Phd\[aq], \[aq]B.Tech\[aq], \[aq]Phd\[aq], \[aq]Phd\[aq],
+                             \[aq]B.Tech\[aq], \[aq]Phd\[aq], \[aq]B.Tech\[aq]],
+            \[aq]Score\[aq]: [np.nan, 34, 35, 45, np.nan, 50, 52, np.nan]
+           }
+
+pd_df = pd.DataFrame(peopleDF)
+fd_df = fdf.DataFrame(pd_df)
+
+# display frovedis dataframe
+fd_df.show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+index   Name    Age     City       Qualification   Score
+0       Jai     27      Nagpur     B.Tech          NULL
+1       Anuj    24      Kanpur     Phd             34
+2       Jai     22      Allahabad  B.Tech          35
+3       Princi  32      Kannuaj    Phd             45
+4       Gaurav  33      Allahabad  Phd             NULL
+5       Anuj    36      Kanpur     B.Tech          50
+6       Princi  27      Kanpur     Phd             52
+7       Abhi    32      Kanpur     B.Tech          NULL
+\f[R]
+.fi
+.PP
+\f[B]Fetching the last element from `Score' column (numeric column)
+:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fdf1.last_element(col_name=\[aq]Score\[aq]).show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+52
+\f[R]
+.fi
+.PP
+Also, the above call can be expressed in two ways as follows,
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fdf1.Score.last_element().show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+52
+\f[R]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fdf1[\[dq]Score\[dq]].last_element().show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+52
+\f[R]
+.fi
+.PP
+\f[B]Fetching the last element from `Name' column (non-numeric column)
+:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fdf1.last_element(col_name=\[aq]Ename\[aq]).show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Yuta
+\f[R]
+.fi
+.PP
+\f[B]Using skipna=False in order to fetch last element (including Nan)
+from `Score' column:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+fdf1.last_element(col_name=\[aq]Score\[aq], skipna=False).show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+nan
+\f[R]
+.fi
+.PP
+\f[B]Return Value\f[R] It returns a scalar value.
+.SS 21. DataFrame.merge(right, on = None, how = `inner', left_on = None, right_on = None, left_index = False, right_index = False, sort = False, suffixes = (`_x', `_y'), copy = True, indicator = False, join_type = `bcast')
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -3439,16 +3765,16 @@ It informs the type of merge operation on the two objects.
 .P
 .PD
 1.
-\f[B]`left'\f[R]: form union of calling dataframe\[cq]s index (or column
-if `on' is specified) with other\[cq]s index and sort it
+\f[B]`left'\f[R]: form union of calling dataframe index (or column if
+`on' is specified) with other dataframe index and sort it
 lexicographically.
 .PD 0
 .P
 .PD
 2.
-\f[B]`inner'\f[R]: form intersection of calling dataframe\[cq]s index
-(or column if `on' is specified) with other\[cq]s index, preserving the
-order of the calling\[cq]s one.
+\f[B]`inner'\f[R]: form intersection of calling dataframe index (or
+column if `on' is specified) with other dataframe index, preserving the
+order of the calling dataframe.
 .PP
 \f[B]\f[BI]left_on\f[B]\f[R]: It accepts a string object or a list of
 strings as parameter.
@@ -3505,7 +3831,7 @@ Need to explicitly pass a value of None instead of a string to indicate
 that the column name from left or right should be left as-it is, with no
 suffix.
 At least one of the values must not be None.
-(Default: (\[lq]_x\[rq], \[lq]_y\[rq]))
+(Default: (`_x', `_y'))
 .PP
 \f[B]Note:- During merging two DataFrames, the overlapping column names
 should be different.
@@ -3551,11 +3877,11 @@ import frovedis.dataframe as fdf
 
 # creating a pandas dataframe
 pd_df1 = pd.DataFrame({\[aq]lkey\[aq]: [\[aq]foo\[aq], \[aq]bar\[aq], \[aq]baz\[aq], \[aq]foo\[aq]],
-                    \[aq]value\[aq]: [1, 2, 3, 5]})
+                       \[aq]value\[aq]: [1, 2, 3, 5]})
 
 # creating another pandas dataframe
 pd_df2 = pd.DataFrame({\[aq]rkey\[aq]: [\[aq]foo\[aq], \[aq]bar\[aq], \[aq]baz\[aq], \[aq]foo\[aq]],
-                    \[aq]value\[aq]: [5, 6, 7, 8]})
+                       \[aq]value\[aq]: [5, 6, 7, 8]})
 
 # creating a frovedis dataframe
 fd_df1 = fdf.DataFrame(pd_df1)
@@ -3644,11 +3970,11 @@ import frovedis.dataframe as fdf
 
 # creating a pandas dataframe
 pd_df1 = pd.DataFrame({\[aq]lkey\[aq]: [\[aq]foo\[aq], \[aq]bar\[aq], \[aq]baz\[aq], \[aq]foo\[aq]],
-                    \[aq]left_value\[aq]: [1, 2, 3, 5]})
+                       \[aq]left_value\[aq]: [1, 2, 3, 5]})
 
 # creating another pandas dataframe
 pd_df2 = pd.DataFrame({\[aq]rkey\[aq]: [\[aq]foo\[aq], \[aq]bar\[aq], \[aq]baz\[aq], \[aq]foo\[aq]],
-                    \[aq]right_value\[aq]: [5, 6, 7, 8]})
+                       \[aq]right_value\[aq]: [5, 6, 7, 8]})
 
 # creating a frovedis dataframe
 fd_df1 = fdf.DataFrame(pd_df1)
@@ -3719,9 +4045,9 @@ import frovedis.dataframe as fdf
 
 # creating two pandas datfarames
 pd_df1 = pd.DataFrame({\[aq]lkey\[aq]: [\[aq]foo\[aq], \[aq]bar\[aq], \[aq]baz\[aq], \[aq]foo\[aq]],
-                    \[aq]value\[aq]: [1, 2, 3, 5]})
+                       \[aq]value\[aq]: [1, 2, 3, 5]})
 pd_df2 = pd.DataFrame({\[aq]rkey\[aq]: [\[aq]foo\[aq], \[aq]bar\[aq], \[aq]baz\[aq], \[aq]foo\[aq]],
-                                        \[aq]value\[aq]: [5, 6, 7, 8]})
+                       \[aq]value\[aq]: [5, 6, 7, 8]})
 
 # creating a frovedis dataframe
 fd_df1 = fdf.DataFrame(pd_df1)
@@ -3860,7 +4186,7 @@ index   a       b       c
 .PD
 It returns a new Frovedis DataFrame instance with the merged entries of
 the two DataFrame instances.
-.SS 20. DataFrame.rename(columns, inplace = False)
+.SS 22. DataFrame.rename(columns, inplace = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -3970,7 +4296,7 @@ specified columns.
 .PD
 .IP \[bu] 2
 It returns None when `inplace' parameter is set to True.
-.SS 21. DataFrame.reset_index(drop = False, inplace = False)
+.SS 23. DataFrame.reset_index(drop = False, inplace = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -4104,7 +4430,7 @@ label.
 .PD
 .IP \[bu] 2
 It returns None if `inplace' parameter is set to True.
-.SS 22. DataFrame.set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
+.SS 24. DataFrame.set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -4118,15 +4444,15 @@ This parameter can be a single column key.
 \f[B]\f[BI]drop\f[B]\f[R]: It accepts a boolean value as parameter.
 When it is set to True, it will remove the column which is selected as
 new index.
-\f[B]Currently, Frovedis doesn\[cq]t support drop = False.\f[R]
-(Default: True)
+\f[B]Currently, Frovedis does not support drop = False.\f[R] (Default:
+True)
 .PD 0
 .P
 .PD
 \f[B]\f[BI]append\f[B]\f[R]: It accepts a boolean value as parameter.
 It will decide whether to append columns to existing index.
-\f[B]Currently, Frovedis doesn\[cq]t support append = True.\f[R]
-(Default: False)
+\f[B]Currently, Frovedis does not support append = True.\f[R] (Default:
+False)
 .PD 0
 .P
 .PD
@@ -4163,8 +4489,8 @@ import frovedis.dataframe as fdf
 
 # creating a pandas dataframe
 pd_df = pd.DataFrame({\[aq]month\[aq]: [1, 4, 1, 10],
-                   \[aq]year\[aq]: [2012, 2014, 2013, 2014],
-                   \[aq]sale\[aq]: [55, 40, 84, 31]})
+                      \[aq]year\[aq]: [2012, 2014, 2013, 2014],
+                      \[aq]sale\[aq]: [55, 40, 84, 31]})
 
 # creating a frovedis dataframe
 fd_df = fdf.DataFrame(pd_df)
@@ -4244,7 +4570,7 @@ replace with specified column label.
 .PD
 .IP \[bu] 2
 It returns None when `inplace' parameter is set to True.
-.SS 23. DataFrame.show()
+.SS 25. DataFrame.show()
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -4268,11 +4594,11 @@ import frovedis.dataframe as fdf
 
 # creating the dataframe    
 peopleDF = {
-        \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]], 
-        \[aq]Age\[aq] : [29, 30, 27, 19, 31],
-        \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
-        \[aq]isMale\[aq]: [False, False, False, False, True]
-       }
+            \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]], 
+            \[aq]Age\[aq] : [29, 30, 27, 19, 31],
+            \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
+             \[aq]isMale\[aq]: [False, False, False, False, True]
+           }
 
 pdf = pd.DataFrame(peopleDF)
 
@@ -4403,7 +4729,7 @@ index   Ename   Age     Country isMale
 .P
 .PD
 It return nothing.
-.SS 24. DataFrame.tail(n = 5)
+.SS 26. DataFrame.tail(n = 5)
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -4437,7 +4763,7 @@ import frovedis.dataframe as fdf
 
 # creating a pandas dataframe
 pd_df = pd.DataFrame({\[aq]animal\[aq]: [\[aq]alligator\[aq], \[aq]bee\[aq], \[aq]falcon\[aq], \[aq]lion\[aq],
-               \[aq]monkey\[aq], \[aq]parrot\[aq], \[aq]shark\[aq], \[aq]whale\[aq], \[aq]zebra\[aq]]})
+                      \[aq]monkey\[aq], \[aq]parrot\[aq], \[aq]shark\[aq], \[aq]whale\[aq], \[aq]zebra\[aq]]})
 
 # creating a frovedis dataframe
 fd_df = fdf.DataFrame(pd_df)
@@ -4551,6 +4877,11 @@ It returns a new Frovedis DataFrame instance with last \f[B]n\f[R] rows.
 .SH SEE ALSO
 .IP \[bu] 2
 \f[B]DataFrame - Introduction\f[R]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame - Indexing Operations\f[R]
 .PD 0
 .P
 .PD

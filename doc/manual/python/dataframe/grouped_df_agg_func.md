@@ -18,7 +18,7 @@ Also, aggregation functions can be chained along with groupby() calls in frovedi
 
 ## Public Member Functions  
 
-    1. agg(func, \*args, \*\*kwargs)
+    1. agg(func, *args, **kwargs)
     2. aggregate(func, \*args, \*\*kwargs)
     3. count(numeric_only = True)
     4. groupby()
@@ -44,7 +44,7 @@ Accepted combinations for this parameter are:
 For Example, {'Age': ['max','min','mean'], 'Ename': ['count']}  
 
 _**\*args**_: This is an unused parameter.  
-_**\*\*kwargs**_: This is an unused parameter.  
+_**\*\*kwargs**_: Additional keyword arguments to be passed to the function.  
 
 __Purpose__  
 It computes an aggregate operation based on the condition specified in 'func'. It is an alias for aggregate().  
@@ -127,6 +127,19 @@ Output
     Qualification   min_Age max_Age min_Score  max_Score
     B.Tech          22      36      23         50
     Phd             24      33      34         52
+
+**Using keyword arguments in order to perform aggregation operation:**
+
+For example,
+
+    # agg() demo where **kwargs are provided
+    fdf1.groupby("Qualification").agg(sum_a = ("Age", "sum"), min_b = ("Score", "min")).show()
+
+Output
+
+    Qualification   sum_a   min_b
+    B.Tech          117     23
+    Phd             116     34
 
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  

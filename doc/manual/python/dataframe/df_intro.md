@@ -196,7 +196,7 @@ For boolwan type, frovedis supports:
     True/False, On/OFF, 0/1, yes/No, y/n 
 
 User must provide this, then frovedis can convert to boolean type. **Make sure user provides correct dtype , otherwise it will cause issues while creating frovedis dataframe**.  
-_**na\_values**_: It accepts scalar value or array-like input as parameter that specifies the additional strings to recognize as  missing values (NA/NaN). Currently, it doesn't accept dictionary as value for this parameter. (Default: None)  
+_**na\_values**_: It accepts scalar value or array-like input as parameter that specifies the additional strings to recognize as  missing values (NA/NaN). Currently, it does not accept dictionary as value for this parameter. (Default: None)  
 When it is None (not specified explicitly), it will interpret the list of following values as missing values:  
 
     ['null', 'NULL', 'nan', '-nan', 'NaN', '-NaN', 'NA', 'N/A', 'n/a']  
@@ -533,7 +533,7 @@ DataFrame provides various facilities to easily select and combine together spec
 3. **apply()** - Apply a function along an axis of the DataFrame.  
 4. **astype()** - Cast a selected column to a specified dtype.  
 5. **between()** - Filters rows according to the specified bound over a single column at a time.  
-6. **copy()** - Make a copy of this object's indices and data.  
+6. **copy()** - Make a copy of the indices and data of this object.  
 7. **countna()** - Count NA values for each column/row.  
 8. **describe()** - Generate descriptive statistics.  
 9. **drop()** - Drop specified labels from rows or columns.  
@@ -594,191 +594,10 @@ DataFrame has methods for carrying out binary operations like add(), sub(), etc 
 16. **rsub()** - Get subtraction of other specified value and dataframe. It is equivalent to other - dataframe.  
 17. **rtruediv()** - Get floating division of other specified value and dataframe. It is equivalent to other / dataframe.  
 
-### Indexing in frovedis Dataframe  
-
-Indexing means simply selecting particular rows and columns of data from a dataframe. Indexing can also be considered as Subset Selection.  
-
-There are a lot of ways to pull the rows and columns from a dataframe. There are some indexing method which help in getting an element from a dataframe. These indexing methods appear very similar but behave very differently. **Currently, frovedis supports only one type of indexing**. It is:  
-
-- **Dataframe.[ ]**: This function also known as indexing operator. It helps in filtering rows and columns from a dataframe. Also, it returns a pandas dataframe as output.  
-
-**Indexing using [ ]**  
-
-Indexing operator is used to refer to the square brackets following an object.  
-
-In order to select a single column, we simply put the name of the column in-between the brackets.  
-
-**Selecting a single column:**  
-
-For example,  
-
-    import pandas as pd
-    import frovedis.dataframe as fdf
-    
-    # a pandas dataframe from key value pair
-    pdf2 = pd.DataFrame({ "Last Bonus": [5, 2, 2, 4], 
-                          "Bonus": [5, 2, 2, 4], 
-                          "Last Salary": [58, 59, 63, 58], 
-                          "Salary": [60, 60, 64, 59]
-                        }, index= ["John", "Marry", "Sam", "Jo"]
-                       ) 
-    # creating frovedis dataframe
-    fdf1 = fdf.DataFrame(pdf2)
-    
-    # display created frovedis dataframe
-    fdf1.show()
-    
-    print('selecting single column: ')
-    fdf1['Bonus'].show()
-
-Output  
-
-    index   Last Bonus   Bonus   Last Salary  Salary
-    John    5            5       58           60
-    Marry   2            2       59           60
-    Sam     2            2       63           64
-    Jo      4            4       58           59
-
-    selecting single column: 
-    index   Bonus
-    John    5
-    Marry   2
-    Sam     2
-    Jo      4
-
-**Note:- Frovedis also supports use of attribute operators to filter/select column(s) in dataframe**
-
-In previous example, **Bonus** column can also be selected from the dataframe as follows:  
-
-For example,   
-
-    fdf1.Bonus
-
-This returns a FrovedisColumn instance.  
-
-**To select multiple columns:**  
-
-For example,  
-
-    # selecting multiple columns
-    fdf1[['Bonus','Salary,']].show()
-    
-Output  
-
-    index   Bonus   Salary
-    John    5       60
-    Marry   2       60
-    Sam     2       64
-    Jo      4       59
-
-Here, list of columns are passed in the indexing operator.  
-
-**Filtering dataframe using slice operation with row numbers:**  
-
-For example,  
-
-    fdf1[1:2].show()
-
-Output  
-
-    index   Last Bonus   Bonus   Last Salary   Salary
-    Marry   2            2       59            60
-
-**Filtering dataframe using slice operation with row labels:**  
-
-For example,  
-
-    fdf1['John':'Sam'].show()
-
-Output  
-
-    index   Last Bonus   Bonus   Last Salary   Salary
-    Marry   2            2       59            60
-
-**Filtering can be done with help of attribute operators:**  
-
-For example,  
-
-    # filtering data using given condition
-    fdf1[fdf1.Bonus == 2].show()
-
-Output  
-
-    index   Last Bonus  Bonus  Last Salary  Salary
-    Marry   2           2      59           60
-    Sam     2           2      63           64
-
-For example,  
-
-    # filtering data using '>' operator
-    fdf1[fdf1.Bonus > 2].show()
-
-Output  
-
-    index   Last Bonus   Bonus   Last Salary   Salary
-    John    5            5       58            60
-    Jo      4            4       58            59
-
-For example,  
-
-    # filtering data using '<' operator
-    fdf1[fdf1.Bonus < 5].show()
-
-Output  
-
-    index   Last Bonus   Bonus   Last Salary   Salary
-    Marry   2            2       59            60
-    Sam     2            2       63            64
-    Jo      4            4       58            59
-
-For example,  
-
-    # filtering data using '!=' operator
-    fdf1[fdf1.Bonus != 2].show()
-
-Output  
-
-    index   Last Bonus    Bonus   Last Salary    Salary
-    John    5             5       58             60
-    Jo      4             4       58             59
-
-For example,  
-
-    # using '&' operation to filter data
-    fdf1[(fdf1.Bonus == 5) & (fdf1.Salary == 60)].show()
-
-Output  
-
-    index   Last Bonus   Bonus   Last Salary   Salary
-    John    5            5       58            60
-
-For example,  
-
-    # using '|' operation to filter data
-    fdf1[(fdf1.Bonus == 5) | (fdf1.Salary == 60)].show()
-
-Output  
-
-    index   Last Bonus    Bonus   Last Salary   Salary
-    John    5             5       58            60
-    Marry   2             2       59            60
-
-For example,  
-
-    # using '~' operation to filter data
-    fdf1[~(fdf1.Bonus == 5)].show()
-
-Output  
-
-    index   Last Bonus   Bonus   Last Salary   Salary
-    Marry   2            2       59            60
-    Sam     2            2       63            64
-    Jo      4            4       58            59
-
-
 # SEE ALSO  
 
-- **[DataFrame - Generic Functions](./df_generic_func.md)**  
+- **[DataFrame - Data Extraction Methods](./df_data_extraction.md)**  
+- **[DataFrame - Indexing Operations](./df_indexing_operations.md)**  
 - **[DataFrame - Conversion Functions](./df_conversion.md)**  
 - **[DataFrame - Sorting Functions](./df_sort.md)**  
 - **[DataFrame - Math Functions](./df_math_func.md)**  

@@ -52,3 +52,4 @@ We are still updating the contents.
     + [spectral clustering]
     + [spectral_embedding_model]
     + [spectral embedding]
+    + [Timeseries analysis using ARIMA]

@@ -16,7 +16,7 @@ These can be used to sort data along rows or columns of frovedis dataframe, eith
     1. nlargest(n, columns, keep = 'first')
     2. nsmallest(n, columns, keep = 'first')
     3. sort(columns = None, axis = 0, ascending = True, inplace = False, kind = 'radixsort', 
-             na_position = 'last', **kwargs)
+            na_position = 'last', **kwargs)
     4. sort_index(axis = 0, ascending = True, inplace = False, kind = 'quicksort', na_position = 'last')
     5. sort_values(by, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na_position = 'last')
 
@@ -273,10 +273,10 @@ For example,
     import frovedis.dataframe as fdf
     
     pd_df = pd.DataFrame({
-                        'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
-                        'col2': [2, 1, 9, 8, 7, 4],
-                        'col3': [0, 1, 9, 4, 2, 3],
-                        'col4': ['a', 'B', 'c', 'D', 'e', 'F'] })
+                          'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
+                          'col2': [2, 1, 9, 8, 7, 4],
+                          'col3': [0, 1, 9, 4, 2, 3],
+                          'col4': ['a', 'B', 'c', 'D', 'e', 'F'] })
     
     # create a frovedis dataframe from pandas dataframe
     fd_df = fdf.DataFrame(pd_df)
@@ -455,10 +455,10 @@ For example,
     
     # creating a pandas dataframe
     pd_df = pd.DataFrame({
-                           'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
-                           'col2': [2, 1, 9, 8, 7, 4],
-                           'col3': [0, 1, 9, 4, 2, 3],
-                           'col4': ['a', 'B', 'c', 'D', 'e', 'F']
+                          'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
+                          'col2': [2, 1, 9, 8, 7, 4],
+                          'col3': [0, 1, 9, 4, 2, 3],
+                          'col4': ['a', 'B', 'c', 'D', 'e', 'F']
                         })
                         
     # creating a frovedis dataframe
@@ -532,6 +532,7 @@ It returns a new Frovedis DataFrame with sorted values.
 # SEE ALSO  
 
 - **[DataFrame - Introduction](./df_intro.md)**  
+- **[DataFrame - Indexing Operations](./df_indexing_operations.md)**  
 - **[DataFrame - Generic Functions](./df_generic_func.md)**  
 - **[DataFrame - Conversion Functions](./df_conversion.md)**  
 - **[DataFrame - Math Functions](./df_math_func.md)**  

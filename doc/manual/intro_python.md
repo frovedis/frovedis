@@ -43,6 +43,7 @@ We are still updating the contents.
     + [StandardScaler]
     + [SVC]
     + [t-Distributed Stochastic Neighbor Embedding]
+    + [Timeseries analysis using ARIMA]
     + [Word2Vec]
 - Linalg
     + [linalg] 
@@ -63,6 +64,7 @@ We are still updating the contents.
     + [gesvd_result]
 - DataFrame
     + [DataFrame Introduction] 
+    + [DataFrame Indexing Operations] 
     + [DataFrame Generic Functions]
     + [DataFrame Conversion Functions]
     + [DataFrame Sorting Functions]

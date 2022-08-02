@@ -19,8 +19,8 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-              "points": [5, 6, 4],
-               "total": [10, 11, 12]
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     pdf1 = pd.DataFrame(data1)
@@ -49,6 +49,30 @@ Type conversion occurs for 'points' column in resultant dataframe.
 
     fdf1.points(int) + fdf2.points(float) -> res.points(float) 
 
+Also, binary operation can be performed between columns in dataframe as well.
+
+For example,  
+
+    print(fdf1["points"] + fdf2["points"])
+
+Output  
+
+    index   (points+points)
+    0       7
+    1       9
+    2       12
+
+The above expression can also be written as follows:  
+
+    print(fdf1.points + fdf2.points)
+
+Output  
+
+    index   (points+points)
+    0       7
+    1       9
+    2       12
+
 **Binary operation on two frovedis dataframes having atleast one common column:**  
 
 For example,  
@@ -56,8 +80,8 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-              "points": [5, 6, 4],
-               "total": [10, 11, 12]
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     pdf1 = pd.DataFrame(data1)
@@ -90,8 +114,8 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-              "points": [5, 6, 4],
-               "total": [10, 11, 12]
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     pdf1 = pd.DataFrame(data1, index = [1,2,3])
@@ -123,8 +147,8 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-              "points": [5, 6, 4],
-               "total": [10, 11, 12]
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     pdf1 = pd.DataFrame(data1, index = [0,1,2])
@@ -149,8 +173,8 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-              "points": [5, 6, 4],
-               "total": [10, 11, 12]
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     pdf1 = pd.DataFrame(data1, index = [1,2,3])
@@ -224,9 +248,9 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-          "points": [5, 6, 4],
-           "total": [10, 11, 12]
-        }
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
 
     pdf1 = pd.DataFrame(data1)
     fdf1 = fdf.DataFrame(pdf1)
@@ -249,9 +273,9 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-          "points": [5, 6, 4],
-           "total": [10, 11, 12]
-        }
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
 
     pdf1 = pd.DataFrame(data1)
     fdf1 = fdf.DataFrame(pdf1)
@@ -274,9 +298,9 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-          "points": [5, 6, 4],
-           "total": [10, 11, 12]
-        }
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
 
     pdf1 = pd.DataFrame(data1)
     fdf1 = fdf.DataFrame(pdf1)
@@ -337,11 +361,11 @@ For example,
     
     # a dictionary
     tempDF = {
-                'City': ['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad',
-                         'Kanpur', 'Kanpur', 'Kanpur'],
-                'Temperature': [-2, 10, 18, 34, -8, -4, 36, 45]
-               }
-    
+              'City': ['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad',
+                       'Kanpur', 'Kanpur', 'Kanpur'],
+              'Temperature': [-2, 10, 18, 34, -8, -4, 36, 45]
+             }
+
     # create pandas dataframe
     pdf1 = pd.DataFrame(tempDF)
     
@@ -1678,9 +1702,9 @@ For example,
     
     # a dictionary
     data1 = {
-         "points": [5, 6, 4],
-         "total": [10, 11, 12]
-        }
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
     
     # create pandas dataframe
     pdf1 = pd.DataFrame(data1)
@@ -1860,9 +1884,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
     
     # create pandas dataframe
@@ -1917,9 +1941,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     # create pandas dataframe
@@ -2099,9 +2123,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [8, 5, 9],
-              "total": [3, 2, 1]
+    data1 = {
+             "points": [8, 5, 9],
+             "total": [3, 2, 1]
             }
     
     # create pandas dataframe
@@ -2156,9 +2180,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [8, 5, 9],
-              "total": [3, 2, 1]
+    data1 = {
+             "points": [8, 5, 9],
+             "total": [3, 2, 1]
             }
     
     # create pandas dataframe
@@ -2180,9 +2204,9 @@ Output
 For example,  
 
     # a dictionary
-    data2 =  {
-              "points": [4, 7, 2],
-              "total": [9, 1, 9]
+    data2 = {
+             "points": [4, 7, 2],
+             "total": [9, 1, 9]
             }
     
     # create pandas dataframe
@@ -2330,9 +2354,6 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs reverse addition operation between two operands. It is equivalent to **'other + dataframe'**.  
 
-**Currently, it does not perform reverse addition of scalar using operator version. Only method version 
-is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -2361,6 +2382,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse addition on a scalar value using operator version:**  
+
+For example,  
+
+    print(10 + fdf1)
+
+Output  
+
+    index   points  total
+    0       15      20
+    1       16      21
+    2       14      22
 
 **Reverse addition on a scalar value using method version:**  
 
@@ -2430,6 +2464,20 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+
+**Reverse addition on two dataframes using operator version:**  
+
+For example,  
+
+    print(fdf2 + fdf1)
+
+Output  
+
+    index   points  total
+    0       7       17
+    1       9       20
+    2       12      23
 
 **Reverse addition on two dataframes using method version:**  
 
@@ -2550,8 +2598,6 @@ It performs reverse floating division operation between two operands. It is equi
 
 It is an alias of rtruediv().  
 
-**Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -2580,6 +2626,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse division on a scalar value using operator version:**  
+
+For example,  
+
+    print(10 / fdf1)
+
+Output
+
+    index   points  total
+    0       2       1
+    1       1.66666 0.90909
+    2       2.5     0.833333
 
 **Reverse division on a scalar value using method version:**  
 
@@ -2649,6 +2708,19 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+**Reverse division on two dataframes using operator version:**  
+
+For example,  
+
+    print(fdf2 / fdf1)
+
+Output
+
+    index   points  total
+    0       0.4     0.7
+    1       0.5     0.818181
+    2       2       0.916666
 
 **Reverse division on two dataframes using method version:**  
 
@@ -2767,8 +2839,6 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs reverse floating division operation between two operands. It is equivalent to **'other // dataframe'**.  
 
-**Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -2797,6 +2867,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse floor division on a scalar value using operator version:**  
+
+For example,  
+
+    print(10 // fdf1)
+
+Output
+
+    index   points  total
+    0       2       1
+    1       1       0
+    2       2       0
 
 **Reverse floor division on a scalar value using method version:**  
 
@@ -2867,6 +2950,19 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+**Reverse floor division on two dataframes using operator version:**
+
+For example,
+
+    print(fdf2 // fdf1)
+
+Output
+
+    index   points  total
+    0       0       0
+    1       0       0
+    2       2       0
 
 **Reverse floor division on two dataframes using method version:**  
 
@@ -2985,8 +3081,6 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs reverse modulo operation between two operands. It is equivalent to **'other % dataframe'**.  
 
-**Currently, it does not perform reverse modulo of scalar using operator version. Only method version is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -2996,9 +3090,9 @@ For example,
     
     # a dictionary
     data1 = {
-            "points": [5, 6, 4],
-            "total": [50, 40, 20]
-           }
+             "points": [5, 6, 4],
+             "total": [50, 40, 20]
+            }
 
     # create pandas dataframe
     pdf1 = pd.DataFrame(data1)
@@ -3015,6 +3109,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse modulo on a scalar value using operator version:**
+
+For example,
+
+    print(10 % fdf1)
+
+Output
+
+    index   points  total
+    0       0       0
+    1       4       10
+    2       2       10
 
 **Reverse modulo on a scalar value using method version:**  
 
@@ -3084,6 +3191,19 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+**Reverse modulo on two dataframes using operator version:**
+
+For example,
+
+    print(fdf2 % fdf1)
+
+Output
+
+    index   points  total
+    0       2       7
+    1       3       9
+    2       0       11
 
 **Reverse modulo on two dataframes using method version:**  
 
@@ -3203,9 +3323,6 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs reverse multiplication operation between two operands. It is equivalent to **'other * dataframe'**.  
 
-**Currently, it does not perform reverse multiplication of scalar using operator version. Only method 
-version is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -3234,6 +3351,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse multiplication on a scalar value using operator version:**
+
+For example,
+
+    print(10 * fdf1)
+
+Output
+
+    index   points  total
+    0       50      100
+    1       60      110
+    2       40      120
 
 **Reverse multiplication on a scalar value using method version:**  
 
@@ -3303,6 +3433,19 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+**Reverse multiplication on two dataframes using operator version:**
+
+For example,
+
+    print(fdf2 * fdf1)
+
+Output
+
+    index   points  total
+    0       10      70
+    1       18      99
+    2       32      132
 
 **Reverse multiplication on two dataframes using method version:**  
 
@@ -3422,9 +3565,6 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs reverse exponential power operation between two operands. It is equivalent to **'other ** dataframe'**.  
 
-**Currently, it does not perform reverse exponential power operation of scalar using operator version. Only 
-method version is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -3434,9 +3574,9 @@ For example,
     
     # a dictionary
     data1 = {
-            "points": [5, 6, 4],
-            "total": [10, 11, 12]
-           }
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
     
     # create pandas dataframe
     pdf1 = pd.DataFrame(data1)
@@ -3453,6 +3593,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse exponential power operation on a scalar value using operator version:**
+
+For example,
+
+    print(10 ** fdf1)
+
+Output
+
+    index   points  total
+    0       32      1024
+    1       64      2048
+    2       16      4096
 
 **Reverse exponential power operation on a scalar value using method version:**  
 
@@ -3479,9 +3632,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
     
     # create pandas dataframe
@@ -3523,6 +3676,19 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+**Reverse exponential power operation on two dataframes using operator version:**
+
+For example,
+
+    print(fdf2 ** fdf1)
+
+Output
+
+    index   points  total
+    0       10      70
+    1       18      99
+    2       32      132
 
 **Reverse exponential power operation on two dataframes using method version:**  
 
@@ -3642,8 +3808,6 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs reverse subtraction operation between two operands. It is equivalent to **'other - dataframe'**.  
 
-**Currently, it does not perform reverse subtraction of scalar using operator version. Only method version is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -3652,9 +3816,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
     
     # create pandas dataframe
@@ -3672,6 +3836,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse subtraction on a scalar value using operator version:**
+
+For example,
+
+    print(10 - fdf1)
+
+Output
+
+    index   points  total
+    0       5       0
+    1       4       -1
+    2       6       -2
 
 **Reverse subtraction on a scalar value using method version:**  
 
@@ -3697,9 +3874,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     # create pandas dataframe
@@ -3741,6 +3918,19 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+**Reverse subtraction on two dataframes using operator version:**
+
+For example,
+
+    print(fdf2 - fdf1)
+
+Output
+
+    index   points  total
+    0       -3      -3
+    1       -3      -2
+    2       4       -1
 
 **Reverse subtraction on two dataframes using method version:**  
 
@@ -3870,9 +4060,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [8, 5, 9],
-              "total": [3, 2, 1]
+    data1 = {
+             "points": [8, 5, 9],
+             "total": [3, 2, 1]
             }
 
     # create pandas dataframe
@@ -3890,6 +4080,19 @@ Output
     0       8       3
     1       5       2
     2       9       1
+
+**Reverse floating division on a scalar value using operator version:**
+
+For example,
+
+    print(10 / fdf1)
+
+Output
+
+    index   points  total
+    0       1.25    3.33333
+    1       2       5
+    2       1.11111 10
 
 **Reverse floating division on a scalar value using method version:**  
 
@@ -3915,9 +4118,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [8, 5, 9],
-              "total": [3, 2, 1]
+    data1 = {
+             "points": [8, 5, 9],
+             "total": [3, 2, 1]
             }
 
     # create pandas dataframe
@@ -3939,9 +4142,9 @@ Output
 For example,  
 
     # a dictionary
-    data2 =  {
-              "points": [4, 7, 2],
-              "total": [9, 1, 9]
+    data2 = {
+             "points": [4, 7, 2],
+             "total": [9, 1, 9]
             }
 
     # create pandas dataframe
@@ -3959,6 +4162,19 @@ Output
     0       4       9
     1       7       1
     2       2       9
+
+**Reverse floating division on two dataframes using operator version:**
+
+For example,
+
+    print(fdf2 / fdf1)
+
+Output
+
+    index   points    total
+    0       0.5       3
+    1       1.39999   0.5
+    2       0.222222  9
 
 **Reverse floating division on two dataframes using method version:**  
 
@@ -4053,6 +4269,7 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 # SEE ALSO
 
 - **[DataFrame - Introduction](./df_intro.md)**  
+- **[DataFrame - Indexing Operations](./df_indexing_operations.md)**  
 - **[DataFrame - Generic Functions](./df_generic_func.md)**  
 - **[DataFrame - Conversion Functions](./df_conversion.md)**  
 - **[DataFrame - Sorting Functions](./df_sorting.md)**  

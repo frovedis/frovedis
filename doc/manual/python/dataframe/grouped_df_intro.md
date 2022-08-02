@@ -32,7 +32,7 @@ __Parameters__
 When it is None (not specified explicitly), an empty FrovedisGroupedDataframe instance is created.  
 
 __Purpose__  
-It is used for a specific purpose. It's instance is created in order to hold result of groupby method calls.  
+It is used for a specific purpose. It is instance is created in order to hold result of groupby method calls.  
 This instance can then further be used with aggregate functions such as mean(), sem(), etc.  
 
 **Creating FrovedisGroupedDataframe instance using groupby operation:**  
@@ -43,11 +43,11 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     peopleDF = {
-            'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'], 
-            'Age' : [29, 30, 27, 19, 31],
-            'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
-            'isMale': [False, False, False, False, True]
-           }
+                'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'], 
+                'Age' : [29, 30, 27, 19, 31],
+                'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
+                'isMale': [False, False, False, False, True]
+               }
     pdf1 = pd.DataFrame(peopleDF)
     fdf1 = fdf.DataFrame(pdf1)
     
@@ -126,6 +126,7 @@ FrovedisGroupedDataFrame provides a lot of utilities to perform various operatio
 9. **sum()** - it computes sum of group values.  
 10. **var()** - it computes variance of groups, excluding missing values.  
 
-# SEE ALSO  
+# SEE ALSO 
+ 
 - **[Using aggregate functions on FrovedisGroupedDataFrame](./grouped_df_agg_func.md)**  
 - **[Introduction to frovedis DataFrame](./df_intro.md)**  

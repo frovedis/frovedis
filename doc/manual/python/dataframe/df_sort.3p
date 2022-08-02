@@ -38,7 +38,7 @@ Inplace sorting is not supported yet.\f[R]
 1. nlargest(n, columns, keep = \[aq]first\[aq])
 2. nsmallest(n, columns, keep = \[aq]first\[aq])
 3. sort(columns = None, axis = 0, ascending = True, inplace = False, kind = \[aq]radixsort\[aq], 
-         na_position = \[aq]last\[aq], **kwargs)
+        na_position = \[aq]last\[aq], **kwargs)
 4. sort_index(axis = 0, ascending = True, inplace = False, kind = \[aq]quicksort\[aq], na_position = \[aq]last\[aq])
 5. sort_values(by, axis = 0, ascending = True, inplace = False, kind = \[aq]radixsort\[aq], na_position = \[aq]last\[aq])
 \f[R]
@@ -522,10 +522,10 @@ import pandas as pd
 import frovedis.dataframe as fdf
 
 pd_df = pd.DataFrame({
-                    \[aq]col1\[aq]: [\[aq]A\[aq], \[aq]A\[aq], \[aq]B\[aq], np.nan, \[aq]D\[aq], \[aq]C\[aq]],
-                    \[aq]col2\[aq]: [2, 1, 9, 8, 7, 4],
-                    \[aq]col3\[aq]: [0, 1, 9, 4, 2, 3],
-                    \[aq]col4\[aq]: [\[aq]a\[aq], \[aq]B\[aq], \[aq]c\[aq], \[aq]D\[aq], \[aq]e\[aq], \[aq]F\[aq]] })
+                      \[aq]col1\[aq]: [\[aq]A\[aq], \[aq]A\[aq], \[aq]B\[aq], np.nan, \[aq]D\[aq], \[aq]C\[aq]],
+                      \[aq]col2\[aq]: [2, 1, 9, 8, 7, 4],
+                      \[aq]col3\[aq]: [0, 1, 9, 4, 2, 3],
+                      \[aq]col4\[aq]: [\[aq]a\[aq], \[aq]B\[aq], \[aq]c\[aq], \[aq]D\[aq], \[aq]e\[aq], \[aq]F\[aq]] })
 
 # create a frovedis dataframe from pandas dataframe
 fd_df = fdf.DataFrame(pd_df)
@@ -878,10 +878,10 @@ import frovedis.dataframe as fdf
 
 # creating a pandas dataframe
 pd_df = pd.DataFrame({
-                       \[aq]col1\[aq]: [\[aq]A\[aq], \[aq]A\[aq], \[aq]B\[aq], np.nan, \[aq]D\[aq], \[aq]C\[aq]],
-                       \[aq]col2\[aq]: [2, 1, 9, 8, 7, 4],
-                       \[aq]col3\[aq]: [0, 1, 9, 4, 2, 3],
-                       \[aq]col4\[aq]: [\[aq]a\[aq], \[aq]B\[aq], \[aq]c\[aq], \[aq]D\[aq], \[aq]e\[aq], \[aq]F\[aq]]
+                      \[aq]col1\[aq]: [\[aq]A\[aq], \[aq]A\[aq], \[aq]B\[aq], np.nan, \[aq]D\[aq], \[aq]C\[aq]],
+                      \[aq]col2\[aq]: [2, 1, 9, 8, 7, 4],
+                      \[aq]col3\[aq]: [0, 1, 9, 4, 2, 3],
+                      \[aq]col4\[aq]: [\[aq]a\[aq], \[aq]B\[aq], \[aq]c\[aq], \[aq]D\[aq], \[aq]e\[aq], \[aq]F\[aq]]
                     })
                     
 # creating a frovedis dataframe
@@ -989,6 +989,11 @@ It returns a new Frovedis DataFrame with sorted values.
 .SH SEE ALSO
 .IP \[bu] 2
 \f[B]DataFrame - Introduction\f[R]
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+\f[B]DataFrame - Indexing Operations\f[R]
 .PD 0
 .P
 .PD

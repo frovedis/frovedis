@@ -43,6 +43,7 @@ We are still updating the contents.
     + [StandardScaler]
     + [SVC]
     + [t-Distributed Stochastic Neighbor Embedding]
+    + [Timeseries analysis using ARIMA]
     + [Word2Vec]
 - Linalg
     + [linalg] 
@@ -63,6 +64,7 @@ We are still updating the contents.
     + [gesvd_result]
 - DataFrame
     + [DataFrame Introduction] 
+    + [DataFrame Indexing Operations] 
     + [DataFrame Generic Functions]
     + [DataFrame Conversion Functions]
     + [DataFrame Sorting Functions]
@@ -70,6 +72,7 @@ We are still updating the contents.
     + [DataFrame Math Functions]
     + [FrovedisGroupedDataframe]
     + [FrovedisGroupedDataFrame Aggregate Functions]
+
 
 # Agglomerative Clustering
 
@@ -798,6 +801,904 @@ It returns 'True', if the  model is already fitted otherwise, it returns 'False'
 
 ## SEE ALSO  
 - **[Introduction to FrovedisCRSMatrix](../matrix/crs_matrix.md)**  
+
+
+# Timeseries analysis using ARIMA  
+
+## NAME  
+
+ARIMA - Autoregressive Integrated Moving Average model is a time series model that is used
+to forecast data based on the dataset of past to predict/forecast the future.  
+
+## SYNOPSIS  
+
+    class frovedis.mllib.tsa.arima.model.ARIMA(endog, exog=None, order=(1, 0, 0), 
+                                               seasonal_order=(0, 0, 0, 0),  
+                                               trend=None,  
+                                               enforce_stationarity=True,  
+                                               enforce_invertibility=True,  
+                                               concentrate_scale=False, trend_offset=1,  
+                                               dates=None,freq=None, missing='none',  
+                                               validate_specification=True,  
+                                               seasonal=None, auto_arima=False,  
+                                               solver='lapack', verbose=0)  
+
+### Public Member Functions  
+  
+fit()  
+predict(start = None, end = None, dynamic = False, **kwargs)  
+forecast(steps = 1, exog = None, alpha = 0.05)  
+get_params(deep = True)  
+set_params(\*\*params)  
+release()  
+is_fitted()  
+
+## DESCRIPTION  
+Frovedis provides a timeseries model in order to predict the future values based on the past 
+values.  
+Each component in ARIMA functions as a parameter with a standard notation. For ARIMA models, a 
+standard notation would be ARIMA with p(AR), d(I), and q(MA) which indicate the type of ARIMA 
+model to be used. A `0` value can be used as a parameter and would mean that the particular component 
+should not be used in the model. This way, the ARIMA model can be constructed to perform the 
+function of an ARMA model, or even simple AR (1,0,0), I(0,1,0), or MA(0,0,1) models. **However, the 
+current implementaion cannot be used to construct a pure MA model.**  
+
+Also, it provides the feature of auto ARIMA which can fit the best lag for AR and MA. This is a 
+useful feature for the users who do not have knowledge about data analytics.  
+
+Unlike statsmodel ARIMA, it does not use MLE (Maximum Likelihood Estimation), rather it uses
+OLS (Ordinary Least Squares).  
+**Note:-** Also, rather than converging around the mean after some number of predictions, it tends to follow
+the trend i.e it diverges towards increasing or decreasing trend.  
+
+This module provides a client-server implementation, where the client application is a normal 
+python program. The frovedis interface is almost same as statsmodel ARIMA interface, but it does not 
+have any dependency with statsmodel. It can be used simply even if the system does not have 
+statsmodel installed. Thus in this implementation, a python client can interact with a frovedis 
+server by sending the required python data for training at frovedis side. Python data is converted 
+into frovedis compatible data internally and the python ML call is linked with the respective 
+frovedis ML call to get the job done at frovedis server.  
+
+Python side calls for ARIMA on the frovedis server. Once the training is completed with the 
+input data at the frovedis server, it returns an abstract model with a unique model ID to the 
+client python program.  
+
+When prediction-like request would be made on the trained model, python program will 
+send the same request to the frovedis server. After the request is served at the frovedis 
+server, the output would be sent back to the python client.  
+
+### Detailed Description  
+
+#### 1. ARIMA()  
+
+__Parameters__   
+**_endog_**: It contains the timeseries data.  
+Currently, it accepts the below mentioned array-like inputs such as:  
+- A numpy array of shape (n_samples,)  
+- A list or tuple of shape (n_samples,)  
+- A matrix of shape (n_samples, 1)  
+
+Also, it accepts a pandas DataFrame having single column and a datetime index.  
+**_exog_**: An unused parameter. (Default: =None)  
+**_order_**: A tuple parameter having 3 elements (p,d,q) that specifies the order of the model 
+for the autoregressive(p), differences(d), and moving average(q) components. (Default: (1, 0, 0))  
+**Currently, autoregressive order cannot be 0 i.e it cannot be used to create pure MA model.**  
+Also, these components (p, d, q) of the model cannot be negative values.  
+**_seasonal\_order_**: An unused parameter. (Default: (0, 0, 0, 0))  
+**_trend_**: An unused parameter. (Default: None)  
+**_enforce\_stationarity_**: An unused parameter. (Default: True)  
+**_enforce\_invertibility_**: An unused parameter. (Default: True)  
+**_concentrate\_scale_**: An unused parameter. (Default: False)  
+**_trend\_offset_**: An unused parameter. (Default: 1)  
+**_dates_**: An unused parameter. (Default: None)  
+**_freq_**: This parameter specifies the frequency of the timeseries. It is an offset string 
+or Pandas offset. It is used only when time series data is a pandas dataframe having 
+an index. For example, freq = '3D' or freq = to_offset('3D'). (Default: None)  
+**_missing_**: An unused parameter. (Default: 'none')  
+**_validate\_specification_**: An unused parameter. (Default: True)  
+**_seasonal_**: A zero or a positive integer parameter that specifies the interval of seasonal 
+differencing. In case the data has some seasonality , then it can handle it . (Default: None)  
+**_auto\_arima_**: A boolean parameter that specifies whether to use auto (brute) ARIMA. (Default: False)  
+If set to True, it treats the autoregressive and moving average component of the order parameter 
+as the highest limit for its iteration and auto fits these components with the best RMSE score.  
+**_solver_**: A string object parameter which specifies the solver to be used for linear 
+regression. It supports `lapack`, `scalapack`, `lbfgs` and `sag` solvers. (Default: 'lapack')  
+When specified, e.g `lbfgs`, then it uses lbfgs solver for linear regression.  
+**Note:-** To get the best performance and accuracy from ARIMA, use solver='lapack'.  
+**_verbose_**: An integer parameter specifying the log level to use. Its value is 0 by 
+default (for INFO mode and not specified explicitly). But it can be set to 1 (for DEBUG mode) or 
+2 (for TRACE mode) for getting training time logs from frovedis server. (Default: 0)  
+
+__Attributes__  
+**_fittedvalues_**: It is a python ndarray (containing float or double (float64) typed values 
+depending on data-type of input array) of shape (n_samples,) or pandas Series containing the 
+predicted values of the model after training is completed.  
+
+__Purpose__  
+It initializes the ARIMA instance with the given parameters.  
+
+The parameters: "exog", "seasonal_order", "trend", "enforce_stationarity", "enforce_invertibility", 
+"concentrate_scale", "trend_offset", "dates" and "missing" are simply kept in to to make the 
+interface uniform to the statsmodel ARIMA module. They are not used anywhere within the 
+frovedis implementation.  
+
+Currently, the number of samples in the timeseries data must be greater than sum of ARIMA
+order and seasonal parameter.  
+
+    len(endog) >= (order[0] + order[1] + order[2] + seasonal)
+
+__Return Value__    
+It simply returns "self" reference.  
+
+#### 2. fit()  
+
+__Purpose__   
+It is used to fit the model parameters on the basis of given parameters and data provided
+at frovedis server.   
+
+For example,   
+
+    # loading an array-like data
+    import numpy as np
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5,
+                     231.8, 224.5, 192.8, 122.9, 336.5, 185.9,
+                     194.3, 149.5, 210.1, 273.3, 191.4, 287,
+                     226, 303.6, 289.9, 421.6, 264.5, 342.3,
+                     339.7, 440.4, 315.9, 439.3, 401.3, 437.4,
+                     575.5, 407.6, 682, 475.3, 581.3, 646.9])
+    
+    # fitting input array-like data on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(data, order=(2,1,2)).fit()   
+    
+    # displaying the fittedvalues
+    print(arima.fittedvalues)
+
+Output  
+
+    [  0.           0.           0.          34.80616713  82.04476428
+     199.9205314  197.46227245 198.75614907 229.51624583 263.0131258
+     270.18526491 192.05449775 272.3933017  284.84889246 266.61188466
+     226.95908704 211.39748037 271.90632761 256.99495549 290.21370532
+     281.66600813 303.1955228  304.63779347 393.97882909 375.17286126
+     364.56323191 359.48470979 426.81421461 402.55377056 427.14878515
+     442.66867406 432.34417321 540.18491169 486.09468617 596.96746024
+     589.29064598]
+
+Here, fittedvalues will be displayed after training is completed on array-like timeseries data.  
+
+When native python data is provided, it is converted to frovedis-like inputs and 
+sent to frovedis server which consumes some data transfer time. Pre-constructed 
+frovedis-like input can be used to speed up the training time, especially when 
+same data would be used for multiple executions.  
+
+For example,  
+     
+    # loading an array-like data
+    import numpy as np
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5,
+                     231.8, 224.5, 192.8, 122.9, 336.5, 185.9,
+                     194.3, 149.5, 210.1, 273.3, 191.4, 287,
+                     226, 303.6, 289.9, 421.6, 264.5, 342.3,
+                     339.7, 440.4, 315.9, 439.3, 401.3, 437.4,
+                     575.5, 407.6, 682, 475.3, 581.3, 646.9])
+    
+    # Since "data" is numpy array, we have created FrovedisDvector. 
+    from frovedis.matrix.dvector import FrovedisDvector
+    data = FrovedisDvector(data)
+    
+    # ARIMA with pre-constructed frovedis-like input
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(data, order=(2,1,2)).fit()
+
+    # displaying the fittedvalues
+    print(arima.fittedvalues)
+
+Output
+
+    [  0.           0.           0.          34.80616713  82.04476428
+     199.9205314  197.46227245 198.75614907 229.51624583 263.0131258
+     270.18526491 192.05449775 272.3933017  284.84889246 266.61188466
+     226.95908704 211.39748037 271.90632761 256.99495549 290.21370532
+     281.66600813 303.1955228  304.63779347 393.97882909 375.17286126
+     364.56323191 359.48470979 426.81421461 402.55377056 427.14878515
+     442.66867406 432.34417321 540.18491169 486.09468617 596.96746024
+     589.29064598]
+
+Here, fittedvalues will be displayed after training is completed on frovedis-like timeseries data.  
+
+When pandas dataframe having single column and a datetime index is provided, then training is 
+done based on the given index type.  
+
+If it is a numeric index with values 0, 1 , ..., N-1 (always incrementing indices), where N 
+is n_samples or if it is (coerceable to) a DatetimeIndex or PeriodIndex with an associated 
+frequency, then it is called a "Supported" index. Otherwise, it is called an "Unsupported" index.  
+
+**Currently, support for DatetimeIndex or PeriodIndex instance is provided in frovedis.**  
+
+NOTE: A warning will be given when unsupported indices are used for training.  
+
+**When a supported index is provided:**  
+
+For example,  
+
+    # loading a pandas dataframe having datetime index
+    # such indices should be monotonically increasing 
+    # and have an associated frequency
+    # also, such index is considered as a supported index
+    import pandas as pd
+    index = ["01-01-1981", "01-04-1981", "01-07-1981", "01-10-1981", "01-13-1981", "01-16-1981", 
+             "01-19-1981", "01-22-1981", "01-25-1981", "01-28-1981", "01-31-1981", "02-03-1981", 
+             "02-06-1981", "02-09-1981", "02-12-1981", "02-15-1981", "02-18-1981", "02-21-1981"] 
+
+    index = pd.DatetimeIndex(data = index, name="Date", freq=None)
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8, 
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5, 
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2)).fit()
+
+    # displaying the fittedvalues
+    print(arima.fittedvalues)
+
+Output  
+
+    UserWarning: A date index has been provided, but it has no associated frequency information 
+    and so will be ignored when e.g. forecasting.
+
+    Date
+    1981-01-01      0.000000
+    1981-01-04      0.000000
+    1981-01-07      0.000000
+    1981-01-10      7.183812
+    1981-01-13     50.686614
+    1981-01-16    188.205611
+    1981-01-19    171.793531
+    1981-01-22    182.706200
+    1981-01-25    200.586396
+    1981-01-27    227.986895
+    1981-01-31    233.641814
+    1981-02-03    213.975698
+    1981-02-06    213.622244
+    1981-02-09    254.024920
+    1981-02-12    242.193347
+    1981-02-15    216.585066
+    1981-02-18    198.927653
+    1981-02-21    224.250625
+    dtype: float64
+
+Here, fittedvalues will be displayed after training is completed on dataframe having supported index.  
+
+**Note:** For fittedvalues attribute, when endog is having an index, then after training is completed, 
+    
+    fittedvalues.index = endog.index
+
+This will always be true even when endog is having supported or unsupported indices.  
+
+Also, in above example frequency infromation was inferred based on given timeseries data.  
+
+So, we can use **freq** parameter in frovedis ARIMA in order to set the frequency information of the timeseries 
+data as well.  
+
+For example,  
+
+    # loading a pandas dataframe having datetime index
+    import pandas as pd
+    index = ["01-01-1981", "01-04-1981", "01-07-1981", "01-10-1981", "01-13-1981", "01-16-1981",
+             "01-19-1981", "01-22-1981", "01-25-1981", "01-28-1981", "01-31-1981", "02-03-1981",
+             "02-06-1981", "02-09-1981", "02-12-1981", "02-15-1981", "02-18-1981", "02-21-1981"]
+
+    index = pd.DatetimeIndex(data = index, name="Date", freq=None)
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object and using freq parameter
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2), freq = '3D').fit()
+
+    # displaying the fittedvalues
+    print(arima.fittedvalues)
+
+Output  
+
+    Date
+    1981-01-01      0.000000
+    1981-01-04      0.000000
+    1981-01-07      0.000000
+    1981-01-10      7.183812
+    1981-01-13     50.686614
+    1981-01-16    188.205611
+    1981-01-19    171.793531
+    1981-01-22    182.706200
+    1981-01-25    200.586396
+    1981-01-27    227.986895
+    1981-01-31    233.641814
+    1981-02-03    213.975698
+    1981-02-06    213.622244
+    1981-02-09    254.024920
+    1981-02-12    242.193347
+    1981-02-15    216.585066
+    1981-02-18    198.927653
+    1981-02-21    224.250625
+    dtype: float64
+
+**Note:** Here, the frequency information provided for freq parameter must be same as the frequency 
+inferred for the timeseries data. Otherwise, it will raise an exception.  
+
+**When an unsupported index is provided:**
+
+For example,
+
+    # loading a pandas dataframe having datetime index
+    # and having no associated frequency
+    # such index is considered as an unsupported index
+    import pandas as pd
+    index = ["01-01-1981", "01-05-1981", "01-07-1981", "01-10-1981", "01-12-1981", "01-16-1981",
+             "01-19-1981", "01-21-1981", "01-25-1981", "01-28-1981", "01-31-1981", "02-03-1981",
+             "02-06-1981", "02-10-1981", "02-12-1981", "02-16-1981", "02-18-1981", "02-22-1981"]
+
+    index = pd.DatetimeIndex(data = index, name="Date", freq=None)
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2)).fit()
+
+    # displaying the fittedvalues
+    print(arima.fittedvalues)
+
+Output  
+
+    UserWarning: A date index has been provided, but it has no associated frequency information and so 
+    will be ignored when e.g. forecasting.
+
+    Date
+    1981-01-01      0.000000
+    1981-01-05      0.000000
+    1981-01-07      0.000000
+    1981-01-10      7.183812
+    1981-01-12     50.686614
+    1981-01-16    188.205611
+    1981-01-19    171.793531
+    1981-01-21    182.706200
+    1981-01-25    200.586396
+    1981-01-28    227.986895
+    1981-01-31    233.641814
+    1981-02-03    213.975698
+    1981-02-06    213.622244
+    1981-02-10    254.024920
+    1981-02-12    242.193347
+    1981-02-16    216.585066
+    1981-02-18    198.927653
+    1981-02-22    224.250625
+    dtype: float64
+
+Here, indices in the `fittedvalues` are same as indices present in the `endog` timeseries data.  
+
+__Return Value__  
+It simply returns "self" reference.  
+
+#### 3. predict(start = None, end = None, dynamic = False, **kwargs)  
+__Parameters__   
+**_start_**: This parameter can be an integer, string or datetime instance. It 
+specifies the starting index from which the values are to be predicted.  
+**_stop_**: This parameter can be an integer, string or datetime instance. It 
+specifies the index till which the values are to be predicted.  
+**_dynamic_**: An unused parameter. (Default: False)  
+**_\*\*kwargs_**: An unused parameter.  
+
+__Purpose__    
+It is used to perform in-sample prediction and out-of-sample prediction at frovedis server.  
+
+**During prediction, end index must not be less than start index.**  
+
+Below mentioned examples show frovedis ARIMA to be used to perform in-sample and out-sample 
+predictions.  
+
+**When endog is array-like input, then start and end must only be integers to perform in-sample and 
+out-sample predictions.**  
+
+For example,  
+
+    # loading an array-like data
+    import numpy as np
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5,
+                     231.8, 224.5, 192.8, 122.9, 336.5, 185.9,
+                     194.3, 149.5, 210.1, 273.3, 191.4, 287,
+                     226, 303.6, 289.9, 421.6, 264.5, 342.3,
+                     339.7, 440.4, 315.9, 439.3, 401.3, 437.4,
+                     575.5, 407.6, 682, 475.3, 581.3, 646.9])
+
+    # fitting input array-like data on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(data, order=(2,1,2)).fit()
+
+    # perform in-sample prediction with start and end as integers
+    print('In-sample predictions: ', arima.predict(start=11, end=12))
+
+Output  
+
+    In-sample predictions:  [169.65455872 290.43805859]
+
+**When start and end are negative indices to perform in-sample prediction:**  
+
+For example, 
+ 
+    # perfrom in-sample prediction with start and end as negative indices
+    print('In-sample prediction with negative indices: ', arima.predict(start=-2, end=-1))
+
+Output  
+
+    In-sample prediction with negative indices:  [627.92270498 578.69942377]
+
+**Note:** Here, negative indices can only be used to perform in-sample predictions.  
+
+**When start and end are integers to perfrom out-sample prediction:**  
+
+For example,  
+
+    # perform out-sample prediction with start and end as integers
+    print('Out-sample predictions: ', arima.predict(start=40, end=41))
+
+Output  
+
+    Out-sample predictions:  [672.66044638 683.2480911 ]
+
+When endog is a dataframe having a supported index (monotonically increasing and associated 
+frequency), then both `start` and `end` can be integer, dates as string or datetime instance to 
+perform in-sample and out-sample predictions.  
+
+For example,  
+
+    # loading a pandas dataframe having a supported index
+    import pandas as pd
+    index = ["01-01-1981", "01-04-1981", "01-07-1981", "01-10-1981", "01-13-1981", "01-16-1981",  
+             "01-19-1981", "01-22-1981", "01-25-1981", "01-28-1981", "01-31-1981", "02-03-1981",  
+             "02-06-1981", "02-09-1981", "02-12-1981", "02-15-1981", "02-18-1981", "02-21-1981"]
+    index = pd.DatetimeIndex(data = index, name="Date", freq=None)
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2)).fit()
+
+    # perform in-sample prediction with start and end as integers
+    print('In-sample predictions: ', arima.predict(start=11, end=12))
+
+Output  
+
+    UserWarning: No frequency information was provided, so inferred frequency 3D will be used.
+
+    In-sample predictions:  Date
+    1981-02-03    192.400565
+    1981-02-06    255.586914
+    Freq: 3D, dtype: float64
+
+For example,  
+
+    # perform out-sample prediction with start and end as integers
+    print('Out-sample predictions: ', arima.predict(start=22, end=24))
+
+Output  
+
+    UserWarning: No frequency information was provided, so inferred frequency 3D will be used.
+    
+    Out-sample predictions:  1981-03-08    294.413814
+    1981-03-11    297.292898
+    1981-03-14    303.964832
+    Freq: 3D, dtype: float64
+
+**When start and end are both dates as string to perform predictions:**  
+
+For example,  
+
+    # perform in-sample prediction with start and end both are dates as strings
+    print('In-sample predictions: ', arima.predict(start='01-28-1981', end='02-03-1981'))
+
+Output  
+
+    UserWarning: No frequency information was provided, so inferred frequency 3D will be used.
+    
+    In-sample predictions:  Date
+    1981-01-28    243.389069
+    1981-01-31    232.545345
+    1981-02-03    235.522806
+    Freq: 3D, dtype: float64
+
+For example,  
+
+    # perform out-sample prediction with start and end both are dates as strings
+    print('Out-sample predictions: ', arima.predict(start='02-24-1981', end='02-24-1981'))
+
+Output  
+
+    UserWarning: No frequency information was provided, so inferred frequency 3D will be used.
+    
+    Out-sample predictions:  1981-02-24    259.295505
+    Freq: 3D, dtype: float64
+
+**When start and end are both datetime instance to perform predictions:**  
+
+For example,  
+ 
+    # perform in-sample prediction with start and end both are dates as datetime instance
+    from datetime import datetime
+    print('In-sample predictions: ', arima.predict(start=datetime(1981,1,28), end=datetime(1981,2,3)))
+
+Output  
+
+    UserWarning: No frequency information was provided, so inferred frequency 3D will be used.
+    
+    In-sample predictions:  Date
+    1981-01-28    243.389069
+    1981-01-31    232.545345
+    1981-02-03    235.522806
+    Freq: 3D, dtype: float64
+
+For example,  
+
+    # perform out-sample prediction with start and end both are dates as datetime instance
+    from datetime import datetime
+    print('Out-sample predictions: ', arima.predict(start=datetime(1981,2,24), end=datetime(1981,2,24)))    
+
+Output  
+
+    UserWarning: No frequency information was provided, so inferred frequency 3D will be used.
+    
+    Out-sample predictions:  1981-02-24    259.295505
+    Freq: 3D, dtype: float64
+
+When endog is a dataframe having an unsupported index, then only integer is used to perform in-sample and 
+out-sample predictions. For using dates as string and datetime instance to perform predictions, then only 
+in-sample prediction can be done. No out-sample prediction can be done when using dates as string or datetime 
+instance.  
+
+For example,
+
+    # loading a pandas dataframe having an unsupported index
+    import pandas as pd
+    index = ["01-01-1981", "01-05-1981", "01-07-1981", "01-10-1981", "01-12-1981", "01-16-1981",
+             "01-19-1981", "01-21-1981", "01-25-1981", "01-28-1981", "01-31-1981", "02-03-1981",  
+             "02-06-1981", "02-10-1981", "02-12-1981", "02-16-1981", "02-18-1981", "02-22-1981"]
+    index = pd.DatetimeIndex(data = index, name="Date", freq=None)
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2)).fit()
+
+    # perform in-sample prediction with start and end as integers
+    print('In-sample predictions: ', arima.predict(start=11, end=12))
+
+Output  
+
+    UserWarning: A date index has been provided, but it has no associated frequency information and 
+    so will be ignored when e.g. forecasting.
+
+    In-sample predictions:  Date
+    1981-02-03    192.400565
+    1981-02-06    255.586914
+    dtype: float64
+
+For example,  
+
+    # perform out-sample prediction with start and end as integers
+    print('Out-sample predictions: ', arima.predict(start=22, end=24))
+
+Output  
+
+    UserWarning: A date index has been provided, but it has no associated frequency information and 
+    so will be ignored when e.g. forecasting.    
+    
+    Out-sample predictions:  22    294.413814
+    23    297.292898
+    24    303.964832
+    dtype: float64
+
+**When start and end are both dates as string to perform predictions:**  
+
+For example,  
+
+    # perform in-sample prediction with start and end both are dates as strings
+    print('In-sample predictions: ', arima.predict(start='01-07-1981', end='01-16-1981'))
+
+Output  
+
+    UserWarning: A date index has been provided, but it has no associated frequency information and 
+    so will be ignored when e.g. forecasting.
+
+    In-sample predictions:  Date
+    1981-01-07      0.000000
+    1981-01-10      7.183812
+    1981-01-12     50.686614
+    1981-01-16    188.205611
+    dtype: float64
+
+**When start and end are both datetime instance to perform predictions:**  
+
+For example,  
+
+    # perform in-sample prediction with start and end both are dates as datetime instance
+    from datetime import datetime
+    print('In-sample predictions: ', arima.predict(start=datetime(1981,1,28), end=datetime(1981,2,3)))
+
+Output  
+
+    UserWarning: A date index has been provided, but it has no associated frequency information and 
+    so will be ignored when e.g. forecasting.
+
+    In-sample predictions:  Date
+    1981-01-28    243.389069
+    1981-01-31    232.545345
+    1981-02-03    235.522806
+    dtype: float64
+
+__Return Value__  
+**When endog is array-like:**  
+- It returns a numpy array of shape (n_predictions,)  
+
+**When endog is a dataframe:**  
+- It returns a pandas Series having an index and data column. Number of samples in the pandas Series 
+are equal to the number of number of predictions.  
+
+
+#### 4. forecast(steps = 1, exog = None, alpha = 0.05)  
+__Parameters__  
+**_steps_**: This parameter can be a positive integer, string or datetime 
+instance. It specifies the number of out of sample values to be predicted. (Default: 1)  
+**NOTE:** When endog is array-like, steps must be a positive integer and is greater than 1. If 
+endog is a dataframe having date indices with associated frequency (known as supported index), 
+then steps can also be dates as string or datetime instance during out-of-sample forecasting.  
+
+When endog has unsupported indices, only integer must be used for out-of-sample forecasting. Also, 
+a warning will be given when such indices are used for forecasting. For other types provided, it 
+will raise an exception.  
+**_exog_**: An unused parameter. (Default: None)  
+**_alpha_**: An unused parameter. (Default: 0.05)  
+
+__Purpose__  
+It is used to perform out of sample forecasting.  
+
+Below mentioned examples show frovedis ARIMA to be used to perform forecasting.  
+
+**When endog is array-like input, then steps must only be an integer to perform forecasting.**  
+
+For example,
+
+    # loading an array-like data
+    import numpy as np
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5,
+                     231.8, 224.5, 192.8, 122.9, 336.5, 185.9,
+                     194.3, 149.5, 210.1, 273.3, 191.4, 287,
+                     226, 303.6, 289.9, 421.6, 264.5, 342.3,
+                     339.7, 440.4, 315.9, 439.3, 401.3, 437.4,
+                     575.5, 407.6, 682, 475.3, 581.3, 646.9])
+
+    # fitting input array-like data on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(data, order=(2,1,2)).fit()
+
+    # perform forecasting with steps as an integer
+    print('forecast(): ', arima.forecast(steps=2))
+
+Output
+
+    forecast():  [578.26315696 654.88723312]
+
+When endog is a dataframe having a supported index (monotonically increasing and associated
+frequency), then `steps` can be an integer, dates as string or datetime instance to
+perform forecasting.  
+
+For example,
+
+    # loading a pandas dataframe having a supported index
+    import pandas as pd
+    index = ["01-01-1981", "01-04-1981", "01-07-1981", "01-10-1981", "01-13-1981", "01-16-1981",
+             "01-19-1981", "01-22-1981", "01-25-1981", "01-28-1981", "01-31-1981", "02-03-1981",
+             "02-06-1981", "02-09-1981", "02-12-1981", "02-15-1981", "02-18-1981", "02-21-1981"]
+
+    index = pd.DatetimeIndex(data = index, name="Date", freq=None)
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2)).fit()
+
+    # perform forecasting with steps as an integer
+    print('forecast(): ', arima.forecast(steps=2))
+
+Output  
+
+    UserWarning: No frequency information was provided, so inferred frequency 3D will be used.
+
+    forecast():  1981-02-24    259.295505
+    1981-02-27    280.647172
+    Freq: 3D, dtype: float64
+
+**When steps is a date as a string:**  
+
+For example,
+
+    # perform forecasting where steps is a date as a string
+    print('forecast(): ', arima.forecast(steps='02-24-1981'))
+
+Output
+
+    forecast():  1981-02-24    259.295505  
+    Freq: 3D, dtype: float64
+
+**When steps is a date as a datetime instance:**  
+
+For example,
+
+    # perform forecasting where steps is a dates as a datetime instance
+    from datetime import datetime
+    print('forecast(): ', arima.forecast(steps=datetime(1981,2,24)))
+
+Output
+
+    forecast():  1981-02-24    259.295505
+    Freq: 3D, dtype: float64
+
+When endog is a dataframe having an unsupported index, then only integer is used to perform forecasting. No 
+forecasting can be done when using dates as string or datetime instance.  
+
+For example,
+
+    # loading a pandas dataframe having a supported index
+    import pandas as pd
+    index = ["01-01-1981", "01-05-1981", "01-07-1981", "01-10-1981", "01-12-1981", "01-16-1981",
+             "01-19-1981", "01-21-1981", "01-25-1981", "01-28-1981", "01-31-1981", "02-03-1981",
+             "02-06-1981", "02-10-1981", "02-12-1981", "02-16-1981", "02-18-1981", "02-22-1981"]
+
+    index = pd.DatetimeIndex(data = index, name="Date", freq=None)
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2)).fit()
+
+    # perform forecasting with steps as an integer
+    print('forecast(): ', arima.forecast(steps=2))
+
+Output  
+
+   UserWarning: A date index has been provided, but it has no associated frequency information and so 
+   will be ignored when e.g. forecasting.
+   
+   forecast():  18    259.295505  
+   19    280.647172  
+   dtype: float64  
+
+__Retur Value__  
+**When endog is array-like:**  
+- It returns a numpy array of shape (steps,)  
+
+**When endog is a dataframe:**  
+- It returns a pandas Series having an index and data column.  
+
+
+#### 5. get_params(deep = True)  
+__Parameters__   
+_**deep**_: A boolean parameter, used to get parameters and their values for an estimator. If True, 
+it will return the parameters for an estimator and contained subobjects that are estimators. (Default: True)  
+
+__Purpose__    
+This method belongs to the BaseEstimator class inherited by ARIMA. It is used to get parameters 
+and their values of ARIMA class.  
+
+For example, 
+ 
+    print(arima.get_params())
+
+Output  
+
+   {'auto_arima': False, 'concentrate_scale': False, 'dates': None, 
+    'endog': array([266. , 145.9, 183.1, 119.3, 180.3, 168.5, 231.8, 224.5, 192.8,
+                   122.9, 336.5, 185.9, 194.3, 149.5, 210.1, 273.3, 191.4, 287. ,
+                   226. , 303.6, 289.9, 421.6, 264.5, 342.3, 339.7, 440.4, 315.9,
+                   439.3, 401.3, 437.4, 575.5, 407.6, 682. , 475.3, 581.3, 646.9]), 
+    'enforce_invertibility': True, 'enforce_stationarity': True, 'exog': None, 'freq': None, 
+    'missing': 'none', 'order': (2, 1, 2), 'seasonal': 0, 'seasonal_order': (0, 0, 0, 0), 
+    'solver': 'lapack', 'trend': None, 'trend_offset': 1, 'validate_specification': True, 
+    'verbose': 0}
+    
+__Return Value__  
+A dictionary of parameter names mapped to their values.  
+
+#### 6. set_params(\*\*params)  
+__Parameters__  
+_**\*\*params**_: All the keyword arguments are passed to this function as dictionary. This dictionary 
+contains parameters of an estimator with its given values to set.  
+
+__Purpose__  
+This method belongs to the BaseEstimator class inherited by ARIMA, used to set 
+parameter values.  
+
+For example,   
+
+    print("get parameters before setting:")  
+    print(arima.get_params())  
+    # User just needs to provide the arguments and internally it will create a 
+    dictionary over the arguments given by user  
+    arima.set_params(order=(1,1,1), solver='lbfgs')  
+    print("get parameters after setting:")  
+    print(arima.get_params())  
+
+Output  
+     
+    get parameters before setting:
+    {'auto_arima': False, 'concentrate_scale': False, 'dates': None,
+     'endog': array([266. , 145.9, 183.1, 119.3, 180.3, 168.5, 231.8, 224.5, 192.8,
+                     122.9, 336.5, 185.9, 194.3, 149.5, 210.1, 273.3, 191.4, 287. ,
+                     226. , 303.6, 289.9, 421.6, 264.5, 342.3, 339.7, 440.4, 315.9,
+                     439.3, 401.3, 437.4, 575.5, 407.6, 682. , 475.3, 581.3, 646.9]),
+     'enforce_invertibility': True, 'enforce_stationarity': True, 'exog': None, 'freq': None,
+     'missing': 'none', 'order': (2, 1, 2), 'seasonal': 0, 'seasonal_order': (0, 0, 0, 0),
+     'solver': 'lapack', 'trend': None, 'trend_offset': 1, 'validate_specification': True,
+     'verbose': 0}
+
+    get parameters after setting:
+    {'auto_arima': False, 'concentrate_scale': False, 'dates': None,
+     'endog': array([266. , 145.9, 183.1, 119.3, 180.3, 168.5, 231.8, 224.5, 192.8,
+                     122.9, 336.5, 185.9, 194.3, 149.5, 210.1, 273.3, 191.4, 287. ,
+                     226. , 303.6, 289.9, 421.6, 264.5, 342.3, 339.7, 440.4, 315.9,
+                     439.3, 401.3, 437.4, 575.5, 407.6, 682. , 475.3, 581.3, 646.9]),
+     'enforce_invertibility': True, 'enforce_stationarity': True, 'exog': None, 'freq': None,
+     'missing': 'none', 'order': (1, 1, 1), 'seasonal': 0, 'seasonal_order': (0, 0, 0, 0),
+     'solver': 'lbfgs', 'trend': None, 'trend_offset': 1, 'validate_specification': True,
+     'verbose': 0}
+
+__Return Value__  
+It simply returns "self" reference.  
+
+#### 7. release()  
+
+__Purpose__    
+It can be used to release the in-memory model at frovedis server.  
+
+For example,
+ 
+    arima.release()
+
+This will reset the after-fit populated attributes to None, along with releasing server 
+side memory.  
+
+__Return Value__  
+It returns nothing.  
+
+#### 8. is_fitted()  
+
+__Purpose__    
+It can be used to confirm if the model is already fitted or not. In case, predict() is used 
+before training the model, then it can prompt the user to train the ARIMA model first. 
+
+__Return Value__  
+It returns 'True', if the model is already fitted otherwise, it returns 'False'.  
+
+## SEE ALSO  
+- **[Introduction to FrovedisDvector](../matrix/dvector.md)**  
+- **[DataFrame - Introduction](../dataframe/df_intro.md)**  
 
 
 # Bernoulli Naive Bayes
@@ -22279,7 +23180,7 @@ For boolwan type, frovedis supports:
     True/False, On/OFF, 0/1, yes/No, y/n 
 
 User must provide this, then frovedis can convert to boolean type. **Make sure user provides correct dtype , otherwise it will cause issues while creating frovedis dataframe**.  
-_**na\_values**_: It accepts scalar value or array-like input as parameter that specifies the additional strings to recognize as  missing values (NA/NaN). Currently, it doesn't accept dictionary as value for this parameter. (Default: None)  
+_**na\_values**_: It accepts scalar value or array-like input as parameter that specifies the additional strings to recognize as  missing values (NA/NaN). Currently, it does not accept dictionary as value for this parameter. (Default: None)  
 When it is None (not specified explicitly), it will interpret the list of following values as missing values:  
 
     ['null', 'NULL', 'nan', '-nan', 'NaN', '-NaN', 'NA', 'N/A', 'n/a']  
@@ -22616,7 +23517,7 @@ DataFrame provides various facilities to easily select and combine together spec
 3. **apply()** - Apply a function along an axis of the DataFrame.  
 4. **astype()** - Cast a selected column to a specified dtype.  
 5. **between()** - Filters rows according to the specified bound over a single column at a time.  
-6. **copy()** - Make a copy of this object's indices and data.  
+6. **copy()** - Make a copy of the indices and data of this object.  
 7. **countna()** - Count NA values for each column/row.  
 8. **describe()** - Generate descriptive statistics.  
 9. **drop()** - Drop specified labels from rows or columns.  
@@ -22677,15 +23578,40 @@ DataFrame has methods for carrying out binary operations like add(), sub(), etc 
 16. **rsub()** - Get subtraction of other specified value and dataframe. It is equivalent to other - dataframe.  
 17. **rtruediv()** - Get floating division of other specified value and dataframe. It is equivalent to other / dataframe.  
 
-#### Indexing in frovedis Dataframe  
+## SEE ALSO  
 
-Indexing means simply selecting particular rows and columns of data from a dataframe. Indexing can also be considered as Subset Selection.  
+- **[DataFrame - Data Extraction Methods](./df_data_extraction.md)**  
+- **[DataFrame - Indexing Operations](./df_indexing_operations.md)**  
+- **[DataFrame - Conversion Functions](./df_conversion.md)**  
+- **[DataFrame - Sorting Functions](./df_sort.md)**  
+- **[DataFrame - Math Functions](./df_math_func.md)**  
+- **[DataFrame - Aggregate Functions](./df_agg_func.md)**  
 
-There are a lot of ways to pull the rows and columns from a dataframe. There are some indexing method which help in getting an element from a dataframe. These indexing methods appear very similar but behave very differently. **Currently, frovedis supports only one type of indexing**. It is:  
 
-- **Dataframe.[ ]**: This function also known as indexing operator. It helps in filtering rows and columns from a dataframe. Also, it returns a pandas dataframe as output.  
+# DataFrame Indexing Operations
 
-**Indexing using [ ]**  
+## NAME
+
+Indexing in frovedis Dataframe - it means simply selecting particular rows and columns of data from a dataframe.  
+
+## DESCRIPTION  
+There are a lot of ways to pull the rows and columns from a dataframe. Frovedis DataFrame class provides some 
+indexing methods which help in filtering data from a dataframe. These indexing methods appear very similar but 
+behave very differently. **Currently, frovedis supports the below mentioned types of indexing**. They are as follows:  
+
+- **Dataframe.[ ]**: This function is also known as __getitem__. It helps in filtering rows and columns from a dataframe.  
+- **Dataframe.loc[]**: It is primarily label based, but may also be used with a boolean array.  
+- **Dataframe.iloc[]**: It is primarily integer position based, but may also be used with a boolean array.  
+- **Dataframe.at[]**: Similar to loc, both provide label-based lookups. It is used when only needed to get a 
+single value in a DataFrame.  
+- **Dataframe.iat[]**: Similar to iloc, both provide integer-based lookups. It is used when only needed to get 
+a single value in a DataFrame.  
+- **Dataframe.take()**: This function is used to return the elements in the given positional indices along an axis.  
+
+
+### Detailed description  
+
+**1. Indexing using [ ]**  
 
 Indexing operator is used to refer to the square brackets following an object.  
 
@@ -22697,20 +23623,20 @@ For example,
 
     import pandas as pd
     import frovedis.dataframe as fdf
-    
+
     # a pandas dataframe from key value pair
-    pdf2 = pd.DataFrame({ "Last Bonus": [5, 2, 2, 4], 
-                          "Bonus": [5, 2, 2, 4], 
-                          "Last Salary": [58, 59, 63, 58], 
+    pdf2 = pd.DataFrame({ "Last Bonus": [5, 2, 2, 4],
+                          "Bonus": [5, 2, 2, 4],
+                          "Last Salary": [58, 59, 63, 58],
                           "Salary": [60, 60, 64, 59]
                         }, index= ["John", "Marry", "Sam", "Jo"]
-                       ) 
+                       )
     # creating frovedis dataframe
     fdf1 = fdf.DataFrame(pdf2)
-    
+
     # display created frovedis dataframe
     fdf1.show()
-    
+
     print('selecting single column: ')
     fdf1['Bonus'].show()
 
@@ -22722,18 +23648,18 @@ Output
     Sam     2            2       63           64
     Jo      4            4       58           59
 
-    selecting single column: 
+    selecting single column:
     index   Bonus
     John    5
     Marry   2
     Sam     2
     Jo      4
 
-**Note:- Frovedis also supports use of attribute operators to filter/select column(s) in dataframe**
+**Note:- Frovedis also supports use of attribute operators to filter/select column(s) in dataframe**  
 
 In previous example, **Bonus** column can also be selected from the dataframe as follows:  
 
-For example,   
+For example,  
 
     fdf1.Bonus
 
@@ -22744,8 +23670,8 @@ This returns a FrovedisColumn instance.
 For example,  
 
     # selecting multiple columns
-    fdf1[['Bonus','Salary,']].show()
-    
+    fdf1[['Bonus','Salary']].show()
+
 Output  
 
     index   Bonus   Salary
@@ -22858,14 +23784,532 @@ Output
     Sam     2            2       63            64
     Jo      4            4       58            59
 
+The above filtering expressions can also be done with the help of indexing operator.  
+
+For example,  
+
+    # filtering data using given condition
+    fdf1[fdf1["Bonus"] == 2].show()
+
+Output  
+
+    index   Last Bonus  Bonus  Last Salary  Salary
+    Marry   2           2      59           60
+    Sam     2           2      63           64
+
+For example,  
+
+    # filtering data using '>' operator
+    fdf1[fdf1["Bonus"] > 2].show()
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary   Salary
+    John    5            5       58            60
+    Jo      4            4       58            59
+
+**2. Indexing a DataFrame using .loc[ ] :**  
+
+This function selects data by the label of the rows and columns.  
+
+Allowed inputs are:  
+
+- A single label, e.g. 5 or 'a'. Here, 5 is interpreted as a label of the index, and not as an 
+integer position along the index.  
+- A list or array of labels, e.g. ['a', 'b', 'c'].  
+- A slice object with labels, e.g. 'a':'f'. Here while using slices, both the start and the stop 
+are included.  
+- A boolean array of the same length as number of rows, e.g. [True, False, True].  
+
+**Currently, .loc[] cannot be used to set values for items in dataframe.**   
+
+For example,   
+
+    fdf1.loc['0',:] = 'Jai'              #not supported
+    fdf1.loc['0',:] = 12                 #not supported
+
+The above expression will give an error.   
+
+Also, it cannot be used to filter data using given condition.  
+
+For example,  
+
+    fdf1.loc[fdf1['Bonus'] > 2].show()   #not supported
+
+The above expression will give an error.  
+
+**Selecting a single column:**  
+
+In order to select a single row using .loc[], we put a single row label in a .loc function.  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+
+    # a pandas dataframe from key value pair
+    pdf2 = pd.DataFrame({ "Last Bonus": [5, 2, 2, 4],
+                          "Bonus": [5, 2, 2, 4],
+                          "Last Salary": [58, 59, 63, 58],
+                          "Salary": [60, 60, 64, 59]
+                        }, index= ["John", "Marry", "Sam", "Jo"]
+                       )
+    # creating frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf2)
+
+    # display created frovedis dataframe
+    fdf1.show()
+
+    print('selecting single column: ')
+    fdf1.loc['John'].show()
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary  Salary
+    John    5            5       58           60
+    Marry   2            2       59           60
+    Sam     2            2       63           64
+    Jo      4            4       58           59
+
+    selecting single column:
+    index   Last Bonus   Bonus   Last Salary  Salary
+    John    5            5       58           60
+
+**To select multiple columns:**  
+
+For example,  
+
+    # selecting multiple columns
+    fdf1.loc[['Marry','Sam','Jo']].show()
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary  Salary
+    Marry   2            2       59           60
+    Sam     2            2       63           64
+    Jo      4            4       58           59
+
+**Filtering dataframe using slice operation with row labels:**  
+
+For example,  
+
+    fdf1.loc['Marry':'Sam'].show()
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary  Salary
+    Marry   2            2       59           60
+    Sam     2            2       63           64
+
+**Selecting two rows and three columns:**  
+
+For example,  
+
+    fdf1.loc['Marry':'Sam', ['Bonus', 'Last Salary', 'Salary']]
+
+Output  
+
+    index   Bonus    Last Salary   Salary
+    Marry   2        59            60
+    Sam     2        63            64
+
+**Selecting all rows and some columns:**  
+
+For example,  
+
+    fdf1.loc[:, ['Bonus', 'Last Salary', 'Salary']]
+
+Output  
+
+    index   Bonus    Last Salary   Salary
+    John    5        58            60
+    Marry   2        59            60
+    Sam     2        63            64
+    Jo      4        58            59
+
+**To select data using boolean list:**  
+
+For example,  
+
+    # selecting using boolean list
+    fdf1.loc[[True, False, True, False]].show()
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary   Salary
+    John    5            5       58            60
+    Sam     2            2       63            64
+
+In case a dataframe having boolean indices is used, then .loc[] must be used with such boolean labels only.  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+
+    # a pandas dataframe from key value pair
+    pdf2 = pd.DataFrame({ "Last Bonus": [5, 2, 2, 4],
+                          "Bonus": [5, 2, 2, 4],
+                          "Last Salary": [58, 59, 63, 58],
+                          "Salary": [60, 60, 64, 59]
+                        }, index= [True, False, False, True]
+                       )
+    # creating frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf2)
+
+    # display created frovedis dataframe
+    fdf1.show()
+
+    fdf1.loc[[False, False, True, False]].show()
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary   Salary
+    1       5            5       58            60
+    0       2            2       59            60
+    0       2            2       63            64
+    1       4            4       58            59
+
+    index   Last Bonus   Bonus   Last Salary   Salary
+    0       2            2       63            64
+
+**3. Indexing a DataFrame using .iloc[ ] :**  
+
+This function allows us to retrieve rows and columns by position.  
+
+The df.iloc indexer is very similar to df.loc but only uses integer locations 
+to make its selections.  
+
+Allowed inputs are:  
+
+- An integer, e.g. 5.  
+- A list or array of integers, e.g. [4, 3, 0].  
+- A slice object with ints, e.g. 1:7.  
+- A boolean array of the same length as number of rows, e.g. [True, False, True].  
+
+**Currently, .iloc[] cannot be used to set values for items in dataframe.**  
+
+For example,  
+
+    fdf1.iloc[0,:] = 'Jai'               #not supported
+    fdf1.iloc[0,:] = 12                  #not supported
+
+The above expression will give an error.  
+
+Also, it cannot be used to filter data using given condition.  
+
+For example,  
+
+    fdf1.iloc[fdf1['Bonus'] > 2].show()  #not supported
+
+The above expression will give an error.  
+
+**Selecting a single column:**  
+
+In order to select a single row using .iloc[], we can pass a single integer to .iloc[] function.  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+
+    # a pandas dataframe from key value pair
+    pdf2 = pd.DataFrame({ "Last Bonus": [5, 2, 2, 4],
+                          "Bonus": [5, 2, 2, 4],
+                          "Last Salary": [58, 59, 63, 58],
+                          "Salary": [60, 60, 64, 59]
+                        }, index= ["John", "Marry", "Sam", "Jo"]
+                       )
+    # creating frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf2)
+
+    # display created frovedis dataframe
+    fdf1.show()
+
+    print('selecting single column: ')
+    fdf1.iloc[3].show()
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary  Salary
+    John    5            5       58           60
+    Marry   2            2       59           60
+    Sam     2            2       63           64
+    Jo      4            4       58           59
+
+    selecting single column:
+    index   Last Bonus   Bonus   Last Salary  Salary
+    Jo      4            4       58           59
+
+**To select multiple columns:**  
+
+For example,  
+
+    # selecting multiple columns
+    fdf1.iloc[[0, 1 ,3]].show()
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary  Salary
+    John    5            5       58           60
+    Marry   2            2       59           60
+    Jo      4            4       58           59
+
+**Filtering dataframe using slice operation with row labels:**  
+
+For example,  
+
+    fdf1.iloc[1:3].show()
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary  Salary
+    Marry   2            2       59           60
+    Sam     2            2       63           64
+
+**Selecting two rows and two columns:**  
+
+For example,  
+
+    fdf1.iloc[[1, 3],[2, 3]].show()
+
+Output  
+
+    index   Last Salary  Salary
+    Marry   59           60
+    Jo      58           59
+
+**Selecting all rows and some columns:**  
+
+For example,  
+
+    fdf1.iloc[:, [2, 3]].show()
+
+Output  
+
+    index   Last Salary   Salary
+    John    58            60
+    Marry   59            60
+    Sam     63            64
+    Jo      58            59
+
+**To select data using boolean list:**  
+
+For example,  
+
+    # selecting using boolean list
+    fdf1.iloc[[True, False, True, False]].show()
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary   Salary
+    John    5            5       58            60
+    Sam     2            2       63            64
+
+
+**4. Indexing a DataFrame using .at[ ] :**  
+
+This function is used to access single value for a row/column label pair.  
+
+This method works in a similar way to .loc[ ] but .at[ ] is used to return an only single value 
+and hence it works faster than .loc[].  
+
+**Currently, .at[] cannot be used to set values for items in dataframe.**  
+
+For example,  
+
+    fdf1.at['John', 'Bonus'] = 52       #not supported
+
+The above expression will give an error.  
+
+**Accesing a single value:**  
+
+In order to access a single value, we can pass a pair of row and column labels to .at[] function.  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+
+    # a pandas dataframe from key value pair
+    pdf2 = pd.DataFrame({ "Last Bonus": [5, 2, 2, 4],
+                          "Bonus": [5, 2, 2, 4],
+                          "Last Salary": [58, 59, 63, 58],
+                          "Salary": [60, 60, 64, 59]
+                        }, index= ["John", "Marry", "Sam", "Jo"]
+                       )
+    # creating frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf2)
+
+    # display created frovedis dataframe
+    fdf1.show()
+
+    print('selecting single value: ')
+    fdf1.at['John', 'Bonus']
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary  Salary
+    John    5            5       58           60
+    Marry   2            2       59           60
+    Sam     2            2       63           64
+    Jo      4            4       58           59
+
+    selecting single value:
+    5
+
+In case the given row/column label is not found then, it will give KeyError.  
+
+Also, it does not allow to perform slicing and will give an error.  
+
+**5. Indexing a DataFrame using .iat[ ] :**  
+
+This function is used to access single value for a row/column pair by integer position.  
+
+This method works in a similar way to .iloc[ ] but .iat[ ] is used to return an only single value
+and hence it works faster than .iloc[].  
+
+**Currently, .iat[] cannot be used to set values for items in dataframe.**  
+
+For example,  
+
+    fdf1.iat[0, 2] = 52       #not supported
+
+The above expression will give an error.  
+
+**Accesing a single value:**  
+
+In order to access a single value, we can pass a pair of row and column index positions to .iat[] function.  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+
+    # a pandas dataframe from key value pair
+    pdf2 = pd.DataFrame({ "Last Bonus": [5, 2, 2, 4],
+                          "Bonus": [5, 2, 2, 4],
+                          "Last Salary": [58, 59, 63, 58],
+                          "Salary": [60, 60, 64, 59]
+                        }, index= ["John", "Marry", "Sam", "Jo"]
+                       )
+    # creating frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf2)
+
+    # display created frovedis dataframe
+    fdf1.show()
+
+    print('selecting single value: ')
+    fdf1.iat[0, 2]
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary  Salary
+    John    5            5       58           60
+    Marry   2            2       59           60
+    Sam     2            2       63           64
+    Jo      4            4       58           59
+
+    selecting single value:
+    58
+
+In case the given row/column index position is not found then, it will give IndexError.  
+
+Also, it does not allow to perform slicing and will give an error.  
+
+**6. Indexing a DataFrame using take() :**  
+
+**DataFrame.take(indices, axis = 0, is_copy = None, \*\*kwargs)**  
+
+__Parameters__  
+**_indices_**: An array of integers indicating which positions to take.  
+**_axis_**: It accepts an integer or string object as parameter. It is used to select elements. (Default: 0)  
+- 0 or 'index': used to select rows.  
+- 1 or 'columns': used to select columns.  
+
+**_is\_copy_**: This is an unused parameter. (Default: None)  
+_**\*\*kwargs**_: This is an unused parameter.  
+
+__Purpose__  
+It returns the elements in the given positional indices along an axis.  
+
+Here,  indexing is not according to actual values in the index attribute of the object rather 
+indexing is done according to the actual position of the element in the object.  
+
+**Selecting elements along axis = 0 (default) :**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+
+    # a pandas dataframe from key value pair
+    pdf2 = pd.DataFrame({ "Last Bonus": [5, 2, 2, 4],
+                          "Bonus": [5, 2, 2, 4],
+                          "Last Salary": [58, 59, 63, 58],
+                          "Salary": [60, 60, 64, 59]
+                        }, index= ["John", "Marry", "Sam", "Jo"]
+                       )
+    # creating frovedis dataframe
+    fdf1 = fdf.DataFrame(pdf2)
+
+    # display created frovedis dataframe
+    fdf1.show()
+
+    print('selecting along axis = 0: ')
+    fdf1.take(indices = [0, 2], axis = 0)
+
+Output  
+
+    index   Last Bonus   Bonus   Last Salary  Salary
+    John    5            5       58           60
+    Marry   2            2       59           60
+    Sam     2            2       63           64
+    Jo      4            4       58           59
+
+    selecting along axis = 0:
+    index   Last Bonus   Bonus   Last Salary  Salary
+    John    5            5       58           60
+    Sam     2            2       63           64
+
+**Selecting elements along axis = 1 (column selection) :**  
+
+For example,  
+
+    fdf1.take(indices = [1, 2], axis = 1)
+
+Output  
+
+    index   Bonus   Last Salary
+    John    5       58
+    Marry   2       59
+    Sam     2       63
+    Jo      4       58
+
+**Selecting elements from the end along axis = 0:**  
+
+For example,  
+
+    fdf1.take(indices = [-1, -2], axis = 0)
+
+Output  
+
+    index   Last Bonus  Bonus   Last Salary    Salary
+    Jo      4           4       58             59
+    Sam     2           2       63             64
+
+__Return Value__  
+It returns a frovedis DataFrame instance or FrovedisColumn instance.  
 
 ## SEE ALSO  
 
+- **[DataFrame - Introduction](./df_intro.md)**  
 - **[DataFrame - Generic Functions](./df_generic_func.md)**  
 - **[DataFrame - Conversion Functions](./df_conversion.md)**  
 - **[DataFrame - Sorting Functions](./df_sort.md)**  
 - **[DataFrame - Math Functions](./df_math_func.md)**  
 - **[DataFrame - Aggregate Functions](./df_agg_func.md)**  
+
 
 
 # DataFrame Generic Functions
@@ -22896,21 +24340,23 @@ Frovedis dataframe provides various functions which are generally/frequently use
     10. dropna(axis = 0, how = 'any', thresh = None, subset = None, inplace = False)
     11. fillna(value = None, method = None, axis = None, inplace = False, limit = None, downcast = None)
     12. filter(items = None, like = None, regex = None, axis = None)
-    13. get_index_loc(value)
-    14. head(n = 5)
-    15. insert(loc, column, value, allow_duplicates = False)
-    16. isna()
-    17. isnull()
-    18. join(right, on, how = 'inner', lsuffix = '_left', rsuffix = '_right', 
+    13. first_element(col_name, skipna = None)
+    14. get_index_loc(value)
+    15. head(n = 5)
+    16. insert(loc, column, value, allow_duplicates = False)
+    17. isna()
+    18. isnull()
+    19. join(right, on, how = 'inner', lsuffix = '_left', rsuffix = '_right', 
              sort = False, join_type = 'bcast')
-    19. merge(right, on = None, how = 'inner', left_on = None, right_on = None, 
+    20. last_element(col_name, skipna = None)
+    21. merge(right, on = None, how = 'inner', left_on = None, right_on = None, 
               left_index = False, right_index = False, sort = False, suffixes = ('_x', '_y'), 
               copy = True, indicator = False, join_type = 'bcast')
-    20. rename(columns, inplace = False)
-    21. reset_index(drop = False, inplace = False)
-    22. set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
-    23. show()
-    24. tail(n = 5)
+    22. rename(columns, inplace = False)
+    23. reset_index(drop = False, inplace = False)
+    24. set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)
+    25. show()
+    26. tail(n = 5)
 
 ### Detailed Description   
 
@@ -22919,7 +24365,7 @@ Frovedis dataframe provides various functions which are generally/frequently use
 __Parameters__  
 **_other_**: It accepts a Frovedis DataFrame instance or a Pandas DataFrame instance or a list of Frovedis DataFrame instances which are to be appended.  
 **_ignore\_index_**: It accepts a boolean type parameter. If True, old index axis is ignored and a new index axis is added with values 0 to n - 1, where n is the number of rows in the DataFrame. (Default: False)  
-**_verify\_integrity_**: It accepts a boolean type as parameter. If it is set to True, it checks 'index' label for duplicate entries before appending and when there are duplicate entries in the DataFrame, it doesn't append. Otherwise duplicate entries in the 'index' label will be appended. It will also append duplicate entries when 'ignore_index' = True. (Default: False)  
+**_verify\_integrity_**: It accepts a boolean type as parameter. If it is set to True, it checks 'index' label for duplicate entries before appending and when there are duplicate entries in the DataFrame, it does not append. Otherwise duplicate entries in the 'index' label will be appended. It will also append duplicate entries when 'ignore_index' = True. (Default: False)  
 **_sort_**: It accepts a boolean type as parameter. It sorts the columns, if the columns of the given DataFrame and other DataFrame are not aligned. (Default: False)  
   
 __Purpose__  
@@ -23328,11 +24774,11 @@ For example,
 
     # a dictionary
     peopleDF = {
-				'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'],
-				'Age' : [29, 30, 27, 19, 31],
-				'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
-				'isMale': [False, False, False, False, True]
-			   }
+                'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'],
+		'Age' : [29, 30, 27, 19, 31],
+		'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
+		'isMale': [False, False, False, False, True]
+               }
     # converting to pandas dataframe  
     pd_df = pd.DataFrame(peopleDF)
 
@@ -23373,11 +24819,11 @@ For example,
 
     # a dictionary
     peopleDF = {
-				'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'],
-				'Age' : [29, 30, 27, 19, 31],
-				'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
-				'isMale': ['F', 'No', 'Off', False, 'Y']
-			   }
+		'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'],
+		'Age' : [29, 30, 27, 19, 31],
+		'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
+		'isMale': ['F', 'No', 'Off', False, 'Y']
+	       }
     # converting to pandas dataframe  
     pd_df = pd.DataFrame(peopleDF)
     
@@ -23545,7 +24991,7 @@ Output
 
     [False False False  True False False False False]
 
-**With 'inclusive='right':**  
+**With inclusive='right':**  
 
 For example,  
 
@@ -23556,7 +25002,7 @@ Output
 
     [False False False  True False  True False False]
 
-**With 'inclusive='neither':**  
+**With inclusive='neither':**  
 
 For example,  
 
@@ -23574,10 +25020,10 @@ It returns a dfoperator instance.
 
 __Parameters__  
 **_deep_**: A boolean parameter to decide the type of copy operation. (Default: True)  
-When it is True (not specified explicitly), it creates a deep copy i.e. the copy includes copy of the original DataFrame's data and the indices. **Currently this parameter doesn't support shallow copy (deep = False).**  
+When it is True (not specified explicitly), it creates a deep copy i.e. the copy includes copy of data and indices of the original DataFrame. **Currently this parameter does not support shallow copy (deep = False).**  
   
 __Purpose__  
-It creates a deep copy of the Frovedis DataFrame object’s indices and data.  
+It creates a deep copy of the Frovedis DataFrame object.  
 
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
@@ -23587,15 +25033,15 @@ For example,
     import frovedis.dataframe as fdf
     
     peopleDF = {
-				'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'],
-				'Age' : [29, 30, 27, 19, 31],
-				'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
-				'isMale': [False, False, False, False, True]
-			   }
+		'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'],
+		'Age' : [29, 30, 27, 19, 31],
+		'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
+		'isMale': [False, False, False, False, True]
+	       }
     # creating a pandas dataframe
     pd_df = pd.DataFrame(peopleDF)
     
-    #creating a frovedis dataframe
+    # creating a frovedis dataframe
     fd_df = fdf.DataFrame(pd_df)
     
     print('displaying original dataframe object')
@@ -23827,7 +25273,7 @@ When it is None (not specified explicitly), 'columns' or 'labels' must be provid
 When it is None (not specified explicitly), 'index' or 'labels' must be provided.  
 **_level_**: This is an unsed parameter. (Default: None)   
 **_inplace_**: It accepts a boolean as a parameter. It return a copy of DataFrame instance by default but when explicitly set to True, it performs operation on original DataFrame. (Default: False)  
-**_errors_**: This is an unsed parameter. (Default: ‘raise’)  
+**_errors_**: This is an unsed parameter. (Default: 'raise')  
 
 __Purpose__  
 It is used to drop specified labels from rows or columns.  
@@ -24023,8 +25469,8 @@ For example,
     
     # creating a pandas dataframe
     pd_df = pd.DataFrame({"name": ['Alfred', 'Batman', 'Catwoman'],
-					   "toy": [np.nan, 'Batmobile', 'Bullwhip'],
-					   "born": [np.nan, "1940-04-25", np.nan]})
+		          "toy": [np.nan, 'Batmobile', 'Bullwhip'],
+			  "born": [np.nan, "1940-04-25", np.nan]})
 
     # creating a frovedis dataframe from pandas dataframe
     fd_df = fdf.DataFrame(pd_df)
@@ -24351,7 +25797,108 @@ Output
 __Return Value__  
 It returns a new Frovedis DataFrame instance with the column labels that matches the given conditions.  
 
-#### 13. DataFrame.get_index_loc(value)  
+#### 13. DataFrame.first_element(col_name, skipna = None)  
+
+__Parameters__  
+**_col\_name_**: It accepts a string parameter as column name.  
+**_skipna_**: It accepts boolean as parameter. When set to True, it will exclude the missing values while 
+fetching the first element from dataframe. (Default: None)  
+When it is None (not specified explicitly), it excludes missing values while fetching the first element.  
+
+__Purpose__  
+It fetches the first element from the given column (numeric/non-numeric) in a dataframe.  
+
+By default, it will exclude missing values while fetching first element from the given column.  
+
+**It is present only in frovedis**.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
+
+For example,  
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+   
+    peopleDF = {
+                'Name':['Jai', 'Anuj', 'Jai', 'Princi', 'Gaurav', 'Anuj', 'Princi', 'Abhi'],
+                'Age':[27, 24, 22, 32, 33, 36, 27, 32],
+                'City':['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad',
+                        'Kanpur', 'Kanpur', 'Kanpur'],
+                'Qualification':['B.Tech', 'Phd', 'B.Tech', 'Phd', 'Phd', 
+                                 'B.Tech', 'Phd', 'B.Tech'],
+                'Score': [np.nan, 34, 35, 45, np.nan, 50, 52, np.nan]
+               }
+ 
+    pd_df = pd.DataFrame(peopleDF)
+    fd_df = fdf.DataFrame(pd_df)
+    
+    # display frovedis dataframe
+    fd_df.show()
+
+Output  
+
+    index   Name    Age     City       Qualification   Score
+    0       Jai     27      Nagpur     B.Tech          NULL
+    1       Anuj    24      Kanpur     Phd             34
+    2       Jai     22      Allahabad  B.Tech          35
+    3       Princi  32      Kannuaj    Phd             45
+    4       Gaurav  33      Allahabad  Phd             NULL
+    5       Anuj    36      Kanpur     B.Tech          50
+    6       Princi  27      Kanpur     Phd             52
+    7       Abhi    32      Kanpur     B.Tech          NULL
+
+**Fetching the first element from 'Score' column (numeric column) :**  
+
+For example,  
+
+    fdf1.first_element(col_name='Score').show()
+
+Output  
+
+    34
+
+Also, the above call can be expressed in two ways as follows,  
+
+For example,  
+
+    fdf1.Score.first_element().show()
+
+Output  
+
+    34
+
+For example,  
+
+    fdf1["Score"].first_element().show()
+
+Output  
+
+    34
+
+**Fetching the first element from 'Name' column (non-numeric column) :**  
+
+For example,  
+
+    fdf1.first_element(col_name='Name').show()
+
+Output  
+
+    Jai
+
+**Using skipna=False in order to fetch first element (including Nan) from 'Score' column:**  
+
+For example,  
+
+    fdf1.first_element(col_name='Score', skipna=False).show()
+
+Output  
+
+    nan
+
+__Return Value__  
+It returns a scalar value.  
+
+#### 14. DataFrame.get_index_loc(value)  
 
 __Parameters__  
 **_value_**: It accepts an integer or string parameter. It is the index value whose location is to be determined.  
@@ -24493,7 +26040,7 @@ It returns the following values:
 2. **slice:** when there is a monotonic index i.e. repetitive values in index.  
 3. **mask:** it returns a list of boolean values.  
 
-#### 14. DataFrame.head(n = 5)
+#### 15. DataFrame.head(n = 5)
 
 __Parameters__  
 **_n_**: It accepts an integer parameter which represents the number of rows to select. (Default: 5)  
@@ -24585,7 +26132,7 @@ __Return Value__
 - It n is positive integer, it returns a new DataFrame with the first n rows.  
 - If n is negative integer, it returns a new DataFrame with all rows except last n rows.  
 
-#### 15. DataFrame.insert(loc, column, value, allow_duplicates = False)
+#### 16. DataFrame.insert(loc, column, value, allow_duplicates = False)
 
 __Parameters__  
 **_loc_**: It accepts an integer as parameter which represents the Insertion index. It must be in range **(0, n - 1)** where **n** is number of columns in dataframe.  
@@ -24643,7 +26190,7 @@ Output
 __Return Value__  
 It returns a self reference.  
 
-#### 16. DataFrame.isna()  
+#### 17. DataFrame.isna()  
 
 __Purpose__  
 This method is used to detect missing values in the frovedis dataframe.  
@@ -24659,11 +26206,11 @@ For example,
     
     # show which entries in a DataFrame are NA.
     peopleDF = {
-            'Ename' : ['Michael', None, 'Tanaka', 'Raul', ''],
-            'Age' : [29, 30, 27, 19, 0],
-            'Country' : ['USA', np.inf, 'Japan', np.nan, 'Japan'],
-            'isMale': [False, False, False, False, True]
-           }
+                'Ename' : ['Michael', None, 'Tanaka', 'Raul', ''],
+                'Age' : [29, 30, 27, 19, 0],
+                'Country' : ['USA', np.inf, 'Japan', np.nan, 'Japan'],
+                'isMale': [False, False, False, False, True]
+               }
 
     # creating a pandas dataframe
     pd_df = pd.DataFrame(peopleDF)
@@ -24739,7 +26286,7 @@ Output
 __Return Value__  
 It returns a new Frovedis DataFrame having all boolean values (0, 1) corresponding to each of the Frovedis DataFrame values depending on  whether it is a valid NaN (True i.e. 1) value or not (False i.e. 0).  
 
-#### 17. DataFrame.isnull()  
+#### 18. DataFrame.isnull()  
 
 __Purpose__  
 This method is used to detect missing values in the frovedis dataframe. It is an alias of isna().  
@@ -24755,11 +26302,11 @@ For example,
     
     # show which entries in a DataFrame are NA.
     peopleDF = {
-				'Ename' : ['Michael', None, 'Tanaka', 'Raul', ''],
-				'Age' : [29, 30, 27, 19, 0],
-				'Country' : ['USA', 'England', 'Japan', np.nan, 'Japan'],
-				'isMale': [False, False, False, False, True]
-			   }
+		'Ename' : ['Michael', None, 'Tanaka', 'Raul', ''],
+		'Age' : [29, 30, 27, 19, 0],
+		'Country' : ['USA', 'England', 'Japan', np.nan, 'Japan'],
+		'isMale': [False, False, False, False, True]
+               }
                
     # creating a pandas dataframe
     pd_df = pd.DataFrame(peopleDF)
@@ -24835,7 +26382,7 @@ Output
 __Return Value__  
 It returns a Frovedis DataFrame having boolean values (0, 1) corresponding to each of the Frovedis DataFrame value depending of whether it is a valid NaN (True i.e. 1) value or not (False i.e. 0).  
 
-#### 18. DataFrame.join(right, on, how = 'inner', lsuffix = '\_left', rsuffix = '\_right', sort = False, join_type = 'bcast')  
+#### 19. DataFrame.join(right, on, how = 'inner', lsuffix = '\_left', rsuffix = '\_right', sort = False, join_type = 'bcast')  
 
 __Parameters__  
 **_right_**: It accepts a Frovedis DataFrame instance or a pandas DataFrame instance or a list of DataFrame instances as parameter. Index should be similar to one of the columns in this one. If a pandas Series instance is passed, its name attribute must be set, and that will be used as the column name in the resulting joined dataframe.  
@@ -24947,22 +26494,123 @@ Output,
 __Return Value__  
 It returns a new Frovedis DataFrame containing columns from both the DataFrame instances.  
 
-#### 19. DataFrame.merge(right, on = None, how = 'inner', left_on = None, right_on = None, left_index = False, right_index = False, sort = False, suffixes = ('\_x', '\_y'), copy = True, indicator = False, join_type = 'bcast')  
+#### 20. DataFrame.last_element(col_name, skipna = None)  
+
+__Parameters__
+**_col\_name_**: It accepts a string parameter as column name.
+**_skipna_**: It accepts boolean as parameter. When set to True, it will exclude the missing values while
+fetching the last element from dataframe. (Default: None)
+When it is None (not specified explicitly), it excludes missing values while fetching the last element.
+
+__Purpose__
+It fetches the last element from the given column (numeric/non-numeric) in a dataframe.
+
+By default, it will exclude missing values while fetching last element from the given column.  
+
+**It is present only in frovedis**.
+
+**Creating frovedis DataFrame from pandas DataFrame:**
+
+For example,
+
+    import pandas as pd
+    import frovedis.dataframe as fdf
+
+    peopleDF = {
+                'Name':['Jai', 'Anuj', 'Jai', 'Princi', 'Gaurav', 'Anuj', 'Princi', 'Abhi'],
+                'Age':[27, 24, 22, 32, 33, 36, 27, 32],
+                'City':['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad',
+                        'Kanpur', 'Kanpur', 'Kanpur'],
+                'Qualification':['B.Tech', 'Phd', 'B.Tech', 'Phd', 'Phd',
+                                 'B.Tech', 'Phd', 'B.Tech'],
+                'Score': [np.nan, 34, 35, 45, np.nan, 50, 52, np.nan]
+               }
+
+    pd_df = pd.DataFrame(peopleDF)
+    fd_df = fdf.DataFrame(pd_df)
+
+    # display frovedis dataframe
+    fd_df.show()
+
+Output
+
+    index   Name    Age     City       Qualification   Score
+    0       Jai     27      Nagpur     B.Tech          NULL
+    1       Anuj    24      Kanpur     Phd             34
+    2       Jai     22      Allahabad  B.Tech          35
+    3       Princi  32      Kannuaj    Phd             45
+    4       Gaurav  33      Allahabad  Phd             NULL
+    5       Anuj    36      Kanpur     B.Tech          50
+    6       Princi  27      Kanpur     Phd             52
+    7       Abhi    32      Kanpur     B.Tech          NULL
+
+**Fetching the last element from 'Score' column (numeric column) :**
+
+For example,
+
+    fdf1.last_element(col_name='Score').show()
+
+Output
+
+    52
+
+Also, the above call can be expressed in two ways as follows,
+
+For example,
+
+    fdf1.Score.last_element().show()
+
+Output
+
+    52
+
+For example,
+
+    fdf1["Score"].last_element().show()
+
+Output
+
+    52
+
+**Fetching the last element from 'Name' column (non-numeric column) :**
+
+For example,
+
+    fdf1.last_element(col_name='Ename').show()
+
+Output
+
+    Yuta
+
+**Using skipna=False in order to fetch last element (including Nan) from 'Score' column:**
+
+For example,
+
+    fdf1.last_element(col_name='Score', skipna=False).show()
+
+Output
+
+    nan
+
+__Return Value__
+It returns a scalar value.
+
+#### 21. DataFrame.merge(right, on = None, how = 'inner', left_on = None, right_on = None, left_index = False, right_index = False, sort = False, suffixes = ('\_x', '\_y'), copy = True, indicator = False, join_type = 'bcast')  
 
 __Parameters__  
 **_right_**: It accepts a Frovedis DataFrame instance or a pandas DataFrame instance or a list of Frovedis DataFrame instances as parameter. Index should be similar to one of the columns in this one. If a panads Series instance is passed, its name attribute must be set, and that will be used as the column name in the resulting joined dataframe.  
 **_on_**: It accepts a string object or a list of strings as parameter. It is the column or index level names to join on. These must be present in both dataframes. (Default: None)  
 When it is None and not merging on indexes then this defaults to the intersection of the columns in both dataframes.  
 **_how_**: It accepts a string object as parameter. It informs the type of merge operation on the two objects. (Default: 'inner')  
-1. **'left'**: form union of calling dataframe’s index (or column if 'on' is specified) with other’s index and sort it lexicographically.  
-2. **'inner'**: form intersection of calling dataframe’s index (or column if 'on' is specified) with other’s index, preserving the order of the  calling’s one.  
+1. **'left'**: form union of calling dataframe index (or column if 'on' is specified) with other dataframe index and sort it lexicographically.  
+2. **'inner'**: form intersection of calling dataframe index (or column if 'on' is specified) with other dataframe index, preserving the order of the  calling dataframe.  
 
 **_left\_on_**: It accepts a string object or a list of strings as parameter. It represents column names to join on in the left dataframe. It can also be an array or list of arrays of the length of the left dataframe. These arrays are treated as if they are columns. (Default: None)  
 **_right\_on_**: It accepts a string object or a list of strings as parameter. It represents column names to join on in the right dataframe. It can also be an array or list of arrays of the length of the right dataframe. These arrays are treated as if they are columns. (Default: None)  
 **_left\_index_**: It accepts a boolean value as parameter. It is used to specify whether to use the index from the left dataframe as the join key. **Either parameter 'left_on' or 'left_index' can be used, but not combination of both.** (Default: False)  
 **_right\_index_**: It accepts a boolean value as parameter. It is used to specify whether to use the index from the right dataframe as the join key. **Either parameter 'right_on' or 'right_index' can be used, but not combination of both.** (Default: False)  
 **_sort_**: It accepts a boolean value. When this is explicitly set to True, it sorts the join keys lexicographically in the resultant dataframe. When it is False, the order of the join keys depends on the join type ('how' parameter). (Default: False)  
-**_suffixes_**: It accepts a list like (list or tuple) object of strings of length two as parameter. It indicates the suffix to be added to the overlapping column names in left and right respectively. Need to explicitly pass a value of None instead of a string to indicate that the column name from left or right should be left as-it is, with no suffix. At least one of the values must not be None. (Default: (“\_x”, “\_y”))  
+**_suffixes_**: It accepts a list like (list or tuple) object of strings of length two as parameter. It indicates the suffix to be added to the overlapping column names in left and right respectively. Need to explicitly pass a value of None instead of a string to indicate that the column name from left or right should be left as-it is, with no suffix. At least one of the values must not be None. (Default: ('\_x', '\_y'))  
 
 **Note:- During merging two DataFrames, the overlapping column names should be different. For example: suffixes = (False, False), then the overlapping columns would have the same name so merging operation will fail. Also when there is no overlapping column, then this parameter is ignored automatically.**  
 
@@ -24982,11 +26630,11 @@ For example,
     
     # creating a pandas dataframe
     pd_df1 = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
-                        'value': [1, 2, 3, 5]})
+                           'value': [1, 2, 3, 5]})
     
     # creating another pandas dataframe
     pd_df2 = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
-                        'value': [5, 6, 7, 8]})
+                           'value': [5, 6, 7, 8]})
     
     # creating a frovedis dataframe
     fd_df1 = fdf.DataFrame(pd_df1)
@@ -25051,11 +26699,11 @@ For example,
     
     # creating a pandas dataframe
     pd_df1 = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
-                        'left_value': [1, 2, 3, 5]})
+                           'left_value': [1, 2, 3, 5]})
     
     # creating another pandas dataframe
     pd_df2 = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
-                        'right_value': [5, 6, 7, 8]})
+                           'right_value': [5, 6, 7, 8]})
     
     # creating a frovedis dataframe
     fd_df1 = fdf.DataFrame(pd_df1)
@@ -25107,9 +26755,9 @@ For example,
     
     # creating two pandas datfarames
     pd_df1 = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
-                        'value': [1, 2, 3, 5]})
+                           'value': [1, 2, 3, 5]})
     pd_df2 = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
-                                            'value': [5, 6, 7, 8]})
+                           'value': [5, 6, 7, 8]})
     
     # creating a frovedis dataframe
     fd_df1 = fdf.DataFrame(pd_df1)
@@ -25207,7 +26855,7 @@ Output,
 __Return Value__  
 It returns a new Frovedis DataFrame instance with the merged entries of the two DataFrame instances.  
 
-#### 20. DataFrame.rename(columns, inplace = False)  
+#### 22. DataFrame.rename(columns, inplace = False)  
 
 __Parameters__  
 **_columns_**: It accepts a dictionary object as parameter. It contains the key as the name of the labels to be renamed and values as the final names.  
@@ -25272,7 +26920,7 @@ __Return Value__
 - It returns a new Frovedis DataFrame with the updated label name for the specified columns.  
 - It returns None when 'inplace' parameter is set to True.  
 
-#### 21. DataFrame.reset_index(drop = False, inplace = False)  
+#### 23. DataFrame.reset_index(drop = False, inplace = False)  
 
 __Parameters__  
 **_drop_**: It accepts a boolean value as parameter. Do not try to insert index into dataframe columns. This resets the index to the default integer index. (Default: False)  
@@ -25359,13 +27007,13 @@ __Return Value__
 - It returns a new Frovedis DataFrame with the default sequence in index label.  
 - It returns None if 'inplace' parameter is set to True.  
   
-#### 22. DataFrame.set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)  
+#### 24. DataFrame.set_index(keys, drop = True, append = False, inplace = False, verify_integrity = False)  
 
 __Parameters__  
 **_keys_**: It accepts a string object as parameter. This parameter can be a single column key.  
 **_drop_**: It accepts a boolean value as parameter. When it is set to True, it will remove the column which is selected as new 
-index. **Currently, Frovedis doesn't support drop = False.** (Default: True)  
-**_append_**: It accepts a boolean value as parameter. It will decide whether to append columns to existing index. **Currently, Frovedis doesn't support append = True.** (Default: False)  
+index. **Currently, Frovedis does not support drop = False.** (Default: True)  
+**_append_**: It accepts a boolean value as parameter. It will decide whether to append columns to existing index. **Currently, Frovedis does not support append = True.** (Default: False)  
 **_inplace_**: It accepts a boolean values as parameter which is when explicitly set to True, it modifies the original object directly instead of creating a copy of DataFrame instance. (Default: False)  
 **_verify\_integrity_**: It accepts a boolean value as parameter. When it is set to True, it checks the new index for duplicates. Performance of this method will be better when it is set to False. (Default: False)  
 
@@ -25383,8 +27031,8 @@ For example,
     
     # creating a pandas dataframe
     pd_df = pd.DataFrame({'month': [1, 4, 1, 10],
-                       'year': [2012, 2014, 2013, 2014],
-                       'sale': [55, 40, 84, 31]})
+                          'year': [2012, 2014, 2013, 2014],
+                          'sale': [55, 40, 84, 31]})
     
     # creating a frovedis dataframe
     fd_df = fdf.DataFrame(pd_df)
@@ -25436,7 +27084,7 @@ __Return Value__
 - It returns a new Frovedis DataFrame where the Index column label is replace with specified column label.  
 - It returns None when 'inplace' parameter is set to True.  
 
-#### 23. DataFrame.show()  
+#### 25. DataFrame.show()  
 
 __Purpose__  
 This method is used to display the Frovedis DataFrame on the console. It can display full dataframe or some selected columns of the DataFrame (single or multi-column).  
@@ -25452,11 +27100,11 @@ For example,
     
     # creating the dataframe    
     peopleDF = {
-            'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'], 
-            'Age' : [29, 30, 27, 19, 31],
-            'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
-            'isMale': [False, False, False, False, True]
-           }
+                'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'], 
+                'Age' : [29, 30, 27, 19, 31],
+                'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
+                 'isMale': [False, False, False, False, True]
+               }
     
     pdf = pd.DataFrame(peopleDF)
     
@@ -25546,7 +27194,7 @@ Output
 __Return Value__  
 It return nothing.  
 
-#### 24. DataFrame.tail(n = 5)  
+#### 26. DataFrame.tail(n = 5)  
 
 __Parameters__  
 **_n_**: It accepts an integer as parameter. It represents the number of rows which is to be selected. (Default: 5)  
@@ -25567,7 +27215,7 @@ For example,
     
     # creating a pandas dataframe
     pd_df = pd.DataFrame({'animal': ['alligator', 'bee', 'falcon', 'lion',
-                   'monkey', 'parrot', 'shark', 'whale', 'zebra']})
+                          'monkey', 'parrot', 'shark', 'whale', 'zebra']})
 
     # creating a frovedis dataframe
     fd_df = fdf.DataFrame(pd_df)
@@ -25649,10 +27297,12 @@ It returns a new Frovedis DataFrame instance with last **n** rows.
 ## SEE ALSO  
 
 - **[DataFrame - Introduction](./df_intro.md)**  
+- **[DataFrame - Indexing Operations](./df_indexing_operations.md)**  
 - **[DataFrame - Conversion Functions](./df_conversion.md)**  
 - **[DataFrame - Sorting Functions](./df_sort.md)**  
 - **[DataFrame - Math Functions](./df_math_func.md)**  
 - **[DataFrame - Aggregate Functions](./df_agg_func.md)**  
+
 
 # DataFrame Conversion Functions
   
@@ -26180,10 +27830,12 @@ It returns a FrovedisCRSMatrix instance after converting Frovedis DataFrame inst
 ## SEE ALSO  
 
 - **[DataFrame - Introduction](./df_intro.md)**  
+- **[DataFrame - Indexing Operations](./df_indexing_operations.md)**  
 - **[DataFrame - Generic Functions](./df_generic_func.md)**  
 - **[DataFrame - Sorting Functions](./df_sort.md)**  
 - **[DataFrame - Math Functions](./df_math_func.md)**  
 - **[DataFrame - Aggregate Functions](./df_agg_func.md)**   
+
 
 # DataFrame Sorting Functions
   
@@ -26203,7 +27855,7 @@ These can be used to sort data along rows or columns of frovedis dataframe, eith
     1. nlargest(n, columns, keep = 'first')
     2. nsmallest(n, columns, keep = 'first')
     3. sort(columns = None, axis = 0, ascending = True, inplace = False, kind = 'radixsort', 
-             na_position = 'last', **kwargs)
+            na_position = 'last', **kwargs)
     4. sort_index(axis = 0, ascending = True, inplace = False, kind = 'quicksort', na_position = 'last')
     5. sort_values(by, axis = 0, ascending = True, inplace = False, kind = 'radixsort', na_position = 'last')
 
@@ -26460,10 +28112,10 @@ For example,
     import frovedis.dataframe as fdf
     
     pd_df = pd.DataFrame({
-                        'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
-                        'col2': [2, 1, 9, 8, 7, 4],
-                        'col3': [0, 1, 9, 4, 2, 3],
-                        'col4': ['a', 'B', 'c', 'D', 'e', 'F'] })
+                          'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
+                          'col2': [2, 1, 9, 8, 7, 4],
+                          'col3': [0, 1, 9, 4, 2, 3],
+                          'col4': ['a', 'B', 'c', 'D', 'e', 'F'] })
     
     # create a frovedis dataframe from pandas dataframe
     fd_df = fdf.DataFrame(pd_df)
@@ -26642,10 +28294,10 @@ For example,
     
     # creating a pandas dataframe
     pd_df = pd.DataFrame({
-                           'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
-                           'col2': [2, 1, 9, 8, 7, 4],
-                           'col3': [0, 1, 9, 4, 2, 3],
-                           'col4': ['a', 'B', 'c', 'D', 'e', 'F']
+                          'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
+                          'col2': [2, 1, 9, 8, 7, 4],
+                          'col3': [0, 1, 9, 4, 2, 3],
+                          'col4': ['a', 'B', 'c', 'D', 'e', 'F']
                         })
                         
     # creating a frovedis dataframe
@@ -26719,10 +28371,12 @@ It returns a new Frovedis DataFrame with sorted values.
 ## SEE ALSO  
 
 - **[DataFrame - Introduction](./df_intro.md)**  
+- **[DataFrame - Indexing Operations](./df_indexing_operations.md)**  
 - **[DataFrame - Generic Functions](./df_generic_func.md)**  
 - **[DataFrame - Conversion Functions](./df_conversion.md)**  
 - **[DataFrame - Math Functions](./df_math_func.md)**  
 - **[DataFrame - Aggregate Functions](./df_agg_func.md)**   
+
 
 # DataFrame Aggregate Functions
   
@@ -26731,7 +28385,7 @@ It returns a new Frovedis DataFrame with sorted values.
 DataFrame Aggregate Functions - list of all functions related to aggregate operations on frovedis dataframe are illustrated here.  
   
 ### DESCRIPTION  
-An essential piece of analysis of large data is efficient summarization: computing aggregations like sum(), mean(), median(), min(), and max(), which gives insight into the nature of a potentially large dataset. In this section, we'll explore list of all such aggregation operations done on frovedis dataframe.  
+An essential piece of analysis of large data is efficient summarization: computing aggregations like sum(), mean(), median(), min(), and max(), which gives insight into the nature of a potentially large dataset. In this section, we will explore list of all such aggregation operations done on frovedis dataframe.  
 
 Aggregation can be performed in **two ways** on frovedis dataframe:  
 
@@ -26740,7 +28394,7 @@ Aggregation can be performed in **two ways** on frovedis dataframe:
 
     
 ### Public Member Functions  
-    1. agg(func)  
+    1. agg(func=None, axis=0, *args, **kwargs)  
     2. cov((min_periods = None, ddof = 1.0, low_memory = True, other = None)
     3. mad(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
     4. max(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
@@ -26756,7 +28410,7 @@ Aggregation can be performed in **two ways** on frovedis dataframe:
 
 ### Detailed Description  
 
-#### 1. DataFrame.agg(func)  
+#### 1. DataFrame.agg(func=None, axis=0, *args, **kwargs)  
 
 __Parameters__  
 **_func_**: Names of functions to use for aggregating the data. The input to be used with the function must 
@@ -26765,13 +28419,24 @@ Accepted combinations for this parameter are:
 
 - A string function name such as 'max', 'min', etc.  
 - list of functions and/or function names, For example, ['max', 'mean'].  
-- dictionary with keys as column labels and values as function name or list of such functions.  
+- dictionary with keys as column labels and values as function name or list of such functions. 
+- In case func is None, then it will confirm if  any keyword arguments are provided. If **kwargs are not 
+provided then it will raise an Exception.  
+
 For Example, {'Age': ['max','min','mean'], 'Ename': ['count']}  
+
+**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
+perform aggregation along the columns or rows. (Default: 0)  
+
+- **0 or 'index'**: perform aggregation along the indices.  
+
+_**\*args**_: This is an unused parameter.  
+_**\*\*kwargs**_: Additional keyword arguments to be passed to the function.  
 
 __Purpose__  
 It computes an aggregate operation based on the condition specified in 'func'.  
 
-**Currently, this method will perform aggregation operation along the rows.**  
+**Currently, this method will perform aggregation operation to each column.**  
 
 **Creatinng frovedis DataFrame from pandas DataFrame:**  
 
@@ -26841,18 +28506,53 @@ Output
     mean  29.125000
     std    4.853202
 
+However, when aggregation is performed where func = 'cov', then it will perfom covariance only on numeric columns.  
+
+For example,  
+
+    print(fdf1.agg('cov'))
+
+Output  
+
+    index   Age     Score
+    Age     23.5535 31.8
+    Score   31.8    123.766
+
 **Aggregation along the rows where func is a list of functions:**  
 
 For example,  
     
-    print(fdf1['Age'].agg(['max','min','mean'])
+    print(fdf1.agg(['max','min','mean']))
 
 Output  
 
-             Age
-    max   36.000
-    min   22.000
-    mean  29.125
+          Name     Age  City  Qualification      Score
+    max    NaN  36.000   NaN            NaN  52.000000
+    min    NaN  22.000   NaN            NaN  23.000000
+    mean   NaN  29.125   NaN            NaN  39.833333
+
+However, when list of functions contain combination of cov + other func, currently it will not compute covariance rather compute only aggregation on other function.  
+
+For example,  
+
+    print(fdf1.agg(['cov','min']))
+
+Output  
+
+        Name  Age City Qualification  Score
+    min  nan   22  nan           nan   23.0
+
+**Using keyword arguments in order to perform aggregation operation:**  
+
+For example,  
+
+    fdf1.agg(sum_age = ("Age", "sum"), min_score = ("Score", "min"))
+
+Output  
+
+                 Age  Score
+    sum_age    233.0    NaN
+    min_score    NaN   23.0
 
 __Return Value__  
 
@@ -28451,6 +30151,7 @@ It returns a frovedis DataFrame instance with the result of the specified aggreg
 ## SEE ALSO  
 
 - **[DataFrame - Introduction](./df_intro.md)**  
+- **[DataFrame - Indexing Operations](./df_indexing_operations.md)**  
 - **[DataFrame - Generic Fucntions](./df_generic_func.md)**  
 - **[DataFrame - Conversion Functions](./df_conversion.md)**  
 - **[DataFrame - Sorting Functions](./df_sort.md)**  
@@ -28478,8 +30179,8 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-              "points": [5, 6, 4],
-               "total": [10, 11, 12]
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     pdf1 = pd.DataFrame(data1)
@@ -28508,6 +30209,30 @@ Type conversion occurs for 'points' column in resultant dataframe.
 
     fdf1.points(int) + fdf2.points(float) -> res.points(float) 
 
+Also, binary operation can be performed between columns in dataframe as well.
+
+For example,  
+
+    print(fdf1["points"] + fdf2["points"])
+
+Output  
+
+    index   (points+points)
+    0       7
+    1       9
+    2       12
+
+The above expression can also be written as follows:  
+
+    print(fdf1.points + fdf2.points)
+
+Output  
+
+    index   (points+points)
+    0       7
+    1       9
+    2       12
+
 **Binary operation on two frovedis dataframes having atleast one common column:**  
 
 For example,  
@@ -28515,8 +30240,8 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-              "points": [5, 6, 4],
-               "total": [10, 11, 12]
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     pdf1 = pd.DataFrame(data1)
@@ -28549,8 +30274,8 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-              "points": [5, 6, 4],
-               "total": [10, 11, 12]
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     pdf1 = pd.DataFrame(data1, index = [1,2,3])
@@ -28582,8 +30307,8 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-              "points": [5, 6, 4],
-               "total": [10, 11, 12]
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     pdf1 = pd.DataFrame(data1, index = [0,1,2])
@@ -28608,8 +30333,8 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-              "points": [5, 6, 4],
-               "total": [10, 11, 12]
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     pdf1 = pd.DataFrame(data1, index = [1,2,3])
@@ -28683,9 +30408,9 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-          "points": [5, 6, 4],
-           "total": [10, 11, 12]
-        }
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
 
     pdf1 = pd.DataFrame(data1)
     fdf1 = fdf.DataFrame(pdf1)
@@ -28708,9 +30433,9 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-          "points": [5, 6, 4],
-           "total": [10, 11, 12]
-        }
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
 
     pdf1 = pd.DataFrame(data1)
     fdf1 = fdf.DataFrame(pdf1)
@@ -28733,9 +30458,9 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     data1 = {
-          "points": [5, 6, 4],
-           "total": [10, 11, 12]
-        }
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
 
     pdf1 = pd.DataFrame(data1)
     fdf1 = fdf.DataFrame(pdf1)
@@ -28796,11 +30521,11 @@ For example,
     
     # a dictionary
     tempDF = {
-                'City': ['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad',
-                         'Kanpur', 'Kanpur', 'Kanpur'],
-                'Temperature': [-2, 10, 18, 34, -8, -4, 36, 45]
-               }
-    
+              'City': ['Nagpur', 'Kanpur', 'Allahabad', 'Kannuaj', 'Allahabad',
+                       'Kanpur', 'Kanpur', 'Kanpur'],
+              'Temperature': [-2, 10, 18, 34, -8, -4, 36, 45]
+             }
+
     # create pandas dataframe
     pdf1 = pd.DataFrame(tempDF)
     
@@ -30137,9 +31862,9 @@ For example,
     
     # a dictionary
     data1 = {
-         "points": [5, 6, 4],
-         "total": [10, 11, 12]
-        }
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
     
     # create pandas dataframe
     pdf1 = pd.DataFrame(data1)
@@ -30319,9 +32044,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
     
     # create pandas dataframe
@@ -30376,9 +32101,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     # create pandas dataframe
@@ -30558,9 +32283,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [8, 5, 9],
-              "total": [3, 2, 1]
+    data1 = {
+             "points": [8, 5, 9],
+             "total": [3, 2, 1]
             }
     
     # create pandas dataframe
@@ -30615,9 +32340,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [8, 5, 9],
-              "total": [3, 2, 1]
+    data1 = {
+             "points": [8, 5, 9],
+             "total": [3, 2, 1]
             }
     
     # create pandas dataframe
@@ -30639,9 +32364,9 @@ Output
 For example,  
 
     # a dictionary
-    data2 =  {
-              "points": [4, 7, 2],
-              "total": [9, 1, 9]
+    data2 = {
+             "points": [4, 7, 2],
+             "total": [9, 1, 9]
             }
     
     # create pandas dataframe
@@ -30789,9 +32514,6 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs reverse addition operation between two operands. It is equivalent to **'other + dataframe'**.  
 
-**Currently, it does not perform reverse addition of scalar using operator version. Only method version 
-is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -30820,6 +32542,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse addition on a scalar value using operator version:**  
+
+For example,  
+
+    print(10 + fdf1)
+
+Output  
+
+    index   points  total
+    0       15      20
+    1       16      21
+    2       14      22
 
 **Reverse addition on a scalar value using method version:**  
 
@@ -30889,6 +32624,20 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+
+**Reverse addition on two dataframes using operator version:**  
+
+For example,  
+
+    print(fdf2 + fdf1)
+
+Output  
+
+    index   points  total
+    0       7       17
+    1       9       20
+    2       12      23
 
 **Reverse addition on two dataframes using method version:**  
 
@@ -31009,8 +32758,6 @@ It performs reverse floating division operation between two operands. It is equi
 
 It is an alias of rtruediv().  
 
-**Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -31039,6 +32786,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse division on a scalar value using operator version:**  
+
+For example,  
+
+    print(10 / fdf1)
+
+Output
+
+    index   points  total
+    0       2       1
+    1       1.66666 0.90909
+    2       2.5     0.833333
 
 **Reverse division on a scalar value using method version:**  
 
@@ -31108,6 +32868,19 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+**Reverse division on two dataframes using operator version:**  
+
+For example,  
+
+    print(fdf2 / fdf1)
+
+Output
+
+    index   points  total
+    0       0.4     0.7
+    1       0.5     0.818181
+    2       2       0.916666
 
 **Reverse division on two dataframes using method version:**  
 
@@ -31226,8 +32999,6 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs reverse floating division operation between two operands. It is equivalent to **'other // dataframe'**.  
 
-**Currently, it does not perform reverse division of scalar using operator version. Only method version is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -31256,6 +33027,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse floor division on a scalar value using operator version:**  
+
+For example,  
+
+    print(10 // fdf1)
+
+Output
+
+    index   points  total
+    0       2       1
+    1       1       0
+    2       2       0
 
 **Reverse floor division on a scalar value using method version:**  
 
@@ -31326,6 +33110,19 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+**Reverse floor division on two dataframes using operator version:**
+
+For example,
+
+    print(fdf2 // fdf1)
+
+Output
+
+    index   points  total
+    0       0       0
+    1       0       0
+    2       2       0
 
 **Reverse floor division on two dataframes using method version:**  
 
@@ -31444,8 +33241,6 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs reverse modulo operation between two operands. It is equivalent to **'other % dataframe'**.  
 
-**Currently, it does not perform reverse modulo of scalar using operator version. Only method version is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -31455,9 +33250,9 @@ For example,
     
     # a dictionary
     data1 = {
-            "points": [5, 6, 4],
-            "total": [50, 40, 20]
-           }
+             "points": [5, 6, 4],
+             "total": [50, 40, 20]
+            }
 
     # create pandas dataframe
     pdf1 = pd.DataFrame(data1)
@@ -31474,6 +33269,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse modulo on a scalar value using operator version:**
+
+For example,
+
+    print(10 % fdf1)
+
+Output
+
+    index   points  total
+    0       0       0
+    1       4       10
+    2       2       10
 
 **Reverse modulo on a scalar value using method version:**  
 
@@ -31543,6 +33351,19 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+**Reverse modulo on two dataframes using operator version:**
+
+For example,
+
+    print(fdf2 % fdf1)
+
+Output
+
+    index   points  total
+    0       2       7
+    1       3       9
+    2       0       11
 
 **Reverse modulo on two dataframes using method version:**  
 
@@ -31662,9 +33483,6 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs reverse multiplication operation between two operands. It is equivalent to **'other * dataframe'**.  
 
-**Currently, it does not perform reverse multiplication of scalar using operator version. Only method 
-version is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -31693,6 +33511,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse multiplication on a scalar value using operator version:**
+
+For example,
+
+    print(10 * fdf1)
+
+Output
+
+    index   points  total
+    0       50      100
+    1       60      110
+    2       40      120
 
 **Reverse multiplication on a scalar value using method version:**  
 
@@ -31762,6 +33593,19 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+**Reverse multiplication on two dataframes using operator version:**
+
+For example,
+
+    print(fdf2 * fdf1)
+
+Output
+
+    index   points  total
+    0       10      70
+    1       18      99
+    2       32      132
 
 **Reverse multiplication on two dataframes using method version:**  
 
@@ -31881,9 +33725,6 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs reverse exponential power operation between two operands. It is equivalent to **'other ** dataframe'**.  
 
-**Currently, it does not perform reverse exponential power operation of scalar using operator version. Only 
-method version is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -31893,9 +33734,9 @@ For example,
     
     # a dictionary
     data1 = {
-            "points": [5, 6, 4],
-            "total": [10, 11, 12]
-           }
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
+            }
     
     # create pandas dataframe
     pdf1 = pd.DataFrame(data1)
@@ -31912,6 +33753,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse exponential power operation on a scalar value using operator version:**
+
+For example,
+
+    print(10 ** fdf1)
+
+Output
+
+    index   points  total
+    0       32      1024
+    1       64      2048
+    2       16      4096
 
 **Reverse exponential power operation on a scalar value using method version:**  
 
@@ -31938,9 +33792,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
     
     # create pandas dataframe
@@ -31982,6 +33836,19 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+**Reverse exponential power operation on two dataframes using operator version:**
+
+For example,
+
+    print(fdf2 ** fdf1)
+
+Output
+
+    index   points  total
+    0       10      70
+    1       18      99
+    2       32      132
 
 **Reverse exponential power operation on two dataframes using method version:**  
 
@@ -32101,8 +33968,6 @@ the result will be missing (contains NaNs).
 __Purpose__  
 It performs reverse subtraction operation between two operands. It is equivalent to **'other - dataframe'**.  
 
-**Currently, it does not perform reverse subtraction of scalar using operator version. Only method version is supported.**  
-
 **Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
@@ -32111,9 +33976,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
     
     # create pandas dataframe
@@ -32131,6 +33996,19 @@ Output
     0       5       10
     1       6       11
     2       4       12
+
+**Reverse subtraction on a scalar value using operator version:**
+
+For example,
+
+    print(10 - fdf1)
+
+Output
+
+    index   points  total
+    0       5       0
+    1       4       -1
+    2       6       -2
 
 **Reverse subtraction on a scalar value using method version:**  
 
@@ -32156,9 +34034,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [5, 6, 4],
-              "total": [10, 11, 12]
+    data1 = {
+             "points": [5, 6, 4],
+             "total": [10, 11, 12]
             }
 
     # create pandas dataframe
@@ -32200,6 +34078,19 @@ Output
     0       2       7
     1       3       9
     2       8       11
+
+**Reverse subtraction on two dataframes using operator version:**
+
+For example,
+
+    print(fdf2 - fdf1)
+
+Output
+
+    index   points  total
+    0       -3      -3
+    1       -3      -2
+    2       4       -1
 
 **Reverse subtraction on two dataframes using method version:**  
 
@@ -32329,9 +34220,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [8, 5, 9],
-              "total": [3, 2, 1]
+    data1 = {
+             "points": [8, 5, 9],
+             "total": [3, 2, 1]
             }
 
     # create pandas dataframe
@@ -32349,6 +34240,19 @@ Output
     0       8       3
     1       5       2
     2       9       1
+
+**Reverse floating division on a scalar value using operator version:**
+
+For example,
+
+    print(10 / fdf1)
+
+Output
+
+    index   points  total
+    0       1.25    3.33333
+    1       2       5
+    2       1.11111 10
 
 **Reverse floating division on a scalar value using method version:**  
 
@@ -32374,9 +34278,9 @@ For example,
     import frovedis.dataframe as fdf
     
     # a dictionary
-    data1 =  {
-              "points": [8, 5, 9],
-              "total": [3, 2, 1]
+    data1 = {
+             "points": [8, 5, 9],
+             "total": [3, 2, 1]
             }
 
     # create pandas dataframe
@@ -32398,9 +34302,9 @@ Output
 For example,  
 
     # a dictionary
-    data2 =  {
-              "points": [4, 7, 2],
-              "total": [9, 1, 9]
+    data2 = {
+             "points": [4, 7, 2],
+             "total": [9, 1, 9]
             }
 
     # create pandas dataframe
@@ -32418,6 +34322,19 @@ Output
     0       4       9
     1       7       1
     2       2       9
+
+**Reverse floating division on two dataframes using operator version:**
+
+For example,
+
+    print(fdf2 / fdf1)
+
+Output
+
+    index   points    total
+    0       0.5       3
+    1       1.39999   0.5
+    2       0.222222  9
 
 **Reverse floating division on two dataframes using method version:**  
 
@@ -32512,10 +34429,12 @@ It returns a frovedis DataFrame which contains the result of arithmetic operatio
 ## SEE ALSO
 
 - **[DataFrame - Introduction](./df_intro.md)**  
+- **[DataFrame - Indexing Operations](./df_indexing_operations.md)**  
 - **[DataFrame - Generic Functions](./df_generic_func.md)**  
 - **[DataFrame - Conversion Functions](./df_conversion.md)**  
 - **[DataFrame - Sorting Functions](./df_sorting.md)**  
 - **[DataFrame - Aggregate Functions](./df_agg_func.md)**   
+
 
 # FrovedisGroupedDataframe  
   
@@ -32551,7 +34470,7 @@ __Parameters__
 When it is None (not specified explicitly), an empty FrovedisGroupedDataframe instance is created.  
 
 __Purpose__  
-It is used for a specific purpose. It's instance is created in order to hold result of groupby method calls.  
+It is used for a specific purpose. It is instance is created in order to hold result of groupby method calls.  
 This instance can then further be used with aggregate functions such as mean(), sem(), etc.  
 
 **Creating FrovedisGroupedDataframe instance using groupby operation:**  
@@ -32562,11 +34481,11 @@ For example,
     import pandas as pd
     import frovedis.dataframe as fdf
     peopleDF = {
-            'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'], 
-            'Age' : [29, 30, 27, 19, 31],
-            'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
-            'isMale': [False, False, False, False, True]
-           }
+                'Ename' : ['Michael', 'Andy', 'Tanaka', 'Raul', 'Yuta'], 
+                'Age' : [29, 30, 27, 19, 31],
+                'Country' : ['USA', 'England', 'Japan', 'France', 'Japan'],
+                'isMale': [False, False, False, False, True]
+               }
     pdf1 = pd.DataFrame(peopleDF)
     fdf1 = fdf.DataFrame(pdf1)
     
@@ -32645,9 +34564,11 @@ FrovedisGroupedDataFrame provides a lot of utilities to perform various operatio
 9. **sum()** - it computes sum of group values.  
 10. **var()** - it computes variance of groups, excluding missing values.  
 
-## SEE ALSO  
+## SEE ALSO 
+ 
 - **[Using aggregate functions on FrovedisGroupedDataFrame](./grouped_df_agg_func.md)**  
 - **[Introduction to frovedis DataFrame](./df_intro.md)**  
+
 
 # FrovedisGroupedDataFrame Aggregate Functions
   
@@ -32669,7 +34590,7 @@ Also, aggregation functions can be chained along with groupby() calls in frovedi
 
 ### Public Member Functions  
 
-    1. agg(func, \*args, \*\*kwargs)
+    1. agg(func, *args, **kwargs)
     2. aggregate(func, \*args, \*\*kwargs)
     3. count(numeric_only = True)
     4. groupby()
@@ -32695,7 +34616,7 @@ Accepted combinations for this parameter are:
 For Example, {'Age': ['max','min','mean'], 'Ename': ['count']}  
 
 _**\*args**_: This is an unused parameter.  
-_**\*\*kwargs**_: This is an unused parameter.  
+_**\*\*kwargs**_: Additional keyword arguments to be passed to the function.  
 
 __Purpose__  
 It computes an aggregate operation based on the condition specified in 'func'. It is an alias for aggregate().  
@@ -32778,6 +34699,19 @@ Output
     Qualification   min_Age max_Age min_Score  max_Score
     B.Tech          22      36      23         50
     Phd             24      33      34         52
+
+**Using keyword arguments in order to perform aggregation operation:**
+
+For example,
+
+    # agg() demo where **kwargs are provided
+    fdf1.groupby("Qualification").agg(sum_a = ("Age", "sum"), min_b = ("Score", "min")).show()
+
+Output
+
+    Qualification   sum_a   min_b
+    B.Tech          117     23
+    Phd             116     34
 
 __Return Value__  
 It returns a new frovedis DataFrame instance with the result of the specified aggregate functions.  

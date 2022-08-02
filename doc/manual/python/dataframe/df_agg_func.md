@@ -5,7 +5,7 @@
 DataFrame Aggregate Functions - list of all functions related to aggregate operations on frovedis dataframe are illustrated here.  
   
 ## DESCRIPTION  
-An essential piece of analysis of large data is efficient summarization: computing aggregations like sum(), mean(), median(), min(), and max(), which gives insight into the nature of a potentially large dataset. In this section, we'll explore list of all such aggregation operations done on frovedis dataframe.  
+An essential piece of analysis of large data is efficient summarization: computing aggregations like sum(), mean(), median(), min(), and max(), which gives insight into the nature of a potentially large dataset. In this section, we will explore list of all such aggregation operations done on frovedis dataframe.  
 
 Aggregation can be performed in **two ways** on frovedis dataframe:  
 
@@ -14,7 +14,7 @@ Aggregation can be performed in **two ways** on frovedis dataframe:
 
     
 ## Public Member Functions  
-    1. agg(func)  
+    1. agg(func=None, axis=0, *args, **kwargs)  
     2. cov((min_periods = None, ddof = 1.0, low_memory = True, other = None)
     3. mad(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
     4. max(axis = None, skipna = None, level = None, numeric_only = None, **kwargs)  
@@ -30,7 +30,7 @@ Aggregation can be performed in **two ways** on frovedis dataframe:
 
 ## Detailed Description  
 
-### 1. DataFrame.agg(func)  
+### 1. DataFrame.agg(func=None, axis=0, *args, **kwargs)  
 
 __Parameters__  
 **_func_**: Names of functions to use for aggregating the data. The input to be used with the function must 
@@ -39,13 +39,24 @@ Accepted combinations for this parameter are:
 
 - A string function name such as 'max', 'min', etc.  
 - list of functions and/or function names, For example, ['max', 'mean'].  
-- dictionary with keys as column labels and values as function name or list of such functions.  
+- dictionary with keys as column labels and values as function name or list of such functions. 
+- In case func is None, then it will confirm if  any keyword arguments are provided. If **kwargs are not 
+provided then it will raise an Exception.  
+
 For Example, {'Age': ['max','min','mean'], 'Ename': ['count']}  
+
+**_axis_**: It accepts an integer or string object as parameter. It is used to decide whether to 
+perform aggregation along the columns or rows. (Default: 0)  
+
+- **0 or 'index'**: perform aggregation along the indices.  
+
+_**\*args**_: This is an unused parameter.  
+_**\*\*kwargs**_: Additional keyword arguments to be passed to the function.  
 
 __Purpose__  
 It computes an aggregate operation based on the condition specified in 'func'.  
 
-**Currently, this method will perform aggregation operation along the rows.**  
+**Currently, this method will perform aggregation operation to each column.**  
 
 **Creatinng frovedis DataFrame from pandas DataFrame:**  
 
@@ -115,18 +126,53 @@ Output
     mean  29.125000
     std    4.853202
 
+However, when aggregation is performed where func = 'cov', then it will perfom covariance only on numeric columns.  
+
+For example,  
+
+    print(fdf1.agg('cov'))
+
+Output  
+
+    index   Age     Score
+    Age     23.5535 31.8
+    Score   31.8    123.766
+
 **Aggregation along the rows where func is a list of functions:**  
 
 For example,  
     
-    print(fdf1['Age'].agg(['max','min','mean'])
+    print(fdf1.agg(['max','min','mean']))
 
 Output  
 
-             Age
-    max   36.000
-    min   22.000
-    mean  29.125
+          Name     Age  City  Qualification      Score
+    max    NaN  36.000   NaN            NaN  52.000000
+    min    NaN  22.000   NaN            NaN  23.000000
+    mean   NaN  29.125   NaN            NaN  39.833333
+
+However, when list of functions contain combination of cov + other func, currently it will not compute covariance rather compute only aggregation on other function.  
+
+For example,  
+
+    print(fdf1.agg(['cov','min']))
+
+Output  
+
+        Name  Age City Qualification  Score
+    min  nan   22  nan           nan   23.0
+
+**Using keyword arguments in order to perform aggregation operation:**  
+
+For example,  
+
+    fdf1.agg(sum_age = ("Age", "sum"), min_score = ("Score", "min"))
+
+Output  
+
+                 Age  Score
+    sum_age    233.0    NaN
+    min_score    NaN   23.0
 
 __Return Value__  
 
@@ -1725,6 +1771,7 @@ It returns a frovedis DataFrame instance with the result of the specified aggreg
 # SEE ALSO  
 
 - **[DataFrame - Introduction](./df_intro.md)**  
+- **[DataFrame - Indexing Operations](./df_indexing_operations.md)**  
 - **[DataFrame - Generic Fucntions](./df_generic_func.md)**  
 - **[DataFrame - Conversion Functions](./df_conversion.md)**  
 - **[DataFrame - Sorting Functions](./df_sort.md)**  

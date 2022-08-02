@@ -76,7 +76,7 @@ FrovedisGroupedDataframe instance is created.
 .P
 .PD
 It is used for a specific purpose.
-It\[cq]s instance is created in order to hold result of groupby method
+It is instance is created in order to hold result of groupby method
 calls.
 .PD 0
 .P
@@ -95,11 +95,11 @@ For example,
 import pandas as pd
 import frovedis.dataframe as fdf
 peopleDF = {
-        \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]], 
-        \[aq]Age\[aq] : [29, 30, 27, 19, 31],
-        \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
-        \[aq]isMale\[aq]: [False, False, False, False, True]
-       }
+            \[aq]Ename\[aq] : [\[aq]Michael\[aq], \[aq]Andy\[aq], \[aq]Tanaka\[aq], \[aq]Raul\[aq], \[aq]Yuta\[aq]], 
+            \[aq]Age\[aq] : [29, 30, 27, 19, 31],
+            \[aq]Country\[aq] : [\[aq]USA\[aq], \[aq]England\[aq], \[aq]Japan\[aq], \[aq]France\[aq], \[aq]Japan\[aq]],
+            \[aq]isMale\[aq]: [False, False, False, False, True]
+           }
 pdf1 = pd.DataFrame(peopleDF)
 fdf1 = fdf.DataFrame(pdf1)
 

@@ -47,7 +47,7 @@ frovedis.
 .IP
 .nf
 \f[C]
-1. agg(func, \[rs]*args, \[rs]*\[rs]*kwargs)
+1. agg(func, *args, **kwargs)
 2. aggregate(func, \[rs]*args, \[rs]*\[rs]*kwargs)
 3. count(numeric_only = True)
 4. groupby()
@@ -94,7 +94,8 @@ For Example, {`Age': [`max',`min',`mean'], `Ename': [`count']}
 .PD 0
 .P
 .PD
-\f[I]\f[BI]**kwargs\f[I]\f[R]: This is an unused parameter.
+\f[I]\f[BI]**kwargs\f[I]\f[R]: Additional keyword arguments to be passed
+to the function.
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -216,6 +217,28 @@ Output
 Qualification   min_Age max_Age min_Score  max_Score
 B.Tech          22      36      23         50
 Phd             24      33      34         52
+\f[R]
+.fi
+.PP
+\f[B]Using keyword arguments in order to perform aggregation
+operation:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# agg() demo where **kwargs are provided
+fdf1.groupby(\[dq]Qualification\[dq]).agg(sum_a = (\[dq]Age\[dq], \[dq]sum\[dq]), min_b = (\[dq]Score\[dq], \[dq]min\[dq])).show()
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Qualification   sum_a   min_b
+B.Tech          117     23
+Phd             116     34
 \f[R]
 .fi
 .PP
