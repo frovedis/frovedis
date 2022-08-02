@@ -18,7 +18,7 @@ void frovedis_arima_fit(exrpc_ptr_t& data_ptr, unsigned long& ar_lag,
                         int& verbose, int& mid) {
   dvector<T>& data = *reinterpret_cast<dvector<T>*>(data_ptr);
   set_verbose_level(verbose);
-  frovedis::Arima<T> estimator(data.as_node_local(), ar_lag, diff_order,
+  frovedis::Arima<T> estimator(data.viewas_node_local(), ar_lag, diff_order,
                                ma_lag, seasonal, auto_arima, solver);
   estimator.fit();
   reset_verbose_level();
