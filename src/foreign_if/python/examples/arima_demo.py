@@ -38,6 +38,24 @@ print("Using get_params(): \n", arima.get_params())
 arima.set_params(order = (1,1,1), solver = 'scalapack').fit()
 print("After using set_params(): \n", arima.get_params())
 
+import pandas as pd
+df = pd.read_csv("./input/daily_temperature.csv", index_col=0, header =None, names= ['Date','Temp'])
+
+#fitting the input time series as pandas dataframe with frovedis ARIMA
+arima.set_params(endog = df, order = (2,1,2), solver = 'lapack').fit()
+
+print('frovedis fitted data: ', arima.fittedvalues)
+
+# In-sample prediction using frovedis ARIMA with dates as strings
+print("arima predict(start='1981-01-31',end='1981-01-31'): ", arima.predict(start='1981-01-31', end='1981-01-31'))
+
+# Out-sample prediction using frovedis ARIMA
+print("arima predict(start=36,end=37): ", arima.predict(start=36, end=37))
+
+# forecasting using frovedis ARIMA
+print('arima forecast(): ', arima.forecast(steps=2))
+
+## For Referrence ##
 # fitting the input time series with statsmodel ARIMA
 # from statsmodels.tsa.arima.model import ARIMA as S_ARIMA
 # s_arima = S_ARIMA(endog = data, order=(2,1,2)).fit()
@@ -52,6 +70,20 @@ print("After using set_params(): \n", arima.get_params())
 
 # forecasting using statsmodel ARIMA
 # print('s_arima forecast(): ', s_arima.forecast(steps=1))
+
+#fitting the input time series as pandas dataframe with statsmodel ARIMA
+#s_arima = S_ARIMA(endog = df, order=(2,1,2)).fit()
+
+#print('statsmodel fitted data: ', arima.fittedvalues)
+
+# In-sample prediction using statsmodel ARIMA with dates as strings
+#print("s_arima predict(start='1981-01-31',end='1981-01-31'): ", s_arima.predict(start='1981-01-31', end='1981-01-31'))
+
+# Out-sample prediction using statsmodel ARIMA
+#print("s_arima predict(start=36,end=37): ", s_arima.predict(start=36, end=37))
+
+# forecasting using ststmodel ARIMA
+#print('s_arima forecast(): ', s_arima.forecast(steps=2))
 
 arima.release()
 FrovedisServer.shut_down()

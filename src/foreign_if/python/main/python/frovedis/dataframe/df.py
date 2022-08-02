@@ -4031,6 +4031,7 @@ class DataFrame(SeriesHelper):
                 ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         else:
             ret = self[self.index == key[0]]
+            if len(ret) <= 0: raise IndexError("index " + str(key[0]) + " is out of bounds")
         ret.set_index(idx, inplace=True)
         self.set_index(idx, inplace=True)
         if index_flg == True:
@@ -4078,6 +4079,7 @@ class DataFrame(SeriesHelper):
         EXAMPLE: df.loc[<row key>]
         """
         ret = self[self.index == key]
+        if len(ret) <= 0: raise KeyError(key)
         return ret #df
 
     def loc_tuple(self, key):
@@ -4166,6 +4168,7 @@ class DataFrame(SeriesHelper):
                    '{}: boolean label can not be used without a boolean index'\
                         .format(key[0]))
             res = self[self.index == tmp_key]
+            if len(res) <= 0: raise KeyError(key[0])
         if isinstance(key[1], slice):
             try:
                 start = self.columns.index(key[1].start)
@@ -4483,9 +4486,9 @@ class Iloc_handler():
                 if isinstance(key[0], (str,int,float)) \
                     and isinstance(key[1], (str,int,float)):
                     if len(res) == 1:
-                        res = res.to_pandas().to_numpy()[0]
+                        res = res.to_numpy()[0]
                 return res
-            raise IndexingError("Too many indexers")
+            raise IndexError("Too many indexers")
         elif isinstance(key, list):
             if all(isinstance(e, bool) for e in key):
                 return self.df[key]
@@ -4519,9 +4522,9 @@ class Loc_handler():
                 if isinstance(key[0], (str,int,float)) \
                     and isinstance(key[1], (str,int,float)):
                     if len(res) == 1:
-                        res = res.to_pandas().to_numpy()[0]
+                        res = res.to_numpy()[0]
                 return res
-            raise IndexingError("Too many indexers")
+            raise IndexError("Too many indexers")
         elif isinstance(key, slice):
             return self.df.loc[key, :]
         raise ValueError("Unexpected key received!")
@@ -4549,10 +4552,10 @@ class At_handler():
                     and isinstance(key[1], (str)):
                     res = self.df.loc_tuple(key)
                     if len(res) == 1:
-                        res = res.to_pandas().to_numpy()[0]
+                        res = res.to_numpy()[0]
                     return res
                 raise ValueError("Invalid index type.")
-            raise IndexingError("Too many indexers.")
+            raise IndexError("Too many indexers.")
         raise ValueError("Unexpected key type received!")
 
     def __setitem__(self, key, val):
@@ -4577,11 +4580,11 @@ class Iat_handler():
                     and isinstance(key[1], (int)):
                     res = self.df.iloc_tuple(key)
                     if len(res) == 1:
-                        res = res.to_pandas().to_numpy()[0]
+                        res = res.to_numpy()[0]
                     return res
                 raise ValueError(\
                     "iat based indexing can only have integer indexers.")
-            raise IndexingError("Too many indexers.")
+            raise IndexError("Too many indexers.")
         raise ValueError("Unexpected key type received!")
 
     def __setitem__(self, key, val):
