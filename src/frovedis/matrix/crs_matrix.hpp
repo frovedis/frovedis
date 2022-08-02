@@ -1608,22 +1608,17 @@ make_crs_matrix_loadbinary(const std::string& input) {
   for(size_t i = 0; i < node_size; i++) {
     sizes_offp[i] = divide_rowp[i+1] - divide_rowp[i] + 1;
   }
-  size_t adjust = 0;
-  size_t current_node = 1;
-  std::vector<O> newloadoff(loadoff.size() + node_size - 1);
-  size_t j = 0;
-  auto newloadoffp = newloadoff.data();
-  auto loadoffp = loadoff.data();
-  for(size_t i = 0; i < loadoff.size(); i++, j++) {
-    newloadoffp[j] = loadoffp[i] - adjust;
-    if(current_node < node_size && loadoffp[i] == divide_elmp[current_node]) {
-      j++;
-      newloadoffp[j] = 0;
-      adjust = loadoffp[i];
-      current_node++;
+  std::vector<std::vector<O>> newloadoff(node_size);
+  for(size_t i = 0; i < node_size; i++) {
+    newloadoff[i].resize(sizes_offp[i]);
+    auto newloadoffp = newloadoff[i].data();
+    auto loadoffsrc = loadoff.data() + divide_row[i];
+    auto loadoffadj = loadoffsrc[0];
+    for(size_t j = 1; j < sizes_offp[i]; j++) { // j == 0: 0
+      newloadoffp[j] = loadoffsrc[j] - loadoffadj;
     }
   }
-  auto nlocoff = make_dvector_scatter(newloadoff, sizes_off).moveto_node_local();
+  auto nlocoff = make_node_local_scatter(newloadoff);
   ret.data.mapv(crs_matrix_set_off<T,I,O>, nlocoff);
   ret.data.mapv(set_local_num_crs_helper<T,I,O>(num_col));
   ret.set_num(num_row, num_col);
