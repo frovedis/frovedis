@@ -1,5 +1,6 @@
 #include "spark_client_headers.hpp"
 #include "exrpc_model.hpp"
+#include "exrpc_tsa.hpp"
 #include "short_hand_dense_type.hpp"
 #include "short_hand_sparse_type.hpp"
 #include "short_hand_model_type.hpp"
@@ -1607,5 +1608,102 @@ JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getScaler
   return to_jdoubleArray(env, std_vector);
 }
     
+//ARIMA    
+JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_getFittedVector
+  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jshort mdtype) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  jdoubleArray ret = NULL;
+  try {
+    if (mdtype == FLOAT) {
+      std::vector<float> res_f;
+      res_f = exrpc_async(fm_node, (get_fitted_vector<DT2>), mid).get();
+      ret = to_jdoubleArray2(env, res_f);
+    }
+    else if (mdtype == DOUBLE) {
+      std::vector<double> res_d;
+      res_d = exrpc_async(fm_node, (get_fitted_vector<DT1>), mid).get();
+      ret = to_jdoubleArray(env, res_d);
+    }
+    else REPORT_ERROR(USER_ERROR,
+                      "model dtype can either be float or double!\n");
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  return ret;
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_arimaPredict
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong start, jlong end, 
+   jint mid, jshort mdtype) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  jdoubleArray ret = NULL;
+  unsigned long start_ = start;
+  unsigned long end_ = end;
+  try {
+    if (mdtype == FLOAT) {
+      std::vector<float> pred;
+      pred = exrpc_async(fm_node, frovedis_arima_predict<DT2>, 
+                         mid, start_, end_).get();
+      ret = to_jdoubleArray2(env, pred);
+    }
+    else if (mdtype == DOUBLE) {
+      std::vector<double> pred;
+      pred = exrpc_async(fm_node, frovedis_arima_predict<DT1>, 
+                         mid, start_, end_).get();
+      ret = to_jdoubleArray(env, pred);
+    }
+    else REPORT_ERROR(USER_ERROR,
+                      "model dtype can either be float or double!\n");
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  return ret;
+}
+
+JNIEXPORT jdoubleArray JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_arimaForecast
+  (JNIEnv *env, jclass thisCls, jobject master_node, jlong steps, 
+   jint mid, jshort mdtype) {
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  jdoubleArray ret = NULL;
+  unsigned long steps_ = steps;
+  try {
+    if (mdtype == FLOAT) {
+      std::vector<float> fc;
+      fc = exrpc_async(fm_node, frovedis_arima_forecast<DT2>, 
+                       mid, steps_).get();
+      ret = to_jdoubleArray2(env, fc);
+    }
+    else if (mdtype == DOUBLE) {
+      std::vector<double> fc;
+      fc = exrpc_async(fm_node, frovedis_arima_forecast<DT1>, 
+                       mid, steps_).get();
+      ret = to_jdoubleArray(env, fc);
+    }
+    else REPORT_ERROR(USER_ERROR,
+                      "model dtype can either be float or double!\n");
+  }
+  catch (std::exception& e) {
+    set_status(true, e.what());
+  }
+  return ret;
+}    
+
+// releases ARIMA model
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_releaseARIMAModel
+  (JNIEnv *env, jclass thisCls, jobject master_node, jint mid, jshort dtype) {
+
+  auto fm_node = java_node_to_frovedis_node(env, master_node);
+  try{
+      switch(dtype) {
+        case FLOAT:    exrpc_oneway(fm_node,release_model<ARM2>,mid); break;
+        case DOUBLE:   exrpc_oneway(fm_node,release_model<ARM1>,mid); break;
+        default:     REPORT_ERROR(USER_ERROR,
+                      "Unknown Model dtype is encountered for ARIMA!\n");
+    }
+  }
+  catch(std::exception& e) { set_status(true,e.what()); }
+} 
 
 }

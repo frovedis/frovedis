@@ -1,7 +1,7 @@
 include ../../../../../Makefile.in.x86
 #include ../Makefile.in.x86
 
-all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf evd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf scaler.mf knn.mf knc.mf knr.mf page_rank.mf sssp.mf bfs.mf cc.mf dbscan.mf lda.mf rf.mf gbt.mf svr.mf svc.mf tsne.mf gmm.mf
+all: dtransfer.mf frov_mat.mf frov_df.mf pblas_scalapack.mf svd.mf evd.mf pca.mf als.mf kmeans.mf lrm.mf lrsgd.mf nb.mf fm.mf dt.mf fp.mf ac.mf se.mf sc.mf w2v.mf scaler.mf knn.mf knc.mf knr.mf page_rank.mf sssp.mf bfs.mf cc.mf dbscan.mf lda.mf rf.mf gbt.mf svr.mf svc.mf tsne.mf gmm.mf arima.mf
 
 append:
 	echo ${SPARK_HOME}/jars/*:${HDPATH} > tmp
@@ -147,6 +147,10 @@ tsne.mf: tsne.mf.tmpl append
 gmm.mf: gmm.mf.tmpl append
 	cp gmm.mf.tmpl gmm.mf
 	cat append >> gmm.mf
+
+arima.mf: arima.mf.tmpl append
+	cp arima.mf.tmpl arima.mf
+	cat append >> arima.mf
 
 clean:
 	rm -f *~ *.mf append

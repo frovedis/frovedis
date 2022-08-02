@@ -1270,5 +1270,23 @@ public class JNISupport {
   public static native double[] getScalerMean(Node master_node, int mid);
 
   public static native double[] getScalerStd(Node master_node, int mid);
-    
+
+//ARIMA fit
+  public static native void arimaFit(Node master_node, long endog, long ar_lag, 
+                                     long diff_order, long ma_lag, 
+                                     long seasonal, boolean auto_arima, 
+                                     String solver, int verbose, int mid, 
+                                     short dtype);
+//ARIMA fittedvalues
+  public static native double[] getFittedVector(Node master_node, int mid, 
+                                                short dtype);
+//ARIMA predict
+  public static native double[] arimaPredict(Node master_node, long start, 
+                                             long end, int mid, short dtype);
+//ARIMA forecast
+  public static native double[] arimaForecast(Node master_node, long steps, 
+                                              int mid, short dtype);
+//ARIMA release
+  public static native void releaseARIMAModel(Node master_node, 
+                                         int mid, short dtype);
 }

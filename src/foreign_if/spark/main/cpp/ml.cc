@@ -1,5 +1,6 @@
 #include "spark_client_headers.hpp"
 #include "exrpc_ml.hpp"
+#include "exrpc_tsa.hpp"
 #include "short_hand_dense_type.hpp"
 #include "short_hand_sparse_type.hpp"
 #include "exrpc_model.hpp"
@@ -1118,6 +1119,38 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_callScalerInve
   }
   return mat_obj;
 }
+
+//ARIMA fit
+JNIEXPORT void JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_arimaFit
+  (JNIEnv *env, jclass thisCls, jobject master_node, 
+   jlong fdata, jlong ar_lag, jlong diff_order, jlong ma_lag, jlong seasonal, 
+   jboolean auto_arima, jstring solver, jint vb, jint mid, jshort dtype) {
+    auto fm_node = java_node_to_frovedis_node(env, master_node);
+    auto f_dptr = (exrpc_ptr_t) fdata;
+    std::string sol = to_cstring(env, solver);
+    size_t ar_lag_ = ar_lag;
+    size_t diff_order_ = diff_order;
+    size_t ma_lag_ = ma_lag;
+    size_t seasonal_ = seasonal;
+    bool auto_arima_ = (bool)auto_arima;
+    try {
+      if (dtype == FLOAT){
+        exrpc_oneway(fm_node, (frovedis_arima_fit<DT2>),
+                     f_dptr, ar_lag_, diff_order_, ma_lag_, seasonal_, 
+                     auto_arima_, sol, vb, mid);
+      }
+      else if (dtype == DOUBLE){
+        exrpc_oneway(fm_node, (frovedis_arima_fit<DT1>),
+                     f_dptr, ar_lag_, diff_order_, ma_lag_, seasonal_, 
+                     auto_arima_, sol, vb, mid);
+      }
+      else REPORT_ERROR(USER_ERROR,
+                        "Unsupported dtype of input time series data!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
     
 
 }

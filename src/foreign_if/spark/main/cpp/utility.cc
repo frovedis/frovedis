@@ -293,6 +293,14 @@ jdoubleArray to_jdoubleArray(JNIEnv *env, std::vector<double>& pd) {
   return ret;
 }
 
+// conversion std::vector<float> => jdoubleArray
+jdoubleArray to_jdoubleArray2(JNIEnv *env, std::vector<float>& pf) {
+  size_t sz = pf.size();
+  std::vector<double> pf_d(sz);
+  for(size_t i=0; i<sz; ++i) pf_d[i] = static_cast<double>(pf[i]);
+  return to_jdoubleArray(env, pf_d);
+}
+
 // conversion std::vector<float> => jfloatArray
 jfloatArray to_jfloatArray(JNIEnv *env, std::vector<float>& pd) {
   jfloat* arr = &pd[0];

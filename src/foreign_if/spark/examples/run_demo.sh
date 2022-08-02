@@ -43,8 +43,8 @@ spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $J
 echo -e "\n --- executing frovedis logistic regression with sgd demo ---"
 spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_lrsgd.jar "$COMMAND"
 
-echo -e "\n --- executing frovedis logistic regression model operations demo ---"
-spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/spark2frovedis_lrm.jar  "$COMMAND"
+echo -e "\n --- executing frovedis ARIMA demo ---"
+spark-submit --driver-java-options "-Djava.library.path=$LIBRARY_PATH" --jars $JARS --conf spark.driver.memory=8g lib/frovedis_arima.jar  "$COMMAND"
 
 # --- Linear SVM Regression ---
 echo -e "\n --- executing frovedis svm regression demo ---"

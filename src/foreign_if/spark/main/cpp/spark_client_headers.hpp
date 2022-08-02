@@ -51,6 +51,7 @@ extern "C" {
   jlongArray to_jlongArray2(JNIEnv *, std::vector<long>&);
   jlongArray to_jlongArray3(JNIEnv *, std::vector<size_t>&);
   jdoubleArray to_jdoubleArray(JNIEnv *, std::vector<double>&);
+  jdoubleArray to_jdoubleArray2(JNIEnv *, std::vector<float>&);
   jfloatArray to_jfloatArray(JNIEnv *, std::vector<float>&);
   jintArray to_jintArray(JNIEnv *, std::vector<int>&);
   jobjectArray to_jStringArray(JNIEnv *, std::vector<std::string>&);

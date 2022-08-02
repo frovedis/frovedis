@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #list of source targets
-src=( eigen nb fm gmm dt lr svm lnr ridge lasso kmeans tsne )
+src=( tsa/arima eigen nb fm gmm dt lr svm lnr ridge lasso kmeans tsne )
 #list of target frovedis worker nodes to test with
 frov_worker=( 1 2 4 )
 # creating directory structure
@@ -16,7 +16,7 @@ for each in "${src[@]}"; do
 done
 
 # report file name
-REPORT="eigen_spark_test_report.csv"
+REPORT="spark_test_report.csv"
 
 # report header
 echo "TARGET, TEST_ID, FROV_WORKER, STATUS" > ${REPORT}

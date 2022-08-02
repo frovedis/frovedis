@@ -4,7 +4,7 @@ include ../../../../Makefile.in.x86
 CLIENT_JAR := ../lib/frovedis_client.jar
 #CLIENT_JAR := ${INSTALLPATH}/lib/spark/frovedis_client.jar
 
-JARS := lib/spark2frovedis_data_transfer.jar lib/spark2frovedis_mat.jar lib/spark2frovedis_df.jar lib/spark2frovedis_pblas_scalapack.jar lib/spark2frovedis_svd.jar lib/spark2frovedis_evd.jar lib/spark2frovedis_pca.jar lib/spark2frovedis_lrsgd.jar lib/spark2frovedis_lrm.jar lib/spark2frovedis_als.jar lib/spark2frovedis_nb.jar lib/spark2frovedis_dt.jar lib/spark2frovedis_fm.jar lib/spark2frovedis_kmeans.jar lib/spark2frovedis_ac.jar lib/spark2frovedis_sc.jar lib/frovedis_gmm.jar lib/spark2frovedis_se.jar lib/spark2frovedis_fp.jar lib/spark2frovedis_w2v.jar lib/spark2frovedis_scaler.jar lib/frovedis_pagerank.jar lib/frovedis_dbscan.jar lib/spark2frovedis_knn.jar lib/spark2frovedis_knc.jar lib/spark2frovedis_knr.jar lib/frovedis_sssp.jar lib/frovedis_bfs.jar lib/frovedis_cc.jar lib/spark2frovedis_lda.jar lib/spark2frovedis_rf.jar lib/spark2frovedis_gbt.jar lib/spark2frovedis_svr.jar lib/spark2frovedis_svc.jar lib/frovedis_tsne.jar
+JARS := lib/spark2frovedis_data_transfer.jar lib/spark2frovedis_mat.jar lib/spark2frovedis_df.jar lib/spark2frovedis_pblas_scalapack.jar lib/spark2frovedis_svd.jar lib/spark2frovedis_evd.jar lib/spark2frovedis_pca.jar lib/spark2frovedis_lrsgd.jar lib/spark2frovedis_lrm.jar lib/spark2frovedis_als.jar lib/spark2frovedis_nb.jar lib/spark2frovedis_dt.jar lib/spark2frovedis_fm.jar lib/spark2frovedis_kmeans.jar lib/spark2frovedis_ac.jar lib/spark2frovedis_sc.jar lib/frovedis_gmm.jar lib/spark2frovedis_se.jar lib/spark2frovedis_fp.jar lib/spark2frovedis_w2v.jar lib/spark2frovedis_scaler.jar lib/frovedis_pagerank.jar lib/frovedis_dbscan.jar lib/spark2frovedis_knn.jar lib/spark2frovedis_knc.jar lib/spark2frovedis_knr.jar lib/frovedis_sssp.jar lib/frovedis_bfs.jar lib/frovedis_cc.jar lib/spark2frovedis_lda.jar lib/spark2frovedis_rf.jar lib/spark2frovedis_gbt.jar lib/spark2frovedis_svr.jar lib/spark2frovedis_svc.jar lib/frovedis_tsne.jar lib/frovedis_arima.jar
 
 JOBS := $(shell /usr/bin/nproc --all)
 
@@ -87,6 +87,9 @@ bin/test/scala/SVMKernelDemo.class: scala/SVMKernelDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/SVMKernelDemo.scala
 bin/test/scala/TSNEDemo.class: scala/TSNEDemo.scala
 	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/TSNEDemo.scala
+bin/test/scala/ARIMADemo.class: scala/ARIMADemo.scala
+	${SCALA_HOME}/bin/scalac -cp "${SPARK_HOME}/jars/*:${HDPATH}:${CLIENT_JAR}" -sourcepath . -d bin scala/ARIMADemo.scala
+
 
 lib/spark2frovedis_data_transfer.jar: bin/test/scala/DataTransferDemo.class
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_data_transfer.jar ../MANIFEST/dtransfer.mf test/scala/DataTransfer* 
@@ -158,6 +161,8 @@ lib/spark2frovedis_svc.jar: bin/test/scala/SVMKernelDemo.class
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/spark2frovedis_svc.jar ../MANIFEST/svc.mf test/scala/SVMKernelDemo*
 lib/frovedis_tsne.jar: bin/test/scala/TSNEDemo.class
 	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_tsne.jar ../MANIFEST/tsne.mf test/scala/TSNEDemo*
+lib/frovedis_arima.jar: bin/test/scala/ARIMADemo.class
+	cd bin; ${JAVA_HOME}/bin/jar -cfm ../lib/frovedis_arima.jar ../MANIFEST/arima.mf test/scala/ARIMADemo*
 
 clean:
 	rm -fr *~ bin/test scala/*~ MANIFEST/*.mf MANIFEST/append MANIFEST/*~ out/* lib/*

@@ -40,6 +40,7 @@ object M_KIND {
   val LSR: Short = 27
   val GMM: Short = 28
   val STANDARDSCALER: Short = 29  
+  val ARM: Short = 30
 }
 
 object ModelID {
