@@ -655,7 +655,7 @@ are equal to the number of number of predictions.
 __Parameters__  
 **_steps_**: This parameter can be a positive integer, string or datetime 
 instance. It specifies the number of out of sample values to be predicted. (Default: 1)  
-**NOTE:** When endog is array-like, steps must be a positive integer and is greater than 1. If 
+**NOTE:** When endog is array-like, steps must be a positive integer and is greater than or equal to 1. If 
 endog is a dataframe having date indices with associated frequency (known as supported index), 
 then steps can also be dates as string or datetime instance during out-of-sample forecasting.  
 
