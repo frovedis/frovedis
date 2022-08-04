@@ -16,4 +16,4 @@ tut: tut.o
 	${LINK} -fopenmp -mno-create-threads-at-startup -o tut tut.o ${LIBS}
 
 clean:
-	${RM} -r *.o *~ ${TARGETS} result result_binary transposed model indexed-train vectors.bin vocab-count vocab.bin
+	${RM} -r *.o *~ ${TARGETS} result result_binary transposed model indexed-train vectors.txt vocab-count vocab
