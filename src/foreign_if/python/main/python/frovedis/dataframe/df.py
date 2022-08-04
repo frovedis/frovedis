@@ -694,6 +694,9 @@ class DataFrame(SeriesHelper):
                 dt = DTYPE.BOOL
                 dvec[idx] = FrovedisIntDvector(np.asarray(val, dtype=np.int32))
             elif vtype.startswith('datetime64'):
+                if isinstance(val, pd.DatetimeIndex):
+                    val = val.to_series()
+
                 self.datetime_cols_info[s_cname] = val.dt.tz.zone if val.dt.tz else None
 
                 arr = val.dt.tz_localize(None).view("int64")
@@ -4405,6 +4408,120 @@ class DataFrame(SeriesHelper):
             ret.load_dummy(dummy_df["dfptr"], names, types)
 
         return ret
+
+    def truncate(self, before=None, after=None, axis=None, copy=True):
+        """
+        truncate a DataFrame before and after some index value
+        """
+        if axis is None:
+            axis = 0
+
+        if axis == "index":
+            axis = 0
+        elif axis == "columns":
+            axis = 1
+
+        if copy is False:
+            raise ValueError("truncate: Frovedis currently does not support"
+                            "copy=False!")
+
+        if axis == 1:
+            if not (sorted(self.columns) == self.columns or \
+                sorted(self.columns, reverse=True) == self.columns):
+                raise ValueError("truncate requires a sorted index")
+
+            cols = [c for c in self.columns if c >= before and c <= after]
+            res = self[cols]
+            return res
+
+        #TODO: check for sorted data in case for axis=0, would be done by a
+        #function like: is_sorted()
+        
+        if self.index.dtype == DTYPE.DATETIME:
+            if isinstance( before, (str) ):
+                before = pd.Timestamp(before)
+            if isinstance( after, (str) ):
+                after = pd.Timestamp(after)
+
+        if isinstance(before, pd.Timestamp) or isinstance(after, pd.Timestamp):
+            if self.index.dtype != DTYPE.DATETIME:
+                raise TypeError("truncate with Timestamp is supported only for"
+                                " datetime type index!")
+
+        if self.index.name not in self.datetime_cols_info or \
+            self.datetime_cols_info[self.index.name] is None:
+            if isinstance(before, pd.Timestamp):
+                if before.tzinfo is not None:
+                    raise ValueError("Indexing a timezone-naive datetime index"
+                            " with a timezone-aware datetime is not supported."
+                            " Use a timezone-naive object instead.")
+
+            if isinstance(after, pd.Timestamp):
+                if after.tzinfo is not None:
+                    raise ValueError("Indexing a timezone-naive datetime index"
+                            " with a timezone-aware datetime is not supported."
+                            " Use a timezone-naive object instead.")
+
+        if self.index.name in self.datetime_cols_info and \
+            self.datetime_cols_info[self.index.name] is not None:
+            if isinstance(before, pd.Timestamp):
+                if before.tzinfo is None:
+                    raise ValueError("Indexing a timezone-aware datetime index"
+                            " with a timezone-naive datetime is not supported."
+                            " Use a timezone-aware object instead.")
+
+            if isinstance(after, pd.Timestamp):
+                if after.tzinfo is None:
+                    raise ValueError("Indexing a timezone-aware datetime index"
+                            " with a timezone-naive datetime is not supported."
+                            " Use a timezone-aware object instead.")
+
+            if isinstance(before, pd.Timestamp) and \
+                isinstance(after, pd.Timestamp):
+                if before.tzinfo.zone != after.tzinfo.zone:
+                    raise ValueError("Both dates must have the same UTC offset")
+
+            index_time_zone = self.datetime_cols_info[self.index.name]
+
+            if isinstance(before, pd.Timestamp):
+                if index_time_zone != before.tzinfo.zone:
+                    before = before.tz_convert(index_time_zone)
+                before = before.replace(tzinfo=None)
+
+            if isinstance(after, pd.Timestamp):
+                if index_time_zone != after.tzinfo.zone:
+                    after = after.tz_convert(index_time_zone)
+                after = after.replace(tzinfo=None)
+
+        if isinstance(before, pd.Timestamp):
+            before = before.value
+
+        if isinstance(after, pd.Timestamp):
+            after = after.value
+
+        dfopt1 = None
+        if before is not None:
+            dfopt1 = (self.index >= before)
+        
+        dfopt2 = None 
+        if after is not None:
+            dfopt2 = (self.index <= after)
+
+        dfopt = None
+        if dfopt1 is not None and dfopt2 is not None:
+            dfopt = dfopt1 & dfopt2
+        else:
+            if dfopt1 is not None:
+                dfopt = dfopt1
+            else:
+                dfopt = dfopt2
+
+        if dfopt is None:
+            return self.copy(deep=True)
+
+        res = self[dfopt]
+
+        return res
 
     def __setattr__(self, key, value):
         """ sets the specified attribute """

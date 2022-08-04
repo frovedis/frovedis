@@ -59,6 +59,7 @@ extern "C" {
           ret_proxy = exrpc_async(fm_node, get_dfoperator<int>,
                                   opd1, opd2, opt, isImmed).get();
           break;
+        case DATETIME:
         case LONG:
           ret_proxy = exrpc_async(fm_node, get_dfoperator<long>,
                                   opd1, opd2, opt, isImmed).get();
