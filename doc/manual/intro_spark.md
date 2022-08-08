@@ -28,3 +28,6 @@ We are still updating the contents.
     + [MatrixFactorizationModel]
     + [Matrix Factorization using ALS]
     + [kmeans]
+    + [ARIMA]
+    + [ARIMAModel]
+

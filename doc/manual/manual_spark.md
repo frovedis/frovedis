@@ -28,6 +28,9 @@ We are still updating the contents.
     + [MatrixFactorizationModel]
     + [Matrix Factorization using ALS]
     + [kmeans]
+    + [ARIMA]
+    + [ARIMAModel]
+
 
 
 # FrovedisSparseData 
@@ -2617,3 +2620,396 @@ though the client spark side train() returns with a pseudo model.
 
 ## SEE ALSO  
 kmeans_model, frovedis_sparse_data   
+
+
+# ARIMA  
+
+## NAME  
+
+ARIMA - Autoregressive Integrated Moving Average algorithm is a time series 
+model that is used to forecast data based on the dataset of past to 
+predict/forecast the future.  
+
+## SYNOPSIS  
+
+    import com.nec.frovedis.mllib.tsa.arima.ARIMA
+### Public Member Functions  
+    ARIMA(List order, Any dates, String freq,  
+          Boolean validate_specification,  
+          Long seasonal, Boolean auto_arima,  
+          String solver, Int verbose)  
+    ARIMAModel fit(RDD[Float] endog)  
+    ARIMAModel fit(RDD[Double] endog)  
+
+## DESCRIPTION  
+
+Frovedis  provides a timeseries  model in order to predict  the  future  values 
+based on the past values. Each component in ARIMA functions as a parameter with 
+a standard notation. For ARIMA models, a standard notation would be ARIMA  with 
+p(AR), d(I), and q(MA) which indicate the type of ARIMA model to be used. A `0`
+value can be used as a parameter and would mean that the  particular  component 
+should not be used in the  model. This way, the ARIMA model  can be constructed 
+to perform  the function of an ARMA model, or even simple AR (1,0,0), I(0,1,0), 
+or  MA(0,0,1)  models. **However,  the current  implementaion cannot be used to 
+construct a pure MA model.**  
+
+Also, it provides the feature of auto ARIMA which can fit the  best lag for  AR 
+and MA. This is a useful feature for the users who do not have knowledge  about 
+data analytics.  
+
+Frovedis ARIMA uses OLS (Ordinary Least Squares) estimation.  
+**Note:-** Also, rather  than converging  around the mean  after some number of 
+predictions, it tends to follow the trend i.e it diverges towards increasing or 
+decreasing trend.  
+
+This  module  provides  a  client-server  implementation,  where  the  client 
+application is a normal spark program. In this implementation, a  spark  client 
+can interact with a frovedis  server  by  sending  the  required spark data for 
+training  at frovedis side. Spark data is converted  into  frovedis  compatible 
+data internally and the spark ML call is linked  with the  respective  frovedis 
+ML call to get the job done at frovedis server.  
+
+### Public Member Function Documentation  
+
+#### 1. ARIMA()  
+
+__Parameters__   
+**_order_**: A list having 3 elements (p,d,q) that specifies the order of the model 
+for the autoregressive(p), differences(d), and moving average(q) components. (Default: (1, 0, 0))  
+**Currently, autoregressive order cannot be 0 i.e it cannot be used to create pure MA model.**  
+Also, these components (p, d, q) of the model cannot be negative values.  
+**_dates_**: An unused parameter. (Default: None)  
+**_freq_**: An unused parameter. (Default: "")  
+**_validate\_specification_**: An unused parameter. (Default: true)  
+**_seasonal_**: A zero or a positive integer parameter that specifies the interval of seasonal 
+differencing. In case the data has some seasonality , then it can handle it . (Default: 0)  
+**_auto\_arima_**: A boolean parameter that specifies whether to use auto (brute) ARIMA. (Default: false)  
+If set to True, it treats the autoregressive and moving average component of the order parameter 
+as the highest limit for its iteration and auto fits these components with the best RMSE score.  
+**_solver_**: A string object parameter which specifies the solver to be used for linear 
+regression. It supports `lapack`, `scalapack`, `lbfgs` and `sag` solvers. (Default: 'lapack')  
+When specified, e.g `lbfgs`, then it uses lbfgs solver for linear regression.  
+**Note:-** To get the best performance and accuracy from ARIMA, use solver="lapack".  
+**_verbose_**: An integer parameter specifying the log level to use. Its value is 0 by 
+default (for INFO mode and not specified explicitly). But it can be set to 1 (for DEBUG mode) or 
+2 (for TRACE mode) for getting training time logs from frovedis server. (Default: 0)  
+
+__Purpose__  
+It initializes the ARIMA instance with the given parameters.  
+
+The parameters: "dates", "freq" and "validate_specification" are kept for future
+enhancements. 
+
+Currently, the number of samples in the timeseries data must be greater than sum
+of ARIMA order and seasonal parameter.  
+
+    len(endog) >= (order[0] + order[1] + order[2] + seasonal)
+
+__Return Value__    
+It simply returns "this" reference.  
+
+#### 2. ARIMAModel fit(RDD[Float] endog)  
+__Parameters__   
+**_endog_**: It contains the timeseries data.  
+It accepts an RDD of Float as input data.  
+
+__Purpose__   
+It is used to fit the model parameters on the basis of given parameters and data
+provided at frovedis server.   
+
+For example,   
+
+    # loading an RDD float data
+    import com.nec.frovedis.mllib.tsa.arima.ARIMA
+    val arr:Array[Float] = Array(10.5f,15.0f,20.0f,25.5f,35.5f,45.0f,40.5f,35.5f,30.5f,25.5f,20.5f,15.0f)
+    val endog:RDD[Float] = sc.parallelize(arr)
+    
+    # fitting input RDD data on ARIMA object
+    val model = new ARIMA(order = List(2,1,2)).fit(endog)
+    
+    # displaying the fittedvalues
+    val fitted_values = model.fittedvalues()
+    println("Fitted values:")
+    fitted_values.foreach(println)
+
+Output
+
+    Fitted values:
+    0.0
+    0.0
+    0.0
+    2.656587032568032
+    2.9856736597237106
+    39.075471086355975
+    46.74116210912707
+    33.34402185820186
+    32.46163584927344
+    24.824135902546068
+    20.512681101065784
+    15.5408920934298
+
+__Return Value__  
+- It returns an ARIMAModel object.  
+
+#### 3. ARIMAModel fit(RDD[Double] endog)  
+__Parameters__   
+**_endog_**: It contains the timeseries data.  
+It accepts an RDD of Double as input data.  
+
+__Purpose__   
+It is used to fit the model parameters on the basis of given parameters and data
+provided at frovedis server.   
+
+For example,   
+
+    # loading an RDD double data
+    import com.nec.frovedis.mllib.tsa.arima.ARIMA
+    val arr:Array[Double] = Array(10.5,15.0,20.0,25.5,35.5,45.0,40.5,35.5,30.5,25.5,20.5,15.0)
+    val endog:RDD[Double] = sc.parallelize(arr)
+    
+    # fitting input RDD data on ARIMA object
+    val model = new ARIMA(order = List(2,1,2)).fit(endog)
+    
+    # displaying the fittedvalues
+    val fitted_values = model.fittedvalues()
+    println("Fitted values:")
+    fitted_values.foreach(println)
+
+Output
+
+    Fitted values:
+    0.0
+    0.0
+    0.0
+    2.656587032568032
+    2.9856736597237106
+    39.075471086355975
+    46.74116210912707
+    33.34402185820186
+    32.46163584927344
+    24.824135902546068
+    20.512681101065784
+    15.5408920934298
+
+__Return Value__  
+- It returns an ARIMAModel object.  
+
+## SEE ALSO
+**[ARIMAModel](./arima_model.md)**
+
+
+# ARIMAModel 
+
+## NAME
+
+ARIMAModel -  A data  structure used for modeling  the output of ARIMA algorithm
+from frovedis server to spark client wrapper.
+
+## SYNOPSIS
+import com.nec.frovedis.mllib.tsa.arima.ARIMAModel
+
+### Public Member Functions
+`Array[Double]` predict (Long start, Long end, Boolean dynamic)   
+`Array[Double]` forecast (Long steps)  
+`Array[Double]` fittedvalues ()  
+Unit release()    
+
+## DESCRIPTION
+
+ARIMAModel  models  the  output  of  the  frovedis  ARIMA  timeseries prediction
+algorithm, the fit interface of ARIMA  aims to  optimize  an  initial  model and
+outputs the same after optimization. 
+ 
+Note that the actual model with given parameters like order  etc. is  created at
+frovedis server only. Spark ARIMAModel contains a unique ID associated  with the
+frovedis server side model. It simply works  like  a  pointer to  the  in-memory
+model at frovedis server. 
+
+Any operations, like  prediction  etc. on a  ARIMAModel  makes a request  to the
+frovedis server along with the unique model ID and the actual job is  served  by
+the frovedis server. For functions which returns some output, the result is sent 
+back from frovedis server to the spark client.
+
+### Public Member Function Documentation
+
+#### 1. `Array[Double]` predict (Long start, Long end, Boolean dynamic)   
+__Parameters__   
+**_start_**: This parameter can be an integer. It 
+specifies the starting index from which the values are to be predicted. (Default: 0)  
+**_stop_**: This parameter can be an integer. It 
+specifies the index till which the values are to be predicted.  (Default: Index of last element in dataset)  
+**_dynamic_**: An unused parameter. (Default: false)  
+
+__Purpose__    
+It  is  used  to  perform in-sample prediction and out-of-sample prediction  at 
+frovedis server.
+
+**During prediction, end index must not be less than start index.**  
+
+Below mentioned examples show frovedis ARIMAModel being used to perform in-sample
+and out-sample predictions.  
+
+**Perform in-sample and out-sample  predictions  endog  being an RDD of Float or
+Double input.**  
+
+For example,  
+
+    # loading an RDD[Double] data
+    import com.nec.frovedis.mllib.tsa.arima.ARIMA
+    val endog:RDD[Double] = sc.parallelize(Array(10.5,15.0,20.0,25.5,35.5,45.0,
+                                40.5,35.5,30.5,25.5,20.5,15.0))
+
+    # fitting RDD data on ARIMA object
+    val model = new ARIMA(order = List(2,1,2)).fit(endog)
+
+    # perform in-sample prediction with start and end
+    val predicted_values = model.predict(start = 4, end = 5)
+    println("In-sample predictions:")
+    predicted_values.foreach(println)
+
+Output  
+
+    In-sample predictions:
+    2.9856736597237106
+    39.075471086355975
+
+**When start and end are negative indices to perform in-sample prediction:**  
+
+For example, 
+ 
+    # perfrom in-sample prediction with start and end as negative indices
+    val predicted_values = model.predict(start = -2, end = -1)
+    println("In-sample prediction with negative indices:")
+    predicted_values.foreach(println)
+
+Output  
+
+    In-sample prediction with negative indices:
+    20.085332914693463
+    15.014777413995532
+
+
+**Note:** Here,  negative  indices  can  only  be  used  to  perform  in-sample 
+predictions.  
+
+**When start and end are integers to perfrom out-sample prediction:**  
+
+For example,  
+
+    # perform out-sample prediction with start and end as integers
+    val predicted_values = model.predict(start = 12, end = 13)
+    println("Out-sample predictions:")
+    predicted_values.foreach(println)
+
+Output  
+
+    Out-sample predictions:
+    9.59804015203159
+    4.378840440410923
+
+__Return Value__  
+- It returns an array of doubles. 
+
+
+#### 2. `Array[Double]` forecast(Long steps)  
+__Parameters__  
+**_steps_**: This parameter is a positive integer. It specifies the number of out of sample values to be predicted. (Default: 1)  
+**NOTE:** steps must be atleast 1. 
+
+__Purpose__  
+It is used to perform out of sample forecasting.  
+
+Below mentioned examples show frovedis ARIMAModel to be used to perform forecasting.  
+
+**Performing forecasting when endog is RDD input.**  
+
+For example,
+
+    # loading an RDD[Double] data
+    import com.nec.frovedis.mllib.tsa.arima.ARIMA
+    val endog:RDD[Double] = sc.parallelize(Array(10.5,15.0,20.0,25.5,35.5,45.0,
+                                40.5,35.5,30.5,25.5,20.5,15.0))
+
+    # fitting RDD data on ARIMA object
+    val model = new ARIMA(order = List(2,1,2)).fit(endog)
+
+    # perform forecasting
+    val forecasted_values = model.forecast(steps = 2)
+    println("Forecast:")
+    forecasted_values.foreach(println)
+
+Output
+
+    Forecast:
+    9.59804015203159
+    4.378840440410923
+
+__Return Value__  
+- It returns an array of doubles.  
+
+#### 3. `Array[Double]` fittedvalues()  
+__Purpose__  
+It is used to get the generated fitted values after fitting.  
+
+Below mentioned example shows use of fittedvalues method.  
+
+
+For example,
+
+    # loading an RDD[Double] data
+    import com.nec.frovedis.mllib.tsa.arima.ARIMA
+    val endog:RDD[Double] = sc.parallelize(Array(10.5,15.0,20.0,25.5,35.5,45.0,
+                                40.5,35.5,30.5,25.5,20.5,15.0))
+
+    # fitting RDD data on ARIMA object
+    val model = new ARIMA(order = List(2,1,2)).fit(endog)
+
+    # get fitted values
+    val fitted_values = model.fittedvalues()
+    println("Fitted values:")
+    fitted_values.foreach(println)
+
+Output
+
+    Fitted values:
+    0.0
+    0.0
+    0.0
+    2.656587032568032
+    2.9856736597237106
+    39.075471086355975
+    46.74116210912707
+    33.34402185820186
+    32.46163584927344
+    24.824135902546068
+    20.512681101065784
+    15.5408920934298
+
+__Return Value__  
+- It returns an array of doubles.  
+
+#### 4. Unit release()  
+This function can be used to release the existing in-memory model in frovedis 
+server.
+
+Below mentioned example shows use of release method.  
+
+
+For example,
+
+    # loading an RDD[Double] data
+    import com.nec.frovedis.mllib.tsa.arima.ARIMA
+    val endog:RDD[Double] = sc.parallelize(Array(10.5,15.0,20.0,25.5,35.5,45.0,
+                                40.5,35.5,30.5,25.5,20.5,15.0))
+
+    # fitting RDD data on ARIMA object
+    val model = new ARIMA(order = List(2,1,2)).fit(endog)
+
+    # get fitted values
+    val fitted_values = model.fittedvalues()
+
+    # release model
+    model.release()
+
+## SEE ALSO
+**[ARIMA](./arima.md)**
