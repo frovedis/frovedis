@@ -22,7 +22,7 @@ from ....base import BaseEstimator
 from ....exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
 from ....matrix.dvector import FrovedisDvector
-from ....matrix.dtype import str_encode
+from ....matrix.dtype import str_encode, TypeUtil, DTYPE
 from ...model_util import M_KIND, ModelID, GLM
 from ....dataframe import df as fd
 
@@ -49,10 +49,10 @@ class ARIMA(BaseEstimator):
                  dates -> DEFAULT: None, (Unused)
                  freq -> TYPE: {str, pandas DateOffset}, DEFAULT: None,
                          It is optional. It is used only when time series data
-                         is a dataframe having an index. In case, frequency
-                         information is not provided by given endog, then the
-                         frequency of the time series may be specified here as
-                         a offset string or Pandas offset.
+                         is a pandas Series or a Dataframe having an index. In
+                         case, frequency information is not provided by given
+                         endog, then the frequency of the time series may be
+                         specified here as a offset string or Pandas offset.
                          For example, freq = '3D' or freq = to_offset('3D')
                  missing -> DEFAULT: 'none', (Unused)
                  validate_specification -> DEFAULT: True, (Unused)
@@ -111,6 +111,8 @@ class ARIMA(BaseEstimator):
     def _check_index(self):
         default_index = Index(range(self.endog.shape[0]))
         final_index = copy.deepcopy(self.endog.index)
+        if isinstance(final_index, RangeIndex):
+            return (final_index, True)
         if isinstance(final_index, Index) and isinstance(final_index[0], str):
             final_index = DatetimeIndex(final_index)
         if isinstance(final_index, (DatetimeIndex, PeriodIndex)):
@@ -134,22 +136,30 @@ class ARIMA(BaseEstimator):
             elif self.freq is not None:
                 try:
                     final_index.freq = self.freq
-                except ValueError:
+                except ValueError as verr:
                     if final_index.freq is None:
                         raise ValueError("The given frequency could not be " + \
-                                         "matched to the given index.")
-                    else:
-                        raise ValueError("The given frequency argument is " + \
-                                         "incompatible with the given index.")
+                                        "matched to the given index.") from verr
+                    raise ValueError("The given frequency argument is " + \
+                                 "incompatible with the given index.") from verr
+        elif isinstance(final_index, Index) and \
+             final_index.dtype in [np.int64, np.int32]:
+            if not final_index.is_monotonic_increasing or \
+               not final_index.equals(default_index):
+                warnings.warn("An unsupported index was provided and " + \
+                              "will be ignored when e.g. forecasting.")
+                return (default_index, False)
         else:
-            raise NotImplementedError("Currenlty, only dataframe having" + \
-                                      " datetime indices are supported!")
+            warnings.warn("An unsupported index was provided and " + \
+                          "will be ignored when e.g. forecasting.")
+            return (default_index, False)
         return (final_index, True)
 
     def _valid_input(self):
-        if isinstance(self.endog, (Series, fd.DataFrame)):
+        endog = None
+        if isinstance(self.endog, fd.DataFrame):
             raise NotImplementedError("Currently, endog cannot be passed as" + \
-                                      " pandas Series or frovedis DataFrame!")
+                                      " frovedis DataFrame!")
         elif isinstance(self.endog, DataFrame):
             shape = np.shape(self.endog)
             if len(shape) == 2 and shape[1] == 1:
@@ -158,14 +168,35 @@ class ARIMA(BaseEstimator):
                     raise ValueError("Number of samples in input is too " + \
                                      "less for time series analysis!")
                 self._metadata = self._check_index()
-                endog = FrovedisDvector(self.endog.iloc[:, 0])
-                self.__mdtype = endog.get_dtype()
+                df_dtype = TypeUtil.to_id_dtype(self.endog.iloc[:, 0].dtype)
+                if df_dtype in [DTYPE.INT, DTYPE.LONG]:
+                    endog = FrovedisDvector(self.endog.iloc[:, 0],
+                                            dtype = np.float64)
+                else:
+                    endog = FrovedisDvector(self.endog.iloc[:, 0])
+                self._endog_len = shape[0]
+            else:
+                raise ValueError("Frovedis ARIMA models require univariate " + \
+                                 "`endog`. Got shape {0}".format(shape))
+        elif isinstance(self.endog, Series):
+            shape = np.shape(self.endog.values)
+            if len(shape) == 1:
+                if shape[0] < (self.__ar_lag + self.__diff_order + \
+                               self.__ma_lag + self.seasonal + 2):
+                    raise ValueError("Number of samples in input is too " + \
+                                     "less for time series analysis!")
+                self._metadata = self._check_index()
+                df_dtype = TypeUtil.to_id_dtype(self.endog.dtype)
+                if df_dtype in [DTYPE.INT, DTYPE.LONG]:
+                    endog = FrovedisDvector(self.endog.values,
+                                            dtype = np.float64)
+                else:
+                    endog = FrovedisDvector(self.endog.values)
                 self._endog_len = shape[0]
             else:
                 raise ValueError("Frovedis ARIMA models require univariate " + \
                                  "`endog`. Got shape {0}".format(shape))
         elif isinstance(self.endog, FrovedisDvector):
-            self.__mdtype = self.endog.get_dtype()
             inp_data = self.endog.to_numpy_array()
             shape = np.shape(inp_data)
             if shape[0] < (self.__ar_lag + self.__diff_order + \
@@ -173,6 +204,11 @@ class ARIMA(BaseEstimator):
                 raise ValueError("Number of samples in input is too less " + \
                                  "for time series analysis!")
             self._endog_len = shape[0]
+            df_dtype = TypeUtil.to_id_dtype(self.endog.get_numpy_dtype())
+            if df_dtype in [DTYPE.INT, DTYPE.LONG]:
+                endog = FrovedisDvector(inp_data, dtype = np.float64)
+            else:
+                endog = self.endog
         elif isinstance(self.endog, (np.ndarray, list, tuple)):
             shape = np.shape(self.endog)
             if len(shape) == 1 or (len(shape) == 2 and shape[1] == 1):
@@ -182,8 +218,10 @@ class ARIMA(BaseEstimator):
                                      "less for time series analysis!")
                 endog = np.ravel(self.endog)
                 self._endog_len = shape[0]
-                endog = FrovedisDvector().as_dvec(endog)
-                self.__mdtype = endog.get_dtype()
+                if endog.dtype in [np.int32, np.int64]:
+                    endog = FrovedisDvector().as_dvec(endog, dtype=np.float64)
+                else:
+                    endog = FrovedisDvector().as_dvec(endog)
             else:
                 raise ValueError("Frovedis ARIMA models require univariate " + \
                                  "`endog`. Got shape {0}".format(shape))
@@ -215,7 +253,8 @@ class ARIMA(BaseEstimator):
         elif self.solver not in ['lapack', 'lbfgs', 'scalapack']:
             raise ValueError("Unknown solver: " + self.solver + " for time " + \
                              "series analysis!")
-        if self.freq is not None and not isinstance(self.endog, DataFrame):
+        if self.freq is not None and \
+           not isinstance(self.endog, (Series, DataFrame)):
             raise ValueError("Frequency provided without associated index.")
 
     @set_association
@@ -223,11 +262,18 @@ class ARIMA(BaseEstimator):
         """
         DESC: Fit (estimate) the parameters of the model.
         During fitting, if endog has any type of index, then it will behave
-        diffrently based on the given index type.
-        If it is a NumericIndex with values 0,1,...,N-1, where N is n_samples or
-        if it is (coerceable to) a DatetimeIndex or PeriodIndex with an
+        differently based on the given index type.
+        If it is a numeric index with values 0,1,...,N-1, where `N` is n_samples
+        or if it is (coerceable to) a DatetimeIndex or PeriodIndex with an
         associated frequency, then it is called a "Supported" index. Otherwise
         it is called an "Unsupported" index.
+        For numeric indices type, it can be Index, RangeIndex instances.
+        Here, for RangeIndex instances the indices can be in form:
+          1. Indices with 0,2,4,....,N-2
+          2. Indices with 10,12,14,....,N-2
+        They should be monotonically increasing and not need to start with 0.
+        When Index instance is used as numeric indices, then they have to be
+        monotonically increaing and starting with 0.
         NOTE: A warning will be given when unsupported indices are used for
         training.
         """
@@ -238,6 +284,7 @@ class ARIMA(BaseEstimator):
             raise ValueError("Currently validate_specification=True " + \
                              "is only supported!")
         endog = self._valid_input()
+        self.__mdtype = endog.get_dtype()
         self.__mkind = M_KIND.ARM
         (host, port) = FrovedisServer.getServerInstance()
         rpclib.arima_fit(host, port, endog.get(), self.__ar_lag, \
@@ -277,8 +324,8 @@ class ARIMA(BaseEstimator):
                         key_oos = True
                     else:
                         key = index.get_loc(key)
-                except KeyError:
-                    raise KeyError(key)
+                except KeyError as kerr:
+                    raise KeyError(key) from kerr
             else:
                 try:
                     key = index.get_loc(key)
@@ -316,6 +363,30 @@ class ARIMA(BaseEstimator):
                 except:
                     raise ValueError("Value must be Period, string, " + \
                                      "integer, or datetime")
+        elif isinstance(index, RangeIndex):
+            if isinstance(key, int):
+                if key < 0:
+                    if self._endog_len >= abs(key):
+                        key = self._endog_len + key
+                    else:
+                        raise KeyError(key)
+                elif key > self._endog_len:
+                    index = RangeIndex(start = index.start, \
+                                       stop = index.start + (key + 1) *
+                                       index.step, step = index.step)
+                    key = len(index) - 1
+                    key_oos = True
+        elif isinstance(index, Index) and index.dtype in [np.int64, np.int32]:
+            if isinstance(key, int):
+                if key < 0:
+                    if self._endog_len >= abs(key):
+                        key = self._endog_len + key
+                    else:
+                        raise KeyError(key)
+                elif key > self._endog_len:
+                    index = Index(np.arange(index[0], int(key + 1)))
+                    key = len(index) - 1
+                    key_oos = True
         else:
             raise NotImplementedError("Invalid index type")
         return key, index, key_oos
@@ -335,11 +406,11 @@ class ARIMA(BaseEstimator):
                                          'bounds for axis 0 with ' + \
                                          'size ' + str(self._endog_len))
                 elif key > self._endog_len:
-                    key_oos = True
                     end = index.start + (key + 1) * index.step
                     index = RangeIndex(start = index.start, stop = end, \
                                        step = index.step)
                     key = index[key]
+                    key_oos = True
             else:
                 key = self.endog.index.get_loc(key)
                 index = self.endog.index
@@ -417,20 +488,20 @@ class ARIMA(BaseEstimator):
                 start, start_index, start_oos = self._make_pred_index(start, \
                                                           self._metadata[0], \
                                                           self._metadata[1])
-            except KeyError:
+            except KeyError as kerr:
                 raise KeyError("The `start` argument could not be  " + \
                                "matched to a location related to the " + \
-                               "index of the data.")
+                               "index of the data.") from kerr
             if end is None:
                 end = max(start, self._endog_len - 1)
             try:
                 end, end_index, end_oos = self._make_pred_index(end, \
                                                   self._metadata[0], \
                                                   self._metadata[1])
-            except KeyError:
+            except KeyError as kerr:
                 raise KeyError("The `end` argument could not be matched " + \
                                "to a location related to the index of " + \
-                               "the data.")
+                               "the data.") from kerr
         if end < start:
             raise ValueError("In prediction `end` must not be less than `start`!")
         if dynamic:
@@ -459,10 +530,9 @@ class ARIMA(BaseEstimator):
                 if steps <= 0:
                     raise ValueError("Prediction must have `end` " + \
                                      "after `start`!")
-                else:
-                    index = date_func(start = index[-1], \
-                                      periods = int(steps + 1), \
-                                      freq = index.freq)
+                index = date_func(start = index[-1], \
+                                  periods = int(steps + 1), \
+                                  freq = index.freq)
             elif isinstance(steps, (datetime.datetime, str)):
                 steps = (Timestamp(steps)
                          if isinstance(index, DatetimeIndex) else
@@ -475,14 +545,29 @@ class ARIMA(BaseEstimator):
                                   freq = index.freq)
                 if index.empty:
                     raise KeyError(steps)
-                else:
-                    steps = len(index) - 1
+                steps = len(index) - 1
             else:
                 if isinstance(index, PeriodIndex):
                     raise ValueError("Value must be Period, string, " + \
                                      "integer, or datetime")
-                else:
-                    raise KeyError(steps)
+                raise KeyError(steps)
+        elif isinstance(index, RangeIndex):
+            if isinstance(steps, int):
+                if steps <= 0:
+                    raise ValueError("Prediction must have `end` " + \
+                                     "after `start`!")
+                end = (steps * index.step) + index.stop
+                index = RangeIndex(start = index.stop - index.step,
+                                   stop = end, step = index.step)
+                steps = len(index) - 1
+        elif isinstance(index, Index) and index.dtype in [np.int64, np.int32]:
+            if isinstance(steps, int):
+                if steps <= 0:
+                    raise ValueError("Prediction must have `end` " + \
+                                     "after `start`!")
+                end = index[-1] + int(steps + 1)
+                index = Index(np.arange(start=index[-1], stop=end))
+                steps = len(index) - 1
         else:
             raise NotImplementedError("Invalid index type")
         return steps, index
@@ -493,10 +578,9 @@ class ARIMA(BaseEstimator):
                 if steps <= 0:
                     raise ValueError("Prediction must have `end` " + \
                                      "after `start`!")
-                else:
-                    end = steps + index.stop + 1
-                    index = RangeIndex(start = index.stop, stop = end)
-                    steps = len(index) - 1
+                end = steps + index.stop + 1
+                index = RangeIndex(start = index.stop, stop = end)
+                steps = len(index) - 1
             else:
                 raise KeyError(steps)
         return steps, index
@@ -542,10 +626,10 @@ class ARIMA(BaseEstimator):
                 steps, step_index = self._fcast_index(steps, \
                                            self._metadata[0], \
                                            self._metadata[1])
-            except KeyError:
+            except KeyError as kerr:
                 raise KeyError("'The `end` argument could not be " + \
                                "matched to a location related to the index" + \
-                               " of the data.'")
+                               " of the data.'") from kerr
         (host, port) = FrovedisServer.getServerInstance()
         fcast = rpclib.arima_forecast(host, port, steps, self.__mid, \
                                       self.__mdtype)
@@ -554,7 +638,7 @@ class ARIMA(BaseEstimator):
             raise RuntimeError(excpt["info"])
         if self._metadata is not None and self._metadata[1]:
             return Series(fcast, index = step_index[1:steps + 1])
-        elif self._metadata is not None and not self._metadata[1]:
+        if self._metadata is not None and not self._metadata[1]:
             return Series(fcast, index = step_index[:steps])
         return np.asarray(fcast, dtype = np.float64)
 
@@ -577,7 +661,7 @@ class ARIMA(BaseEstimator):
                 self._fittedvalues = np.asarray(ret, dtype = np.float64)
             else:
                 self._fittedvalues = Series(data = ret, \
-                                               index = self.endog.index)
+                                            index = self.endog.index)
         return self._fittedvalues
 
     @fittedvalues.setter

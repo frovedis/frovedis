@@ -55,6 +55,28 @@ print("arima predict(start=36,end=37): ", arima.predict(start=36, end=37))
 # forecasting using frovedis ARIMA
 print('arima forecast(): ', arima.forecast(steps=2))
 
+# Using Series as timeseries data (endog)
+data = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+index = pd.RangeIndex(start=10, stop=30, step=2)
+data = pd.Series(data, index=index)
+
+#fitting the input time series as pandas Sereis with frovedis ARIMA
+from frovedis.mllib.tsa.arima.model import ARIMA
+arima = ARIMA(data, order=(2,1,2)).fit()
+
+#fitting the input time series as pandas Sereis with frovedis ARIMA
+print('frovedis fitted data: ', arima.fittedvalues)
+
+# In-sample prediction using frovedis ARIMA
+print("arima predict(start=5,end=5): ", arima.predict(start=5, end=5))
+
+# Out-sample prediction using frovedis ARIMA
+print("arima predict(start=10,end=11): ", arima.predict(start=10, end=11))
+
+# forecasting using frovedis ARIMA
+print('arima forecast(): ', arima.forecast(steps=2))
+
+
 ## For Referrence ##
 # fitting the input time series with statsmodel ARIMA
 # from statsmodels.tsa.arima.model import ARIMA as S_ARIMA
