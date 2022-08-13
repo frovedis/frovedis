@@ -73,7 +73,8 @@ Currently, it accepts the below mentioned array-like inputs such as:
 - A list or tuple of shape (n_samples,)  
 - A matrix of shape (n_samples, 1)  
 
-Also, it accepts a pandas DataFrame having single column and a datetime index.  
+Also, it accepts a pandas Series or DataFrame having single column with a numeric or datetime index.  
+**Currently, it does not support frovedis DataFrame as timeseries data.**  
 **_exog_**: An unused parameter. (Default: =None)  
 **_order_**: A tuple parameter having 3 elements (p,d,q) that specifies the order of the model 
 for the autoregressive(p), differences(d), and moving average(q) components. (Default: (1, 0, 0))  
@@ -87,7 +88,7 @@ Also, these components (p, d, q) of the model cannot be negative values.
 **_trend\_offset_**: An unused parameter. (Default: 1)  
 **_dates_**: An unused parameter. (Default: None)  
 **_freq_**: This parameter specifies the frequency of the timeseries. It is an offset string 
-or Pandas offset. It is used only when time series data is a pandas dataframe having 
+or Pandas offset. It is used only when time series data is a pandas Series or DataFrame having 
 an index. For example, freq = '3D' or freq = to_offset('3D'). (Default: None)  
 **_missing_**: An unused parameter. (Default: 'none')  
 **_validate\_specification_**: An unused parameter. (Default: True)  
@@ -105,9 +106,12 @@ default (for INFO mode and not specified explicitly). But it can be set to 1 (fo
 2 (for TRACE mode) for getting training time logs from frovedis server. (Default: 0)  
 
 __Attributes__  
-**_fittedvalues_**: It is a python ndarray (containing float or double (float64) typed values 
-depending on data-type of input array) of shape (n_samples,) or pandas Series containing the 
-predicted values of the model after training is completed.  
+**_fittedvalues_**:  
+**When endog is an array-like input:**  
+It is a numpy array (containing float or double (float64) typed values 
+depending on data-type of input array) of shape (n_samples,)  
+**When it is a pandas Series or DataFrame:**  
+It is a pandas Series containing the predicted values of the model after training is completed.  
 
 __Purpose__  
 It initializes the ARIMA instance with the given parameters.  
@@ -202,18 +206,28 @@ Output
 
 Here, fittedvalues will be displayed after training is completed on frovedis-like timeseries data.  
 
-When pandas dataframe having single column and a datetime index is provided, then training is 
-done based on the given index type.  
+When pandas dataframe having single column and a numeric or datetime index is provided, then training 
+is done based on the given index type.  
 
 If it is a numeric index with values 0, 1 , ..., N-1 (always incrementing indices), where N 
 is n_samples or if it is (coerceable to) a DatetimeIndex or PeriodIndex with an associated 
 frequency, then it is called a "Supported" index. Otherwise, it is called an "Unsupported" index.  
 
-**Currently, support for DatetimeIndex or PeriodIndex instance is provided in frovedis.**  
+For numeric indices type, it can be pandas Index or RangeIndex instances.  
+Here, for RangeIndex instances the indices can be in form:  
+- Indices with 0,2,4,....,N-2  
+For example: pandas.RangeIndex(start=0, stop=10, step=2)  
+- Indices with 10,12,14,....,N-2  
+For example: pandas.RangeIndex(start=10, stop=20, step=2)  
+
+They should be monotonically increasing and not need required to start with 0.  
+When Index instance is used as numeric indices, then they have to be monotonically increaing 
+and starting with 0.  
+For example: pandas.Index([0,1,2,3,4,5])  
 
 NOTE: A warning will be given when unsupported indices are used for training.  
 
-**When a supported index is provided:**  
+**When a supported index such as Datetimeindex instance is provided:**  
 
 For example,  
 
@@ -273,7 +287,7 @@ Here, fittedvalues will be displayed after training is completed on dataframe ha
 
 This will always be true even when endog is having supported or unsupported indices.  
 
-Also, in above example frequency infromation was inferred based on given timeseries data.  
+Also, in above example frequency information was inferred based on given timeseries data.  
 
 So, we can use **freq** parameter in frovedis ARIMA in order to set the frequency information of the timeseries 
 data as well.  
@@ -325,9 +339,53 @@ Output
 **Note:** Here, the frequency information provided for freq parameter must be same as the frequency 
 inferred for the timeseries data. Otherwise, it will raise an exception.  
 
-**When an unsupported index is provided:**
+**When a supported index such as RangeIndex instance is provided:**  
 
-For example,
+For example,  
+
+    # loading a pandas DataFrame having numeric index as RangeIndex
+    # such indices should be monotonically increasing
+    # and need not start with 0.
+    # also, such index is considered as a supported index
+    import pandas as pd
+    index = pd.RangeIndex(start=10, stop=46, step=2)
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2)).fit()
+
+    # displaying the fittedvalues
+    print(arima.fittedvalues)
+
+Output  
+
+    10      0.000000
+    12      0.000000
+    14      0.000000
+    16      7.183812
+    18     50.686614
+    20    188.205611
+    22    171.793531
+    24    182.706200
+    26    200.586396
+    28    227.986895
+    30    233.641814
+    32    213.975698
+    34    213.622244
+    36    254.024920
+    38    242.193347
+    40    216.585066
+    42    198.927653
+    44    224.250625
+    dtype: float64
+
+**When an unsupported index such as DatetimeIndex with no associated frequencyis provided:**  
+
+For example,  
 
     # loading a pandas dataframe having datetime index
     # and having no associated frequency
@@ -377,6 +435,52 @@ Output
     dtype: float64
 
 Here, indices in the `fittedvalues` are same as indices present in the `endog` timeseries data.  
+
+**When an unsupported index such as Index instance having indices being without 0 is provided:**
+
+For example,  
+
+    # loading a pandas DataFrame having numeric index as Index
+    # ideally, such indices should be monotonically increasing
+    # and should start with 0.
+    # otherwise ,such index are considered as an unsupported index
+    import pandas as pd
+    index = pd.Index([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18])
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2)).fit()
+
+    # displaying the fittedvalues
+    print(arima.fittedvalues)
+
+Output
+
+    UserWarning: An unsupported index was provided and will be ignored when e.g. forecasting.
+    
+    1       0.000000
+    2       0.000000
+    3       0.000000
+    4       7.183812
+    5      50.686614
+    6     188.205611
+    7     171.793531
+    8     182.706200
+    9     200.586396
+    10    227.986895
+    11    233.641814
+    12    213.975698
+    13    213.622244
+    14    254.024920
+    15    242.193347
+    16    216.585066
+    17    198.927653
+    18    224.250625
+    dtype: float64
 
 __Return Value__  
 It simply returns "self" reference.  
@@ -447,9 +551,9 @@ Output
 
     Out-sample predictions:  [672.66044638 683.2480911 ]
 
-When endog is a dataframe having a supported index (monotonically increasing and associated 
-frequency), then both `start` and `end` can be integer, dates as string or datetime instance to 
-perform in-sample and out-sample predictions.  
+When endog is a dataframe having a supported index (datatime index which is monotonically increasing 
+and has associated frequency), then both `start` and `end` can be integer, dates as string or datetime 
+instance to perform in-sample and out-sample predictions.  
 
 For example,  
 
@@ -479,6 +583,8 @@ Output
     1981-02-03    192.400565
     1981-02-06    255.586914
     Freq: 3D, dtype: float64
+
+**Note:** When integer are provided as start or end, then these are referred here as positional indices.  
 
 For example,  
 
@@ -554,10 +660,52 @@ Output
     Out-sample predictions:  1981-02-24    259.295505
     Freq: 3D, dtype: float64
 
-When endog is a dataframe having an unsupported index, then only integer is used to perform in-sample and 
-out-sample predictions. For using dates as string and datetime instance to perform predictions, then only 
-in-sample prediction can be done. No out-sample prediction can be done when using dates as string or datetime 
-instance.  
+When endog is a dataframe having a supported index (numeric index such as RangeIndex), then both `start` and `end` 
+can only be integer values in order to perform in-sample and out-sample predictions.  
+
+Here, the start or end provided as integers will refer here as positional indices.  
+
+For example,  
+
+    # loading a pandas dataframe having a supported index
+    import pandas as pd
+    index = pd.RangeIndex(start=10, stop=46, step=2)
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2)).fit()
+
+    # perform in-sample prediction with start and end as integers
+    print('In-sample predictions: ', arima.predict(start=11, end=12))
+
+Output  
+
+    In-sample predictions:  32    192.400565
+    34    255.586914
+    dtype: float64
+
+For example,  
+
+    # perform out-sample prediction with start and end as integers
+    print('Out-sample predictions: ', arima.predict(start=22, end=24))
+
+Output  
+
+    Out-sample predictions:  54    294.413814
+    56    297.292898
+    58    303.964832
+    dtype: float64
+
+When endog is a dataframe having an unsupported index (datetime index having no associated frequency), then only 
+integer is used to perform in-sample and out-sample predictions. For using dates as string and datetime instance 
+to perform predictions, then only in-sample prediction can be done. No out-sample prediction can be done when 
+using dates as string or datetime instance.  
+
+Also, the start or end provided as integers will refer here as positional indices.  
 
 For example,
 
@@ -588,6 +736,8 @@ Output
     1981-02-03    192.400565
     1981-02-06    255.586914
     dtype: float64
+
+**Note:** When integer are provided as start or end, then these are referred here as positional indices.  
 
 For example,  
 
@@ -642,11 +792,55 @@ Output
     1981-02-03    235.522806
     dtype: float64
 
+When endog is a dataframe having an unsupported index (Index instance having indices being without 0), then only
+integer is used to perform in-sample and out-sample predictions.  
+
+Also, the start or end provided as integers will refer here as positional indices.
+
+For example,
+
+    # loading a pandas dataframe having an unsupported index
+    import pandas as pd
+    index = pd.Index([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18])
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2)).fit()
+
+    # perform in-sample prediction with start and end as integers
+    print('In-sample predictions: ', arima.predict(start=11, end=12))
+
+Output
+
+    UserWarning: An unsupported index was provided and will be ignored when e.g. forecasting.
+
+    In-sample predictions:  12    192.400565
+    13    255.586914
+    dtype: float64
+
+For example,  
+
+    # perform out-sample prediction with start and end as integers
+    print('Out-sample predictions: ', arima.predict(start=22, end=24))
+
+Output  
+    
+    UserWarning: An unsupported index was provided and will be ignored when e.g. forecasting.
+
+    Out-sample predictions:  22    294.413814
+    23    297.292898
+    24    303.964832
+    dtype: float64
+
 __Return Value__  
 **When endog is array-like:**  
 - It returns a numpy array of shape (n_predictions,)  
 
-**When endog is a dataframe:**  
+**When endog is a pandas Series or DataFrame:**  
 - It returns a pandas Series having an index and data column. Number of samples in the pandas Series 
 are equal to the number of number of predictions.  
 
@@ -694,8 +888,8 @@ Output
 
     forecast():  [578.26315696 654.88723312]
 
-When endog is a dataframe having a supported index (monotonically increasing and associated
-frequency), then `steps` can be an integer, dates as string or datetime instance to
+When endog is a dataframe having a supported index (datetime index which is monotonically increasing 
+and associated frequency), then `steps` can be an integer, dates as string or datetime instance to
 perform forecasting.  
 
 For example,
@@ -752,8 +946,34 @@ Output
     forecast():  1981-02-24    259.295505
     Freq: 3D, dtype: float64
 
-When endog is a dataframe having an unsupported index, then only integer is used to perform forecasting. No 
-forecasting can be done when using dates as string or datetime instance.  
+When endog is a dataframe having a supported index (numeric index such as RangeIndex), then `steps` can only be 
+an integer in order to perform forecasting.  
+
+For example,  
+
+    # loading a pandas dataframe having a supported index
+    import pandas as pd
+    index = pd.RangeIndex(start=10, stop=46, step=2)
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2)).fit()
+
+    # perform forecasting with steps as an integer
+    print('forecast(): ', arima.forecast(steps=2))
+
+Output  
+
+    forecast():  46    259.295505
+    48    280.647172
+   dtype: float64
+
+When endog is a dataframe having an unsupported index (datetime index having no associated frequency), then only 
+integer is used to perform forecasting. No forecasting can be done when using dates as string or datetime instance.  
 
 For example,
 
@@ -785,13 +1005,40 @@ Output
    19    280.647172  
    dtype: float64  
 
+When endog is a dataframe having an unsupported index (datetime index having no associated frequency), then only 
+integer is used to perform forecasting.  
+
+For example,  
+
+    # loading a pandas dataframe having an unsupported index
+    import pandas as pd
+    index = pd.Index([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18])
+    data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                     224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                     210.1, 273.3, 191.4, 287])
+    df = pd.DataFrame({'Temp': data}, index = index)
+
+    # fitting input dataframe on ARIMA object
+    from frovedis.mllib.tsa.arima.model import ARIMA
+    arima = ARIMA(df, order=(2,1,2)).fit()
+
+    # perform forecasting with steps as an integer
+    print('forecast(): ', arima.forecast(steps=2))
+
+Output  
+
+    UserWarning: An unsupported index was provided and will be ignored when e.g. forecasting.
+
+    forecast():  18    259.295505
+    19    280.647172
+    dtype: float64
+
 __Retur Value__  
 **When endog is array-like:**  
 - It returns a numpy array of shape (steps,)  
 
-**When endog is a dataframe:**  
+**When endog is a pandas Series or DataFrame:**  
 - It returns a pandas Series having an index and data column.  
-
 
 ### 5. get_params(deep = True)  
 __Parameters__   

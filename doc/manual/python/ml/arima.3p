@@ -143,8 +143,13 @@ Currently, it accepts the below mentioned array-like inputs such as:
 .PD
 - A matrix of shape (n_samples, 1)
 .PP
-Also, it accepts a pandas DataFrame having single column and a datetime
-index.
+Also, it accepts a pandas Series or DataFrame having single column with
+a numeric or datetime index.
+.PD 0
+.P
+.PD
+\f[B]Currently, it does not support frovedis DataFrame as timeseries
+data.\f[R]
 .PD 0
 .P
 .PD
@@ -207,8 +212,8 @@ Also, these components (p, d, q) of the model cannot be negative values.
 \f[B]\f[BI]freq\f[B]\f[R]: This parameter specifies the frequency of the
 timeseries.
 It is an offset string or Pandas offset.
-It is used only when time series data is a pandas dataframe having an
-index.
+It is used only when time series data is a pandas Series or DataFrame
+having an index.
 For example, freq = `3D' or freq = to_offset(`3D').
 (Default: None)
 .PD 0
@@ -272,10 +277,25 @@ getting training time logs from frovedis server.
 .PD 0
 .P
 .PD
-\f[B]\f[BI]fittedvalues\f[B]\f[R]: It is a python ndarray (containing
-float or double (float64) typed values depending on data-type of input
-array) of shape (n_samples,) or pandas Series containing the predicted
-values of the model after training is completed.
+\f[B]\f[BI]fittedvalues\f[B]\f[R]:
+.PD 0
+.P
+.PD
+\f[B]When endog is an array-like input:\f[R]
+.PD 0
+.P
+.PD
+It is a numpy array (containing float or double (float64) typed values
+depending on data-type of input array) of shape (n_samples,)
+.PD 0
+.P
+.PD
+\f[B]When it is a pandas Series or DataFrame:\f[R]
+.PD 0
+.P
+.PD
+It is a pandas Series containing the predicted values of the model after
+training is completed.
 .PP
 \f[B]Purpose\f[R]
 .PD 0
@@ -403,8 +423,8 @@ Output
 Here, fittedvalues will be displayed after training is completed on
 frovedis-like timeseries data.
 .PP
-When pandas dataframe having single column and a datetime index is
-provided, then training is done based on the given index type.
+When pandas dataframe having single column and a numeric or datetime
+index is provided, then training is done based on the given index type.
 .PP
 If it is a numeric index with values 0, 1 , \&..., N-1 (always
 incrementing indices), where N is n_samples or if it is (coerceable to)
@@ -412,13 +432,46 @@ a DatetimeIndex or PeriodIndex with an associated frequency, then it is
 called a \[lq]Supported\[rq] index.
 Otherwise, it is called an \[lq]Unsupported\[rq] index.
 .PP
-\f[B]Currently, support for DatetimeIndex or PeriodIndex instance is
-provided in frovedis.\f[R]
+For numeric indices type, it can be pandas Index or RangeIndex
+instances.
+.PD 0
+.P
+.PD
+Here, for RangeIndex instances the indices can be in form:
+.PD 0
+.P
+.PD
+- Indices with 0,2,4,\&....,N-2
+.PD 0
+.P
+.PD
+For example: pandas.RangeIndex(start=0, stop=10, step=2)
+.PD 0
+.P
+.PD
+- Indices with 10,12,14,\&....,N-2
+.PD 0
+.P
+.PD
+For example: pandas.RangeIndex(start=10, stop=20, step=2)
+.PP
+They should be monotonically increasing and not need required to start
+with 0.
+.PD 0
+.P
+.PD
+When Index instance is used as numeric indices, then they have to be
+monotonically increaing and starting with 0.
+.PD 0
+.P
+.PD
+For example: pandas.Index([0,1,2,3,4,5])
 .PP
 NOTE: A warning will be given when unsupported indices are used for
 training.
 .PP
-\f[B]When a supported index is provided:\f[R]
+\f[B]When a supported index such as Datetimeindex instance is
+provided:\f[R]
 .PP
 For example,
 .IP
@@ -493,7 +546,7 @@ fittedvalues.index = endog.index
 This will always be true even when endog is having supported or
 unsupported indices.
 .PP
-Also, in above example frequency infromation was inferred based on given
+Also, in above example frequency information was inferred based on given
 timeseries data.
 .PP
 So, we can use \f[B]freq\f[R] parameter in frovedis ARIMA in order to
@@ -556,7 +609,61 @@ parameter must be same as the frequency inferred for the timeseries
 data.
 Otherwise, it will raise an exception.
 .PP
-\f[B]When an unsupported index is provided:\f[R]
+\f[B]When a supported index such as RangeIndex instance is
+provided:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# loading a pandas DataFrame having numeric index as RangeIndex
+# such indices should be monotonically increasing
+# and need not start with 0.
+# also, such index is considered as a supported index
+import pandas as pd
+index = pd.RangeIndex(start=10, stop=46, step=2)
+data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                 224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                 210.1, 273.3, 191.4, 287])
+df = pd.DataFrame({\[aq]Temp\[aq]: data}, index = index)
+
+# fitting input dataframe on ARIMA object
+from frovedis.mllib.tsa.arima.model import ARIMA
+arima = ARIMA(df, order=(2,1,2)).fit()
+
+# displaying the fittedvalues
+print(arima.fittedvalues)
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+10      0.000000
+12      0.000000
+14      0.000000
+16      7.183812
+18     50.686614
+20    188.205611
+22    171.793531
+24    182.706200
+26    200.586396
+28    227.986895
+30    233.641814
+32    213.975698
+34    213.622244
+36    254.024920
+38    242.193347
+40    216.585066
+42    198.927653
+44    224.250625
+dtype: float64
+\f[R]
+.fi
+.PP
+\f[B]When an unsupported index such as DatetimeIndex with no associated
+frequencyis provided:\f[R]
 .PP
 For example,
 .IP
@@ -617,6 +724,61 @@ dtype: float64
 .PP
 Here, indices in the \f[V]fittedvalues\f[R] are same as indices present
 in the \f[V]endog\f[R] timeseries data.
+.PP
+\f[B]When an unsupported index such as Index instance having indices
+being without 0 is provided:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# loading a pandas DataFrame having numeric index as Index
+# ideally, such indices should be monotonically increasing
+# and should start with 0.
+# otherwise ,such index are considered as an unsupported index
+import pandas as pd
+index = pd.Index([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18])
+data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                 224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                 210.1, 273.3, 191.4, 287])
+df = pd.DataFrame({\[aq]Temp\[aq]: data}, index = index)
+
+# fitting input dataframe on ARIMA object
+from frovedis.mllib.tsa.arima.model import ARIMA
+arima = ARIMA(df, order=(2,1,2)).fit()
+
+# displaying the fittedvalues
+print(arima.fittedvalues)
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+UserWarning: An unsupported index was provided and will be ignored when e.g. forecasting.
+
+1       0.000000
+2       0.000000
+3       0.000000
+4       7.183812
+5      50.686614
+6     188.205611
+7     171.793531
+8     182.706200
+9     200.586396
+10    227.986895
+11    233.641814
+12    213.975698
+13    213.622244
+14    254.024920
+15    242.193347
+16    216.585066
+17    198.927653
+18    224.250625
+dtype: float64
+\f[R]
+.fi
 .PP
 \f[B]Return Value\f[R]
 .PD 0
@@ -738,10 +900,10 @@ Out-sample predictions:  [672.66044638 683.2480911 ]
 \f[R]
 .fi
 .PP
-When endog is a dataframe having a supported index (monotonically
-increasing and associated frequency), then both \f[V]start\f[R] and
-\f[V]end\f[R] can be integer, dates as string or datetime instance to
-perform in-sample and out-sample predictions.
+When endog is a dataframe having a supported index (datatime index which
+is monotonically increasing and has associated frequency), then both
+\f[V]start\f[R] and \f[V]end\f[R] can be integer, dates as string or
+datetime instance to perform in-sample and out-sample predictions.
 .PP
 For example,
 .IP
@@ -779,6 +941,9 @@ In-sample predictions:  Date
 Freq: 3D, dtype: float64
 \f[R]
 .fi
+.PP
+\f[B]Note:\f[R] When integer are provided as start or end, then these
+are referred here as positional indices.
 .PP
 For example,
 .IP
@@ -896,12 +1061,74 @@ Freq: 3D, dtype: float64
 \f[R]
 .fi
 .PP
-When endog is a dataframe having an unsupported index, then only integer
-is used to perform in-sample and out-sample predictions.
+When endog is a dataframe having a supported index (numeric index such
+as RangeIndex), then both \f[V]start\f[R] and \f[V]end\f[R] can only be
+integer values in order to perform in-sample and out-sample predictions.
+.PP
+Here, the start or end provided as integers will refer here as
+positional indices.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# loading a pandas dataframe having a supported index
+import pandas as pd
+index = pd.RangeIndex(start=10, stop=46, step=2)
+data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                 224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                 210.1, 273.3, 191.4, 287])
+df = pd.DataFrame({\[aq]Temp\[aq]: data}, index = index)
+
+# fitting input dataframe on ARIMA object
+from frovedis.mllib.tsa.arima.model import ARIMA
+arima = ARIMA(df, order=(2,1,2)).fit()
+
+# perform in-sample prediction with start and end as integers
+print(\[aq]In-sample predictions: \[aq], arima.predict(start=11, end=12))
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+In-sample predictions:  32    192.400565
+34    255.586914
+dtype: float64
+\f[R]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# perform out-sample prediction with start and end as integers
+print(\[aq]Out-sample predictions: \[aq], arima.predict(start=22, end=24))
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+Out-sample predictions:  54    294.413814
+56    297.292898
+58    303.964832
+dtype: float64
+\f[R]
+.fi
+.PP
+When endog is a dataframe having an unsupported index (datetime index
+having no associated frequency), then only integer is used to perform
+in-sample and out-sample predictions.
 For using dates as string and datetime instance to perform predictions,
 then only in-sample prediction can be done.
 No out-sample prediction can be done when using dates as string or
 datetime instance.
+.PP
+Also, the start or end provided as integers will refer here as
+positional indices.
 .PP
 For example,
 .IP
@@ -940,6 +1167,9 @@ In-sample predictions:  Date
 dtype: float64
 \f[R]
 .fi
+.PP
+\f[B]Note:\f[R] When integer are provided as start or end, then these
+are referred here as positional indices.
 .PP
 For example,
 .IP
@@ -1020,6 +1250,68 @@ dtype: float64
 \f[R]
 .fi
 .PP
+When endog is a dataframe having an unsupported index (Index instance
+having indices being without 0), then only integer is used to perform
+in-sample and out-sample predictions.
+.PP
+Also, the start or end provided as integers will refer here as
+positional indices.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# loading a pandas dataframe having an unsupported index
+import pandas as pd
+index = pd.Index([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18])
+data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                 224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                 210.1, 273.3, 191.4, 287])
+df = pd.DataFrame({\[aq]Temp\[aq]: data}, index = index)
+
+# fitting input dataframe on ARIMA object
+from frovedis.mllib.tsa.arima.model import ARIMA
+arima = ARIMA(df, order=(2,1,2)).fit()
+
+# perform in-sample prediction with start and end as integers
+print(\[aq]In-sample predictions: \[aq], arima.predict(start=11, end=12))
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+UserWarning: An unsupported index was provided and will be ignored when e.g. forecasting.
+
+In-sample predictions:  12    192.400565
+13    255.586914
+dtype: float64
+\f[R]
+.fi
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# perform out-sample prediction with start and end as integers
+print(\[aq]Out-sample predictions: \[aq], arima.predict(start=22, end=24))
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+UserWarning: An unsupported index was provided and will be ignored when e.g. forecasting.
+
+Out-sample predictions:  22    294.413814
+23    297.292898
+24    303.964832
+dtype: float64
+\f[R]
+.fi
+.PP
 \f[B]Return Value\f[R]
 .PD 0
 .P
@@ -1030,7 +1322,7 @@ dtype: float64
 .PD
 - It returns a numpy array of shape (n_predictions,)
 .PP
-\f[B]When endog is a dataframe:\f[R]
+\f[B]When endog is a pandas Series or DataFrame:\f[R]
 .PD 0
 .P
 .PD
@@ -1114,9 +1406,10 @@ forecast():  [578.26315696 654.88723312]
 \f[R]
 .fi
 .PP
-When endog is a dataframe having a supported index (monotonically
-increasing and associated frequency), then \f[V]steps\f[R] can be an
-integer, dates as string or datetime instance to perform forecasting.
+When endog is a dataframe having a supported index (datetime index which
+is monotonically increasing and associated frequency), then
+\f[V]steps\f[R] can be an integer, dates as string or datetime instance
+to perform forecasting.
 .PP
 For example,
 .IP
@@ -1196,8 +1489,45 @@ Freq: 3D, dtype: float64
 \f[R]
 .fi
 .PP
-When endog is a dataframe having an unsupported index, then only integer
-is used to perform forecasting.
+When endog is a dataframe having a supported index (numeric index such
+as RangeIndex), then \f[V]steps\f[R] can only be an integer in order to
+perform forecasting.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# loading a pandas dataframe having a supported index
+import pandas as pd
+index = pd.RangeIndex(start=10, stop=46, step=2)
+data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                 224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                 210.1, 273.3, 191.4, 287])
+df = pd.DataFrame({\[aq]Temp\[aq]: data}, index = index)
+
+# fitting input dataframe on ARIMA object
+from frovedis.mllib.tsa.arima.model import ARIMA
+arima = ARIMA(df, order=(2,1,2)).fit()
+
+# perform forecasting with steps as an integer
+print(\[aq]forecast(): \[aq], arima.forecast(steps=2))
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+forecast():  46    259.295505
+48    280.647172
+\f[R]
+.fi
+.PP
+dtype: float64
+.PP
+When endog is a dataframe having an unsupported index (datetime index
+having no associated frequency), then only integer is used to perform
+forecasting.
 No forecasting can be done when using dates as string or datetime
 instance.
 .PP
@@ -1241,6 +1571,43 @@ forecast(): 18 259.295505
 .PD
 dtype: float64
 .PP
+When endog is a dataframe having an unsupported index (datetime index
+having no associated frequency), then only integer is used to perform
+forecasting.
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# loading a pandas dataframe having an unsupported index
+import pandas as pd
+index = pd.Index([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18])
+data = np.array([266, 145.9, 183.1, 119.3, 180.3, 168.5, 231.8,
+                 224.5, 192.8, 122.9, 336.5, 185.9, 194.3, 149.5,
+                 210.1, 273.3, 191.4, 287])
+df = pd.DataFrame({\[aq]Temp\[aq]: data}, index = index)
+
+# fitting input dataframe on ARIMA object
+from frovedis.mllib.tsa.arima.model import ARIMA
+arima = ARIMA(df, order=(2,1,2)).fit()
+
+# perform forecasting with steps as an integer
+print(\[aq]forecast(): \[aq], arima.forecast(steps=2))
+\f[R]
+.fi
+.PP
+Output
+.IP
+.nf
+\f[C]
+UserWarning: An unsupported index was provided and will be ignored when e.g. forecasting.
+
+forecast():  18    259.295505
+19    280.647172
+dtype: float64
+\f[R]
+.fi
+.PP
 \f[B]Retur Value\f[R]
 .PD 0
 .P
@@ -1251,7 +1618,7 @@ dtype: float64
 .PD
 - It returns a numpy array of shape (steps,)
 .PP
-\f[B]When endog is a dataframe:\f[R]
+\f[B]When endog is a pandas Series or DataFrame:\f[R]
 .PD 0
 .P
 .PD
