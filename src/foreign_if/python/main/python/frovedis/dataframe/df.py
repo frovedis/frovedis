@@ -856,10 +856,13 @@ class DataFrame(SeriesHelper):
         ret_types = self.__get_column_types(targets)
         ret_cols = list(targets) #targets is a list
         ret.num_row = len(self)
-        ret.index = self.index.copy() if self.has_index() else None
 
         if self.has_index():
-            targets = [self.index.name] + targets
+            # assumption: multi-index is unsupported
+            is_extracting_index = len(targets) == 1 and targets[0] == self.index.name
+            if not is_extracting_index:
+                targets = [self.index.name] + targets
+                ret.index = self.index.copy()
 
         sz = len(targets)
         ptr_arr = get_string_array_pointer(targets)
@@ -1409,7 +1412,8 @@ class DataFrame(SeriesHelper):
         types = [0]*sz
         for i in range(0, sz):
             item = columns[i]
-            if item not in self.columns:
+            if item not in self.columns and \
+               (self.has_index() and self.index.name != item):
                 raise ValueError("No column named: %s" % str(item))
             else:
                 types[i] = self.__dict__[item].dtype
