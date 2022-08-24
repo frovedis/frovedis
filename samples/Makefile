@@ -25,6 +25,14 @@ all:
 	cd tsne; make -f Makefile.${TARGET} all
 	cd GridSearchCV; make -f Makefile.${TARGET} all
 	cd gmm; make -f Makefile.${TARGET} all
+	cd agglomerative_newapi; make -f Makefile.${TARGET} all
+	cd arima; make -f Makefile.${TARGET} all
+	cd glm_newapi; make -f Makefile.${TARGET} all
+	cd kmeans_newapi; make -f Makefile.${TARGET} all
+	cd spectral_embedding; make -f Makefile.${TARGET} all
+	cd spectral_newapi; make -f Makefile.${TARGET} all
+	cd standard_scaler; make -f Makefile.${TARGET} all
+	cd vector_matrix_operations; make -f Makefile.${TARGET} all
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET}
 	cd wikipedia2matrix; make -f Makefile.${TARGET}
@@ -58,6 +66,14 @@ install:
 	cd tsne; make -f Makefile.${TARGET} install
 	cd GridSearchCV; make -f Makefile.${TARGET} install
 	cd gmm; make -f Makefile.${TARGET} install
+	cd agglomerative_newapi; make -f Makefile.${TARGET} install
+	cd arima; make -f Makefile.${TARGET} install
+	cd glm_newapi; make -f Makefile.${TARGET} install
+	cd kmeans_newapi; make -f Makefile.${TARGET} install
+	cd spectral_embedding; make -f Makefile.${TARGET} install
+	cd spectral_newapi; make -f Makefile.${TARGET} install
+	cd standard_scaler; make -f Makefile.${TARGET} install
+	cd vector_matrix_operations; make -f Makefile.${TARGET} install
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET} install
 	cd wikipedia2matrix; make -f Makefile.${TARGET} install
@@ -88,6 +104,14 @@ clean:
 	cd tsne; make -f Makefile.${TARGET} clean
 	cd GridSearchCV; make -f Makefile.${TARGET} clean
 	cd gmm; make -f Makefile.${TARGET} clean
+	cd agglomerative_newapi; make -f Makefile.${TARGET} clean
+	cd arima; make -f Makefile.${TARGET} clean
+	cd glm_newapi; make -f Makefile.${TARGET} clean
+	cd kmeans_newapi; make -f Makefile.${TARGET} clean
+	cd spectral_embedding; make -f Makefile.${TARGET} clean
+	cd spectral_newapi; make -f Makefile.${TARGET} clean
+	cd standard_scaler; make -f Makefile.${TARGET} clean
+	cd vector_matrix_operations; make -f Makefile.${TARGET} clean
 ifeq (${TARGET},x86)
 	cd matrix_tools; make -f Makefile.${TARGET} clean
 	cd wikipedia2matrix; make -f Makefile.${TARGET} clean
