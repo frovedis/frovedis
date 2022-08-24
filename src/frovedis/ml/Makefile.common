@@ -44,7 +44,7 @@ install: ${TARGETS}
 	cp dnn/*.hpp ${INSTALLPATH}/include/frovedis/ml/dnn
 	cp dnn/LICENSE.tiny-dnn ${INSTALLPATH}/licenses/third_party/
 	install -d ${INSTALLPATH}/include/frovedis/ml/tsa
-	cp glm/*.hpp ${INSTALLPATH}/include/frovedis/ml/tsa
+	cp tsa/*.hpp ${INSTALLPATH}/include/frovedis/ml/tsa
 ifeq (${IS_VE},true)
 	install -d ${INSTALLPATH}/include/vednn
 	cp dnn/vednn/vednn.h ${INSTALLPATH}/include/vednn/vednn.h
