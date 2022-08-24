@@ -1,5 +1,4 @@
 import os
-import numpy as np
 from sklearn.datasets import load_breast_cancer
 
 from frovedis.exrpc.server import FrovedisServer # frovedis
