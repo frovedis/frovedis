@@ -44,10 +44,9 @@ CentOS/RedHat7 and installed in CentOS/RedHat8 by default.
 Since our wrapper is just a Python library and shared library, you can
 use tools like virtualenv, Jupyter, etc. together with the wrapper.
 
-In this tutorial, we use python with virtualenv, because scikit-learn
-cannot be installed by yum, and using pip for system installed Python
-is a bit dangerous (virtualenv and pip will be installed together
-with Frovedis by yum).
+In this tutorial, we use python with virtualenv, because using pip for
+system installed Python is dangerous (virtualenv and pip will be
+installed together with Frovedis by yum).
 
 First, please create your environment.
 In the case of Python 2.7: 
@@ -65,13 +64,10 @@ install it from software collection and enable it as follows:
     $ sudo yum install rh-python36
     $ scl enable rh-python36 bash
 
-Then, please activate the environment and install scikit-learn:
+Then, please activate the environment and install scikit-learn and pandas:
 
 	$ source frovedis_tutorial/bin/activate
-    (frovedis_tutorial) $ pip install scikit-learn
-
-(Installing scikit-learn is for tutorial purpose. If you want to use
-only Frovedis, you do not have to install scikit-learn.)
+    (frovedis_tutorial) $ pip install scikit-learn pandas
 
 If you want to run the tutorials on jupyter-notebook in the virtual
 environment, you need to run following:
@@ -148,7 +144,7 @@ and add initialize / shutdown the server.
 You can run the sample by
 
     (frovedis_tutorial) $ python tut.py
-    score: 0.922671353251
+    score: 0.9507908611599297
 
 Even if you change the import to use scikit-learn, it should produce 
 similar result.
