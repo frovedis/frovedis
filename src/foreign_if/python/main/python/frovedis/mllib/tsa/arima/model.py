@@ -383,7 +383,7 @@ class ARIMA(BaseEstimator):
                         key = self._endog_len + key
                     else:
                         raise KeyError(key)
-                elif key > self._endog_len:
+                elif key >= self._endog_len:
                     index = Index(np.arange(index[0], int(key + 1)))
                     key = len(index) - 1
                     key_oos = True
