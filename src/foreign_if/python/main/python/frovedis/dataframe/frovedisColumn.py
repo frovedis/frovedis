@@ -8,7 +8,8 @@ from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer
 from ..matrix.dtype import TypeUtil, DTYPE, str_encode
 from .dfoperator import dfoperator
-from .dfutil import check_stat_error
+from .dfutil import check_stat_error, check_none_or_int, \
+                    STR, get_str_methods_right_param
 from .optype import *
 
 class FrovedisColumn(object):
@@ -305,6 +306,9 @@ class FrovedisColumn(object):
         """returns a FrovedisStringMethods object, for: \
         startswith/endwith/contains operations
         """
+        if self.dtype != DTYPE.STRING:
+            raise AttributeError("Can only use .str accessor with string values")
+
         ret = FrovedisStringMethods(self.name, self.dtype)
         ret.df = self.df
         return ret
@@ -528,7 +532,13 @@ class FrovedisColumn(object):
         """
         returns resultant dataframe(series) after performing self + other
         """
-        return self.df[[self.__colName]].add(other, axis=axis, fill_value=fill_value)
+        return self.get_frovedis_series().add(other, axis=axis, fill_value=fill_value)
+
+    def radd(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing other + self
+        """
+        return self.get_frovedis_series().radd(other, axis=axis, fill_value=fill_value)
 
     def __add__(self, other):
         """
@@ -546,7 +556,13 @@ class FrovedisColumn(object):
         """
         returns resultant dataframe(series) after performing self - other
         """
-        return self.df[[self.__colName]].sub(other, axis=axis, fill_value=fill_value)
+        return self.get_frovedis_series().sub(other, axis=axis, fill_value=fill_value)
+
+    def rsub(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing other - self
+        """
+        return self.get_frovedis_series().rsub(other, axis=axis, fill_value=fill_value)
 
     def __sub__(self, other):
         """
@@ -560,6 +576,18 @@ class FrovedisColumn(object):
         """
         return self.__binop_impl(other, "rsub")
 
+    def mul(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing self * other
+        """
+        return self.get_frovedis_series().mul(other, axis=axis, fill_value=fill_value)
+
+    def rmul(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing other * self
+        """
+        return self.get_frovedis_series().rmul(other, axis=axis, fill_value=fill_value)
+
     def __mul__(self, other):
         """
         returns resultant dataframe(series) after performing self * other
@@ -571,6 +599,18 @@ class FrovedisColumn(object):
         returns resultant dataframe(series) after performing other * self
         """
         return self.__binop_impl(other, "rmul")
+
+    def div(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing self / other
+        """
+        return self.get_frovedis_series().div(other, axis=axis, fill_value=fill_value)
+
+    def rdiv(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing other / self
+        """
+        return self.get_frovedis_series().rdiv(other, axis=axis, fill_value=fill_value)
 
     def __div__(self, other): # python 2.x
         """
@@ -584,6 +624,18 @@ class FrovedisColumn(object):
         """
         return self.__binop_impl(other, "rtruediv")
 
+    def truediv(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing self / other
+        """
+        return self.get_frovedis_series().truediv(other, axis=axis, fill_value=fill_value)
+
+    def rtruediv(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing other / self
+        """
+        return self.get_frovedis_series().rtruediv(other, axis=axis, fill_value=fill_value)
+
     def __truediv__(self, other): # python 3.x
         """
         returns resultant dataframe(series) after performing self / other
@@ -595,6 +647,18 @@ class FrovedisColumn(object):
         returns resultant dataframe(series) after performing other / self
         """
         return self.__binop_impl(other, "rtruediv")
+
+    def floordiv(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing self // other
+        """
+        return self.get_frovedis_series().floordiv(other, axis=axis, fill_value=fill_value)
+
+    def rfloordiv(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing other // self
+        """
+        return self.get_frovedis_series().rfloordiv(other, axis=axis, fill_value=fill_value)
 
     def __floordiv__(self, other):
         """
@@ -608,6 +672,18 @@ class FrovedisColumn(object):
         """
         return self.__binop_impl(other, "rfloordiv")
 
+    def mod(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing self % other
+        """
+        return self.get_frovedis_series().mod(other, axis=axis, fill_value=fill_value)
+
+    def rmod(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing other % self
+        """
+        return self.get_frovedis_series().rmod(other, axis=axis, fill_value=fill_value)
+
     def __mod__(self, other):
         """
         returns resultant dataframe(series) after performing self % other
@@ -619,6 +695,18 @@ class FrovedisColumn(object):
         returns resultant dataframe(series) after performing other % self
         """
         return self.__binop_impl(other, "rmod")
+
+    def pow(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing self ** other
+        """
+        return self.get_frovedis_series().pow(other, axis=axis, fill_value=fill_value)
+
+    def rpow(self, other, axis=1, fill_value=None):
+        """
+        returns resultant dataframe(series) after performing other ** self
+        """
+        return self.get_frovedis_series().rpow(other, axis=axis, fill_value=fill_value)
 
     def __pow__(self, other):
         """
@@ -723,6 +811,130 @@ class FrovedisStringMethods(object):
                              " currently unsupported!")
         return self.like("%" + pat)
 
+    def __str_methods_impl(self, op_id, **kwargs):
+        (host, port) = FrovedisServer.getServerInstance()
+        cname = self.__colName
+        param = get_str_methods_right_param(op_id, **kwargs)
+      
+        dummy_df = rpclib.df_string_methods(host, port, self.df.get(),
+                                            str_encode(cname),
+                                            str_encode(param),
+                                            op_id,
+                                            self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return self.df._wrap_result(dummy_df, as_series=True) 
+
+    def upper(self):
+        """ Convert strings in the Series/Index to uppercase. """
+        return self.__str_methods_impl(STR.UPPER)
+
+    def lower(self):
+        """ Convert strings in the Series/Index to lowercase. """
+        return self.__str_methods_impl(STR.LOWER)
+
+    def title(self):
+        """ Convert strings in the Series/Index to titlecase. """
+        return self.__str_methods_impl(STR.INITCAP)
+
+    def capitalize(self):
+        """ Convert strings in the Series/Index to be capitalized. """
+        return self.__str_methods_impl(STR.CAPITALIZE)
+
+    def len(self):
+        """ Compute length of each string in the Series/Index. """
+        cname = self.__colName
+        return self.__str_methods_impl(STR.LEN) \
+                   .astype({cname: "int64"}) # since pandas returns length as int64
+
+    def reverse(self):
+        """ Convert strings in the Series/Index to reversed order. """
+        return self.__str_methods_impl(STR.REV)
+
+    def ascii(self):
+        """ 
+        Compute ASCII value of the initial character of 
+        each string in the Series/Index. 
+        """
+        return self.__str_methods_impl(STR.ASCII)
+
+    def strip(self, to_strip=None):
+        """ 
+        Strip whitespace from each string in the
+        Series/Index from left and right sides.
+        """
+        op_id = STR.TRIM if to_strip is None else STR.TRIMWS
+        return self.__str_methods_impl(op_id, to_strip=to_strip)
+       
+    def lstrip(self, to_strip=None):
+        """ 
+        Strip whitespace from each string in the
+        Series/Index from left side.
+        """
+        op_id = STR.LTRIM if to_strip is None else STR.LTRIMWS
+        return self.__str_methods_impl(op_id, to_strip=to_strip)
+       
+    def rstrip(self, to_strip=None):
+        """ 
+        Strip whitespace from each string in the
+        Series/Index from right side.
+        """
+        op_id = STR.RTRIM if to_strip is None else STR.RTRIMWS
+        return self.__str_methods_impl(op_id, to_strip=to_strip)
+
+    def slice(self, start=None, stop=None, step=None):
+        """ Slice substrings from each element in the Series/Index. """
+        if not check_none_or_int(start) or \
+           not check_none_or_int(stop) or \
+           not check_none_or_int(step):
+            raise TypeError("slice: expected start, stop, step to be " + \
+                            "either None or of integer type")
+        cname = self.__colName
+        if start is None:
+            start = 0
+        elif start > 0:
+            start = start + 1 # frovedis expects position
+        stop = self.len()[cname].max() if stop is None else stop
+        step = 1 if step is None else step
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.df_slice(host, port, self.df.get(),
+                                   str_encode(cname),
+                                   start, stop, step,
+                                   self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return self.df._wrap_result(dummy_df, as_series=True)
+
+    def __getitem__(self, obj):
+        if not isinstance(obj, slice):
+            raise TypeError("str[]: expected a slice object")
+        return self.slice(obj.start, obj.stop, obj.step)
+
+    def pad(self, width, side='left', fillchar=' '):
+        """
+        Pad strings in the Series/Index with an additional character
+        to specified side.
+        """
+        if not isinstance(side, str) or \
+           not isinstance(fillchar, str):
+            raise TypeError("side and fillchar are expected to be string")
+
+        if len(fillchar) > 1:
+            raise TypeError("fillchar must be a character, not str")
+
+        (host, port) = FrovedisServer.getServerInstance()
+        cname = self.__colName
+        dummy_df = rpclib.df_pad(host, port, self.df.get(),
+                                 str_encode(cname),
+                                 str_encode(side),
+                                 str_encode(fillchar),
+                                 width, self.df.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return self.df._wrap_result(dummy_df, as_series=True)
 
 class FrovedisDatetimeProperties(object):
     """

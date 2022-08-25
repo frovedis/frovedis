@@ -154,6 +154,7 @@ release_frovedis_array.argtypes = [c_char_p, c_int, c_long, c_short]
 
 
 #----Frovedis Dataframe from Python--------------------
+
 create_frovedis_dataframe = LIB.create_frovedis_dataframe
 create_frovedis_dataframe.argtypes = [c_char_p, c_int, POINTER(c_short),
                                       POINTER(c_char_p), POINTER(c_long),
@@ -699,6 +700,33 @@ df_concat_columns.argtypes = [c_char_p, c_int, c_long,                 # host, p
                               c_bool, c_char_p,                        # cast_as_datetime, fmt
                               c_bool, c_ulong]                         # with_index, size
 df_concat_columns.restype = py_object
+
+df_string_methods = LIB.df_string_methods
+df_string_methods.argtypes = [c_char_p, c_int, c_long,  # host, port, proxy
+                              c_char_p, c_char_p,       # cname, param
+                              c_short, c_bool]          # opt, with_index
+df_string_methods.restype = py_object
+
+df_slice = LIB.df_slice
+df_slice.argtypes = [c_char_p, c_int, c_long,        # host, port, proxy
+                     c_char_p, c_int, c_int, c_int,  # cname, start, stop, step
+                     c_bool]                         # with_index
+df_slice.restype = py_object
+
+df_pad = LIB.df_pad
+df_pad.argtypes = [c_char_p, c_int, c_long,        # host, port, proxy
+                   c_char_p, c_char_p, c_char_p,   # cname, side, value
+                   c_int, c_bool]                  # len, with_index
+df_pad.restype = py_object
+
+df_to_csv = LIB.df_to_csv
+df_to_csv.argtypes = [c_char_p, c_int, c_long,        # host, port, proxy
+                      c_char_p, c_char_p, c_char_p,   # path, mode, sep
+                      c_char_p, c_char_p, c_ulong]    # na_rep, date_format, precision
+
+# to explicitly set the datetime_type for add_sub operation of datetime column
+df_set_datetime_type_for_add_sub_op = LIB.df_set_datetime_type_for_add_sub_op
+df_set_datetime_type_for_add_sub_op.argtypes = [c_char_p, c_int, c_char_p]
 
 # --- Frovedis dftable_to_sparse_info ---
 load_dftable_to_sparse_info = LIB.load_dftable_to_sparse_info

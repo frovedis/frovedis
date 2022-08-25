@@ -2063,5 +2063,101 @@ extern "C" {
     }
     return to_py_dummy_df(ret);
   }
-  
+
+  PyObject* df_string_methods(const char* host, int port, 
+                              long proxy,
+                              const char* col_name,  
+                              const char* param_name, 
+                              short op_id, bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t>(proxy);
+    std::string cname(col_name), param(param_name);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frovedis_series_string_methods, df_proxy, 
+                        cname, param, op_id, with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* df_slice(const char* host, int port,
+                     long proxy,
+                     const char* col_name,
+                     int start, int stop, int step,
+                     bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t>(proxy);
+    std::string cname(col_name);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frovedis_series_slice, df_proxy,
+                        cname, start, stop, step, with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  PyObject* df_pad(const char* host, int port,
+                   long proxy,
+                   const char* col_name,
+                   const char* side,
+                   const char* value,
+                   int len, bool with_index) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t>(proxy);
+    std::string cname(col_name), side_(side), value_(value);
+    dummy_dftable ret;
+    try {
+      ret = exrpc_async(fm_node, frovedis_series_pad, df_proxy,
+                        cname, side_, value_, len, with_index).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
+  void df_to_csv(const char* host, int port,
+                 long proxy,
+                 const char* filename, 
+                 const char* mode,
+                 const char* sep, 
+                 const char* na_rep, 
+                 const char* date_format,
+                 ulong precision) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    auto df_proxy = static_cast<exrpc_ptr_t>(proxy);
+    std::string fname(filename), mode_(mode), sep_(sep), nullstr(na_rep), dfmt(date_format);
+    try {
+      auto prec = static_cast<size_t>(precision);
+      exrpc_oneway(fm_node, frovedis_df_to_csv, df_proxy,
+                   fname, mode_, sep_, nullstr, dfmt, prec); 
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
+  void df_set_datetime_type_for_add_sub_op(const char* host, int port,
+                                           const char* name) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host, port);
+    std::string tname(name);
+    try {
+      exrpc_oneway(fm_node, frovedis_set_datetime_type_for_add_sub_op, tname);
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+  }
+
 }

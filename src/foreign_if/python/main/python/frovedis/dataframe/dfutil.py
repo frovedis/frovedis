@@ -305,3 +305,74 @@ def check_stat_error(func, has_string_column, **kwargs):
 
     return ret
 
+def check_none_or_int(val):
+    return val is None or isinstance(val, int)
+
+def check_string(funcname, **kwargs):
+    for k, v in kwargs.items():
+        if not isinstance(v, str):
+            raise TypeError(\
+            funcname + ": '%s' is expected to be a string!" % (k)) 
+        
+class STR:
+    """A python container for dataframe string methods enumerator"""
+    # --- assigned IDs are according to server ---
+    SUBSTR = 102
+    SUBSTRINDX = 103
+    UPPER = 104
+    LOWER = 105
+    LEN = 106
+    CHARLEN = 107
+    REV = 108
+    TRIM = 109
+    TRIMWS = 110
+    LTRIM = 111
+    LTRIMWS = 112
+    RTRIM = 113
+    RTRIMWS = 114
+    ASCII = 115
+    REPEAT = 116
+    CONCAT = 117
+    LPAD = 118
+    RPAD = 119
+    LOCATE = 120
+    INSTR = 121
+    REPLACE = 122
+    INITCAP = 123
+    TRANSLATE = 124
+    CAPITALIZE = 125 #TODO
+
+    name_dict = {SUBSTR: "substr", SUBSTRINDX: "substrindx", \
+                 UPPER: "upper", LOWER: "lower", \
+                 LEN: "len", CHARLEN: "charlen", REV: "rev", \
+                 TRIM: "strip", TRIMWS: "strip", \
+                 LTRIM: "lstrip", LTRIMWS: "lstrip", \
+                 RTRIM: "rstrip", RTRIMWS: "rstrip", \
+                 ASCII: "ascii", REPEAT: "repeat", CONCAT: "concat", \
+                 LPAD: "lpad", RPAD: "rpad", LOCATE: "locate", \
+                 INSTR: "instr", REPLACE: "replace", INITCAP: "title", \
+                 TRANSLATE: "translate", CAPITALIZE: "capitalize"}
+
+    @staticmethod
+    def get_name(op_id):
+        return STR.name_dict[op_id]
+        
+def get_str_methods_right_param(op_id, **kwargs):
+    unary = [STR.UPPER, STR.LOWER, STR.REV, STR.LEN, \
+             STR.TRIM, STR.LTRIM, STR.RTRIM, \
+             STR.INITCAP, STR.ASCII]
+    tr = [STR.TRIMWS, STR.LTRIMWS, STR.RTRIMWS]
+
+    method_name = STR.get_name(op_id)
+    if op_id in unary:
+        ret = ""
+    elif op_id in tr:
+        ret =  kwargs["to_strip"]
+        if not isinstance(ret, str):
+            raise TypeError(\
+            "%s: to_strip must be a string!" % method_name)
+    else:
+        raise ValueError("%s: Unsupported " % (method_name) + \
+                         "string method is encountered!")
+
+    return ret

@@ -32,7 +32,7 @@ from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     infer_column_type_from_first_notna, get_string_typename, \
                     get_python_scalar_type, check_string_or_array_like, \
                     check_stat_error, double_typed_aggregator, \
-                    if_mask_vector, get_null_value
+                    if_mask_vector, get_null_value, check_string
 from ..utils import deprecated, str_type
 from pandas.core.common import SettingWithCopyWarning
 
@@ -842,7 +842,7 @@ class DataFrame(SeriesHelper):
         return ret
 
     @check_association
-    def select_frovedis_dataframe(self, targets):
+    def select_frovedis_dataframe(self, targets, include_index=True):
         """ selects given columns from the input dataframe """
         if isinstance(targets, str):
             if targets not in self.columns:
@@ -857,9 +857,10 @@ class DataFrame(SeriesHelper):
         ret_cols = list(targets) #targets is a list
         ret.num_row = len(self)
 
-        if self.has_index():
+        if self.has_index() and include_index:
             # assumption: multi-index is unsupported
-            is_extracting_index = len(targets) == 1 and targets[0] == self.index.name
+            is_extracting_index = len(targets) == 1 and \
+                                  targets[0] == self.index.name
             if not is_extracting_index:
                 targets = [self.index.name] + targets
                 ret.index = self.index.copy()
@@ -1380,7 +1381,12 @@ class DataFrame(SeriesHelper):
         """
         if not deep:
             raise NotImplementedError("copy: shallow-copy is not yet supported!")
-        return self[self.columns] if self.get() else DataFrame()
+        if self.get():
+            ret = self[self.columns]
+            ret.is_series = self.is_series
+        else:
+            ret = DataFrame()
+        return ret
 
     def get(self):
         """
@@ -4585,6 +4591,75 @@ class DataFrame(SeriesHelper):
         """
         self.__multi_index = cols
         return self
+   
+    def _wrap_result(self, dummy_df, as_series=None):
+        """ 
+        constructs DataFrame object from DummyDataFrame object created at server side 
+        """
+        if as_series is not None and not isinstance(as_series, bool):
+            raise TypeError("as_series is expected to bee boolean or None")
+
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        is_series = self.is_series if as_series is None else as_series
+        ret = DataFrame(is_series = is_series)
+        ret.num_row = dummy_df["nrow"]
+        if self.has_index():
+            ret.index = FrovedisColumn(names[0], types[0]) #setting index
+            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        else:
+            ret.load_dummy(dummy_df["dfptr"], names, types)
+        return ret
+
+    def to_csv(self, path_or_buf=None, sep=',', na_rep='NULL',
+               float_format=None, columns=None, header=False, index=True,
+               index_label=None, mode='w', encoding=None,
+               compression='infer', quoting=None, quotechar='"',
+               line_terminator=None, chunksize=None,
+               date_format="%Y-%m-%d", doublequote=True, escapechar=None,
+               decimal='.', errors='strict', storage_options=None):
+        """ Write object to a comma-separated values (csv) file. """
+        check_string("to_csv", path_or_buf=path_or_buf, sep=sep,
+                     na_rep=na_rep, mode=mode, date_format=date_format)
+
+        if mode not in ("w", "wb"):
+            raise ValueError("to_csv: supported modes are w and wb only.")
+
+        if header:
+            raise ValueError("to_csv: currently csv generation is " + \
+                             "supported without header only.")
+
+        if float_format is None:
+            precision = 6
+        else:
+            raise ValueError("to_csv: currently 'float_format' is not supported.")
+        ''' 
+        elif isinstance(float_format, str): 
+            precision= int(float_format[2:-1])
+        else:
+            raise ValueError("to_csv: currently supported 'float_format' " + \
+                             "is either None or of string type.")
+        ''' 
+
+        cols = self.columns if columns is None else columns
+        cols = list(check_string_or_array_like(cols, "to_csv"))
+
+        if cols != self.columns:
+            target = self.copy()
+            target.columns = cols
+        else:
+            target = self
+        
+        target = target.select_frovedis_dataframe(cols, include_index=index) 
+
+        (host, port) = FrovedisServer.getServerInstance()
+        rpclib.df_to_csv(host, port, target.get(), str_encode(path_or_buf),
+                         str_encode(mode), str_encode(sep), 
+                         str_encode(na_rep), str_encode(date_format),
+                         precision)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
 
 FrovedisDataframe = DataFrame
 
