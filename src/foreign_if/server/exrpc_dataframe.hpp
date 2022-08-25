@@ -155,6 +155,34 @@ exrpc_ptr_t get_dffunc_im(std::string& value) {
   return reinterpret_cast<exrpc_ptr_t> (retptr);
 }
 
+dummy_dftable
+frovedis_series_string_methods(exrpc_ptr_t& df_proxy,
+                               std::string& cname,
+                               std::string& param,
+                               short& op_id,
+                               bool& with_index);
+
+dummy_dftable
+frovedis_series_slice(exrpc_ptr_t& df_proxy,
+                      std::string& cname,
+                      int& start, int& stop, int& step,
+                      bool& with_index);
+
+dummy_dftable
+frovedis_series_pad(exrpc_ptr_t& df_proxy,
+                    std::string& cname, 
+                    std::string& side,
+                    std::string& value,
+                    int& len, bool& with_index);
+
+void frovedis_df_to_csv(exrpc_ptr_t& df_proxy,
+                        std::string& fname,
+                        std::string& mode,
+                        std::string& sep,
+                        std::string& nullstr,
+                        std::string& date_format,
+                        size_t& precision);
+
 exrpc_ptr_t get_dffunc_string_im(std::string& value);
 
 exrpc_ptr_t get_dffunc_bool_im(std::string& value);
@@ -1220,5 +1248,7 @@ dummy_dftable frov_df_concat_columns(exrpc_ptr_t& df_proxy,
                                     bool& cast_as_datetime,
                                     std::string& fmt,
                                     bool& with_index);
+
+void frovedis_set_datetime_type_for_add_sub_op(std::string& name);
 
 #endif

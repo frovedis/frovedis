@@ -99,6 +99,13 @@ void treat_str_nan_as_null(std::vector<std::string>& vec) {
   }
 }
 
+void treat_words_nan_as_null(words& w) {
+  std::string nullstr = "NULL";
+  w.replace("nan", nullstr);
+  w.replace("None", nullstr);
+  w.replace("<NA>", nullstr);
+}
+
 std::vector<std::shared_ptr<dffunction>>
 to_dffunction(std::vector<exrpc_ptr_t>& funcp) {
   auto size = funcp.size();
@@ -150,7 +157,7 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
                      dftblp->append_column(cols[i],std::move(*v6),true);
                      delete v6; break; }
       case WORDS:  { auto v7 = reinterpret_cast<node_local<words>*>(dvec_proxies[i]);
-                     //TODO: if (nan_as_null) 
+                     if (nan_as_null) v7->mapv(treat_words_nan_as_null);
                      dftblp->append_dic_string_column(cols[i],(*v7),true);
                      delete v7; break; }
       case TIMESTAMP:
@@ -1060,6 +1067,7 @@ frov_df_append_column(exrpc_ptr_t& df_proxy,
                    dftblp->append_column(col_name,std::move(*v6),true);
                    delete v6; break; }
     case WORDS:  { auto v7 = reinterpret_cast<node_local<words>*>(dvec_proxy);
+                   if (nan_as_null) v7->mapv(treat_words_nan_as_null);
                    dftblp->append_dic_string_column(col_name,(*v7),true);
                    delete v7; break; }
     default:     auto msg = "frov_df_append_column: Unsupported datatype for append_column: "
@@ -2822,4 +2830,119 @@ dummy_dftable frov_df_concat_columns(exrpc_ptr_t& df_proxy,
 
   auto retp = new dftable(dftblp->fselect(res_cols));
   return to_dummy_dftable(retp);
+}
+
+dummy_dftable
+frovedis_series_string_methods(exrpc_ptr_t& df_proxy,
+                               std::string& cname,
+                               std::string& param,
+                               short& op_id,
+                               bool& with_index) {
+  auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto cols = dftbl.columns();
+  std::shared_ptr<dffunction> opt = NULL;
+  switch(op_id) { 
+    case UPPER:     opt = upper_col(cname); break;
+    case LOWER:     opt = lower_col(cname); break;
+    case LEN:       opt = length_col(cname); break;
+    case REV:       opt = reverse_col(cname); break;
+    case TRIM:      opt = trim_im(cname); break;
+    case LTRIM:     opt = ltrim_im(cname); break;
+    case RTRIM:     opt = rtrim_im(cname); break;
+    case TRIMWS:    opt = trim_im(cname, param); break;
+    case LTRIMWS:   opt = ltrim_im(cname, param); break;
+    case RTRIMWS:   opt = rtrim_im(cname, param); break;
+    case ASCII:     opt = ascii_col(cname); break;
+    case INITCAP:   opt = initcap_col(cname); break;
+    case HAMMINGDIST: opt = hamming_col(cname, param); break;
+    default:   REPORT_ERROR(USER_ERROR, "Unsupported string method is encountered!\n");
+  }
+  
+  auto retp = new dftable();
+  if (with_index) {
+    require(cols.size() >= 2, "string_methods: expected at least two columns!");
+    auto index_name = cols[0];
+    use_dfcolumn use(dftbl.raw_column(index_name));
+    retp->append_column(index_name, dftbl.column(index_name));
+  }
+  use_dfcolumn use(opt->columns_to_use(dftbl));
+  retp->append_column(cname, opt->execute(dftbl));
+  return to_dummy_dftable(retp);
+}
+
+dummy_dftable
+frovedis_series_slice(exrpc_ptr_t& df_proxy,
+                      std::string& cname,
+                      int& start, int& stop, int& step,
+                      bool& with_index) {
+  auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto cols = dftbl.columns();
+  require(step == 1, 
+  "Currently frovedis substr() supports only 1 as for step value!");
+  auto opt = substr_posim_numim(cname, start, stop - start);
+
+  auto retp = new dftable();
+  if (with_index) {
+    require(cols.size() >= 2, "slice: expected at least two columns!");
+    auto index_name = cols[0];
+    use_dfcolumn use(dftbl.raw_column(index_name));
+    retp->append_column(index_name, dftbl.column(index_name));
+  }
+  use_dfcolumn use(opt->columns_to_use(dftbl));
+  retp->append_column(cname, opt->execute(dftbl));
+  return to_dummy_dftable(retp);
+}
+
+dummy_dftable
+frovedis_series_pad(exrpc_ptr_t& df_proxy,
+                    std::string& cname, 
+                    std::string& side, 
+                    std::string& value,
+                    int& len, bool& with_index) {
+  auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto cols = dftbl.columns();
+  std::shared_ptr<dffunction> opt = NULL;
+  if (side == "left") opt = lpad_im(cname, len, value);
+  else if (side == "right") opt = rpad_im(cname, len, value);
+  else REPORT_ERROR(USER_ERROR, std::string("pad: Unsupported side '") +
+                    side + std::string("' is encountered!\n"));
+
+  auto retp = new dftable();
+  if (with_index) {
+    require(cols.size() >= 2, "pad: expected at least two columns!");
+    auto index_name = cols[0];
+    use_dfcolumn use(dftbl.raw_column(index_name));
+    retp->append_column(index_name, dftbl.column(index_name));
+  }
+  use_dfcolumn use(opt->columns_to_use(dftbl));
+  retp->append_column(cname, opt->execute(dftbl));
+  return to_dummy_dftable(retp);
+}
+
+void frovedis_df_to_csv(exrpc_ptr_t& df_proxy,
+                        std::string& fname,
+                        std::string& mode,
+                        std::string& sep,
+                        std::string& nullstr,
+                        std::string& date_format,
+                        size_t& precision) { 
+  auto& dftbl = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto quote_and_escape = false;
+  if (mode == "w") dftbl.savetext(fname, precision, date_format, 
+                                  sep, quote_and_escape, nullstr);
+  else if (mode == "wb") dftbl.save(fname);
+  else REPORT_ERROR(USER_ERROR, "to_csv: supported modes are w and wb only!\n");
+}
+
+void frovedis_set_datetime_type_for_add_sub_op(std::string& name) {
+  datetime_type type = datetime_type::day;
+  if (name == "year") type = datetime_type::year;
+  else if (name == "month") type = datetime_type::month;
+  else if (name == "day") type = datetime_type::day;
+  else if (name == "hour") type = datetime_type::hour;
+  else if (name == "minute") type = datetime_type::minute;
+  else if (name == "second") type = datetime_type::second;
+  else if (name == "nanosecond") type = datetime_type::nanosecond;
+  else REPORT_ERROR(USER_ERROR, "unsupported datetime_type for add_sub operation.");
+  frovedis::set_datetime_type_for_add_sub_op(type);
 }

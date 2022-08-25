@@ -190,4 +190,9 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_get_bool_mask);
   expose(frov_df_filter_using_mask);
   expose(frov_df_distinct);
+  expose(frovedis_series_string_methods);
+  expose(frovedis_series_slice);
+  expose(frovedis_series_pad);
+  expose(frovedis_df_to_csv);
+  expose(frovedis_set_datetime_type_for_add_sub_op);
 }
