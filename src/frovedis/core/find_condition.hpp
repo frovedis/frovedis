@@ -745,5 +745,21 @@ vector_find_odd(const std::vector<T>& vec) {
   else return vector_find_condition(vec, is_odd<T>());
 }
 
+
+template <class T>
+std::vector<size_t>
+vector_find_within_boundary(const std::vector<T>& vec, T lb, T ub) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_within_boundary<T>(lb, ub));
+}
+
+template <class T>
+std::vector<size_t>
+vector_find_outside_boundary(const std::vector<T>& vec, T lb, T ub) {
+  if (vec.size() == 0) return std::vector<size_t>();
+  else return vector_find_condition(vec, is_outside_boundary<T>(lb, ub));
+}
+
+
 }
 #endif

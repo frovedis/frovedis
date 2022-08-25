@@ -203,5 +203,22 @@ struct is_odd {
   int operator()(T a) const {return (a % 2 != 0);}
 };
 
+template <class T>
+struct is_within_boundary {
+  T lb, ub;
+  is_within_boundary() {}
+  is_within_boundary(T t1, T t2): lb(t1), ub(t2) {}
+  int operator()(T a) const {return (a >= lb && a <= ub);}
+};
+
+template <class T>
+struct is_outside_boundary {
+  T lb, ub;
+  is_outside_boundary() {}
+  is_outside_boundary(T t1, T t2): lb(t1), ub(t2) {}
+  int operator()(T a) const {return (a < lb || a > ub);}
+};
+
+
 }
 #endif
