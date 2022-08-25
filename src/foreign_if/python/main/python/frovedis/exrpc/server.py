@@ -4,6 +4,7 @@ server.py
 
 import warnings
 from . import node, rpclib
+from ..config import global_config
 
 class ServerID(object):
     """A python container for generating IDs for frovedis server"""
@@ -59,6 +60,11 @@ class FrovedisServer(object):
             FrovedisServer.__instance.mnode = node.exrpc_node(host, port)
             FrovedisServer.__instance.wsize = rpclib.get_worker_size(host, port)
             FrovedisServer.__instance.sid = ServerID.get()
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            rpclib.df_set_datetime_type_for_add_sub_op(host, port, \
+             global_config.get("datetime_type_for_add_sub_op").encode('ascii'))
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])

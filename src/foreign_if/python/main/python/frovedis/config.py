@@ -13,13 +13,17 @@ class global_config(object):
       { 
         "rawsend_enabled": True,
         "string_dvector_as": DTYPE.WORDS,
+        # since TimeDelta are teated as nanosecond when tranfering to server side
+        "datetime_type_for_add_sub_op": "day", #TODO: make it nanosecond
         "NaT": get_pandas_nat()
       }
 
     __param_type = \
       {
         "rawsend_enabled": type(True),
-        "string_dvector_as": type(DTYPE.WORDS)
+        "string_dvector_as": type(DTYPE.WORDS),
+        "datetime_type_for_add_sub_op": type("day"), #TODO: make it nanosecond
+        "NaT": type(get_pandas_nat())
       }
 
     read_only = ["NaT"]
