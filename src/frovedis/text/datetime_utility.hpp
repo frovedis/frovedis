@@ -24,6 +24,11 @@ enum datetime_type {
   weekofyear
 };
 
+// for defining datetime_type in order to perform add/sub operations
+// TODO: remove after supporting TimeDelta
+extern datetime_type datetime_type_for_add_sub_op;
+void set_datetime_type_for_add_sub_op(datetime_type t);
+
 std::string datetime_type_to_string(datetime_type type);
 
 std::string datetime_to_string(datetime_t& src, const std::string& format);

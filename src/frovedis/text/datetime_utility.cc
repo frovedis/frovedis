@@ -5,6 +5,12 @@ namespace frovedis {
 
 int lastday_of_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
+datetime_type datetime_type_for_add_sub_op = datetime_type::day;
+
+void set_datetime_type_for_add_sub_op(datetime_type t) {
+  datetime_type_for_add_sub_op = t;
+}
+
 std::string datetime_type_to_string(datetime_type type) {
   if(type == datetime_type::year) return "year";
   else if(type == datetime_type::month) return "month";

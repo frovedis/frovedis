@@ -659,12 +659,12 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<datetime>::add(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   std::shared_ptr<dfcolumn> ret = NULL;
-  if (right_type == "int") ret = datetime_add(right, datetime_type::day);
+  if (right_type == "int") ret = datetime_add(right, datetime_type_for_add_sub_op);
   else if (right_type == "unsigned int" || 
            right_type == "long" || right_type == "unsigned long") {
     std::shared_ptr<dfcolumn> tmp = 
       std::dynamic_pointer_cast<typed_dfcolumn<int>>(right->type_cast("int"));
-    ret = datetime_add(tmp, datetime_type::day);
+    ret = datetime_add(tmp, datetime_type_for_add_sub_op);
   } else throw std::runtime_error(
       "datetime + " + right_type + ": invalid operation!");
   return ret;
@@ -676,12 +676,12 @@ typed_dfcolumn<datetime>::add_im(const std::shared_ptr<dfscalar>& right) {
   std::shared_ptr<dfcolumn> ret = NULL;
   if (right_type == "int") {
     auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    ret = datetime_add_im(tmp->val, datetime_type::day);
+    ret = datetime_add_im(tmp->val, datetime_type_for_add_sub_op);
   } else if (right_type == "unsigned int" || 
              right_type == "long" || right_type == "unsigned long") {
     auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(
                                          right->type_cast("int"));
-    ret = datetime_add_im(tmp->val, datetime_type::day);
+    ret = datetime_add_im(tmp->val, datetime_type_for_add_sub_op);
   } else throw std::runtime_error(
       "datetime + " + right_type + ": invalid operation!");
   return ret;
@@ -691,19 +691,19 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<datetime>::sub(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   std::shared_ptr<dfcolumn> ret = NULL;
-  if (right_type == "int") ret = datetime_sub(right, datetime_type::day);
-  else if (right_type == "datetime") ret = datetime_diff(right, datetime_type::day);
+  if (right_type == "int") ret = datetime_sub(right, datetime_type_for_add_sub_op);
+  else if (right_type == "datetime") ret = datetime_diff(right, datetime_type_for_add_sub_op);
   else if (right_type == "unsigned int" ||
            right_type == "long" || right_type == "unsigned long") {
     std::shared_ptr<dfcolumn> tmp =
       std::dynamic_pointer_cast<typed_dfcolumn<int>>(right->type_cast("int"));
-    ret = datetime_sub(tmp, datetime_type::day);
+    ret = datetime_sub(tmp, datetime_type_for_add_sub_op);
   } else if (right_type == "string" ||
              right_type == "raw_string" || right_type == "dic_string") {
     std::shared_ptr<dfcolumn> tmp =
       std::dynamic_pointer_cast<typed_dfcolumn<datetime>>(
         right->type_cast("datetime")); // as per default format: %Y-%m-%d
-    ret = datetime_diff(tmp, datetime_type::day);
+    ret = datetime_diff(tmp, datetime_type_for_add_sub_op);
   } else throw std::runtime_error(
       "datetime - " + right_type + ": invalid operation!");
   return ret;
@@ -715,20 +715,20 @@ typed_dfcolumn<datetime>::sub_im(const std::shared_ptr<dfscalar>& right) {
   std::shared_ptr<dfcolumn> ret = NULL;
   if (right_type == "int") {
     auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
-    ret = datetime_sub_im(tmp->val, datetime_type::day);
+    ret = datetime_sub_im(tmp->val, datetime_type_for_add_sub_op);
   } else if (right_type == "datetime") {
     auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
-    ret = datetime_diff_im(tmp->val, datetime_type::day);
+    ret = datetime_diff_im(tmp->val, datetime_type_for_add_sub_op);
   } else if (right_type == "unsigned int" ||
              right_type == "long" || right_type == "unsigned long") {
     auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(
                                          right->type_cast("int"));
-    ret = datetime_sub_im(tmp->val, datetime_type::day);
+    ret = datetime_sub_im(tmp->val, datetime_type_for_add_sub_op);
   } else if (right_type == "string" ||
              right_type == "raw_string" || right_type == "dic_string") {
     auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(
       right->type_cast("datetime")); // as per default format: %Y-%m-%d
-    ret = datetime_diff_im(tmp->val, datetime_type::day);
+    ret = datetime_diff_im(tmp->val, datetime_type_for_add_sub_op);
   } else throw std::runtime_error(
       "datetime - " + right_type + ": invalid operation!");
   return ret;
@@ -740,12 +740,12 @@ typed_dfcolumn<datetime>::rsub_im(const std::shared_ptr<dfscalar>& right) {
   std::shared_ptr<dfcolumn> ret = NULL;
   if (right_type == "datetime") {
     auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
-    ret = rdatetime_diff_im(tmp->val, datetime_type::day);
+    ret = rdatetime_diff_im(tmp->val, datetime_type_for_add_sub_op);
   } else if (right_type == "string" ||
              right_type == "raw_string" || right_type == "dic_string") {
     auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(
       right->type_cast("datetime")); // as per default format: %Y-%m-%d
-    ret = rdatetime_diff_im(tmp->val, datetime_type::day);
+    ret = rdatetime_diff_im(tmp->val, datetime_type_for_add_sub_op);
   } else throw std::runtime_error(
       right_type + " - datetime: invalid operation!");
   return ret;
