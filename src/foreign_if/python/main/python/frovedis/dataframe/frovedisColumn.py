@@ -303,8 +303,8 @@ class FrovedisColumn(object):
 
     @property
     def str(self):
-        """returns a FrovedisStringMethods object, for: \
-        startswith/endwith/contains operations
+        """
+        returns a FrovedisStringMethods object, for string related operations 
         """
         if self.dtype != DTYPE.STRING:
             raise AttributeError("Can only use .str accessor with string values")
@@ -315,8 +315,9 @@ class FrovedisColumn(object):
 
     @property
     def dt(self):
-        """returns a FrovedisDatetimeProperties object, for: \
-        datetime related operations
+        """
+        returns a FrovedisDatetimeProperties object
+        for datetime related operations
         """
         if self.__dtype != DTYPE.DATETIME:
             raise AttributeError("Can only use .dt accessor with datetimelike values")
@@ -861,27 +862,27 @@ class FrovedisStringMethods(object):
 
     def strip(self, to_strip=None):
         """ 
-        Strip whitespace from each string in the
+        Strip whitespace (including newlines) from each string in the
         Series/Index from left and right sides.
         """
-        op_id = STR.TRIM if to_strip is None else STR.TRIMWS
-        return self.__str_methods_impl(op_id, to_strip=to_strip)
+        target = " \n" if to_strip is None else to_strip
+        return self.__str_methods_impl(STR.TRIMWS, to_strip=target)
        
     def lstrip(self, to_strip=None):
         """ 
-        Strip whitespace from each string in the
+        Strip whitespace (including newlines) from each string in the
         Series/Index from left side.
         """
-        op_id = STR.LTRIM if to_strip is None else STR.LTRIMWS
-        return self.__str_methods_impl(op_id, to_strip=to_strip)
+        target = " \n" if to_strip is None else to_strip
+        return self.__str_methods_impl(STR.LTRIMWS, to_strip=target)
        
     def rstrip(self, to_strip=None):
         """ 
-        Strip whitespace from each string in the
+        Strip whitespace (including newlines) from each string in the
         Series/Index from right side.
         """
-        op_id = STR.RTRIM if to_strip is None else STR.RTRIMWS
-        return self.__str_methods_impl(op_id, to_strip=to_strip)
+        target = " \n" if to_strip is None else to_strip
+        return self.__str_methods_impl(STR.RTRIMWS, to_strip=target)
 
     def slice(self, start=None, stop=None, step=None):
         """ Slice substrings from each element in the Series/Index. """

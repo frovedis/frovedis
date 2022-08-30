@@ -39,6 +39,27 @@ from pandas.core.common import SettingWithCopyWarning
 class SeriesHelper(object):
     """ defines methods applicable for series """
 
+    @property
+    def str(self):
+        """
+        returns a FrovedisStringMethods object, for string related operations 
+        """
+        if not self.is_series:
+            raise TypeError("str: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name].str
+
+    @property
+    def dt(self):
+        """
+        returns a FrovedisDatetimeProperties object
+        for datetime related operations
+        """
+        if not self.is_series:
+            raise TypeError("dt: is supported only for series!")
+        name = self.columns[0]
+        return self.__dict__[name].dt
+
     def __gt__(self, other):
         """
         gt: for comparison of column: series case
