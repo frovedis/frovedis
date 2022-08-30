@@ -26,15 +26,16 @@ void group_by_vector_sum_helper
   auto split_idxp = split_idx.data();
   size_t size = val.size();
   if(size == 0) return;
-  int valid[GROUPBY_VLEN];
-  for(int i = 0; i < GROUPBY_VLEN; i++) valid[i] = true;
   size_t val_idx[GROUPBY_VLEN];
   size_t val_idx_stop[GROUPBY_VLEN];
   size_t out_idx[GROUPBY_VLEN];
   size_t next_group_idx[GROUPBY_VLEN];
+  size_t val_idx_init[GROUPBY_VLEN];
+  size_t val_idx_stop_init[GROUPBY_VLEN];
+  size_t out_idx_init[GROUPBY_VLEN];
+  size_t next_group_idx_init[GROUPBY_VLEN];
   T current_val[GROUPBY_VLEN];
 // never remove this vreg! this is needed following vovertake
-#pragma _NEC vreg(valid)
 #pragma _NEC vreg(val_idx)
 #pragma _NEC vreg(val_idx_stop)
 #pragma _NEC vreg(out_idx)
@@ -49,41 +50,40 @@ void group_by_vector_sum_helper
   for(size_t i = 0; i < GROUPBY_VLEN; i++) {
     start_it = std::lower_bound(start_it, split_idx.end()-1, each * i);
     if(start_it == split_idx.end()-1) {
-      val_idx[i] = size;
-      out_idx[i] = group_size;
-      next_group_idx[i] = size;
+      val_idx_init[i] = size;
+      out_idx_init[i] = group_size;
+      next_group_idx_init[i] = size;
     } else {
-      val_idx[i] = *start_it;
-      out_idx[i] = start_it - split_idx.begin();
-      next_group_idx[i] = split_idxp[out_idx[i]+1];
+      val_idx_init[i] = *start_it;
+      out_idx_init[i] = start_it - split_idx.begin();
+      next_group_idx_init[i] = split_idxp[out_idx_init[i]+1];
     }
   }
   for(int i = 0; i < GROUPBY_VLEN - 1; i++) {
-    val_idx_stop[i] = val_idx[i + 1];
+    val_idx_stop_init[i] = val_idx_init[i + 1];
   }
-  val_idx_stop[GROUPBY_VLEN-1] = size;
-  for(size_t i = 0; i < GROUPBY_VLEN; i++) {
-    if(val_idx[i]  == val_idx_stop[i]) {
-      valid[i] = false;
-      out_idx[i] = group_size;
-    }
-    else valid[i] = true;
-  }
+  val_idx_stop_init[GROUPBY_VLEN-1] = size;
   size_t max_size = 0;
   for(int i = 0; i < GROUPBY_VLEN; i++) {
-    auto current = val_idx_stop[i] - val_idx[i];
+    auto current = val_idx_stop_init[i] - val_idx_init[i];
     if(max_size < current) max_size = current;
   }
   for(size_t i = 0; i < GROUPBY_VLEN; i++) current_val[i] = 0; // sum
+  for(size_t i = 0; i < GROUPBY_VLEN; i++) {
+    val_idx[i] = val_idx_init[i];
+    val_idx_stop[i] = val_idx_stop_init[i];
+    out_idx[i] = out_idx_init[i];
+    next_group_idx[i] = next_group_idx_init[i];
+  }
 
   auto shift_split_idxp = split_idxp + 1;
+#pragma _NEC vob
   for(size_t j = 0; j < max_size; j++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
 #pragma _NEC vovertake
-#pragma _NEC vob
     for(int i = 0; i < GROUPBY_VLEN; i++) {
-      if(valid[i]) {
+      if(val_idx[i] < val_idx_stop[i]) {
         if(val_idx[i] == next_group_idx[i]) {
           retp[out_idx[i]++] = current_val[i];
           current_val[i] = 0; // sum
@@ -91,14 +91,11 @@ void group_by_vector_sum_helper
         }
         current_val[i] += valp[val_idx[i]]; // sum
         val_idx[i]++;
-        if(val_idx[i] == val_idx_stop[i]) {valid[i] = false;}
       }
     }
   }
 #pragma cdir nodep
 #pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
   for(int i = 0; i < GROUPBY_VLEN; i++) {
     if(out_idx[i] != group_size) {
       retp[out_idx[i]] = current_val[i];
@@ -288,14 +285,16 @@ void group_by_vector_max_helper
   auto split_idxp = split_idx.data();
   size_t size = val.size();
   if(size == 0) return;
-  int valid[GROUPBY_VLEN];
-  for(int i = 0; i < GROUPBY_VLEN; i++) valid[i] = true;
   size_t val_idx[GROUPBY_VLEN];
   size_t val_idx_stop[GROUPBY_VLEN];
   size_t out_idx[GROUPBY_VLEN];
   size_t next_group_idx[GROUPBY_VLEN];
+  size_t val_idx_init[GROUPBY_VLEN];
+  size_t val_idx_stop_init[GROUPBY_VLEN];
+  size_t out_idx_init[GROUPBY_VLEN];
+  size_t next_group_idx_init[GROUPBY_VLEN];
   T current_val[GROUPBY_VLEN];
-#pragma _NEC vreg(valid)
+// never remove this vreg! this is needed following vovertake
 #pragma _NEC vreg(val_idx)
 #pragma _NEC vreg(val_idx_stop)
 #pragma _NEC vreg(out_idx)
@@ -310,42 +309,41 @@ void group_by_vector_max_helper
   for(size_t i = 0; i < GROUPBY_VLEN; i++) {
     start_it = std::lower_bound(start_it, split_idx.end()-1, each * i);
     if(start_it == split_idx.end()-1) {
-      val_idx[i] = size;
-      out_idx[i] = group_size;
-      next_group_idx[i] = size;
+      val_idx_init[i] = size;
+      out_idx_init[i] = group_size;
+      next_group_idx_init[i] = size;
     } else {
-      val_idx[i] = *start_it;
-      out_idx[i] = start_it - split_idx.begin();
-      next_group_idx[i] = split_idxp[out_idx[i]+1];
+      val_idx_init[i] = *start_it;
+      out_idx_init[i] = start_it - split_idx.begin();
+      next_group_idx_init[i] = split_idxp[out_idx_init[i]+1];
     }
   }
   for(int i = 0; i < GROUPBY_VLEN - 1; i++) {
-    val_idx_stop[i] = val_idx[i + 1];
+    val_idx_stop_init[i] = val_idx_init[i + 1];
   }
-  val_idx_stop[GROUPBY_VLEN-1] = size;
-  for(size_t i = 0; i < GROUPBY_VLEN; i++) {
-    if(val_idx[i]  == val_idx_stop[i]) {
-      valid[i] = false;
-      out_idx[i] = group_size;
-    }
-    else valid[i] = true;
-  }
+  val_idx_stop_init[GROUPBY_VLEN-1] = size;
   size_t max_size = 0;
   for(int i = 0; i < GROUPBY_VLEN; i++) {
-    auto current = val_idx_stop[i] - val_idx[i];
+    auto current = val_idx_stop_init[i] - val_idx_init[i];
     if(max_size < current) max_size = current;
   }
   auto min = std::numeric_limits<T>::lowest();
   for(size_t i = 0; i < GROUPBY_VLEN; i++) current_val[i] = min; // max
+  for(size_t i = 0; i < GROUPBY_VLEN; i++) {
+    val_idx[i] = val_idx_init[i];
+    val_idx_stop[i] = val_idx_stop_init[i];
+    out_idx[i] = out_idx_init[i];
+    next_group_idx[i] = next_group_idx_init[i];
+  }
 
   auto shift_split_idxp = split_idxp + 1;
+#pragma _NEC vob
   for(size_t j = 0; j < max_size; j++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
 #pragma _NEC vovertake
-#pragma _NEC vob
     for(int i = 0; i < GROUPBY_VLEN; i++) {
-      if(valid[i]) {
+      if(val_idx[i] < val_idx_stop[i]) {
         if(val_idx[i] == next_group_idx[i]) {
           retp[out_idx[i]++] = current_val[i];
           current_val[i] = min; // max
@@ -354,14 +352,11 @@ void group_by_vector_max_helper
         if(current_val[i] < valp[val_idx[i]])
           current_val[i] = valp[val_idx[i]]; // max
         val_idx[i]++;
-        if(val_idx[i] == val_idx_stop[i]) {valid[i] = false;}
       }
     }
   }
 #pragma cdir nodep
 #pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
   for(int i = 0; i < GROUPBY_VLEN; i++) {
     if(out_idx[i] != group_size) {
       retp[out_idx[i]] = current_val[i];
@@ -525,14 +520,16 @@ void group_by_vector_min_helper
   auto split_idxp = split_idx.data();
   size_t size = val.size();
   if(size == 0) return;
-  int valid[GROUPBY_VLEN];
-  for(int i = 0; i < GROUPBY_VLEN; i++) valid[i] = true;
   size_t val_idx[GROUPBY_VLEN];
   size_t val_idx_stop[GROUPBY_VLEN];
   size_t out_idx[GROUPBY_VLEN];
   size_t next_group_idx[GROUPBY_VLEN];
+  size_t val_idx_init[GROUPBY_VLEN];
+  size_t val_idx_stop_init[GROUPBY_VLEN];
+  size_t out_idx_init[GROUPBY_VLEN];
+  size_t next_group_idx_init[GROUPBY_VLEN];
   T current_val[GROUPBY_VLEN];
-#pragma _NEC vreg(valid)
+// never remove this vreg! this is needed following vovertake
 #pragma _NEC vreg(val_idx)
 #pragma _NEC vreg(val_idx_stop)
 #pragma _NEC vreg(out_idx)
@@ -547,42 +544,41 @@ void group_by_vector_min_helper
   for(size_t i = 0; i < GROUPBY_VLEN; i++) {
     start_it = std::lower_bound(start_it, split_idx.end()-1, each * i);
     if(start_it == split_idx.end()-1) {
-      val_idx[i] = size;
-      out_idx[i] = group_size;
-      next_group_idx[i] = size;
+      val_idx_init[i] = size;
+      out_idx_init[i] = group_size;
+      next_group_idx_init[i] = size;
     } else {
-      val_idx[i] = *start_it;
-      out_idx[i] = start_it - split_idx.begin();
-      next_group_idx[i] = split_idxp[out_idx[i]+1];
+      val_idx_init[i] = *start_it;
+      out_idx_init[i] = start_it - split_idx.begin();
+      next_group_idx_init[i] = split_idxp[out_idx_init[i]+1];
     }
   }
   for(int i = 0; i < GROUPBY_VLEN - 1; i++) {
-    val_idx_stop[i] = val_idx[i + 1];
+    val_idx_stop_init[i] = val_idx_init[i + 1];
   }
-  val_idx_stop[GROUPBY_VLEN-1] = size;
-  for(size_t i = 0; i < GROUPBY_VLEN; i++) {
-    if(val_idx[i]  == val_idx_stop[i]) {
-      valid[i] = false;
-      out_idx[i] = group_size;
-    }
-    else valid[i] = true;
-  }
+  val_idx_stop_init[GROUPBY_VLEN-1] = size;
   size_t max_size = 0;
   for(int i = 0; i < GROUPBY_VLEN; i++) {
-    auto current = val_idx_stop[i] - val_idx[i];
+    auto current = val_idx_stop_init[i] - val_idx_init[i];
     if(max_size < current) max_size = current;
   }
   auto max = std::numeric_limits<T>::max();
   for(size_t i = 0; i < GROUPBY_VLEN; i++) current_val[i] = max; // min
+  for(size_t i = 0; i < GROUPBY_VLEN; i++) {
+    val_idx[i] = val_idx_init[i];
+    val_idx_stop[i] = val_idx_stop_init[i];
+    out_idx[i] = out_idx_init[i];
+    next_group_idx[i] = next_group_idx_init[i];
+  }
 
   auto shift_split_idxp = split_idxp + 1;
+#pragma _NEC vob
   for(size_t j = 0; j < max_size; j++) {
 #pragma cdir nodep
 #pragma _NEC ivdep
 #pragma _NEC vovertake
-#pragma _NEC vob
     for(int i = 0; i < GROUPBY_VLEN; i++) {
-      if(valid[i]) {
+      if(val_idx[i] < val_idx_stop[i]) {
         if(val_idx[i] == next_group_idx[i]) {
           retp[out_idx[i]++] = current_val[i];
           current_val[i] = max; // min
@@ -591,14 +587,11 @@ void group_by_vector_min_helper
         if(current_val[i] > valp[val_idx[i]])
           current_val[i] = valp[val_idx[i]]; // min
         val_idx[i]++;
-        if(val_idx[i] == val_idx_stop[i]) {valid[i] = false;}
       }
     }
   }
 #pragma cdir nodep
 #pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
   for(int i = 0; i < GROUPBY_VLEN; i++) {
     if(out_idx[i] != group_size) {
       retp[out_idx[i]] = current_val[i];
