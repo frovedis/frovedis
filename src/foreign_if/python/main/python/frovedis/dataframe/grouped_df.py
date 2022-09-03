@@ -186,9 +186,9 @@ class FrovedisGroupedDataframe(object):
 
     def mad(self, axis=0, skipna=True, level=None, min_count=-1):
         """ mad """
-        if axis is 1:
+        if axis == 1:
             raise ValueError("mad: Currently supported only for axis = 0!")
-        if skipna is False:
+        if skipna == False:
             raise ValueError("mad: Currently supported only for skipna = True!")
         if level is not None:
             raise ValueError("mad: Currently supported only for level = None!")
