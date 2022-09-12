@@ -2634,12 +2634,16 @@ predict/forecast the future.
 
     import com.nec.frovedis.mllib.tsa.arima.ARIMA
 ### Public Member Functions  
-    ARIMA(List order, Any dates, String freq,  
-          Boolean validate_specification,  
-          Long seasonal, Boolean auto_arima,  
-          String solver, Int verbose)  
+    ARIMA(List order,  
+          Long seasonal, 
+          Boolean autoArima,  
+          String solver, 
+          String targetCol,  
+          String indexCol,  
+          Int verbose)  
     ARIMAModel fit(RDD[Float] endog)  
     ARIMAModel fit(RDD[Double] endog)  
+    ARIMAModel fit(org.apache.spark.sql.DataFrame endog)  
 
 ## DESCRIPTION  
 
@@ -2678,9 +2682,6 @@ __Parameters__
 for the autoregressive(p), differences(d), and moving average(q) components. (Default: (1, 0, 0))  
 **Currently, autoregressive order cannot be 0 i.e it cannot be used to create pure MA model.**  
 Also, these components (p, d, q) of the model cannot be negative values.  
-**_dates_**: An unused parameter. (Default: None)  
-**_freq_**: An unused parameter. (Default: "")  
-**_validate\_specification_**: An unused parameter. (Default: true)  
 **_seasonal_**: A zero or a positive integer parameter that specifies the interval of seasonal 
 differencing. In case the data has some seasonality , then it can handle it . (Default: 0)  
 **_auto\_arima_**: A boolean parameter that specifies whether to use auto (brute) ARIMA. (Default: false)  
@@ -2690,15 +2691,19 @@ as the highest limit for its iteration and auto fits these components with the b
 regression. It supports `lapack`, `scalapack`, `lbfgs` and `sag` solvers. (Default: 'lapack')  
 When specified, e.g `lbfgs`, then it uses lbfgs solver for linear regression.  
 **Note:-** To get the best performance and accuracy from ARIMA, use solver="lapack".  
+**_targetCol_** An optional parameter for target/data column name. (Default: null)  
+**_indexCol_** An optional parameter for index column name. (Default: null)  
+**Note:-**  
+  In case targetColumn and indexColumn names are not specified explicitly then following behavior is followed:  
+    Case 1: Input dataframe has one column, then the column would be considered as target column with a zero-based index column.  
+    Case 2: Input dataframe has two columns, then the first column would be interpreted as index column and second one as target column.  
+    Case 3: Input dataframe has more than two columns, then an error is raised specifying to set index and target columns explicitly before calling fit.  
 **_verbose_**: An integer parameter specifying the log level to use. Its value is 0 by 
 default (for INFO mode and not specified explicitly). But it can be set to 1 (for DEBUG mode) or 
 2 (for TRACE mode) for getting training time logs from frovedis server. (Default: 0)  
 
 __Purpose__  
 It initializes the ARIMA instance with the given parameters.  
-
-The parameters: "dates", "freq" and "validate_specification" are kept for future
-enhancements. 
 
 Currently, the number of samples in the timeseries data must be greater than sum
 of ARIMA order and seasonal parameter.  
@@ -2730,23 +2735,27 @@ For example,
     # displaying the fittedvalues
     val fitted_values = model.fittedvalues()
     println("Fitted values:")
-    fitted_values.foreach(println)
+    fitted_values.show()
 
 Output
 
     Fitted values:
-    0.0
-    0.0
-    0.0
-    2.656587032568032
-    2.9856736597237106
-    39.075471086355975
-    46.74116210912707
-    33.34402185820186
-    32.46163584927344
-    24.824135902546068
-    20.512681101065784
-    15.5408920934298
+    +-----+------------------+
+    |index|                  |
+    +-----+------------------+
+    |    0|               0.0|
+    |    1|               0.0|
+    |    2|               0.0|
+    |    3| 2.656586170196533|
+    |    4|  2.98567271232605|
+    |    5|39.075469970703125|
+    |    6| 46.74116134643555|
+    |    7| 33.34402084350586|
+    |    8| 32.46163558959961|
+    |    9| 24.82413673400879|
+    |   10| 20.51268196105957|
+    |   11|  15.5408935546875|
+    +-----+------------------+
 
 __Return Value__  
 - It returns an ARIMAModel object.  
@@ -2773,23 +2782,77 @@ For example,
     # displaying the fittedvalues
     val fitted_values = model.fittedvalues()
     println("Fitted values:")
-    fitted_values.foreach(println)
+    fitted_values.show()
 
 Output
 
     Fitted values:
-    0.0
-    0.0
-    0.0
-    2.656587032568032
-    2.9856736597237106
-    39.075471086355975
-    46.74116210912707
-    33.34402185820186
-    32.46163584927344
-    24.824135902546068
-    20.512681101065784
-    15.5408920934298
+    +-----+------------------+
+    |index|                  |
+    +-----+------------------+
+    |    0|               0.0|
+    |    1|               0.0|
+    |    2|               0.0|
+    |    3| 2.656587032568032|
+    |    4|2.9856736597237106|
+    |    5|39.075471086355975|
+    |    6| 46.74116210912707|
+    |    7| 33.34402185820186|
+    |    8| 32.46163584927344|
+    |    9|24.824135902546068|
+    |   10|20.512681101065784|
+    |   11|  15.5408920934298|
+    +-----+------------------+
+
+__Return Value__  
+- It returns an ARIMAModel object.  
+
+#### 4. ARIMAModel fit(org.apache.spark.sql.DataFrame endog)  
+__Parameters__   
+**_endog_**: It contains the timeseries data.  
+It accepts a org.apache.spark.sql.DataFrame as input data.  
+**Note:-**
+  - Input dataframe may or may not contain an index column.  
+  - In case an index column is provided in dataframe then its frequency must be constant, it may be a positive or negative integer.  
+  - In case an index column is not provided or the provided index column is invalid then a default zero based index is used with frequency = 1 and relevant warning message is thrown.  
+__Purpose__   
+It is used to fit the model parameters on the basis of given parameters and data
+provided at frovedis server.   
+
+For example,   
+
+    # loading a spark dataframe
+    import com.nec.frovedis.mllib.tsa.arima.ARIMA
+    val endog = (Seq(2,4,6,8,10,12,14,16,18,20,22,24) zip 
+                Seq(10.5,15.0,20.0,25.5,35.5,45.0,40.5,35.5,30.5,25.5,20.5,15.0))
+               .toDF("Id", "MonthlyTemperature")
+    # fitting input dataframe on ARIMA object
+    var model = new ARIMA(order = List(2,1,2), targetCol = "MonthlyTemperature", indexCol = "Id")
+                                  .fit(endog)
+    # displaying the fittedvalues
+    val fitted_values = model.fittedvalues()
+    println("Fitted values:")
+    fitted_values.show()
+
+Output
+
+    Fitted values:
+    +-----+------------------+
+    |index|                  |
+    +-----+------------------+
+    |    2|               0.0|
+    |    4|               0.0|
+    |    6|               0.0|
+    |    8| 2.656587032568032|
+    |   10|2.9856736597237106|
+    |   12|39.075471086355975|
+    |   14| 46.74116210912707|
+    |   16| 33.34402185820186|
+    |   18| 32.46163584927344|
+    |   20|24.824135902546068|
+    |   22|20.512681101065784|
+    |   24|  15.5408920934298|
+    +-----+------------------+
 
 __Return Value__  
 - It returns an ARIMAModel object.  
@@ -2809,9 +2872,9 @@ from frovedis server to spark client wrapper.
 import com.nec.frovedis.mllib.tsa.arima.ARIMAModel
 
 ### Public Member Functions
-`Array[Double]` predict (Long start, Long end, Boolean dynamic)   
-`Array[Double]` forecast (Long steps)  
-`Array[Double]` fittedvalues ()  
+`org.apache.spark.sql.DataFrame` predict (Long start, Long end)   
+`org.apache.spark.sql.DataFrame` forecast (Long steps)   
+`org.apache.spark.sql.DataFrame` fittedvalues ()  
 Unit release()    
 
 ## DESCRIPTION
@@ -2832,13 +2895,12 @@ back from frovedis server to the spark client.
 
 ### Public Member Function Documentation
 
-#### 1. `Array[Double]` predict (Long start, Long end, Boolean dynamic)   
+#### 1. `org.apache.spark.sql.DataFrame` predict (Long start, Long end)   
 __Parameters__   
-**_start_**: This parameter can be an integer. It 
-specifies the starting index from which the values are to be predicted. (Default: 0)  
-**_stop_**: This parameter can be an integer. It 
-specifies the index till which the values are to be predicted.  (Default: Index of last element in dataset)  
-**_dynamic_**: An unused parameter. (Default: false)  
+**_start_**: This parameter can be an integer. It specifies the starting index  
+from which the values are to be predicted. (Default: 0)  
+**_stop_**: This parameter can be an integer. It specifies the index till which  
+the values are to be predicted.  (Default: Index of last element in dataset)  
 
 __Purpose__    
 It  is  used  to  perform in-sample prediction and out-of-sample prediction  at 
@@ -2865,13 +2927,17 @@ For example,
     # perform in-sample prediction with start and end
     val predicted_values = model.predict(start = 4, end = 5)
     println("In-sample predictions:")
-    predicted_values.foreach(println)
+    predicted_values.show()
 
 Output  
 
     In-sample predictions:
-    2.9856736597237106
-    39.075471086355975
+    +-----+------------------+
+    |index|    predicted_mean|
+    +-----+------------------+
+    |    4|2.9856736597237106|
+    |    5|39.075471086355975|
+    +-----+------------------+
 
 **When start and end are negative indices to perform in-sample prediction:**  
 
@@ -2880,13 +2946,17 @@ For example,
     # perfrom in-sample prediction with start and end as negative indices
     val predicted_values = model.predict(start = -2, end = -1)
     println("In-sample prediction with negative indices:")
-    predicted_values.foreach(println)
+    predicted_values.show()
 
 Output  
 
     In-sample prediction with negative indices:
-    20.085332914693463
-    15.014777413995532
+    +-----+------------------+
+    |index|    predicted_mean|
+    +-----+------------------+
+    |   10|20.085332914693463|
+    |   11|15.014777413995532|
+    +-----+------------------+
 
 
 **Note:** Here,  negative  indices  can  only  be  used  to  perform  in-sample 
@@ -2899,19 +2969,95 @@ For example,
     # perform out-sample prediction with start and end as integers
     val predicted_values = model.predict(start = 12, end = 13)
     println("Out-sample predictions:")
-    predicted_values.foreach(println)
+    predicted_values.show()
 
 Output  
 
     Out-sample predictions:
-    9.59804015203159
-    4.378840440410923
+    +-----+-----------------+
+    |index|   predicted_mean|
+    +-----+-----------------+
+    |   12| 9.59804015203159|
+    |   13|4.378840440410923|
+    +-----+-----------------+
+
+**Perform in-sample and out-sample  predictions  endog  being a spark dataframe**
+
+For example,  
+
+    # loading an spark dataframe
+    import com.nec.frovedis.mllib.tsa.arima.ARIMA
+    val endog = (Seq(2,4,6,8,10,12,14,16,18,20,22,24) zip 
+                Seq(10.5,15.0,20.0,25.5,35.5,45.0,40.5,35.5,30.5,25.5,20.5,15.0))
+               .toDF("Id", "MonthlyTemperature")
+    # fitting input dataframe on ARIMA object
+    var model = new ARIMA(order = List(2,1,2), targetCol = "MonthlyTemperature", indexCol = "Id")
+                                  .fit(endog)
+    # displaying the fittedvalues
+    val fitted_values = model.fittedvalues()
+
+    # perform in-sample prediction with start and end
+    val predicted_values = model.predict(start = 4, end = 5)
+    println("In-sample predictions:")
+    predicted_values.show()
+
+Output  
+
+    In-sample predictions:
+    +-----+------------------+
+    |index|    predicted_mean|
+    +-----+------------------+
+    |   10|2.9856736597237106|
+    |   12|39.075471086355975|
+    +-----+------------------+
+
+**When start and end are negative indices to perform in-sample prediction:**  
+
+For example, 
+ 
+    # perfrom in-sample prediction with start and end as negative indices
+    val predicted_values = model.predict(start = -2, end = -1)
+    println("In-sample prediction with negative indices:")
+    predicted_values.show()
+
+Output  
+
+    In-sample prediction with negative indices:
+    +-----+------------------+
+    |index|    predicted_mean|
+    +-----+------------------+
+    |   22|20.085332914693463|
+    |   24|15.014777413995532|
+    +-----+------------------+
+
+
+**Note:** Here,  negative  indices  can  only  be  used  to  perform  in-sample 
+predictions.  
+
+**When start and end are integers to perfrom out-sample prediction:**  
+
+For example,  
+
+    # perform out-sample prediction with start and end as integers
+    val predicted_values = model.predict(start = 12, end = 13)
+    println("Out-sample predictions:")
+    predicted_values.show()
+
+Output  
+
+    Out-sample predictions:
+    +-----+-----------------+
+    |index|   predicted_mean|
+    +-----+-----------------+
+    |   26| 9.59804015203159|
+    |   28|4.378840440410923|
+    +-----+-----------------+
 
 __Return Value__  
-- It returns an array of doubles. 
+- It returns a spark dataframe. 
 
 
-#### 2. `Array[Double]` forecast(Long steps)  
+#### 2. `org.apache.spark.sql.DataFrame` forecast(Long steps)  
 __Parameters__  
 **_steps_**: This parameter is a positive integer. It specifies the number of out of sample values to be predicted. (Default: 1)  
 **NOTE:** steps must be atleast 1. 
@@ -2936,18 +3082,50 @@ For example,
     # perform forecasting
     val forecasted_values = model.forecast(steps = 2)
     println("Forecast:")
-    forecasted_values.foreach(println)
+    forecasted_values.show()
 
 Output
 
     Forecast:
-    9.59804015203159
-    4.378840440410923
+    +-----+-----------------+
+    |index|   predicted_mean|
+    +-----+-----------------+
+    |   12| 9.59804015203159|
+    |   13|4.378840440410923|
+    +-----+-----------------+
+
+**Performing forecasting when endog is spark dataframe.**  
+
+For example,
+
+    # loading an spark dataframe
+    import com.nec.frovedis.mllib.tsa.arima.ARIMA
+    val endog = (Seq(2,4,6,8,10,12,14,16,18,20,22,24) zip 
+                Seq(10.5,15.0,20.0,25.5,35.5,45.0,40.5,35.5,30.5,25.5,20.5,15.0))
+               .toDF("Id", "MonthlyTemperature")
+    # fitting input dataframe on ARIMA object
+    var model = new ARIMA(order = List(2,1,2), targetCol = "MonthlyTemperature", indexCol = "Id")
+                                  .fit(endog)
+
+    # perform forecasting
+    val forecasted_values = model.forecast(steps = 2)
+    println("Forecast:")
+    forecasted_values.show()
+
+Output
+
+    Forecast:
+    +-----+-----------------+
+    |index|   predicted_mean|
+    +-----+-----------------+
+    |   26| 9.59804015203159|
+    |   28|4.378840440410923|
+    +-----+-----------------+
 
 __Return Value__  
-- It returns an array of doubles.  
+- It returns a spark dataframe.  
 
-#### 3. `Array[Double]` fittedvalues()  
+#### 3. `org.apache.spark.sql.DataFrame` fittedvalues()  
 __Purpose__  
 It is used to get the generated fitted values after fitting.  
 
@@ -2967,26 +3145,63 @@ For example,
     # get fitted values
     val fitted_values = model.fittedvalues()
     println("Fitted values:")
-    fitted_values.foreach(println)
+    fitted_values.show()
 
 Output
 
     Fitted values:
-    0.0
-    0.0
-    0.0
-    2.656587032568032
-    2.9856736597237106
-    39.075471086355975
-    46.74116210912707
-    33.34402185820186
-    32.46163584927344
-    24.824135902546068
-    20.512681101065784
-    15.5408920934298
+    +-----+------------------+
+    |index|                  |
+    +-----+------------------+
+    |    0|               0.0|
+    |    1|               0.0|
+    |    2|               0.0|
+    |    3| 2.656587032568032|
+    |    4|2.9856736597237106|
+    |    5|39.075471086355975|
+    |    6| 46.74116210912707|
+    |    7| 33.34402185820186|
+    |    8| 32.46163584927344|
+    |    9|24.824135902546068|
+    |   10|20.512681101065784|
+    |   11|  15.5408920934298|
+    +-----+------------------+
+
+    # loading a spark dataframe
+    import com.nec.frovedis.mllib.tsa.arima.ARIMA
+    val endog = (Seq(2,4,6,8,10,12,14,16,18,20,22,24) zip 
+                Seq(10.5,15.0,20.0,25.5,35.5,45.0,40.5,35.5,30.5,25.5,20.5,15.0))
+               .toDF("Id", "MonthlyTemperature")
+    # fitting input dataframe on ARIMA object
+    var model = new ARIMA(order = List(2,1,2), targetCol = "MonthlyTemperature", indexCol = "Id")
+                                  .fit(endog)
+    # displaying the fittedvalues
+    val fitted_values = model.fittedvalues()
+    println("Fitted values")
+    fitted_values.show()
+
+Output
+
+    Fitted values:
+    +-----+------------------+
+    |index|                  |
+    +-----+------------------+
+    |    2|               0.0|
+    |    4|               0.0|
+    |    6|               0.0|
+    |    8| 2.656587032568032|
+    |   10|2.9856736597237106|
+    |   12|39.075471086355975|
+    |   14| 46.74116210912707|
+    |   16| 33.34402185820186|
+    |   18| 32.46163584927344|
+    |   20|24.824135902546068|
+    |   22|20.512681101065784|
+    |   24|  15.5408920934298|
+    +-----+------------------+
 
 __Return Value__  
-- It returns an array of doubles.  
+- It returns a spark dataframe.  
 
 #### 4. Unit release()  
 This function can be used to release the existing in-memory model in frovedis 
