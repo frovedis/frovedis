@@ -211,19 +211,40 @@ frov_df_immed_binary_operation(exrpc_ptr_t& df,
 
   dftable ret;
   ret.append_column(lindex, left.column(lindex));
+  bool nan_check_req = nan_is_null;
 
-  for(size_t i = 1; i < lcol.size(); ++i) {
-    if (vtype == "int" || vtype == "int32" || vtype == "timedelta") {
-      auto right_val = do_cast<int>(value);
+  if (vtype == "int" || vtype == "int32") {
+    auto right_val = do_cast<int>(value);
+    for(size_t i = 1; i < lcol.size(); ++i) {
       auto func = get_immed_function<int>(op_id, lcol[i], right_val, is_reversed);
       use_dfcolumn use(func->columns_to_use(left));
       ret.append_column(lcol[i], func->execute(left));
-    } else if (vtype == "long" || vtype == "int64") {
-      auto right_val = do_cast<long>(value);
+    } 
+  } else if (vtype == "long" || vtype == "int64") {
+    auto right_val = do_cast<long>(value);
+    for(size_t i = 1; i < lcol.size(); ++i) {
       auto func = get_immed_function<long>(op_id, lcol[i], right_val, is_reversed);
       use_dfcolumn use(func->columns_to_use(left));
       ret.append_column(lcol[i], func->execute(left));
-    } else if (vtype == "float" || vtype == "float32") {
+    } 
+  } else if (vtype == "timedelta") {
+    auto right_val = do_cast<long>(value);
+    auto mynat = std::numeric_limits<long>::min();
+    if (right_val == mynat) {
+      nan_check_req = false; // since only null would be generated in following loop
+      for(size_t i = 1; i < lcol.size(); ++i) {
+        auto func = null_column<datetime>();
+        ret.append_column(lcol[i], func->execute(left));
+      }
+    } else {
+      for(size_t i = 1; i < lcol.size(); ++i) {
+        auto func = get_immed_function<long>(op_id, lcol[i], right_val, is_reversed);
+        use_dfcolumn use(func->columns_to_use(left));
+        ret.append_column(lcol[i], func->execute(left));
+      }
+    } 
+  } else if (vtype == "float" || vtype == "float32") {
+    for(size_t i = 1; i < lcol.size(); ++i) {
       // for python: [float (op) float] => "float"
       if (left.column(lcol[i])->dtype() == "float") {
         auto right_val = do_cast<float>(value);
@@ -236,22 +257,34 @@ frov_df_immed_binary_operation(exrpc_ptr_t& df,
         use_dfcolumn use(func->columns_to_use(left));
         ret.append_column(lcol[i], func->execute(left));
       }
-    } else if (vtype == "double" || vtype == "float64") {
+    }
+  } else if (vtype == "double" || vtype == "float64") {
+    if (value == "nan" && nan_is_null) { // any operation with nan would produce NULL result in pandas
+      nan_check_req = false; // since only null would be generated in following loop
+      for(size_t i = 1; i < lcol.size(); ++i) {
+        auto func = null_column<double>();
+        ret.append_column(lcol[i], func->execute(left));
+      }
+    } else {
       auto right_val = do_cast<double>(value);
-      auto func = get_immed_function<double>(op_id, lcol[i], right_val, is_reversed);
-      use_dfcolumn use(func->columns_to_use(left));
-      ret.append_column(lcol[i], func->execute(left));
-    } else if (vtype == "timestamp") {
-      auto right_val = do_cast<datetime_t>(value);
+      for(size_t i = 1; i < lcol.size(); ++i) {
+        auto func = get_immed_function<double>(op_id, lcol[i], right_val, is_reversed);
+        use_dfcolumn use(func->columns_to_use(left));
+        ret.append_column(lcol[i], func->execute(left));
+      }
+    }  
+  } else if (vtype == "timestamp") {
+    auto right_val = do_cast<datetime_t>(value);
+    for(size_t i = 1; i < lcol.size(); ++i) {
       auto func = get_immed_function<datetime_t>(op_id, lcol[i], right_val, is_reversed);
       use_dfcolumn use(func->columns_to_use(left));
       ret.append_column(lcol[i], func->execute(left));
-    } else {
+    } 
+  } else {
       REPORT_ERROR(USER_ERROR, vtype + 
       ": unsupported type is encountered as for immediate value!\n");
-    }
   }
-  if (nan_is_null) treat_nan_as_null(ret); // treating nan values as null (for pandas etc.)
+  if (nan_check_req) treat_nan_as_null(ret); // treating nan values as null (for pandas etc.)
   return to_dummy_dftable(new dftable(std::move(ret)));
 }
 

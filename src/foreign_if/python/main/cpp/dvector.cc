@@ -76,9 +76,9 @@ extern "C" {
     try {
       switch(vtype) {
         case BOOL:
-        case TIMEDELTA:
         case INT:    count = exrpc_async(fm_node,count_distinct<int>,
                                          f_dptr).get(); break;
+        case TIMEDELTA:
         case LONG:   count = exrpc_async(fm_node,count_distinct<long>,
                                          f_dptr).get(); break;
         case ULONG:  count = exrpc_async(fm_node,count_distinct<unsigned long>,
@@ -345,11 +345,11 @@ extern "C" {
     try {
       switch(vtype) {
         case BOOL:
-        case TIMEDELTA:
         case INT:
           exrpc_oneway(fm_node,release_dvector<int>,f_dptr);
           break;
         case DATETIME:
+        case TIMEDELTA:
         case LONG:
           exrpc_oneway(fm_node,release_dvector<long>,f_dptr);
           break;
@@ -1082,10 +1082,10 @@ extern "C" {
       std::vector<exrpc_ptr_t> eps;
       switch(dtype) {
         case BOOL:
-        case TIMEDELTA:
         case INT:    eps = exrpc_async(fm_node, get_dvector_local_pointers<int>, 
                                        proxy_).get(); break;
         case DATETIME:
+        case TIMEDELTA:
         case LONG:   eps = exrpc_async(fm_node, get_dvector_local_pointers<long>, 
                                        proxy_).get(); break;
         case ULONG:  eps = exrpc_async(fm_node, get_dvector_local_pointers<unsigned long>, 
@@ -1104,12 +1104,12 @@ extern "C" {
       std::vector<int> is_except(wsize);
       switch(dtype) {
         case BOOL:
-        case TIMEDELTA:
         case INT:    { auto evs = get_local_int_vectors(nodes, eps, exps,
                                                         is_except, wsize, dvsz);
                        omp_merge_vectors_impl(evs, (int*) retp, dvsz); break;
                      }
         case DATETIME:
+        case TIMEDELTA:
         case LONG:   { auto evs = get_local_long_vectors(nodes, eps, exps,
                                                          is_except, wsize, dvsz);
                        omp_merge_vectors_impl(evs, (long*) retp, dvsz); break;

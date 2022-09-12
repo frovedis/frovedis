@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from collections import Iterable, OrderedDict
 
+from ..config import global_config
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
@@ -32,7 +33,7 @@ from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     infer_column_type_from_first_notna, get_string_typename, \
                     get_python_scalar_type, check_string_or_array_like, \
                     check_stat_error, double_typed_aggregator, \
-                    if_mask_vector, get_null_value, check_string
+                    if_mask_vector, get_null_value, check_string, is_nat
 from ..utils import deprecated, str_type
 from pandas.core.common import SettingWithCopyWarning
 
@@ -717,25 +718,19 @@ class DataFrame(SeriesHelper):
             elif vtype.startswith('datetime64'):
                 if isinstance(val, pd.DatetimeIndex):
                     val = val.to_series()
-
                 self.datetime_cols_info[s_cname] = val.dt.tz.zone if val.dt.tz else None
 
                 arr = val.dt.tz_localize(None).view("int64")
-
-                from frovedis.config import global_config
-                nat_int_value = global_config.get("NaT")
-
                 dt = DTYPE.DATETIME
                 dvec[idx] = FrovedisLongDvector(arr)
-
-                dvec[idx].replace(nat_int_value, get_null_value(DTYPE.LONG), inplace=True)
+                nat_value = global_config.get("NaT")
+                dvec[idx].replace(nat_value, get_null_value(DTYPE.LONG), inplace=True)
             elif vtype.startswith('timedelta64'):
-                arr = val.view("int64")//10**9
-                #from frovedis.config import global_config
-                #nat_int_value = global_config.get("NaT")
+                arr = val.view("int64")
                 dt = DTYPE.TIMEDELTA
-                dvec[idx] = FrovedisIntDvector(arr)
-                #dvec[idx].replace(nat_int_value, get_null_value(DTYPE.LONG), inplace=True)
+                dvec[idx] = FrovedisLongDvector(arr)
+                nat_value = global_config.get("NaT")
+                dvec[idx].replace(nat_value, get_null_value(DTYPE.LONG), inplace=True)
             else:
                 raise TypeError("Unsupported column type '%s' in creation of "\
                                 "frovedis dataframe: " % (vtype))
@@ -1781,7 +1776,7 @@ class DataFrame(SeriesHelper):
                     zone = self.datetime_cols_info[col]
                     res[col] = res[col].dt.tz_localize(zone)
             elif (self.__dict__[col].dtype == DTYPE.TIMEDELTA):
-                res[col] = pd.to_timedelta(res[col], unit='s')
+                res[col] = pd.to_timedelta(res[col], unit='ns')
 
         if self.is_series:
             res = res[self.columns[0]]
@@ -2982,7 +2977,7 @@ class DataFrame(SeriesHelper):
             immed_val = str(other)
             immed_dt = get_python_scalar_type(other)
             is_series = self.is_series
-        elif isinstance(other, pd.Timedelta):
+        elif isinstance(other, pd.Timedelta) or is_nat(other):
             for t in self.__types:
                 if t != DTYPE.DATETIME:
                     raise TypeError(col + \
@@ -2994,7 +2989,7 @@ class DataFrame(SeriesHelper):
                 "Received: '%s'" % op_type)
 
             immed = True
-            immed_val = str(other.value//10**9)
+            immed_val = str(other.value)
             immed_dt = "timedelta"
             is_series = self.is_series
             if op_type == "add":

@@ -14,7 +14,7 @@ class global_config(object):
         "rawsend_enabled": True,
         "string_dvector_as": DTYPE.WORDS,
         # since TimeDelta are teated as nanosecond when tranfering to server side
-        "datetime_type_for_add_sub_op": "day", #TODO: make it nanosecond
+        "datetime_type_for_add_sub_op": "nanosecond",
         "NaT": get_pandas_nat()
       }
 
@@ -22,7 +22,7 @@ class global_config(object):
       {
         "rawsend_enabled": type(True),
         "string_dvector_as": type(DTYPE.WORDS),
-        "datetime_type_for_add_sub_op": type("day"), #TODO: make it nanosecond
+        "datetime_type_for_add_sub_op": type("nanosecond"),
         "NaT": type(get_pandas_nat())
       }
 

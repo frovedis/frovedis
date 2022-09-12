@@ -465,7 +465,8 @@ dummy_vector get_df_string_col(exrpc_ptr_t& df_proxy, std::string& cname);
 template <class T>
 dummy_vector get_df_col(exrpc_ptr_t& df_proxy, 
                         std::string& cname, 
-                        short& ctype) {
+                        short& ctype, 
+                        bool& need_nat_treatment) { // for TimeDelta and DateTime
   auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
   auto col = df.column(cname);
   use_dfcolumn use(col);
@@ -478,7 +479,7 @@ dummy_vector get_df_col(exrpc_ptr_t& df_proxy,
                     treat_null_as_nan_inplace<T>, nullpos));
       auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);
       dvec = dummy_vector(retp_, retp->size(), ctype);
-    } else if (col->dtype() == "datetime") { // long dvector
+    } else if (need_nat_treatment || col->dtype() == "datetime") { // long dvector
       auto retp = new dvector<T>(vec.mapv_partitions(
                     treat_null_as_nat_inplace<T>, nullpos));
       auto retp_ = reinterpret_cast<exrpc_ptr_t>(retp);

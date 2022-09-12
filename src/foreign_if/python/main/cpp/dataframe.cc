@@ -974,18 +974,19 @@ extern "C" {
     try {
       switch (tid) {
         case BOOL:   
-        case TIMEDELTA:
         case INT:    dvec = exrpc_async(fm_node, get_df_col<int>, 
-                                        f_dptr, cname, tid).get(); break;
+                                        f_dptr, cname, tid, false).get(); break;
         case DATETIME:
+        case TIMEDELTA:  dvec = exrpc_async(fm_node, get_df_col<long>, 
+                                            f_dptr, cname, tid, true).get(); break;
         case LONG:   dvec = exrpc_async(fm_node, get_df_col<long>, 
-                                        f_dptr, cname, tid).get(); break;
+                                        f_dptr, cname, tid, false).get(); break;
         case ULONG:  dvec = exrpc_async(fm_node, get_df_col<unsigned long>, 
-                                        f_dptr, cname, tid).get(); break;
+                                        f_dptr, cname, tid, false).get(); break;
         case FLOAT:  dvec = exrpc_async(fm_node, get_df_col<float>, 
-                                        f_dptr, cname, tid).get(); break;
+                                        f_dptr, cname, tid, false).get(); break;
         case DOUBLE: dvec = exrpc_async(fm_node, get_df_col<double>, 
-                                        f_dptr, cname, tid).get(); break;
+                                        f_dptr, cname, tid, false).get(); break;
         // TODO: NULL treatment at server side for string-column case (difficult?)
         // currently it is being done at python side...
         case WORDS:
