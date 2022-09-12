@@ -518,7 +518,8 @@ class ARIMA(BaseEstimator):
                 pred_index = end_index[start : end + 1]
             else:
                 pred_index = end_index[start:]
-            return Series(arima_pred, index = pred_index)
+            return Series(arima_pred, index = pred_index, \
+                          name = "predicted_mean")
         return np.asarray(arima_pred, dtype = np.float64)
 
     def _fcast_supported_index(self, steps, index):
@@ -637,9 +638,11 @@ class ARIMA(BaseEstimator):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         if self._metadata is not None and self._metadata[1]:
-            return Series(fcast, index = step_index[1:steps + 1])
+            return Series(fcast, index = step_index[1:steps + 1], \
+                          name = "predicted_mean")
         if self._metadata is not None and not self._metadata[1]:
-            return Series(fcast, index = step_index[:steps])
+            return Series(fcast, index = step_index[:steps], \
+                          name = "predicted_mean")
         return np.asarray(fcast, dtype = np.float64)
 
     @property
