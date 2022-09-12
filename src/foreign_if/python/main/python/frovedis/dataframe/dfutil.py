@@ -2,6 +2,7 @@
 
 import numbers
 import numpy as np
+import pandas as pd
 from collections import Iterable
 from ..matrix.dtype import DTYPE, TypeUtil, get_result_type
 
@@ -10,6 +11,9 @@ from ..matrix.dtype import DTYPE, TypeUtil, get_result_type
 non_numeric_supporter = ["first", "last", "mode", "count", "size"]
 ulong_typed_aggregator = ["count", "size"]
 double_typed_aggregator = ["mean", "avg", "std", "mad", "var", "median", "sem"]
+
+def is_nat(other):
+  return other is pd.Timedelta("")
  
 def infer_column_type_from_first_notna(df, col, is_index=False):
     if is_index: #infers type of index assuming it contains all non-na
