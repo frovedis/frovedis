@@ -144,35 +144,35 @@ inline int ymd_to_dayofweek(int y, int m, int d) {
   return ((ymd_to_numdays(y, m, d) + 3) % 7) + 1;
 }
 
-inline int datetime_diff_nanosecond(datetime_t a, datetime_t b) {
+inline long datetime_diff_nanosecond(datetime_t a, datetime_t b) {
   if(a < b) return b - a; else return a - b;
 }
 
-inline int datetime_diff_second(datetime_t a, datetime_t b) {
+inline long datetime_diff_second(datetime_t a, datetime_t b) {
   auto ad = a / datetime_t(1000000000L);
   auto bd = b / datetime_t(1000000000L);
   return ad - bd;
 }
 
-inline int datetime_diff_minute(datetime_t a, datetime_t b) {
+inline long datetime_diff_minute(datetime_t a, datetime_t b) {
   auto ad = a / datetime_t(60L * 1000000000L);
   auto bd = b / datetime_t(60L * 1000000000L);
   return ad - bd;
 }
 
-inline int datetime_diff_hour(datetime_t a, datetime_t b) {
+inline long datetime_diff_hour(datetime_t a, datetime_t b) {
   auto ad = a / datetime_t(60L * 60L * 1000000000L);
   auto bd = b / datetime_t(60L * 60L * 1000000000L);
   return ad - bd;
 }
 
-inline int datetime_diff_day(datetime_t a, datetime_t b) {
+inline long datetime_diff_day(datetime_t a, datetime_t b) {
   auto ad = a / datetime_t(24l * 60L * 60L * 1000000000L);
   auto bd = b / datetime_t(24l * 60L * 60L * 1000000000L);
   return ad - bd;
 }
 
-inline int datetime_diff_month(datetime_t a, datetime_t b) {
+inline long datetime_diff_month(datetime_t a, datetime_t b) {
   int ay, am, ad, aH, aM, aS, ans;
   int by, bm, bd, bH, bM, bS, bns;
   datetime_to_ymdHMSns(a, ay, am, ad, aH, aM, aS, ans);
@@ -180,7 +180,7 @@ inline int datetime_diff_month(datetime_t a, datetime_t b) {
   return (ay - by) * 12 + (am - bm);
 }
 
-inline int datetime_diff_year(datetime_t a, datetime_t b) {
+inline long datetime_diff_year(datetime_t a, datetime_t b) {
   int ay, am, ad, aH, aM, aS, ans;
   int by, bm, bd, bH, bM, bS, bns;
   datetime_to_ymdHMSns(a, ay, am, ad, aH, aM, aS, ans);
@@ -188,49 +188,49 @@ inline int datetime_diff_year(datetime_t a, datetime_t b) {
   return ay - by;
 }
 
-inline datetime_t datetime_add_nanosecond(datetime_t t, int val) {
+inline datetime_t datetime_add_nanosecond(datetime_t t, long val) {
   return t + val;
 }
 
-inline datetime_t datetime_sub_nanosecond(datetime_t t, int val) {
+inline datetime_t datetime_sub_nanosecond(datetime_t t, long val) {
   return t - val;
 }
 
-inline datetime_t datetime_add_second(datetime_t t, int val) {
+inline datetime_t datetime_add_second(datetime_t t, long val) {
   return t + val * 1000000000L;
 }
 
-inline datetime_t datetime_sub_second(datetime_t t, int val) {
+inline datetime_t datetime_sub_second(datetime_t t, long val) {
   return t - val * 1000000000L;
 }
 
-inline datetime_t datetime_add_minute(datetime_t t, int val) {
+inline datetime_t datetime_add_minute(datetime_t t, long val) {
   return t + val * 60L * 1000000000L;
 }
 
-inline datetime_t datetime_sub_minute(datetime_t t, int val) {
+inline datetime_t datetime_sub_minute(datetime_t t, long val) {
   return t - val * 60L * 1000000000L;
 }
 
-inline datetime_t datetime_add_hour(datetime_t t, int val) {
+inline datetime_t datetime_add_hour(datetime_t t, long val) {
   return t + val * 60L * 60L * 1000000000L;
 }
 
-inline datetime_t datetime_sub_hour(datetime_t t, int val) {
+inline datetime_t datetime_sub_hour(datetime_t t, long val) {
   return t - val * 60L * 60L * 1000000000L;
 }
 
-inline datetime_t datetime_add_day(datetime_t t, int val) {
+inline datetime_t datetime_add_day(datetime_t t, long val) {
   return t + val * 24L * 60L * 60L * 1000000000L;
 }
 
-inline datetime_t datetime_sub_day(datetime_t t, int val) {
+inline datetime_t datetime_sub_day(datetime_t t, long val) {
   return t - val * 24L * 60L * 60L * 1000000000L;
 }
 
 extern int lastday_of_month[];
 
-inline datetime_t datetime_add_month(datetime_t t, int val) {
+inline datetime_t datetime_add_month(datetime_t t, long val) {
   int y, m, d, H, M, S, ns;
   datetime_to_ymdHMSns(t, y, m, d, H, M, S, ns);
   int mtmp = m + val - 1; // 0-based
@@ -250,11 +250,11 @@ inline datetime_t datetime_add_month(datetime_t t, int val) {
   return makedatetime(y, m, d, H, M, S, ns);
 }
 
-inline datetime_t datetime_sub_month(datetime_t t, int val) {
+inline datetime_t datetime_sub_month(datetime_t t, long val) {
   return datetime_add_month(t, -val);
 }
 
-inline datetime_t datetime_add_year(datetime_t t, int val) {
+inline datetime_t datetime_add_year(datetime_t t, long val) {
   int y, m, d, H, M, S, ns;
   datetime_to_ymdHMSns(t, y, m, d, H, M, S, ns);
   y += val;
@@ -263,7 +263,7 @@ inline datetime_t datetime_add_year(datetime_t t, int val) {
   return makedatetime(y, m, d, H, M, S, ns);
 }
 
-inline datetime_t datetime_sub_year(datetime_t t, int val) {
+inline datetime_t datetime_sub_year(datetime_t t, long val) {
   return datetime_add_year(t, -val);
 }
 

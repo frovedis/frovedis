@@ -447,7 +447,7 @@ public:
       ("datetime_add is not supported for this type");
   }
   virtual std::shared_ptr<dfcolumn>
-  datetime_add_im(int right, datetime_type kind){ 
+  datetime_add_im(long right, datetime_type kind){ 
     throw std::runtime_error("datetime_add_im is not supported for this type");
   }
   virtual std::shared_ptr<dfcolumn>
@@ -456,7 +456,7 @@ public:
       ("datetime_sub is not supported for this type");
   }
   virtual std::shared_ptr<dfcolumn>
-  datetime_sub_im(int right, datetime_type kind){ 
+  datetime_sub_im(long right, datetime_type kind){ 
     throw std::runtime_error("datetime_sub_im is not supported for this type");
   }
   virtual std::shared_ptr<dfcolumn>
@@ -2430,11 +2430,11 @@ public:
   virtual std::shared_ptr<dfcolumn>
   datetime_add(const std::shared_ptr<dfcolumn>& right, datetime_type kind);
   virtual std::shared_ptr<dfcolumn>
-  datetime_add_im(int right, datetime_type kind);
+  datetime_add_im(long right, datetime_type kind);
   virtual std::shared_ptr<dfcolumn>
   datetime_sub(const std::shared_ptr<dfcolumn>& right, datetime_type kind);
   virtual std::shared_ptr<dfcolumn>
-  datetime_sub_im(int right, datetime_type kind);
+  datetime_sub_im(long right, datetime_type kind);
   virtual std::shared_ptr<dfcolumn>
   datetime_truncate(datetime_type kind);
   virtual std::shared_ptr<dfcolumn>

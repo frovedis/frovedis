@@ -1150,25 +1150,25 @@ dffunction_datetime_add_im::whole_column_aggregate(dftable_base& t) {
 }
 
 std::shared_ptr<dffunction>
-datetime_add_im(const std::string& left, int right, datetime_type type) {
+datetime_add_im(const std::string& left, long right, datetime_type type) {
   return std::make_shared<dffunction_datetime_add_im>(id_col(left), right, type);
 }
 
 std::shared_ptr<dffunction>
-datetime_add_im_as(const std::string& left, int right, datetime_type type,
+datetime_add_im_as(const std::string& left, long right, datetime_type type,
                    const std::string& as) {
   return std::make_shared<dffunction_datetime_add_im>(id_col(left), right,
                                                       type, as);
 }
 
 std::shared_ptr<dffunction>
-datetime_add_im(const std::shared_ptr<dffunction>& left, int right,
+datetime_add_im(const std::shared_ptr<dffunction>& left, long right,
                 datetime_type type) {
   return std::make_shared<dffunction_datetime_add_im>(left, right, type);
 }
 
 std::shared_ptr<dffunction>
-datetime_add_im_as(const std::shared_ptr<dffunction>& left, int right,
+datetime_add_im_as(const std::shared_ptr<dffunction>& left, long right,
                    datetime_type type, const std::string& as) {
   return std::make_shared<dffunction_datetime_add_im>(left, right, type, as);
 }
@@ -1303,25 +1303,25 @@ dffunction_datetime_sub_im::whole_column_aggregate(dftable_base& t) {
 }
 
 std::shared_ptr<dffunction>
-datetime_sub_im(const std::string& left, int right, datetime_type type) {
+datetime_sub_im(const std::string& left, long right, datetime_type type) {
   return std::make_shared<dffunction_datetime_sub_im>(id_col(left), right, type);
 }
 
 std::shared_ptr<dffunction>
-datetime_sub_im_as(const std::string& left, int right, datetime_type type,
+datetime_sub_im_as(const std::string& left, long right, datetime_type type,
                    const std::string& as) {
   return std::make_shared<dffunction_datetime_sub_im>(id_col(left), right,
                                                       type, as);
 }
 
 std::shared_ptr<dffunction>
-datetime_sub_im(const std::shared_ptr<dffunction>& left, int right,
+datetime_sub_im(const std::shared_ptr<dffunction>& left, long right,
                 datetime_type type) {
   return std::make_shared<dffunction_datetime_sub_im>(left, right, type);
 }
 
 std::shared_ptr<dffunction>
-datetime_sub_im_as(const std::shared_ptr<dffunction>& left, int right,
+datetime_sub_im_as(const std::shared_ptr<dffunction>& left, long right,
                    datetime_type type, const std::string& as) {
   return std::make_shared<dffunction_datetime_sub_im>(left, right, type, as);
 }

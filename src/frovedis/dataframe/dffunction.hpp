@@ -2004,13 +2004,13 @@ datetime_add_col_as(const std::shared_ptr<dffunction>&left,
 
 // ----- datetime_add_im -----
 struct dffunction_datetime_add_im : public dffunction {
-  dffunction_datetime_add_im(const std::shared_ptr<dffunction>& left, int right,
+  dffunction_datetime_add_im(const std::shared_ptr<dffunction>& left, long right,
                              datetime_type type): 
     left(left), right(right), type(type)  {
     auto typestr = datetime_type_to_string(type);
     as_name = "(" + left->get_as() + "+" + STR(right) + typestr + ")";
   }
-  dffunction_datetime_add_im(const std::shared_ptr<dffunction>& left, int right,
+  dffunction_datetime_add_im(const std::shared_ptr<dffunction>& left, long right,
                              datetime_type type, const std::string& as_name) :
     left(left), right(right), type(type), as_name(as_name) {}
   virtual std::string get_as() {return as_name;}
@@ -2048,24 +2048,24 @@ struct dffunction_datetime_add_im : public dffunction {
   virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 
   std::shared_ptr<dffunction> left;
-  int right;
+  long right;
   datetime_type type;
   std::string as_name;
 };
 
 std::shared_ptr<dffunction>
-datetime_add_im(const std::string& left, int right, datetime_type type);
+datetime_add_im(const std::string& left, long right, datetime_type type);
 
 std::shared_ptr<dffunction>
-datetime_add_im_as(const std::string& left, int right, datetime_type type,
+datetime_add_im_as(const std::string& left, long right, datetime_type type,
                    const std::string& as);
 
 std::shared_ptr<dffunction>
-datetime_add_im(const std::shared_ptr<dffunction>& left, int right,
+datetime_add_im(const std::shared_ptr<dffunction>& left, long right,
                 datetime_type type);
 
 std::shared_ptr<dffunction>
-datetime_add_im_as(const std::shared_ptr<dffunction>& left, int right,
+datetime_add_im_as(const std::shared_ptr<dffunction>& left, long right,
                    datetime_type type, const std::string& as);
 
 
@@ -2167,13 +2167,13 @@ datetime_sub_col_as(const std::shared_ptr<dffunction>&left,
 
 // ----- datetime_sub_im -----
 struct dffunction_datetime_sub_im : public dffunction {
-  dffunction_datetime_sub_im(const std::shared_ptr<dffunction>& left, int right,
+  dffunction_datetime_sub_im(const std::shared_ptr<dffunction>& left, long right,
                              datetime_type type): 
     left(left), right(right), type(type)  {
     auto typestr = datetime_type_to_string(type);
     as_name = "(" + left->get_as() + "-" + STR(right) + typestr + ")";
   }
-  dffunction_datetime_sub_im(const std::shared_ptr<dffunction>& left, int right,
+  dffunction_datetime_sub_im(const std::shared_ptr<dffunction>& left, long right,
                              datetime_type type, const std::string& as_name) :
     left(left), right(right), type(type), as_name(as_name) {}
   virtual std::string get_as() {return as_name;}
@@ -2211,24 +2211,24 @@ struct dffunction_datetime_sub_im : public dffunction {
   virtual std::shared_ptr<dfcolumn> whole_column_aggregate(dftable_base& table);
 
   std::shared_ptr<dffunction> left;
-  int right;
+  long right;
   datetime_type type;
   std::string as_name;
 };
 
 std::shared_ptr<dffunction>
-datetime_sub_im(const std::string& left, int right, datetime_type type);
+datetime_sub_im(const std::string& left, long right, datetime_type type);
 
 std::shared_ptr<dffunction>
-datetime_sub_im_as(const std::string& left, int right, datetime_type type,
+datetime_sub_im_as(const std::string& left, long right, datetime_type type,
                    const std::string& as);
 
 std::shared_ptr<dffunction>
-datetime_sub_im(const std::shared_ptr<dffunction>& left, int right,
+datetime_sub_im(const std::shared_ptr<dffunction>& left, long right,
                 datetime_type type);
 
 std::shared_ptr<dffunction>
-datetime_sub_im_as(const std::shared_ptr<dffunction>& left, int right,
+datetime_sub_im_as(const std::shared_ptr<dffunction>& left, long right,
                    datetime_type type, const std::string& as);
 
 

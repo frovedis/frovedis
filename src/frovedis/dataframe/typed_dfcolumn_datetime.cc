@@ -58,9 +58,9 @@ create_null_column<datetime>(const std::vector<size_t>& sizes) {
 struct datetime_extract_helper {
   datetime_extract_helper(){}
   datetime_extract_helper(datetime_type type) : type(type) {}
-  std::vector<int> operator()(const std::vector<datetime_t>& d) {
+  std::vector<long> operator()(const std::vector<datetime_t>& d) {
     auto size = d.size();
-    std::vector<int> ret(size);
+    std::vector<long> ret(size);
     auto dp = d.data();
     auto retp = ret.data();
     if(type == datetime_type::year) {
@@ -97,29 +97,18 @@ struct datetime_extract_helper {
 
 std::shared_ptr<dfcolumn>
 typed_dfcolumn<datetime>::datetime_extract(datetime_type type) {
-  auto ex = val.map(datetime_extract_helper(type)).
-    mapv(+[](std::vector<int>& v, std::vector<size_t>& nulls) {
-        auto vp = v.data();
-        auto nullsp = nulls.data();
-        auto nulls_size = nulls.size();
-        auto max = std::numeric_limits<int>::max();
-#pragma _NEC ivdep
-#pragma _NEC vovertake
-#pragma _NEC vob
-        for(size_t i = 0; i < nulls_size; i++) {
-          vp[nullsp[i]] = max;
-        }
-      }, nulls);
-  return std::make_shared<typed_dfcolumn<int>>(std::move(ex), nulls);
+  auto ex = val.map(datetime_extract_helper(type));
+  ex.mapv(reset_null<long>, nulls);
+  return std::make_shared<typed_dfcolumn<long>>(std::move(ex), nulls);
 }
 
 struct datetime_diff_helper {
   datetime_diff_helper(){}
   datetime_diff_helper(datetime_type type) : type(type) {}
-  std::vector<int> operator()(const std::vector<datetime_t>& d1,
-                              const std::vector<datetime_t>& d2) {
+  std::vector<long> operator()(const std::vector<datetime_t>& d1,
+                               const std::vector<datetime_t>& d2) {
     auto size = d1.size();
-    std::vector<int> ret(size);
+    std::vector<long> ret(size);
     auto d1p = d1.data();
     auto d2p = d2.data();
     auto retp = ret.data();
@@ -161,12 +150,12 @@ typed_dfcolumn<datetime>::datetime_diff(const std::shared_ptr<dfcolumn>& right,
   auto newval = val.map(datetime_diff_helper(type), right2->val);
   if(contain_nulls || right2->contain_nulls) {
     auto newnulls = nulls.map(set_union<size_t>, right2->nulls);
-    newval.mapv(reset_null<int>, newnulls);
-    return std::make_shared<typed_dfcolumn<int>>
+    newval.mapv(reset_null<long>, newnulls);
+    return std::make_shared<typed_dfcolumn<long>>
       (std::move(newval), std::move(newnulls));
   } else {
-    auto dvval = newval.template moveto_dvector<int>();
-    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+    auto dvval = newval.template moveto_dvector<long>();
+    return std::make_shared<typed_dfcolumn<long>>(std::move(dvval));
   }
 }
 
@@ -174,9 +163,9 @@ struct datetime_diff_im_helper {
   datetime_diff_im_helper(){}
   datetime_diff_im_helper(datetime_type type, datetime_t im)
     : type(type), im(im) {}
-  std::vector<int> operator()(const std::vector<datetime_t>& d) {
+  std::vector<long> operator()(const std::vector<datetime_t>& d) {
     auto size = d.size();
-    std::vector<int> ret(size);
+    std::vector<long> ret(size);
     auto dp = d.data();
     auto retp = ret.data();
     if(type == datetime_type::year) {
@@ -214,11 +203,11 @@ typed_dfcolumn<datetime>::datetime_diff_im(datetime_t right,
                                            datetime_type type) {
   auto newval = val.map(datetime_diff_im_helper(type, right));
   if(contain_nulls) {
-    newval.mapv(reset_null<int>, nulls);
-    return std::make_shared<typed_dfcolumn<int>>(std::move(newval), nulls);
+    newval.mapv(reset_null<long>, nulls);
+    return std::make_shared<typed_dfcolumn<long>>(std::move(newval), nulls);
   } else {
-    auto dvval = newval.template moveto_dvector<int>();
-    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+    auto dvval = newval.template moveto_dvector<long>();
+    return std::make_shared<typed_dfcolumn<long>>(std::move(dvval));
   }
 }
 
@@ -226,9 +215,9 @@ struct rdatetime_diff_im_helper {
   rdatetime_diff_im_helper(){}
   rdatetime_diff_im_helper(datetime_type type, datetime_t im)
     : type(type), im(im) {}
-  std::vector<int> operator()(const std::vector<datetime_t>& d) {
+  std::vector<long> operator()(const std::vector<datetime_t>& d) {
     auto size = d.size();
-    std::vector<int> ret(size);
+    std::vector<long> ret(size);
     auto dp = d.data();
     auto retp = ret.data();
     if(type == datetime_type::year) {
@@ -266,19 +255,20 @@ typed_dfcolumn<datetime>::rdatetime_diff_im(datetime_t right,
                                             datetime_type type) {
   auto newval = val.map(rdatetime_diff_im_helper(type, right));
   if(contain_nulls) {
-    newval.mapv(reset_null<int>, nulls);
-    return std::make_shared<typed_dfcolumn<int>>(std::move(newval), nulls);
+    newval.mapv(reset_null<long>, nulls);
+    return std::make_shared<typed_dfcolumn<long>>(std::move(newval), nulls);
   } else {
-    auto dvval = newval.template moveto_dvector<int>();
-    return std::make_shared<typed_dfcolumn<int>>(std::move(dvval));
+    auto dvval = newval.template moveto_dvector<long>();
+    return std::make_shared<typed_dfcolumn<long>>(std::move(dvval));
   }
 }
+
 
 struct datetime_add_helper {
   datetime_add_helper(){}
   datetime_add_helper(datetime_type type) : type(type) {}
   std::vector<datetime_t> operator()(const std::vector<datetime_t>& d1,
-                                     const std::vector<int>& d2) {
+                                     const std::vector<long>& d2) {
     auto size = d1.size();
     std::vector<datetime_t> ret(size);
     auto d1p = d1.data();
@@ -317,7 +307,7 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<datetime>::datetime_add(const std::shared_ptr<dfcolumn>& right,
                                        datetime_type type) {
   auto right2 =
-    std::dynamic_pointer_cast<typed_dfcolumn<int>>(right->type_cast("int"));
+    std::dynamic_pointer_cast<typed_dfcolumn<long>>(right->type_cast("long"));
   auto newval = val.map(datetime_add_helper(type), right2->val);
   if(contain_nulls || right2->contain_nulls) {
     auto newnulls = nulls.map(set_union<size_t>, right2->nulls);
@@ -330,10 +320,9 @@ typed_dfcolumn<datetime>::datetime_add(const std::shared_ptr<dfcolumn>& right,
   }
 }
 
-
 struct datetime_add_im_helper {
   datetime_add_im_helper(){}
-  datetime_add_im_helper(datetime_type type, int val)
+  datetime_add_im_helper(datetime_type type, long val)
     : type(type), val(val) {}
   std::vector<datetime_t> operator()(const std::vector<datetime_t>& d) {
     auto size = d.size();
@@ -366,12 +355,12 @@ struct datetime_add_im_helper {
   }
   
   datetime_type type;
-  int val;
+  long val;
   SERIALIZE(type, val)
 };
 
 std::shared_ptr<dfcolumn>
-typed_dfcolumn<datetime>::datetime_add_im(int right,
+typed_dfcolumn<datetime>::datetime_add_im(long right,
                                           datetime_type type) {
   auto newval = val.map(datetime_add_im_helper(type, right));
   if(contain_nulls) {
@@ -390,7 +379,7 @@ struct datetime_sub_helper {
   datetime_sub_helper(){}
   datetime_sub_helper(datetime_type type) : type(type) {}
   std::vector<datetime_t> operator()(const std::vector<datetime_t>& d1,
-                                     const std::vector<int>& d2) {
+                                     const std::vector<long>& d2) {
     auto size = d1.size();
     std::vector<datetime_t> ret(size);
     auto d1p = d1.data();
@@ -429,7 +418,7 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<datetime>::datetime_sub(const std::shared_ptr<dfcolumn>& right,
                                        datetime_type type) {
   auto right2 =
-    std::dynamic_pointer_cast<typed_dfcolumn<int>>(right->type_cast("int"));
+    std::dynamic_pointer_cast<typed_dfcolumn<long>>(right->type_cast("long"));
   auto newval = val.map(datetime_sub_helper(type), right2->val);
   if(contain_nulls || right2->contain_nulls) {
     auto newnulls = nulls.map(set_union<size_t>, right2->nulls);
@@ -444,7 +433,7 @@ typed_dfcolumn<datetime>::datetime_sub(const std::shared_ptr<dfcolumn>& right,
 
 struct datetime_sub_im_helper {
   datetime_sub_im_helper(){}
-  datetime_sub_im_helper(datetime_type type, int val)
+  datetime_sub_im_helper(datetime_type type, long val)
     : type(type), val(val) {}
   std::vector<datetime_t> operator()(const std::vector<datetime_t>& d) {
     auto size = d.size();
@@ -477,12 +466,12 @@ struct datetime_sub_im_helper {
   }
   
   datetime_type type;
-  int val;
+  long val;
   SERIALIZE(type, val)
 };
 
 std::shared_ptr<dfcolumn>
-typed_dfcolumn<datetime>::datetime_sub_im(int right,
+typed_dfcolumn<datetime>::datetime_sub_im(long right,
                                           datetime_type type) {
   auto newval = val.map(datetime_sub_im_helper(type, right));
   if(contain_nulls) {
@@ -659,11 +648,11 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<datetime>::add(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   std::shared_ptr<dfcolumn> ret = NULL;
-  if (right_type == "int") ret = datetime_add(right, datetime_type_for_add_sub_op);
-  else if (right_type == "unsigned int" || 
-           right_type == "long" || right_type == "unsigned long") {
+  if (right_type == "long") ret = datetime_add(right, datetime_type_for_add_sub_op);
+  else if (right_type == "int" || right_type == "unsigned int" || 
+           right_type == "unsigned long") {
     std::shared_ptr<dfcolumn> tmp = 
-      std::dynamic_pointer_cast<typed_dfcolumn<int>>(right->type_cast("int"));
+      std::dynamic_pointer_cast<typed_dfcolumn<long>>(right->type_cast("long"));
     ret = datetime_add(tmp, datetime_type_for_add_sub_op);
   } else throw std::runtime_error(
       "datetime + " + right_type + ": invalid operation!");
@@ -674,13 +663,13 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<datetime>::add_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   std::shared_ptr<dfcolumn> ret = NULL;
-  if (right_type == "int") {
-    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
+  if (right_type == "long") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
     ret = datetime_add_im(tmp->val, datetime_type_for_add_sub_op);
-  } else if (right_type == "unsigned int" || 
-             right_type == "long" || right_type == "unsigned long") {
-    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(
-                                         right->type_cast("int"));
+  } else if (right_type == "int" || right_type == "unsigned int" || 
+             right_type == "unsigned long") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<long>>(
+                                         right->type_cast("long"));
     ret = datetime_add_im(tmp->val, datetime_type_for_add_sub_op);
   } else throw std::runtime_error(
       "datetime + " + right_type + ": invalid operation!");
@@ -691,12 +680,12 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<datetime>::sub(const std::shared_ptr<dfcolumn>& right) {
   auto right_type = right->dtype();
   std::shared_ptr<dfcolumn> ret = NULL;
-  if (right_type == "int") ret = datetime_sub(right, datetime_type_for_add_sub_op);
+  if (right_type == "long") ret = datetime_sub(right, datetime_type_for_add_sub_op);
   else if (right_type == "datetime") ret = datetime_diff(right, datetime_type_for_add_sub_op);
-  else if (right_type == "unsigned int" ||
-           right_type == "long" || right_type == "unsigned long") {
+  else if (right_type == "int" || right_type == "unsigned int" ||
+           right_type == "unsigned long") {
     std::shared_ptr<dfcolumn> tmp =
-      std::dynamic_pointer_cast<typed_dfcolumn<int>>(right->type_cast("int"));
+      std::dynamic_pointer_cast<typed_dfcolumn<long>>(right->type_cast("long"));
     ret = datetime_sub(tmp, datetime_type_for_add_sub_op);
   } else if (right_type == "string" ||
              right_type == "raw_string" || right_type == "dic_string") {
@@ -713,16 +702,16 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<datetime>::sub_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   std::shared_ptr<dfcolumn> ret = NULL;
-  if (right_type == "int") {
-    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(right);
+  if (right_type == "long") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
     ret = datetime_sub_im(tmp->val, datetime_type_for_add_sub_op);
   } else if (right_type == "datetime") {
     auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
     ret = datetime_diff_im(tmp->val, datetime_type_for_add_sub_op);
-  } else if (right_type == "unsigned int" ||
-             right_type == "long" || right_type == "unsigned long") {
-    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<int>>(
-                                         right->type_cast("int"));
+  } else if (right_type == "int" || right_type == "unsigned int" ||
+             right_type == "unsigned long") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<long>>(
+                                         right->type_cast("long"));
     ret = datetime_sub_im(tmp->val, datetime_type_for_add_sub_op);
   } else if (right_type == "string" ||
              right_type == "raw_string" || right_type == "dic_string") {
