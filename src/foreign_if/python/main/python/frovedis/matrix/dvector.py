@@ -311,9 +311,9 @@ class FrovedisDvector:
     def to_numpy_array(self):
         sz = self.size()
         dt = self.get_dtype()
-        if dt == DTYPE.INT or dt == DTYPE.BOOL or dt == DTYPE.TIMEDELTA:
+        if dt == DTYPE.INT or dt == DTYPE.BOOL:
             ret = np.empty(sz, dtype=np.int32)
-        elif dt == DTYPE.LONG or dt == DTYPE.DATETIME:
+        elif dt == DTYPE.LONG or dt == DTYPE.DATETIME or dt == DTYPE.TIMEDELTA:
             ret = np.empty(sz, dtype=np.int64)
         elif dt == DTYPE.ULONG:
             ret = np.empty(sz, dtype=np.uint)
