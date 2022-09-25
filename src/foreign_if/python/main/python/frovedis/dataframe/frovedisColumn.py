@@ -948,12 +948,8 @@ class FrovedisDatetimeProperties(object):
         self.__colName = colName
         self.__dtype = dtype
         self.df = None
-    
-    @property
-    def day(self):
-        """
-        day
-        """
+
+    def __datetime_extraction_methods_impl(self, op):
         (host, port) = FrovedisServer.getServerInstance()
         left_col = self.__colName
         right_col = ""
@@ -963,23 +959,20 @@ class FrovedisDatetimeProperties(object):
                                                 str_encode(left_col),
                                                 str_encode(right_col),
                                                 str_encode(as_name),
-                                                OPT.GETDAYOFMONTH,
+                                                op,
                                                 self.df.has_index())
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        names = dummy_df["names"]
-        types = dummy_df["types"]
+        ret = self.df._wrap_result(dummy_df, as_series=True)
+        return ret
 
-        from .df import DataFrame
-        ret = DataFrame(is_series=self.df.is_series)
-        ret.num_row = dummy_df["nrow"]
-        if self.df.has_index():
-            ret.index = FrovedisColumn(names[0], types[0]) #setting index
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        else:
-            ret.load_dummy(dummy_df["dfptr"], names, types)
-
+    @property
+    def day(self):
+        """
+        day
+        """
+        ret = self.__datetime_extraction_methods_impl(OPT.GETDAYOFMONTH)
         return ret
 
     @property
@@ -987,31 +980,7 @@ class FrovedisDatetimeProperties(object):
         """
         dayofweek
         """
-        (host, port) = FrovedisServer.getServerInstance()
-        left_col = self.__colName
-        right_col = ""
-        as_name = left_col
-        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
-                                                str_encode(left_col),
-                                                str_encode(right_col),
-                                                str_encode(as_name),
-                                                OPT.GETDAYOFWEEK,
-                                                self.df.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-
-        from .df import DataFrame
-        ret = DataFrame(is_series=self.df.is_series)
-        ret.num_row = dummy_df["nrow"]
-        if self.df.has_index():
-            ret.index = FrovedisColumn(names[0], types[0]) #setting index
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        else:
-            ret.load_dummy(dummy_df["dfptr"], names, types)
-
+        ret = self.__datetime_extraction_methods_impl(OPT.GETDAYOFWEEK)
         ret[ret.columns[0]] = (ret[ret.columns[0]] + 5) % 7
         return ret
 
@@ -1020,32 +989,7 @@ class FrovedisDatetimeProperties(object):
         """
         hour
         """
-        (host, port) = FrovedisServer.getServerInstance()
-        left_col = self.__colName
-        right_col = ""
-        as_name = left_col
-
-        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
-                                                str_encode(left_col),
-                                                str_encode(right_col),
-                                                str_encode(as_name),
-                                                OPT.GETHOUR,
-                                                self.df.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-
-        from .df import DataFrame
-        ret = DataFrame(is_series=self.df.is_series)
-        ret.num_row = dummy_df["nrow"]
-        if self.df.has_index():
-            ret.index = FrovedisColumn(names[0], types[0]) #setting index
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        else:
-            ret.load_dummy(dummy_df["dfptr"], names, types)
-
+        ret = self.__datetime_extraction_methods_impl(OPT.GETHOUR)
         return ret
 
     @property
@@ -1053,32 +997,7 @@ class FrovedisDatetimeProperties(object):
         """
         minute
         """
-        (host, port) = FrovedisServer.getServerInstance()
-        left_col = self.__colName
-        right_col = ""
-        as_name = left_col
-
-        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
-                                                str_encode(left_col),
-                                                str_encode(right_col),
-                                                str_encode(as_name),
-                                                OPT.GETMINUTE,
-                                                self.df.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-
-        from .df import DataFrame
-        ret = DataFrame(is_series=self.df.is_series)
-        ret.num_row = dummy_df["nrow"]
-        if self.df.has_index():
-            ret.index = FrovedisColumn(names[0], types[0]) #setting index
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        else:
-            ret.load_dummy(dummy_df["dfptr"], names, types)
-
+        ret = self.__datetime_extraction_methods_impl(OPT.GETMINUTE)
         return ret
 
     @property
@@ -1086,32 +1005,7 @@ class FrovedisDatetimeProperties(object):
         """
         second
         """
-        (host, port) = FrovedisServer.getServerInstance()
-        left_col = self.__colName
-        right_col = ""
-        as_name = left_col
-
-        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
-                                                str_encode(left_col),
-                                                str_encode(right_col),
-                                                str_encode(as_name),
-                                                OPT.GETSECOND,
-                                                self.df.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-
-        from .df import DataFrame
-        ret = DataFrame(is_series=self.df.is_series)
-        ret.num_row = dummy_df["nrow"]
-        if self.df.has_index():
-            ret.index = FrovedisColumn(names[0], types[0]) #setting index
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        else:
-            ret.load_dummy(dummy_df["dfptr"], names, types)
-
+        ret = self.__datetime_extraction_methods_impl(OPT.GETSECOND)
         return ret
 
     @property
@@ -1119,32 +1013,7 @@ class FrovedisDatetimeProperties(object):
         """
         nanosecond
         """
-        (host, port) = FrovedisServer.getServerInstance()
-        left_col = self.__colName
-        right_col = ""
-        as_name = left_col
-
-        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
-                                                str_encode(left_col),
-                                                str_encode(right_col),
-                                                str_encode(as_name),
-                                                OPT.GETNANOSECOND,
-                                                self.df.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-
-        from .df import DataFrame
-        ret = DataFrame(is_series=self.df.is_series)
-        ret.num_row = dummy_df["nrow"]
-        if self.df.has_index():
-            ret.index = FrovedisColumn(names[0], types[0]) #setting index
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        else:
-            ret.load_dummy(dummy_df["dfptr"], names, types)
-
+        ret = self.__datetime_extraction_methods_impl(OPT.GETNANOSECOND)
         return ret
 
     @property
@@ -1152,32 +1021,7 @@ class FrovedisDatetimeProperties(object):
         """
         year
         """
-        (host, port) = FrovedisServer.getServerInstance()
-        left_col = self.__colName
-        right_col = ""
-        as_name = left_col
-
-        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
-                                                str_encode(left_col),
-                                                str_encode(right_col),
-                                                str_encode(as_name),
-                                                OPT.GETYEAR,
-                                                self.df.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-
-        from .df import DataFrame
-        ret = DataFrame(is_series=self.df.is_series)
-        ret.num_row = dummy_df["nrow"]
-        if self.df.has_index():
-            ret.index = FrovedisColumn(names[0], types[0]) #setting index
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        else:
-            ret.load_dummy(dummy_df["dfptr"], names, types)
-
+        ret = self.__datetime_extraction_methods_impl(OPT.GETYEAR)
         return ret
 
     @property
@@ -1185,32 +1029,7 @@ class FrovedisDatetimeProperties(object):
         """
         month
         """
-        (host, port) = FrovedisServer.getServerInstance()
-        left_col = self.__colName
-        right_col = ""
-        as_name = left_col
-
-        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
-                                                str_encode(left_col),
-                                                str_encode(right_col),
-                                                str_encode(as_name),
-                                                OPT.GETMONTH,
-                                                self.df.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-
-        from .df import DataFrame
-        ret = DataFrame(is_series=self.df.is_series)
-        ret.num_row = dummy_df["nrow"]
-        if self.df.has_index():
-            ret.index = FrovedisColumn(names[0], types[0]) #setting index
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        else:
-            ret.load_dummy(dummy_df["dfptr"], names, types)
-
+        ret = self.__datetime_extraction_methods_impl(OPT.GETMONTH)
         return ret
 
     @property
@@ -1218,32 +1037,7 @@ class FrovedisDatetimeProperties(object):
         """
         quarter
         """
-        (host, port) = FrovedisServer.getServerInstance()
-        left_col = self.__colName
-        right_col = ""
-        as_name = left_col
-
-        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
-                                                str_encode(left_col),
-                                                str_encode(right_col),
-                                                str_encode(as_name),
-                                                OPT.GETQUARTER,
-                                                self.df.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-
-        from .df import DataFrame
-        ret = DataFrame(is_series=self.df.is_series)
-        ret.num_row = dummy_df["nrow"]
-        if self.df.has_index():
-            ret.index = FrovedisColumn(names[0], types[0]) #setting index
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        else:
-            ret.load_dummy(dummy_df["dfptr"], names, types)
-
+        ret = self.__datetime_extraction_methods_impl(OPT.GETQUARTER)
         return ret
 
     @property
@@ -1251,32 +1045,7 @@ class FrovedisDatetimeProperties(object):
         """
         dayofyear
         """
-        (host, port) = FrovedisServer.getServerInstance()
-        left_col = self.__colName
-        right_col = ""
-        as_name = left_col
-
-        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
-                                                str_encode(left_col),
-                                                str_encode(right_col),
-                                                str_encode(as_name),
-                                                OPT.GETDAYOFYEAR,
-                                                self.df.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-
-        from .df import DataFrame
-        ret = DataFrame(is_series=self.df.is_series)
-        ret.num_row = dummy_df["nrow"]
-        if self.df.has_index():
-            ret.index = FrovedisColumn(names[0], types[0]) #setting index
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        else:
-            ret.load_dummy(dummy_df["dfptr"], names, types)
-
+        ret = self.__datetime_extraction_methods_impl(OPT.GETDAYOFYEAR)
         return ret
 
     @property
@@ -1284,30 +1053,60 @@ class FrovedisDatetimeProperties(object):
         """
         weekofyear
         """
-        (host, port) = FrovedisServer.getServerInstance()
-        left_col = self.__colName
-        right_col = ""
-        as_name = left_col
-
-        dummy_df = rpclib.df_datetime_operation(host, port, self.df.get(),
-                                                str_encode(left_col),
-                                                str_encode(right_col),
-                                                str_encode(as_name),
-                                                OPT.GETWEEKOFYEAR,
-                                                self.df.has_index())
-        excpt = rpclib.check_server_exception()
-        if excpt["status"]:
-            raise RuntimeError(excpt["info"])
-        names = dummy_df["names"]
-        types = dummy_df["types"]
-
-        from .df import DataFrame
-        ret = DataFrame(is_series=self.df.is_series)
-        ret.num_row = dummy_df["nrow"]
-        if self.df.has_index():
-            ret.index = FrovedisColumn(names[0], types[0]) #setting index
-            ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        else:
-            ret.load_dummy(dummy_df["dfptr"], names, types)
-
+        ret = self.__datetime_extraction_methods_impl(OPT.GETWEEKOFYEAR)
         return ret
+
+    @day.setter
+    def day(self, value):
+    	raise ValueError("modifications to a property of a datetimelike object"
+    		            " are not supported. Change values on the original.")
+
+    @dayofweek.setter
+    def dayofweek(self, value):
+    	raise ValueError("modifications to a property of a datetimelike object"
+    		            " are not supported. Change values on the original.")
+
+    @hour.setter
+    def hour(self, value):
+    	raise ValueError("modifications to a property of a datetimelike object"
+    		            " are not supported. Change values on the original.")
+
+    @minute.setter
+    def minute(self, value):
+    	raise ValueError("modifications to a property of a datetimelike object"
+    		            " are not supported. Change values on the original.")
+
+    @second.setter
+    def second(self, value):
+    	raise ValueError("modifications to a property of a datetimelike object"
+    		            " are not supported. Change values on the original.")
+
+    @nanosecond.setter
+    def nanosecond(self, value):
+    	raise ValueError("modifications to a property of a datetimelike object"
+    		            " are not supported. Change values on the original.")
+
+    @year.setter
+    def year(self, value):
+    	raise ValueError("modifications to a property of a datetimelike object"
+    		            " are not supported. Change values on the original.")
+
+    @month.setter
+    def month(self, value):
+    	raise ValueError("modifications to a property of a datetimelike object"
+    		            " are not supported. Change values on the original.")
+
+    @quarter.setter
+    def quarter(self, value):
+    	raise ValueError("modifications to a property of a datetimelike object"
+    		            " are not supported. Change values on the original.")
+
+    @dayofyear.setter
+    def dayofyear(self, value):
+    	raise ValueError("modifications to a property of a datetimelike object"
+    		            " are not supported. Change values on the original.")
+
+    @weekofyear.setter
+    def weekofyear(self, value):
+    	raise ValueError("modifications to a property of a datetimelike object"
+    		            " are not supported. Change values on the original.")
