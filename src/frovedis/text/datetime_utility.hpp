@@ -145,7 +145,7 @@ inline int ymd_to_dayofweek(int y, int m, int d) {
 }
 
 inline long datetime_diff_nanosecond(datetime_t a, datetime_t b) {
-  if(a < b) return b - a; else return a - b;
+  return a - b;
 }
 
 inline long datetime_diff_second(datetime_t a, datetime_t b) {
