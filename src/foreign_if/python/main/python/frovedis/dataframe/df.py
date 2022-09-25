@@ -2272,6 +2272,13 @@ class DataFrame(SeriesHelper):
             if c in self.columns and self.__dict__[c].dtype == DTYPE.BOOL:
                 types[i] = DTYPE.BOOL
 
+    def __mark_timedelta_columns(self, names, types):
+        """ to mark timedelta columns for columns in names """
+        for i in range(len(names)):
+            c = names[i]
+            if c in self.columns and self.__dict__[c].dtype == DTYPE.TIMEDELTA:
+                types[i] = DTYPE.TIMEDELTA
+
     def __get_zone_info(self, names):
         """ get timezone information """
         return {n: z for n, z in self.datetime_cols_info.items() if n in names}
@@ -2765,6 +2772,7 @@ class DataFrame(SeriesHelper):
         names = dummy_df["names"]
         types = dummy_df["types"]
 
+        self.__mark_timedelta_columns(names, types)
         self.num_row = dummy_df["nrow"]
         if self.has_index():
             self.index = FrovedisColumn(names[0], types[0]) #setting index
@@ -2935,7 +2943,8 @@ class DataFrame(SeriesHelper):
     @check_association
     def __binary_operator_impl(self, other, op_type, \
                                axis='columns', level=None,
-                               fill_value=None, is_rev=False):
+                               fill_value=None, is_rev=False,
+                               use_pandas_backend=True):
         """
         implements binary opeartions (+, -, *, /, //, %) of
         two dataframes invoking server side operations
@@ -3060,18 +3069,8 @@ class DataFrame(SeriesHelper):
                 "on string column is not supported currently!")
             immed = False
             is_series = self.is_series and other.is_series
-            if is_series or (len(self.columns) == 1 and len(other.columns) == 1):
-                if DTYPE.DATETIME == self.__types[0] and DTYPE.TIMEDELTA == other.__types[0]:
-                    if op_type == "add":
-                        op_type = "date_DT_TD_add"
-                    elif op_type == "sub":
-                        op_type = "date_DT_TD_sub"
-                elif DTYPE.DATETIME == self.__types[0] and DTYPE.DATETIME == other.__types[0]:
-                    if op_type == "add":
-                        raise TypeError("cannot {} DatetimeArray " \
-                                "and DatetimeArray".format(op_type))
-                    elif op_type == "sub":
-                        op_type = "date_DT_DT_sub"
+
+        add_datetime_diff_res = False
 
         (host, port) = FrovedisServer.getServerInstance()
         # nan values can be generated during pow, div, mod operations
@@ -3094,6 +3093,89 @@ class DataFrame(SeriesHelper):
                 left, right = other, self
             else:
                 left, right = self, other
+
+            if op_type in ("sub", "add") and not is_series and use_pandas_backend:
+                all_datetime_self = all(e in (DTYPE.DATETIME, DTYPE.TIMEDELTA) \
+                                        for e in self.__types )
+                all_datetime_other = all(e in (DTYPE.DATETIME, DTYPE.TIMEDELTA) \
+                                        for e in other.__types )
+
+                if all_datetime_self and all_datetime_other:
+                    pd_left = left.to_pandas()
+                    pd_right = right.to_pandas()
+
+                    if op_type == "sub":
+                        pd_res = pd_left - pd_right
+                    elif op_type == "add":
+                        pd_res = pd_left + pd_right
+
+                    frov_res = DataFrame(pd_res)
+                    return frov_res
+
+                elif (not all_datetime_self) or (not all_datetime_other):
+                    left2 = left[[left.__cols[i] for i in range(len(left.__cols))\
+                        if left.__types[i] in (DTYPE.DATETIME, DTYPE.TIMEDELTA)]]
+
+                    right2 = right[[right.__cols[i] for i in range(len(right.__cols)) \
+                        if right.__types[i] in (DTYPE.DATETIME, DTYPE.TIMEDELTA)]]
+
+                    pd_left2 = left2.to_pandas()
+                    pd_right2 = right2.to_pandas()
+
+                    tmp_col_name = None
+
+                    if len(pd_left2.columns) <= 1 or len(pd_right2.columns) <= 1:
+                        tmp_col_name = self.__get_unique_column_name(
+                                        pd_left2.columns + pd_right2.columns,
+                                        True)
+
+                        if not pd_left2.empty:
+                            col_data = range(len(pd_left2))
+                        else:
+                            col_data = range(len(pd_right2))
+
+                        pd_left2[tmp_col_name] = col_data
+                        pd_right2[tmp_col_name] = col_data
+                    
+                    if op_type == "sub":
+                        pd_datetime_diff = pd_left2 - pd_right2
+                    elif op_type == "add":
+                        pd_datetime_diff = pd_left2 + pd_right2
+
+                    if tmp_col_name is not None:
+                        pd_datetime_diff.drop(columns=[tmp_col_name], inplace=True)
+
+                    add_datetime_diff_res = True
+
+                    left = left[[left.__cols[i] for i in range(len(left.__cols))\
+                        if left.__types[i] not in (DTYPE.DATETIME, DTYPE.TIMEDELTA ) ]]
+
+                    right = right[[right.__cols[i] for i in range(len(right.__cols))\
+                        if right.__types[i] not in (DTYPE.DATETIME, DTYPE.TIMEDELTA)]]
+
+            elif op_type in ("sub", "add") and is_series and use_pandas_backend:
+                if (left.__types[0] == DTYPE.DATETIME and right.__types[0] != DTYPE.DATETIME)\
+                    or (left.__types[0] != DTYPE.DATETIME and right.__types[0] == DTYPE.DATETIME):
+                    raise TypeError("Unsupported types for subtraction"
+                                    " : {} and {}".format(
+                                        TypeUtil.to_numpy_dtype(left.__types[0]),
+                                        TypeUtil.to_numpy_dtype(right.__types[0])
+                                        )
+                                   )
+
+                if left.__types[0] == DTYPE.DATETIME and right.__types[0] == DTYPE.DATETIME or \
+                    left.__types[0] == DTYPE.DATETIME and right.__types[0] == DTYPE.TIMEDELTA or \
+                    left.__types[0] == DTYPE.TIMEDELTA and right.__types[0] == DTYPE.DATETIME:
+
+                    if op_type == "sub":
+                        pd_res = left.to_pandas() - right.to_pandas()
+                    elif op_type == "add":
+                        pd_res = left.to_pandas() + right.to_pandas()
+
+                    frov_res = DataFrame(pd_res)
+                    frov_res.is_series = True
+                    return frov_res
+
             dummy_df = rpclib.df_binary_operation(host, port, left.get(), \
                        right.get(), is_series, str_encode(fillv), \
                        str_encode(fillv_dt), \
@@ -3107,17 +3189,67 @@ class DataFrame(SeriesHelper):
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.num_row = dummy_df["nrow"]
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+
+        res_timedelta_cols = set()
+        if add_datetime_diff_res:
+            frov_datetime_diff = DataFrame(pd_datetime_diff)
+            
+            for col in frov_datetime_diff.columns:    
+                ret[col] = frov_datetime_diff[col]
+                if pd_datetime_diff[col].dtype.name.startswith("timedelta64"):
+                    res_timedelta_cols.add(col)
+
+            frov_datetime_diff.release()
+
+        if len(res_timedelta_cols) > 0:
+            for i in range(len(ret.__cols)):
+                col = ret.__cols[i]
+                if col in res_timedelta_cols:
+                    ret.__types[i] = DTYPE.TIMEDELTA
+                    ret.__dict__[col] = FrovedisColumn(col, DTYPE.TIMEDELTA)
+
+        if not use_pandas_backend and isinstance(other, DataFrame) and op_type in ("add", "sub"):
+            d1 = {}
+            for i in range(len(self.__types)):
+                if self.__types[i] in (DTYPE.DATETIME, DTYPE.TIMEDELTA):
+                    d1[self.__cols[i]] = self.__types[i]
+
+            d2 = {}
+            for i in range(len(other.__types)):
+                if other.__types[i] in (DTYPE.DATETIME, DTYPE.TIMEDELTA):
+                    d2[other.__cols[i]] = other.__types[i]
+
+            common_cols = set(d1.keys()).intersection(set(d2.keys()))
+            for col in common_cols:
+                if d1[col] == DTYPE.DATETIME and d2[col] == DTYPE.TIMEDELTA or \
+                    d1[col] == DTYPE.TIMEDELTA and d2[col] == DTYPE.DATETIME:
+                    del d1[col]
+                    del d2[col]
+
+            res_timedelta_cols = set(d1.keys()).union(set(d2.keys()))
+            for i in range(len(ret.__cols)):
+                col = ret.__cols[i]
+                if col in res_timedelta_cols:
+                    ret.__types[i] = DTYPE.TIMEDELTA
+                    ret.__dict__[col] = FrovedisColumn(col, DTYPE.TIMEDELTA)
+
+        elif not use_pandas_backend and isinstance(other, pd.Timestamp) and op_type in ("add", "sub"):
+            s1 = set()
+            for i in range(len(self.__types)):
+                if self.__types[i] == DTYPE.DATETIME:
+                    s1.add(self.__cols[i])
+
+            for i in range(len(ret.__types)):
+                col = ret.__cols[i]
+                if col in s1:
+                    ret.__types[i] = DTYPE.TIMEDELTA
+                    ret.__dict__[col] = FrovedisColumn(col, DTYPE.TIMEDELTA)
+
         #sorting columns as per pandas result
-        ret.set_col_order([names[0]] + sorted(names[1:]))
-        if isinstance(other, DataFrame):
-            if DTYPE.DATETIME == self.__types[0] and DTYPE.DATETIME == other.__types[0]:
-                #TODO: handles single column df, update for handling multi column df
-                ret.__types[0] = DTYPE.TIMEDELTA
-                ret.__dict__[ret.columns[0]] = FrovedisColumn(ret.columns[0], DTYPE.TIMEDELTA)
-        elif isinstance(other, pd.Timestamp):
-            if DTYPE.DATETIME == self.__types[0]:
-                ret.__types[0] = DTYPE.TIMEDELTA
-                ret.__dict__[ret.columns[0]] = FrovedisColumn(ret.columns[0], DTYPE.TIMEDELTA)
+        ret.set_col_order([ret.index.name] + sorted(ret.columns))
+        
+        ret.datetime_cols_info = self.__get_zone_info(ret.columns)
+
         return ret
 
     @check_association
@@ -3149,15 +3281,19 @@ class DataFrame(SeriesHelper):
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         return ret
 
-    def add(self, other, axis='columns', level=None, fill_value=None):
+    def add(self, other, axis='columns', level=None, fill_value=None,
+            use_pandas_backend=True):
         """ returns resultant dataframe after performing self + other """
         return self.__binary_operator_impl(other, "add", axis, level, \
-                                           fill_value, is_rev=False)
+                                           fill_value, is_rev=False,
+                                           use_pandas_backend=use_pandas_backend)
 
-    def radd(self, other, axis='columns', level=None, fill_value=None):
+    def radd(self, other, axis='columns', level=None, fill_value=None,
+            use_pandas_backend=True):
         """ returns resultant dataframe after performing other + self"""
         return self.__binary_operator_impl(other, "add", axis, level, \
-                                           fill_value, is_rev=True)
+                                           fill_value, is_rev=True,
+                                           use_pandas_backend=use_pandas_backend)
 
     def __add__(self, other):
         """
@@ -3179,15 +3315,19 @@ class DataFrame(SeriesHelper):
         """
         self = self.add(other)
 
-    def sub(self, other, axis='columns', level=None, fill_value=None):
+    def sub(self, other, axis='columns', level=None, fill_value=None,
+            use_pandas_backend=True):
         """ returns resultant dataframe after performing self - other """
         return self.__binary_operator_impl(other, "sub", axis, level, \
-                                           fill_value, is_rev=False)
+                                           fill_value, is_rev=False,
+                                           use_pandas_backend=use_pandas_backend)
 
-    def rsub(self, other, axis='columns', level=None, fill_value=None):
+    def rsub(self, other, axis='columns', level=None, fill_value=None,
+            use_pandas_backend=True):
         """ returns resultant dataframe after performing other - self"""
         return self.__binary_operator_impl(other, "sub", axis, level, \
-                                           fill_value, is_rev=True)
+                                           fill_value, is_rev=True,
+                                           use_pandas_backend=use_pandas_backend)
 
     def __sub__(self, other):
         """

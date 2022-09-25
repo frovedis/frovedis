@@ -52,12 +52,12 @@ class TypeUtil:
             return DTYPE.DOUBLE
         elif dtype == np.bool:
             return DTYPE.BOOL
-        elif dtype == np.dtype(str) or dtype.char == 'S' or dtype.char == 'U':
-            return DTYPE.STRING
         elif dtype == np.datetime64:
             return DTYPE.DATETIME
         elif dtype == np.timedelta64:
             return DTYPE.TIMEDELTA
+        elif dtype == np.dtype(str) or dtype.char == 'S' or dtype.char == 'U':
+            return DTYPE.STRING
         else:
             raise TypeError("Unsupported numpy dtype: %s" % dtype)
 
@@ -76,12 +76,12 @@ class TypeUtil:
             return np.float64
         elif dtype == DTYPE.BOOL:
             return np.bool
-        elif dtype == DTYPE.STRING or dtype == DTYPE.WORDS:
-            return np.dtype(str)
         elif dtype == DTYPE.DATETIME:
             return np.datetime64
         elif dtype == DTYPE.TIMEDELTA:
             return np.timedelta64
+        elif dtype == DTYPE.STRING or dtype == DTYPE.WORDS:
+            return np.dtype(str)
         else:
             raise TypeError("Unknown numpy type for the given TID: %d" % dtype)
 
