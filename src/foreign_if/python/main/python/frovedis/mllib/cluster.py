@@ -593,6 +593,7 @@ class AgglomerativeClustering(BaseEstimator):
         self.movable = None
 
     def check_input(self, X, F):
+        # if X is not a sparse data, it would be loaded as rowmajor matrix
         inp_data = FrovedisFeatureData(X, \
                      caller = "[" + self.__class__.__name__ + "] "+ F +": ",\
                      dense_kind='rowmajor', densify=False)
@@ -929,8 +930,7 @@ class DBSCAN(BaseEstimator):
 
     def check_input(self, X, F):
         """checks input X"""
-        # Currently Frovedis DBSCAN does not support sparse data,
-        # it would be loaded as rowmajor matrix
+        # if X is not a sparse data, it would be loaded as rowmajor matrix
         inp_data = FrovedisFeatureData(X, \
                    caller = "[" + self.__class__.__name__ + "] " + F + ": ",\
                    dense_kind='rowmajor', densify=False)
@@ -962,8 +962,6 @@ class DBSCAN(BaseEstimator):
         """
         self.release()
         self.validate()
-        # Currently Frovedis DBSCAN does not support sparse data, 
-        # it would be loaded as rowmajor matrix
         X, dtype, itype, dense, \
         n_samples, n_features, movable = self.check_input(X, "fit")
         self.n_samples = n_samples
