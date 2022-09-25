@@ -9,6 +9,14 @@ void append_null<std::string>(dftable& df,
   df.append_column(cname, make_dvector_scatter(vec), true);
 }
 
+void append_null_datetime(dftable& df,
+                        const std::string& cname,
+                        size_t num_row) {
+  auto null_val = std::numeric_limits<datetime_t>::max();
+  auto vec = vector_full<datetime_t>(num_row, null_val);
+  df.append_datetime_column(cname, make_dvector_scatter(vec), true);
+}
+
 dftable& append_missing_column(dftable& df,
                                const std::string& cname,
                                const std::string& col_dtype,
@@ -23,6 +31,7 @@ dftable& append_missing_column(dftable& df,
       case FLOAT:  append_null<float>(df, cname, size); break;
       case DOUBLE: append_null<double>(df, cname, size); break;
       case STRING: append_null<std::string>(df, cname, size); break;
+      case DATETIME:   append_null_datetime(df, cname, size); break;
       default:     REPORT_ERROR(USER_ERROR, col_dtype +
                    ": unsupported type detected for appending nulls!\n");
     }
@@ -48,10 +57,6 @@ get_function(const std::string& op_id,
   std::shared_ptr<dffunction> ret = NULL;
   if (op_id == "add")       ret = add_col(lcol,  rcol);
   else if (op_id == "sub")  ret = sub_col(lcol,  rcol);
-  else if (op_id == "date_DT_TD_add")  ret = datetime_add_col_as(lcol, rcol,
-                                                  datetime_type::second, lcol);
-  else if (op_id == "date_DT_DT_sub")  ret = datetime_diff_col_as(lcol, rcol,
-                                                  datetime_type::second, lcol);
   else if (op_id == "mul")  ret = mul_col(lcol,  rcol);
   else if (op_id == "idiv") ret = idiv_col(lcol, rcol);
   else if (op_id == "fdiv") ret = fdiv_col(lcol, rcol);

@@ -131,10 +131,10 @@ exrpc_ptr_t create_dataframe (std::vector<short>& types,
   if (!dftblp) REPORT_ERROR(INTERNAL_ERROR, "memory allocation failed.\n");
   for(size_t i=0; i<cols.size(); ++i) {
     switch(types[i]) {
-      case TIMEDELTA:
       case INT:    { auto v1 = reinterpret_cast<dvector<int>*>(dvec_proxies[i]);
                      dftblp->append_column(cols[i],std::move(*v1),true);
                      delete v1; break; }
+      case TIMEDELTA:
       case LONG:   { auto v2 = reinterpret_cast<dvector<long>*>(dvec_proxies[i]);
                      dftblp->append_column(cols[i],std::move(*v2),true);
                      delete v2; break; }
@@ -206,10 +206,10 @@ exrpc_ptr_t create_dataframe_from_local_vectors (
       for (size_t j = 0; j < nproc; ++j) pp[j] = vp[j];
       switch(types[i]) {
         case BOOL:
-        case TIMEDELTA:
         case INT:    { auto dv = merge_and_get_dvector_impl<int>(proxies, do_align);
                        dftblp->append_column(cols[i], std::move(dv), true);
                        break; }
+        case TIMEDELTA:
         case LONG:   { auto dv = merge_and_get_dvector_impl<long>(proxies, do_align);
                        dftblp->append_column(cols[i], std::move(dv), true);
                        break; }
@@ -427,6 +427,7 @@ get_aggr(const std::string& funcname,
   else if (funcname == "min")   ret = min_as(col,as_col);
   else if (funcname == "max")   ret = max_as(col,as_col);
   else if (funcname == "count") ret = count_as(col,as_col);
+  else if (funcname == "nunique") ret = count_distinct_as(col,as_col);
   else if (funcname == "size")  ret = size_as(col,as_col);
   else if (funcname == "var")   ret = var_as(col,as_col);
   else if (funcname == "sem")   ret = sem_as(col,as_col);
@@ -1223,6 +1224,7 @@ void copy_column_helper(dftable& to_df,
                                     cname_as, 
                                     from_df.as_dvector<datetime_t>(cname),
                                     true); break;
+    case TIMEDELTA:
     case LONG:   to_df.append_column(cname_as, from_df.as_dvector<long>(cname),
                                      true); break;
     case ULONG:  to_df.append_column(cname_as, from_df.as_dvector<unsigned long>(cname),
