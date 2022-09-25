@@ -5,6 +5,7 @@ dfoperator.py
 #!/usr/bin/env python
 
 import numpy as np
+import pandas as pd
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
@@ -86,8 +87,39 @@ class dfoperator(object):
 
     def to_mask_array(self):
         """return boolean mask as numpy array"""
-        res = self.mask.to_numpy_array()
-        return np.array([e == 1 for e in res])
+        res = self.mask.to_numpy_array().astype("bool")
+        return res
+
+    def to_pandas(self):
+        """return boolean mask as paandas series"""
+        return pd.Series(self.to_mask_array())
+
+    def mul(self, other):
+        return other * self.mask.to_numpy_array()
+
+    def __mul__(self, other):
+        return self.mul(other)
+
+    def rmul(self, other):
+        return other * self.mask.to_numpy_array()
+
+    def __rmul__(self, other):
+        return self.rmul(other)
+
+    def add(self, other):
+        if isinstance(other, dfoperator):
+            return other.mask.to_numpy_array() + self.mask.to_numpy_array()
+        else:
+            return other + self.mask.to_numpy_array()
+
+    def __add__(self, other):
+        return self.add(other)
+
+    def radd(self, other):
+        return self.add(other) # +: is commulative
+
+    def __radd__(self, other):
+        return self.radd(other)
 
     @check_association
     def get(self):
