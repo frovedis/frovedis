@@ -8,8 +8,8 @@ from ..matrix.dtype import DTYPE, TypeUtil, get_result_type
 
 # add future aggregator supporting non-numerics
 
-non_numeric_supporter = ["first", "last", "mode", "count", "size"]
-ulong_typed_aggregator = ["count", "size"]
+non_numeric_supporter = ["first", "last", "mode", "count", "size", "nunique"]
+ulong_typed_aggregator = ["count", "size", "nunique"]
 double_typed_aggregator = ["mean", "avg", "std", "mad", "var", "median", "sem"]
 
 def is_nat(other):
