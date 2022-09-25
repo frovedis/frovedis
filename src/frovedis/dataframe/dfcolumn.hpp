@@ -17,6 +17,7 @@
 #include "dfscalar.hpp"
 
 #define DFNODESHIFT 48 // used to concatenate node id and local index
+#define DONOT_ALLOW_MAX_AS_VALUE // for better performance
 
 namespace frovedis {
 

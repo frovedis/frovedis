@@ -12,7 +12,6 @@
 #else
 #define GROUPBY_COUNT_DISTINCT_VLEN 4
 #endif
-#define DONOT_ALLOW_MAX_AS_VALUE // for better performance
 
 using namespace std;
 
