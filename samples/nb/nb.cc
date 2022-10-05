@@ -12,9 +12,10 @@ void do_nb_train(MATRIX& mat,
                  dvector<T>& lbl,
                  const std::string& output,
                  const std::string& model_type,
-                 double lambda) {
+                 double lambda, 
+                 bool binary) {
   naive_bayes_model<T> model;
-  time_spent train_t(INFO);
+  time_spent train_t(DEBUG);
   train_t.lap_start(); 
   if(model_type == "multinomial") 
     model = multinomial_nb(mat, lbl, lambda);
@@ -24,24 +25,26 @@ void do_nb_train(MATRIX& mat,
   train_t.lap_stop(); 
   train_t.show_lap("total train time: ");
 
-  model.save(output);
+  binary ? model.savebinary(output) : model.save(output);
 }
 
 template <class T, class MATRIX>
 void do_nb_predict(MATRIX& mat,
                    const std::string& modelfile,
                    const std::string& output,
-                   bool is_prob) {
-  time_spent pred_t(INFO);
+                   bool is_prob,
+                   bool binary) {
+  time_spent pred_t(DEBUG);
   naive_bayes_model<T> model;
-  model.load(modelfile);
+  binary ? model.loadbinary(modelfile) : model.load(modelfile);
 
   pred_t.lap_start();
   auto plbl =  is_prob? model.predict_probability(mat) : model.predict(mat);
   pred_t.lap_stop();
   pred_t.show_lap("total prediction time: ");
 
-  make_dvector_scatter(plbl).saveline(output);
+  binary ? make_dvector_scatter(plbl).savebinary(output)
+         : make_dvector_scatter(plbl).saveline(output);
 }
 
 
@@ -63,7 +66,8 @@ int main(int argc, char* argv[]) {
     ("dtype", value<string>(), "target data type for input (float or double) (default: double)")
     ("mtype", value<string>(), "target matrix type for input (dense or sparse) (default: sparse)")
     ("verbose", "set loglevel to DEBUG")
-    ("verbose2", "set loglevel to TRACE");
+    ("verbose2", "set loglevel to TRACE")
+    ("binary,b", "use binary input/output");
 
   variables_map argmap;
   store(command_line_parser(argc,argv).options(opt).allow_unregistered().
@@ -77,6 +81,7 @@ int main(int argc, char* argv[]) {
   string mtype = "sparse";
   string model_type = "multinomial";
   double lambda = 1.0;
+  bool binary = false;
 
   if(argmap.count("help")){
     cerr << opt << endl;
@@ -151,27 +156,35 @@ int main(int argc, char* argv[]) {
     set_loglevel(TRACE);
   }
 
+  if(argmap.count("binary")){
+    binary = true;
+  }
+
   try {
     if(ispredict) {
       if(mtype == "dense") {
         if(dtype == "float") {
-          auto mat = make_rowmajor_matrix_local_load<float>(input);
-          do_nb_predict<float>(mat, model, output, predict_probability);
+          auto mat = binary ? make_rowmajor_matrix_local_loadbinary<float>(input)
+                            : make_rowmajor_matrix_local_load<float>(input);
+          do_nb_predict<float>(mat, model, output, predict_probability, binary);
         }
         else if(dtype == "double") { 
-          auto mat = make_rowmajor_matrix_local_load<double>(input);
-          do_nb_predict<double>(mat, model, output, predict_probability);
+          auto mat = binary ? make_rowmajor_matrix_local_loadbinary<double>(input)
+                            : make_rowmajor_matrix_local_load<double>(input);
+          do_nb_predict<double>(mat, model, output, predict_probability, binary);
         }
         else REPORT_ERROR(USER_ERROR, "supported dtypes are float or double!\n");
       }
       else if(mtype == "sparse") {
         if(dtype == "float") {
-          auto mat = make_crs_matrix_local_load<float>(input);
-          do_nb_predict<float>(mat, model, output, predict_probability);
+          auto mat = binary ? make_crs_matrix_local_loadbinary<float>(input)
+                            : make_crs_matrix_local_load<float>(input);
+          do_nb_predict<float>(mat, model, output, predict_probability, binary);
         }
         else if(dtype == "double") { 
-          auto mat = make_crs_matrix_local_load<double>(input);
-          do_nb_predict<double>(mat, model, output, predict_probability);
+          auto mat = binary ? make_crs_matrix_local_loadbinary<double>(input)
+                            : make_crs_matrix_local_load<double>(input);
+          do_nb_predict<double>(mat, model, output, predict_probability, binary);
         }
         else REPORT_ERROR(USER_ERROR, "supported dtypes are float or double!\n");
       }
@@ -180,27 +193,35 @@ int main(int argc, char* argv[]) {
     else {
       if(mtype == "dense") {
         if(dtype == "float") { 
-          auto mat = make_rowmajor_matrix_load<float>(input);
-          auto lbl = make_dvector_loadline<float>(label);
-          do_nb_train(mat, lbl, output, model_type, lambda);
+          auto mat = binary ? make_rowmajor_matrix_loadbinary<float>(input)
+                            : make_rowmajor_matrix_load<float>(input);
+          auto lbl = binary ? make_dvector_loadbinary<float>(label)
+                            : make_dvector_loadline<float>(label);
+          do_nb_train(mat, lbl, output, model_type, lambda, binary);
         }
         else if(dtype == "double") {
-          auto mat = make_rowmajor_matrix_load<double>(input);
-          auto lbl = make_dvector_loadline<double>(label);
-          do_nb_train(mat, lbl, output, model_type, lambda);
+          auto mat = binary ? make_rowmajor_matrix_loadbinary<double>(input)
+                            : make_rowmajor_matrix_load<double>(input);
+          auto lbl = binary ? make_dvector_loadbinary<double>(label)
+                            : make_dvector_loadline<double>(label);
+          do_nb_train(mat, lbl, output, model_type, lambda, binary);
         }
         else REPORT_ERROR(USER_ERROR, "supported dtypes are float or double!\n");
       }
       else if(mtype == "sparse") {
         if (dtype == "float") {
-          auto mat = make_crs_matrix_load<float>(input);
-          auto lbl = make_dvector_loadline<float>(label);
-          do_nb_train(mat, lbl, output, model_type, lambda);
+          auto mat = binary ? make_crs_matrix_loadbinary<float>(input)
+                            : make_crs_matrix_load<float>(input);
+          auto lbl = binary ? make_dvector_loadbinary<float>(label)
+                            : make_dvector_loadline<float>(label);
+          do_nb_train(mat, lbl, output, model_type, lambda, binary);
         }
         else if(dtype == "double") {
-          auto mat = make_crs_matrix_load<double>(input);
-          auto lbl = make_dvector_loadline<double>(label);
-          do_nb_train(mat, lbl, output, model_type, lambda);
+          auto mat = binary ? make_crs_matrix_loadbinary<double>(input)
+                            : make_crs_matrix_load<double>(input);
+          auto lbl = binary ? make_dvector_loadbinary<double>(label)
+                            : make_dvector_loadline<double>(label);
+          do_nb_train(mat, lbl, output, model_type, lambda, binary);
         }
         else REPORT_ERROR(USER_ERROR, "supported dtypes are float or double!\n");
       }

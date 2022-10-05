@@ -27,6 +27,7 @@ int main(int argc, char** argv) {
     ("input,i", value<std::string>(), "path for input dense feature data")
     ("label,l", value<std::string>(), "path for input label")
     ("target,t", value<std::string>(), "target: classification or regression")
+    ("output,o", value<std::string>(), "path for prediction output to be saved")
     ("neighbors,k", value<int>(), "number of required neighbors (default: 2)")
     ("metric,m", value<std::string>(), "metric for distance calculation (default: euclidean)")
     ("algorithm,a", value<std::string>(), "algorithm for knn (default: brute)")
@@ -35,14 +36,15 @@ int main(int argc, char** argv) {
     ("sparse,s", "use sparse matrix")
     ("dense,d", "use dense matrix (default)")
     ("verbose", "set loglevel to DEBUG")
-    ("verbose2", "set loglevel to TRACE");
+    ("verbose2", "set loglevel to TRACE")
+    ("binary,b", "use binary input/output");
     
   variables_map argmap;
   store(command_line_parser(argc,argv).options(opt).allow_unregistered().
         run(), argmap);
   notify(argmap);
 
-  std::string input, label, target;
+  std::string input, label, target, output;
   int k = 2;
   float chunk_size = 1.0; // not much meaningful when batch-processing will take place
   double batch_fraction = std::numeric_limits<double>::max();
@@ -50,6 +52,7 @@ int main(int argc, char** argv) {
   std::string algorithm = "brute";
   bool save_proba = false;
   bool dense = true;
+  bool binary = false;
   
   if(argmap.count("help")){
     std::cerr << opt << std::endl;
@@ -71,8 +74,7 @@ int main(int argc, char** argv) {
     std::cerr << opt << std::endl;
     exit(1);
   }
-  auto lbl = make_dvector_loadline<double>(label);
-  
+
   if(argmap.count("target")){
     target = argmap["target"].as<std::string>();
   } else {
@@ -81,6 +83,14 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
+  if(argmap.count("output")){
+    output = argmap["output"].as<std::string>();
+  } else {
+    std::cerr << "output path is not specified!" << std::endl;
+    std::cerr << opt << std::endl;
+    exit(1);
+  }
+  
   if(argmap.count("neighbors")){
     k = argmap["neighbors"].as<int>();
   }
@@ -117,10 +127,18 @@ int main(int argc, char** argv) {
     set_loglevel(TRACE);
   }
 
-  time_spent calc_knn(INFO);
+  if(argmap.count("binary")){
+    binary = true;
+  }
+
+  auto lbl = binary ? make_dvector_loadbinary<double>(label)
+                    : make_dvector_loadline<double>(label);
+  
+  time_spent calc_knn(DEBUG);
   try {
     if (dense) {
-      auto data = make_rowmajor_matrix_load<double>(input);
+      auto data = binary ? make_rowmajor_matrix_loadbinary<double>(input)
+                         : make_rowmajor_matrix_load<double>(input);
       if (target == "classification") {
         calc_knn.lap_start();
         kneighbors_classifier<double, rowmajor_matrix<double>> obj(k, algorithm, metric, 
@@ -129,9 +147,9 @@ int main(int argc, char** argv) {
         auto pred = obj.predict(data, save_proba);
         calc_knn.lap_stop();
         calc_knn.show_lap("total knn fit-predict time: ");
-        std::cout << "prediction: "; debug_print_vector(pred.gather(), 10);   
         auto score = accuracy_score(lbl.gather(), pred.gather());
         std::cout << "score: " << score << std::endl;
+        binary ? pred.savebinary(output) : pred.saveline(output);
       } else if (target == "regression") {
         calc_knn.lap_start();
         kneighbors_regressor<double, rowmajor_matrix<double>> obj(k, algorithm, metric, 
@@ -140,16 +158,17 @@ int main(int argc, char** argv) {
         auto pred = obj.predict(data);
         calc_knn.lap_stop();
         calc_knn.show_lap("total knn fit-predict time: ");
-        std::cout << "prediction: "; debug_print_vector(pred.gather(), 10);    
         auto score = r2_score(lbl.gather(), pred.gather()) ;
         std::cout << "score: " << score << std::endl;
+        binary ? pred.savebinary(output) : pred.saveline(output);
       } else {
         std::cerr << "Unknown target: " << target << " for Supervised KNN!\n";
         std::cerr << opt << std::endl;
         exit(1);
       }
     } else {
-      auto data = make_crs_matrix_load<double>(input);
+      auto data = binary ? make_crs_matrix_loadbinary<double>(input)
+                         : make_crs_matrix_load<double>(input);
       if (target == "classification") {
         calc_knn.lap_start();
         kneighbors_classifier<double, crs_matrix<double>> obj(k, algorithm, metric,
@@ -158,9 +177,9 @@ int main(int argc, char** argv) {
         auto pred = obj.predict(data, save_proba);
         calc_knn.lap_stop();
         calc_knn.show_lap("total knn fit-predict time: ");
-        std::cout << "prediction: "; debug_print_vector(pred.gather(), 10);
         auto score = accuracy_score(lbl.gather(), pred.gather());
         std::cout << "score: " << score << std::endl;
+        binary ? pred.savebinary(output) : pred.saveline(output);
       } else if (target == "regression") {
         calc_knn.lap_start();
         kneighbors_regressor<double, crs_matrix<double>> obj(k, algorithm, metric,
@@ -169,9 +188,9 @@ int main(int argc, char** argv) {
         auto pred = obj.predict(data);
         calc_knn.lap_stop();
         calc_knn.show_lap("total knn fit-predict time: ");
-        std::cout << "prediction: "; debug_print_vector(pred.gather(), 10);
         auto score = r2_score(lbl.gather(), pred.gather());
         std::cout << "score: " << score << std::endl;
+        binary ? pred.savebinary(output) : pred.saveline(output);
       } else {
         std::cerr << "Unknown target: " << target << " for Supervised KNN!\n";
         std::cerr << opt << std::endl;

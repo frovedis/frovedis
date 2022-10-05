@@ -23,7 +23,8 @@ int main(int argc, char** argv) {
     ("sparse,s", "use sparse matrix")
     ("dense,d", "use dense matrix (default) ")
     ("verbose", "set loglevel to DEBUG")
-    ("verbose2", "set loglevel to TRACE");
+    ("verbose2", "set loglevel to TRACE")
+    ("binary,b", "use binary input/output");
     
   variables_map argmap;
   store(command_line_parser(argc,argv).options(opt).allow_unregistered().
@@ -39,6 +40,7 @@ int main(int argc, char** argv) {
   std::string algorithm = "brute";
   bool need_distance = true;
   bool dense = true;
+  bool binary = false;
   
   if(argmap.count("help")){
     std::cerr << opt << std::endl;
@@ -103,10 +105,15 @@ int main(int argc, char** argv) {
     set_loglevel(TRACE);
   }
 
-  time_spent calc_knn(INFO);
+  if(argmap.count("binary")){
+    binary = true;
+  }
+
+  time_spent calc_knn(DEBUG);
   try {
     if(dense) {
-      auto data = make_rowmajor_matrix_load<double>(input);
+      auto data = binary ? make_rowmajor_matrix_loadbinary<double>(input)
+                         : make_rowmajor_matrix_load<double>(input);
       calc_knn.lap_start();
       nearest_neighbors<double, rowmajor_matrix<double>> obj(k, radius, algorithm, metric, 
                                                              chunk_size, batch_fraction);
@@ -114,11 +121,15 @@ int main(int argc, char** argv) {
       auto knn_graph = obj.kneighbors_graph(data, k, mode);
       calc_knn.lap_stop();
       calc_knn.show_lap("total knn + graph creation time: ");
-      knn_graph.save(output + "/knn_graph");
+      binary ? knn_graph.savebinary(output + "/knn_graph")
+             : knn_graph.save(output + "/knn_graph");
+
       auto radius_graph = obj.radius_neighbors_graph(data, radius, mode);
-      radius_graph.save(output + "/radius_graph");
+      binary ? radius_graph.savebinary(output + "/radius_graph")
+             : radius_graph.save(output + "/radius_graph");
     } else {
-      auto data = make_crs_matrix_load<double>(input);
+      auto data = binary ? make_crs_matrix_loadbinary<double>(input)
+                         : make_crs_matrix_load<double>(input);
       calc_knn.lap_start();
       nearest_neighbors<double, crs_matrix<double>> obj(k, radius, algorithm, metric, 
                                                         chunk_size, batch_fraction);
@@ -126,9 +137,12 @@ int main(int argc, char** argv) {
       auto knn_graph = obj.kneighbors_graph(data, k, mode);
       calc_knn.lap_stop();
       calc_knn.show_lap("total knn + graph creation time: ");
-      knn_graph.save(output + "/knn_graph");
+      binary ? knn_graph.savebinary(output + "/knn_graph")
+             : knn_graph.save(output + "/knn_graph");
+ 
       auto radius_graph = obj.radius_neighbors_graph(data, radius, mode);
-      radius_graph.save(output + "/radius_graph");
+      binary ? radius_graph.savebinary(output + "/radius_graph")
+             : radius_graph.save(output + "/radius_graph");
     }
   }
   catch(std::exception& e) {

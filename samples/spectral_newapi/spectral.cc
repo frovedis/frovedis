@@ -13,7 +13,8 @@ int main(int argc, char** argv) {
   options_description opt("option");
   opt.add_options()
       ("help,h", "produce help message")
-      ("input,i" , value<std::string>(), "input rowmajor matrix data.")
+      ("input,i" , value<std::string>(), "path for input rowmajor matrix data")
+      ("output,o", value<std::string>(), "path for output label to be saved")
       ("n-clusters" , value<int>(), "the dimension of the projection subspace.[default = 2]")
       ("n-components" , value<int>(), "number of eigenvectors to use for the spectral embedding.[default = 2]")
       ("n-iter,n" , value<int>(), "number of times the algorithm will be run.[default = 100]")
@@ -26,7 +27,8 @@ int main(int argc, char** argv) {
       ("drop-first", value<bool>(), "[default: false]")
       ("mode", value<int>(), "[default: 1]")
       ("verbose", "set loglevel to DEBUG")
-      ("verbose2", "set loglevel to TRACE");
+      ("verbose2", "set loglevel to TRACE")
+      ("binary,b", "use binary input/output");
 
   variables_map argmap;
   store(command_line_parser(argc,argv).options(opt).allow_unregistered().
@@ -44,8 +46,9 @@ int main(int argc, char** argv) {
   bool drop_first = false;
   int mode = 1;
   int n_neighbors = 10;
-  std::string data_p;
+  std::string data_p, out_p;
   std::string affinity = "rbf";
+  bool binary = false;
 
   if(argmap.count("help")){
     std::cerr << opt << std::endl;
@@ -94,22 +97,32 @@ int main(int argc, char** argv) {
     std::cerr << opt << std::endl;
     exit(1);
   }
+  if(argmap.count("output")){
+    out_p = argmap["output"].as<std::string>();
+  }else {
+    std::cerr << "output is not specified" << std::endl;
+    std::cerr << opt << std::endl;
+    exit(1);
+  }
+  if(argmap.count("binary")){
+    binary = true;
+  }
 
-  auto mat = make_rowmajor_matrix_load<double>(data_p); //./test_data
+  auto mat = binary ? make_rowmajor_matrix_loadbinary<double>(data_p)
+                    : make_rowmajor_matrix_load<double>(data_p);
 
-    
   auto sc = spectral_clustering<double>(k, n_comp, gamma, affinity, 
                                         n_neighbors, niter, n_init, seed, 
                                         eps, norm_laplacian, drop_first, mode);
-  time_spent train(INFO);
+  time_spent train(DEBUG);
   train.lap_start();
   sc.fit(std::move(mat));
   train.lap_stop();
   train.show_lap("training time: ");
 
   auto label = sc.labels_();  
-  std::cout << "\ncluster output: \n";
-  for(auto e: label) std::cout << e << " "; std::cout << std::endl;
+  binary ? make_dvector_scatter(label).savebinary(out_p) 
+         : make_dvector_scatter(label).saveline(out_p);
   return 0;
 }
 

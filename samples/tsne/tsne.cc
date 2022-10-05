@@ -11,16 +11,18 @@ void call_tsne(const std::string& data_p, const std::string& out_p, double perpl
                double early_exaggeration, double min_grad_norm, double learning_rate, 
                size_t n_components, size_t max_iter, size_t n_iter_without_progress, 
                const std::string& metric, const std::string& method, 
-               const std::string& init, bool verbose) { 
-  time_spent load_t(INFO);
+               const std::string& init, bool verbose, bool binary) { 
+  time_spent load_t(DEBUG);
   load_t.lap_start();
-  auto mat = make_rowmajor_matrix_load<T>(data_p);
+  auto mat = binary ? make_rowmajor_matrix_loadbinary<T>(data_p)
+                    : make_rowmajor_matrix_load<T>(data_p);
   load_t.lap_stop();
   load_t.show_lap("data loading time: ");
-  std::cout << "n_samples = " << mat.num_row
-            << ", n_features = " << mat.num_col
-            << std::endl;
-  time_spent tsne_t(INFO);
+  RLOG(DEBUG) << "n_samples = " << mat.num_row
+              << ", n_features = " << mat.num_col
+              << std::endl;
+
+  time_spent tsne_t(DEBUG);
   tsne_t.lap_start();
 
   TSNE<T> t1;
@@ -42,9 +44,10 @@ void call_tsne(const std::string& data_p, const std::string& out_p, double perpl
 
   tsne_t.lap_stop();
   tsne_t.show_lap("Overall computation time: ");
-  Y_mat.save(out_p);
-  std::cout << "n_iter_ = " << n_iter << std::endl;
-  std::cout << "kl_divergence_ = " << kl_divergence << std::endl;
+
+  binary ? Y_mat.savebinary(out_p) : Y_mat.save(out_p);
+  RLOG(DEBUG) << "n_iter_ = " << n_iter << std::endl;
+  RLOG(DEBUG) << "kl_divergence_ = " << kl_divergence << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -68,7 +71,8 @@ int main(int argc, char* argv[]) {
       ("metric,m" , value<std::string>(), "the metric (euclidean or precomputed) to use when calculating distance (default: euclidean)")
       ("method" , value<std::string>(), "the method (exact) to use for TSNE computation (default: exact)")
       ("init" , value<std::string>(), "the init (random) to use for initializing Y mat (default: random)")
-      ("verbose", "set loglevel to DEBUG");
+      ("verbose", "set loglevel to DEBUG")
+      ("binary,b", "use binary input/output");
 
   variables_map argmap;
   store(command_line_parser(argc,argv).options(opt).allow_unregistered().
@@ -89,6 +93,7 @@ int main(int argc, char* argv[]) {
   std::string method = "exact"; //possible values = ["exact"]
   std::string init = "random"; //possible values = ["random"]
   bool verbose = false;
+  bool binary = false;
 
   if(argmap.count("help")){
     std::cerr << opt << std::endl;
@@ -145,17 +150,20 @@ int main(int argc, char* argv[]) {
     set_loglevel(DEBUG);
     verbose = true;
   }
+  if(argmap.count("binary")){
+    binary = true;
+  }
 
   try {
     if (dtype == "float") {
       call_tsne<float>(data_p, out_p, perplexity, early_exaggeration, min_grad_norm, 
                        learning_rate, n_components, max_iter, 
-                       n_iter_without_progress, metric, method, init, verbose);
+                       n_iter_without_progress, metric, method, init, verbose, binary);
     }
     else if (dtype == "double") {
       call_tsne<double>(data_p, out_p, perplexity, early_exaggeration, min_grad_norm, 
                         learning_rate, n_components, max_iter, 
-                        n_iter_without_progress, metric, method, init, verbose);
+                        n_iter_without_progress, metric, method, init, verbose, binary);
     }
     else {
       std::cerr << "Supported dtypes are only float and double!\n";

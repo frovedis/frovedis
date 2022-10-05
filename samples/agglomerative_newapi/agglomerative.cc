@@ -10,21 +10,25 @@ void do_agglomerative_clustering(const std::string& input_file,
                               int ncluster, T threshold,
                               const std::string& link,
                               const std::string& model_file,
-                              const std::string& label_file) {
-
+                              const std::string& label_file,
+                              bool binary) {
   auto ac = agglomerative_clustering<T>(ncluster, link, threshold);  
-  time_spent data_load(INFO), train(INFO);
+  time_spent data_load(DEBUG), train(DEBUG);
   data_load.lap_start();  
-  auto mat = make_rowmajor_matrix_load<T>(input_file);  
+  auto mat = binary ? make_rowmajor_matrix_loadbinary<T>(input_file)
+                    : make_rowmajor_matrix_load<T>(input_file);
   data_load.lap_stop();
   data_load.show_lap("data loading time: ");
+
   train.lap_start();
   ac.fit(std::move(mat));  
   train.lap_stop();
   train.show_lap("training time: ");
+
   auto ret = ac.labels_();
-  ac.save(model_file);    
-  make_dvector_scatter(ret).saveline(label_file);
+  binary ? ac.savebinary(model_file) : ac.save(model_file);
+  binary ? make_dvector_scatter(ret).savebinary(label_file)
+         : make_dvector_scatter(ret).saveline(label_file);
 }
 
 int main(int argc, char** argv) {
@@ -46,7 +50,8 @@ int main(int argc, char** argv) {
     ("threshold,t","threshold distance above which points will not be clustered (default: 0)")      
     ("verbose", "set loglevel to DEBUG")
     ("verbose2", "set loglevel to TRACE")
-    ("clustering_verbose", "set loglevel to INFO (default loglevel is INFO)");
+    ("clustering_verbose", "set loglevel to INFO (default loglevel is INFO)")
+    ("binary,b", "use binary input/output");
     
   variables_map argmap;
   store(command_line_parser(argc,argv).options(opt).allow_unregistered().
@@ -57,6 +62,7 @@ int main(int argc, char** argv) {
   std::string linkage = "average";
   int nclus = 2;
   float threshold = 0;  
+  bool binary = false;
   
   if(argmap.count("help")){
     std::cerr << opt << std::endl;
@@ -99,14 +105,18 @@ int main(int argc, char** argv) {
     linkage = argmap["linkage"].as<std::string>();
   }
 
+  if(argmap.count("binary")){
+    binary = true;
+  }
+
   if(argmap.count("verbose")) set_loglevel(DEBUG);
   if(argmap.count("verbose2")) set_loglevel(TRACE);
   if(argmap.count("clustering_verbose")) set_loglevel(INFO);
 
   if(argmap.count("float")) 
-    do_agglomerative_clustering<float>(input,nclus,threshold,linkage,output_m,output_l);
+    do_agglomerative_clustering<float>(input,nclus,threshold,linkage,output_m,output_l,binary);
   else
-    do_agglomerative_clustering<double>(input,nclus,threshold,linkage,output_m,output_l); 
+    do_agglomerative_clustering<double>(input,nclus,threshold,linkage,output_m,output_l,binary); 
 
   return 0;
 }
