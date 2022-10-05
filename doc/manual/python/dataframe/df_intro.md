@@ -147,7 +147,7 @@ Output
 
 **b) By loading data using read_csv() method**    
 
-**read_csv(filepath_or_buffer, sep = ',', delimiter = None, header = "infer", names = None, index_col = None, usecols = None, squeeze = False, prefix = None, mangle_dupe_cols = True, dtype = None, na_values = None, verbose = False, comment = None, low_memory = True, rows_to_see = 1024, separate_mb = 1024)**   
+**read_csv(filepath_or_buffer, sep = ',', delimiter = None, header = "infer", names = None, index_col = None, usecols = None, squeeze = False, prefix = None, mangle_dupe_cols = True, dtype = None, na_values = None, verbose = False, comment = None, low_memory = True, rows_to_see = 1024, separate_mb = 1024, parse_dates=None, datetime_format=None, infer_datetime_format=False, date_parser=None, keep_date_col=False)**   
 
 __Parameters__  
 _**filepath\_or\_buffer**_: It accepts any valid string value that contains the name of the file to access as parameter. The string path can be a URL as well. In case, a file is to be read, then the pathname can be absolute path or relative path to the current working directory of the file to be opened.  
@@ -211,6 +211,18 @@ _**separate\_mb**_: It accepts double (float64) value as parameter. It is a memo
 
 - **If low_memory = True**, then internally frovedis dataframes of size **'separate_mb'** will be loaded separately and would be combined later into a single frovedis dataframe.  
 - **If low_memory = False**, then complete frovedis dataframe will be loaded at once.  
+
+_**parse\_dates**_: List of columns names or positions to be parsed as datetime type. In order to combine multiple columns in file as a single datetime column, list of list is supported. (Default: None)  
+
+_**datetime\_format**_: This is a frovedis specific parameter. The datetime format can be provided a string, list or dictionary for the respective columns. (Default: None)  
+
+_**infer\_datetime\_format**_: In case this parameter is set to True, the first hundred rows would be used to infer the datetime format. In case the datetime format cannot be inferred, the columns would be loaded unchanged as string type columns. (Default: False)  
+
+ _**date_parser**_: This parameter is not supported. In order to specify the datetime format, **datetime\_format** parameter can be used. (Default: None)  
+
+_**keep\_date\_col**_: In case this parameter is set to True and **parse\_dates** specifies combining multiple columns then the original columns are kept in the resultant dataframe. (Default: False)  
+
+
 
 __Purpose__  
 

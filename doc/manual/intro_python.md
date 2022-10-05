@@ -72,3 +72,4 @@ We are still updating the contents.
     + [DataFrame Math Functions]
     + [FrovedisGroupedDataframe]
     + [FrovedisGroupedDataFrame Aggregate Functions]
+    + [Dataframe: Datetime functionality]

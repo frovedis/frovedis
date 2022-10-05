@@ -266,7 +266,8 @@ Output
 \[lq]infer\[rq], names = None, index_col = None, usecols = None, squeeze
 = False, prefix = None, mangle_dupe_cols = True, dtype = None, na_values
 = None, verbose = False, comment = None, low_memory = True, rows_to_see
-= 1024, separate_mb = 1024)\f[R]
+= 1024, separate_mb = 1024, parse_dates=None, datetime_format=None,
+infer_datetime_format=False, date_parser=None, keep_date_col=False)\f[R]
 .PP
 \f[B]Parameters\f[R]
 .PD 0
@@ -514,6 +515,35 @@ combined later into a single frovedis dataframe.
 .IP \[bu] 2
 \f[B]If low_memory = False\f[R], then complete frovedis dataframe will
 be loaded at once.
+.PP
+\f[I]\f[BI]parse_dates\f[I]\f[R]: List of columns names or positions to
+be parsed as datetime type.
+In order to combine multiple columns in file as a single datetime
+column, list of list is supported.
+(Default: None)
+.PP
+\f[I]\f[BI]datetime_format\f[I]\f[R]: This is a frovedis specific
+parameter.
+The datetime format can be provided a string, list or dictionary for the
+respective columns.
+(Default: None)
+.PP
+\f[I]\f[BI]infer_datetime_format\f[I]\f[R]: In case this parameter is
+set to True, the first hundred rows would be used to infer the datetime
+format.
+In case the datetime format cannot be inferred, the columns would be
+loaded unchanged as string type columns.
+(Default: False)
+.PP
+\f[I]\f[BI]date_parser\f[I]\f[R]: This parameter is not supported.
+In order to specify the datetime format, \f[B]datetime_format\f[R]
+parameter can be used.
+(Default: None)
+.PP
+\f[I]\f[BI]keep_date_col\f[I]\f[R]: In case this parameter is set to
+True and \f[B]parse_dates\f[R] specifies combining multiple columns then
+the original columns are kept in the resultant dataframe.
+(Default: False)
 .PP
 \f[B]Purpose\f[R]
 .PP
