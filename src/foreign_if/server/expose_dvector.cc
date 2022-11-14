@@ -289,6 +289,12 @@ void expose_frovedis_dvector_functions() {
   expose(dvector_replace<float>);
   expose(dvector_replace<double>);
   expose(dvector_replace<std::string>);
+  expose(dvector_astype<int>);
+  expose(dvector_astype<long>);
+  expose(dvector_astype<unsigned long>);
+  expose(dvector_astype<float>);
+  expose(dvector_astype<double>);
+  //expose(dvector_astype<std::string>); //TODO: support string case (if required)
   // frovedis (simple std::vector) vector functionalities
   expose(create_frovedis_vector<int>);
   expose(create_frovedis_vector<long>);

@@ -356,6 +356,21 @@ class FrovedisDvector:
             raise RuntimeError(excpt["info"])
         return FrovedisDvector().load_dummy(dvec)
 
+    def astype(self, dtype=None):
+        """ type casting """
+        to_type = TypeUtil.to_id_dtype(np.dtype(dtype)) if dtype is not None else dtype
+        # returns self when target type is None or same as self.dtype
+        if dtype is None or to_type == self.get_dtype(): 
+            return self
+        (host, port) = FrovedisServer.getServerInstance()
+        proxy = rpclib.dvector_type_cast(host, port, self.get(), \
+                                         self.get_dtype(), to_type)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        dummy_dvec = {'dptr': proxy, 'size': self.size(), 'vtype': to_type}
+        return FrovedisDvector().load(dummy_dvec)
+
     @staticmethod
     def as_dvec(vec, dtype=None, retIsConverted=False):
         if isinstance(vec, FrovedisDvector):

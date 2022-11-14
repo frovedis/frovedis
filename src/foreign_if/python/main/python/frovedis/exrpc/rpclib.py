@@ -1275,6 +1275,11 @@ dvector_replace.argtypes = [c_char_p, c_int,            # host, port
                             c_char_p, c_char_p, c_bool] # from, to, inplace
 dvector_replace.restype = c_long
 
+dvector_type_cast = LIB.dvector_type_cast
+dvector_type_cast.argtypes = [c_char_p, c_int,            # host, port
+                              c_long, c_short, c_short]   # proxy, dtype, to_type
+dvector_type_cast.restype = c_long
+
 dvector_to_numpy_array = LIB.dvector_to_numpy_array
 dvector_to_numpy_array.argtypes = [c_char_p, c_int,    # host, port
                                    c_long, c_void_p,   # proxy, retp

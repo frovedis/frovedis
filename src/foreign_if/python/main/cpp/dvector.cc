@@ -217,6 +217,45 @@ extern "C" {
     return (long) proxy;
   }
 
+  long dvector_type_cast(const char* host, int port, long dptr, 
+                         short dtype, short to_type) {
+    ASSERT_PTR(host);
+    exrpc_node fm_node(host,port);
+    auto f_dptr = (exrpc_ptr_t) dptr;
+    exrpc_ptr_t proxy = 0;
+    try {
+      switch(dtype) {
+        case BOOL:
+        case INT: {
+          proxy = exrpc_async(fm_node, dvector_astype<int>, 
+                              f_dptr, to_type).get(); break;
+        }
+        case DATETIME:
+        case LONG: {
+          proxy = exrpc_async(fm_node, dvector_astype<long>, 
+                              f_dptr, to_type).get(); break;
+        }
+        case ULONG: {
+          proxy = exrpc_async(fm_node, dvector_astype<unsigned long>, 
+                              f_dptr, to_type).get(); break;
+        }
+        case FLOAT: {
+          proxy = exrpc_async(fm_node, dvector_astype<float>, 
+                              f_dptr, to_type).get(); break;
+        }
+        case DOUBLE: {
+          proxy = exrpc_async(fm_node, dvector_astype<double>, 
+                              f_dptr, to_type).get(); break;
+        }
+        default:  REPORT_ERROR(USER_ERROR, "type_cast: Unsupported dtype is encountered!\n");
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return (long) proxy;
+  }
+
   long frov_dvector_replace(const char* host, int port, long dptr, short dtype, 
                             const char* src, const char *target, bool inplace) {
     ASSERT_PTR(host);

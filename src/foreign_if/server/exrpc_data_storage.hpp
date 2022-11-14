@@ -95,6 +95,43 @@ exrpc_ptr_t dvector_replace(exrpc_ptr_t& dptr,
 }
 
 template <class T>
+exrpc_ptr_t dvector_astype(exrpc_ptr_t& dptr,
+                            short& to_type) {
+  auto& dvec = *reinterpret_cast<dvector<T>*>(dptr);
+  exrpc_ptr_t ret = -1;
+  switch(to_type) {
+    case BOOL:
+    case INT: {
+       auto rptr = new dvector<int>(dvec.map_partitions(vector_astype<int, T>));
+       ret = reinterpret_cast<exrpc_ptr_t>(rptr);
+       break;
+    }
+    case LONG: {
+       auto rptr = new dvector<long>(dvec.map_partitions(vector_astype<long, T>));
+       ret = reinterpret_cast<exrpc_ptr_t>(rptr);
+       break;
+    }
+    case ULONG: {
+       auto rptr = new dvector<unsigned long>(dvec.map_partitions(vector_astype<unsigned long, T>));
+       ret = reinterpret_cast<exrpc_ptr_t>(rptr);
+       break;
+    }
+    case FLOAT: {
+       auto rptr = new dvector<float>(dvec.map_partitions(vector_astype<float, T>));
+       ret = reinterpret_cast<exrpc_ptr_t>(rptr);
+       break;
+    }
+    case DOUBLE: {
+       auto rptr = new dvector<double>(dvec.map_partitions(vector_astype<double, T>));
+       ret = reinterpret_cast<exrpc_ptr_t>(rptr);
+       break;
+    }
+    default:  REPORT_ERROR(USER_ERROR, "astype: Unsupported target type is encountered!\n");
+  }
+  return ret;
+}
+
+template <class T>
 exrpc_ptr_t get_encoded_dvector(exrpc_ptr_t& dptr, 
                                 std::vector<T>& src,
                                 std::vector<T>& target) {
