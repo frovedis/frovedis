@@ -179,10 +179,56 @@ class FrovedisGroupedDataframe(object):
         return self.__agg_func_with_mincount("count",
                numeric_only = numeric_only, min_count = min_count)
 
-    def size(self, numeric_only=None, min_count=-1):
+    def size(self):
         """ size """
-        return self.__agg_func_with_mincount("size",
-               numeric_only = numeric_only, min_count = min_count)
+        func = "size"
+        cols, types = self.__cols, self.__types
+        agg_col = [cols[0]] # any grouped column should be fine
+        agg_col_as = [func]
+        sz1 = len(self.__cols)
+        sz2 = len(agg_col)
+        g_cols_arr = get_string_array_pointer(self.__cols)
+        a_col_arr = get_string_array_pointer(agg_col)
+        a_col_as_arr = get_string_array_pointer(agg_col_as)
+
+        min_count = -1 # not applicable for size
+        (host, port) = FrovedisServer.getServerInstance()
+        dummy_df = rpclib.gdf_aggr_with_mincount(host, port, self.__fdata,
+                                                 g_cols_arr, sz1,
+                                                 str_encode(func),
+                                                 a_col_arr,
+                                                 a_col_as_arr, sz2,
+                                                 min_count)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+
+        names = dummy_df["names"]
+        types = dummy_df["types"]
+        # when as_index = True (default):
+        #   - pandas always returns Series as for output of size(), 
+        #   - frovedis returns 
+        #       - output as Series, when number of gropby-key is 1,
+        #       - but when groupby takes place on more than 
+        #         1 column (multi-index), frovedis returns output as DataFrame,
+        #         although to_pandas() would take care to make it Series, since
+        #         it has metadata information regarding multi-index
+        ret = DataFrame().load_dummy(dummy_df["dfptr"], names, types)
+        if not self.as_index:
+            ret.add_index("index")
+            single = pd.Index(self.__cols + agg_col_as)
+        else:
+            single = pd.Index(['']) # unnamed column)
+            if len(self.__cols) > 1:
+                ret.add_index("index")
+                ret.set_multi_index_targets(self.__cols)
+            else:
+                # as_index = True, no. of groupby key = 1
+                ret.is_series = True # hence, it is safe to mark it as Series
+                ret.set_index(keys=self.__cols, drop=True, inplace=True)
+
+        ret.set_multi_level_column(single)
+        return ret      
 
     def mad(self, axis=0, skipna=True, level=None, min_count=-1):
         """ mad """
