@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 from collections import Iterable, OrderedDict
 
-from ..config import global_config
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
                            check_association, do_if_active_association
@@ -33,7 +32,8 @@ from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     infer_column_type_from_first_notna, get_string_typename, \
                     get_python_scalar_type, check_string_or_array_like, \
                     check_stat_error, double_typed_aggregator, \
-                    if_mask_vector, get_null_value, check_string, is_nat
+                    if_mask_vector, get_null_value, check_string, is_nat, \
+                    replace_nat, infer_arraylike_dtype
 from ..utils import deprecated, str_type
 from pandas.core.common import SettingWithCopyWarning
 
@@ -199,7 +199,7 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
             raise ValueError("read_csv: Duplicate names are not allowed.")
 
     if na_values is None:
-        na_values = ['null', 'NULL', 'nan', '-nan', 'NaN', '-NaN', 'NA', 'N/A', 'n/a']
+        na_values = ['', 'null', 'NULL', 'nan', '-nan', 'NaN', '-NaN', 'NA', 'N/A', 'n/a']
     elif isinstance(na_values, dict):
         raise ValueError("read_csv: Frovedis currently doesn't support "\
                          "na_values as dictionary!")
@@ -223,15 +223,26 @@ def read_csv(filepath_or_buffer, sep=',', delimiter=None,
     if dtype and isinstance(dtype, dict):
         dtype = {key: np.dtype(value).name for (key,value) in dtype.items()}
 
-    add_index = True
+    add_index = row1[0] != ''
     if usecols is not None:
-        if all(isinstance(e, int) for e in usecols):
+        usecols = list(set(usecols)) # to remove duplicates
+        usecols_dtype = infer_arraylike_dtype(usecols)
+        if usecols_dtype == "integer":
             usecols = np.asarray(usecols, dtype=np.int32)
             if np.min(usecols) < 0 or np.max(usecols) >= ncols:
                 raise ValueError("read_csv: usecols index is out-of-bound!")
+        elif usecols_dtype == "string":
+            usecols = [row1.index(e) for e in usecols]
+            usecols = np.asarray(usecols, dtype=np.int32)
         else:
-            raise ValueError("read_csv: currently Frovedis supports only ids " +\
-                             "for usecols parameter!")
+            raise ValueError(\
+            "read_csv: 'usecols' must either be array-like of all strings " + \
+            "or all integers.")
+        if 0 in usecols:
+            add_index = True # 0th column is to be treated as non-index column
+        else:
+            if not add_index:
+                usecols = np.insert(usecols, 0, 0) # 0th column is to be treated as index-column
     else:
         usecols = np.empty(0, dtype=np.int32)
 
@@ -535,6 +546,9 @@ class DataFrame(SeriesHelper):
 
         if self.has_index():
             self.index.df = self
+            indx_name = self.index.name
+            if indx_name not in self.__dict__:
+                self.__dict__[indx_name] = self.index
 
         return self
 
@@ -722,15 +736,11 @@ class DataFrame(SeriesHelper):
 
                 arr = val.dt.tz_localize(None).view("int64")
                 dt = DTYPE.DATETIME
-                dvec[idx] = FrovedisLongDvector(arr)
-                nat_value = global_config.get("NaT")
-                dvec[idx].replace(nat_value, get_null_value(DTYPE.LONG), inplace=True)
+                dvec[idx] = replace_nat(FrovedisLongDvector(arr), dt)
             elif vtype.startswith('timedelta64'):
                 arr = val.view("int64")
                 dt = DTYPE.TIMEDELTA
-                dvec[idx] = FrovedisLongDvector(arr)
-                nat_value = global_config.get("NaT")
-                dvec[idx].replace(nat_value, get_null_value(DTYPE.LONG), inplace=True)
+                dvec[idx] = replace_nat(FrovedisLongDvector(arr), dt)
             else:
                 raise TypeError("Unsupported column type '%s' in creation of "\
                                 "frovedis dataframe: " % (vtype))
@@ -764,6 +774,9 @@ class DataFrame(SeriesHelper):
 
         if self.has_index():
             self.index.df = self
+            indx_name = self.index.name
+            if indx_name not in self.__dict__:
+                self.__dict__[indx_name] = self.index
 
         # dvectors in 'dptr' are already destructed during dataframe
         # construction. thus resetting the metadata to avoid double
@@ -1343,7 +1356,7 @@ class DataFrame(SeriesHelper):
         for i in range(0, len(names)):
             item = names[i]
             new_item = new_names[i]
-            if item in ret_cols: # otherwise skipped as in pandas rename()
+            if item in ret_cols and item != new_item: #otherwise skipped as in pandas rename()
                 if inplace:
                     del self.__dict__[item]
                 idx = ret_cols.index(item)
@@ -1709,6 +1722,21 @@ class DataFrame(SeriesHelper):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         return FrovedisDvector(indx_dvec).to_numpy_array()
+
+    def as_dvector(self, colname, dtype=None):
+        """ returns dvector containing the column values """
+        if not isinstance(colname, str):
+            raise ValueError(\
+            "as_dvector: expected a string containing the target column name.")
+        coldtype = TypeUtil.to_id_dtype(self.get_dtype(colname))
+        (host, port) = FrovedisServer.getServerInstance()
+        dvec = rpclib.get_frovedis_col(host, port, self.get(),
+                                       str_encode(colname),
+                                       coldtype)
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
+        return FrovedisDvector(dvec).astype(dtype)
 
     def __to_dict_impl(self, orient="dict", into=dict, include_index=True):
         """
@@ -2190,15 +2218,20 @@ class DataFrame(SeriesHelper):
                                  DTYPE.FLOAT: FrovedisFloatDvector,
                                  DTYPE.DOUBLE: FrovedisDoubleDvector,
                                  DTYPE.STRING: FrovedisStringDvector,
-                                 DTYPE.BOOL: FrovedisIntDvector
+                                 DTYPE.BOOL: FrovedisIntDvector,
+                                 DTYPE.DATETIME: FrovedisLongDvector,
+                                 DTYPE.TIMEDELTA: FrovedisLongDvector
                                 }
         if dtype not in dvec_constructor_map:
-            raise ValueError("Unsupported dtype for creating dvector: {0}!\n"
-                            .format(dtype))
+            raise ValueError(\
+            "Unsupported dtype for creating dvector: {0}!".format(dtype))
         if dtype == DTYPE.BOOL:
             val = np.asarray(val, dtype=np.int32)
+        elif dtype in [DTYPE.DATETIME, DTYPE.TIMEDELTA]:
+            val = np.asarray(val, dtype=np.int64) # TODO: support TimeZone also
         res = dvec_constructor_map[dtype](val)
-        return res
+        # NaT replacement required for [DTYPE.DATETIME, DTYPE.TIMEDELTA] cases
+        return replace_nat(res, dtype) 
 
     def __append_column(self, col_name, data_type, data, position=None,
                         drop_old=False):
@@ -2327,8 +2360,8 @@ class DataFrame(SeriesHelper):
                              names_as=key, inplace=True)
         elif isinstance(value, dfoperator):
             pos = -1 # insert at last
-            drop_old = False
-            self = self.__append_column_impl(key[0], DTYPE.INT, value.mask, pos, drop_old)
+            drop_old = key[0] in self.columns # replace if target is an existing column
+            self = self.__append_column_impl(key[0], DTYPE.BOOL, value.mask, pos, drop_old)
         else:
             if np.isscalar(value):
                 if self.__fdata is None:
@@ -2343,7 +2376,18 @@ class DataFrame(SeriesHelper):
                     value = np.asarray(value) # deduce type
             elif isinstance(value, (list, pd.Series, np.ndarray)):
                 value = np.asarray(value)
-                value = np.array(list(map(lambda x: np.nan if x is None else x, value)))
+                # in case dtype is in [datetime64, timedelta64], converting
+                # to nanosecond values to get expected datetime_t value
+                if np.issubdtype(value.dtype, np.datetime64):
+                    value = np.asarray(value, dtype="datetime64[ns]") 
+                elif np.issubdtype(value.dtype, np.timedelta64):
+                    value = np.asarray(value, dtype="timedelta64[ns]") 
+                # handling None if present
+                if None in value:
+                    try:
+                        value = np.asarray(value, dtype=np.float64)
+                    except ValueError as ve: # in presence of string, float conversion would fail
+                        value[value == None] = np.nan # nan in string-array will be taken care as NULL at server side
                 if value.ndim != 1:
                     raise ValueError(\
                     "array is not broadcastable to correct shape")
@@ -3663,6 +3707,16 @@ class DataFrame(SeriesHelper):
 
         index_name = self.index.name
         dtype = self.index.dtype
+
+        if dtype == DTYPE.DATETIME:
+            if isinstance(value, str):
+                value = pd.to_datetime(value).value
+            elif isinstance(value, pd.Timestamp):
+                value = value.value
+            else:
+                raise ValueError(\
+                "Unknown type '{}' ".format(type(value).__name__) + \
+                "for given value '{}' is detected.".format(value))
 
         (host, port) = FrovedisServer.getServerInstance()
         ret = rpclib.df_get_index_loc(host, port, self.get(), \
