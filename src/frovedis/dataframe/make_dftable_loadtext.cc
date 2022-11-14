@@ -39,8 +39,10 @@ vector<size_t> extract_nulls(std::vector<int>& chars,
 #pragma _NEC vovertake
 #pragma _NEC vob
       for(size_t i = 0; i < nulls_size; i++) {
-        charsp[startsp[nullsp[i]]] = replace_char;
-        lensp[nullsp[i]] = 1;
+        if (lensp[nullsp[i]]) {
+          charsp[startsp[nullsp[i]]] = replace_char;
+          lensp[nullsp[i]] = 1;
+        }
       }
     }
     return nulls;
