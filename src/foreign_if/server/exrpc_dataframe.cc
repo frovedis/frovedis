@@ -1046,6 +1046,7 @@ frov_df_append_column(exrpc_ptr_t& df_proxy,
     case INT:    { auto v1 = reinterpret_cast<dvector<int>*>(dvec_proxy);
                    dftblp->append_column(col_name,std::move(*v1),true);
                    delete v1; break; }
+    case TIMEDELTA:
     case LONG:   { auto v2 = reinterpret_cast<dvector<long>*>(dvec_proxy);
                    dftblp->append_column(col_name,std::move(*v2),true);
                    delete v2; break; }
@@ -1071,6 +1072,10 @@ frov_df_append_column(exrpc_ptr_t& df_proxy,
                    if (nan_as_null) v7->mapv(treat_words_nan_as_null);
                    dftblp->append_dic_string_column(col_name,(*v7),true);
                    delete v7; break; }
+    case TIMESTAMP:
+    case DATETIME: { auto v8 = reinterpret_cast<dvector<datetime_t>*>(dvec_proxy);
+                     dftblp->append_datetime_column(col_name,std::move(*v8),true);
+                     delete v8; break; }
     default:     auto msg = "frov_df_append_column: Unsupported datatype for append_column: "
                             + std::to_string(type);
                  REPORT_ERROR(USER_ERROR,msg);
@@ -1377,6 +1382,7 @@ frov_df_get_index_loc(exrpc_ptr_t& df_proxy, std::string& column,
   switch(dtype) {
     case INT:    res = df.get_loc(column, do_cast<int>(value)); break;
     case BOOL:   res = df.get_loc(column, (int) do_cast<bool>(value)); break;
+    case DATETIME:
     case LONG:   res = df.get_loc(column, do_cast<long>(value)); break;
     case ULONG:  res = df.get_loc(column, do_cast<unsigned long>(value)); break;
     case FLOAT:  res = df.get_loc(column, do_cast<float>(value)); break;

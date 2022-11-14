@@ -52,9 +52,9 @@ class TypeUtil:
             return DTYPE.DOUBLE
         elif dtype == np.bool:
             return DTYPE.BOOL
-        elif dtype == np.datetime64:
+        elif np.issubdtype(dtype, np.datetime64):
             return DTYPE.DATETIME
-        elif dtype == np.timedelta64:
+        elif np.issubdtype(dtype, np.timedelta64):
             return DTYPE.TIMEDELTA
         elif dtype == np.dtype(str) or dtype.char == 'S' or dtype.char == 'U':
             return DTYPE.STRING
