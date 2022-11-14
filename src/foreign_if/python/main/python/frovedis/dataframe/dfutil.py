@@ -4,6 +4,7 @@ import numbers
 import numpy as np
 import pandas as pd
 from collections import Iterable
+from ..config import global_config
 from ..matrix.dtype import DTYPE, TypeUtil, get_result_type
 
 # add future aggregator supporting non-numerics
@@ -69,6 +70,14 @@ def get_null_value(dtype):
         raise TypeError("data type '{0}'' not understood\n".format(dtype))
     return null_val[dtype]
 
+def replace_nat(dvec, dtype):
+    ret = dvec
+    if dtype in [DTYPE.DATETIME, DTYPE.TIMEDELTA]:
+        ret.replace(global_config.get("NaT"), \
+                    get_null_value(DTYPE.LONG), \
+                    inplace=True)
+    return ret
+
 def union_lists(data):
     """ performs union on list of lists """
     return list(set().union(*data))
@@ -81,6 +90,37 @@ def infer_dtype(dfs, colname):
     """
     dtypes = [df.get_dtype(colname) for df in dfs if colname in df.columns]
     return get_result_type(dtypes)
+
+def infer_arraylike_dtype(arrdata):
+    """
+    infers the dtype of the input array-like
+    """
+    n = len(arrdata)
+    n_int = n_float = n_str = n_bool = 0
+    for e in arrdata:
+        if isinstance(e, int):
+            n_int += 1
+        elif isinstance(e, float):
+            n_float += 1
+        elif isinstance(e, str):
+            n_str += 1
+        elif isinstance(e, bool):
+            n_bool += 1
+
+    if n == n_int:
+        return "integer"
+    elif n == n_float:
+        return "floating"
+    elif n == n_str:
+        return "string"
+    elif n == n_bool:
+        return "boolean"
+    elif n == (n_int + n_float):
+        return "mixed-integer-float"
+    elif n == (n_int + n_float + n_str + n_bool):
+        return "mixed"
+    else:
+        return "unknown"
 
 def check_if_consistent(dfs, cast_info):
     """
@@ -378,5 +418,5 @@ def get_str_methods_right_param(op_id, **kwargs):
     else:
         raise ValueError("%s: Unsupported " % (method_name) + \
                          "string method is encountered!")
-
     return ret
+
