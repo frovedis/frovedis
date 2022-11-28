@@ -877,7 +877,7 @@ public class JNISupport {
 
   public static native DummyDftable castFrovedisDataframe(Node master_node,
                                                           long proxy, String cols[],
-                                                          short ctypes[], String cfmt[], long size);
+                                                          short ctypes[], long size);
   public static native long createFrovedisDataframe(Node master_node,
                                                   short dtypes[],
                                                   String cols_names[],
