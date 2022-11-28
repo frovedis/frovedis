@@ -9,7 +9,7 @@ from ..exrpc.server import FrovedisServer
 from ..matrix.dtype import TypeUtil, DTYPE, str_encode
 from .dfoperator import dfoperator
 from .dfutil import check_stat_error, check_none_or_int, \
-                    STR, get_str_methods_right_param
+                    STR, get_str_methods_right_param, get_col_frequency
 from .optype import *
 
 class FrovedisColumn(object):
@@ -79,6 +79,19 @@ class FrovedisColumn(object):
         """values setter"""
         raise AttributeError(\
             "attribute 'values' of FrovedisColumn object is not writable")
+
+    @property
+    def inferred_freq(self):
+        """
+        infers frequency of the values in input series (if possible)
+        """
+        return get_col_frequency(self.get_frovedis_series(), self.name) 
+
+    @inferred_freq.setter
+    def inferred_freq(self, val):
+        """inferred_freq setter"""
+        raise AttributeError(\
+            "attribute 'inferred_freq' of FrovedisColumn object is not writable")
 
     @property
     def name(self):

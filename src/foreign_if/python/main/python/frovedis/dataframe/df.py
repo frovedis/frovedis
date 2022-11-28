@@ -4857,19 +4857,23 @@ class DataFrame(SeriesHelper):
         self.__multi_index = cols
         return self
    
-    def _wrap_result(self, dummy_df, as_series=None):
+    def _wrap_result(self, dummy_df, as_series=None, ignore_index=None):
         """ 
         constructs DataFrame object from DummyDataFrame object created at server side 
         """
         if as_series is not None and not isinstance(as_series, bool):
-            raise TypeError("as_series is expected to bee boolean or None")
+            raise TypeError("as_series is expected to be boolean or None")
+        if ignore_index is not None and not isinstance(ignore_index, bool):
+            raise TypeError("ignore_index is expected to be boolean or None")
 
         names = dummy_df["names"]
         types = dummy_df["types"]
         is_series = self.is_series if as_series is None else as_series
         ret = DataFrame(is_series = is_series)
         ret.num_row = dummy_df["nrow"]
-        if self.has_index():
+        wrap_index = self.has_index() if ignore_index is None \
+                                      else not ignore_index
+        if wrap_index:
             ret.index = FrovedisColumn(names[0], types[0]) #setting index
             ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         else:

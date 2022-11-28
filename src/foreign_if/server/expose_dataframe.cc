@@ -195,4 +195,9 @@ void expose_frovedis_dataframe_functions() {
   expose(frovedis_series_pad);
   expose(frovedis_df_to_csv);
   expose(frovedis_set_datetime_type_for_add_sub_op);
+  expose(frovedis_get_frequency<int>);
+  expose(frovedis_get_frequency<long>);
+  expose(frovedis_get_frequency<unsigned long>);
+  expose(frovedis_get_frequency<float>);
+  expose(frovedis_get_frequency<double>);
 }

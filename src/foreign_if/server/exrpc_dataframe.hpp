@@ -1253,4 +1253,54 @@ dummy_dftable frov_df_concat_columns(exrpc_ptr_t& df_proxy,
 
 void frovedis_set_datetime_type_for_add_sub_op(std::string& name);
 
+template <class T>
+std::vector<T>
+diff_helper(std::vector<T>& vec, int period) {
+    auto vecp = vec.data();
+    auto sz = vec.size();
+    // process having less data than period, simply returns empty vector
+    // since they donot need to compute the diff
+    if (sz < period) return std::vector<T>();
+
+    std::vector<T> diff_vec(sz - period);
+    auto diff_vecp = diff_vec.data();
+    for (size_t i = 0; i < sz - period; ++i) {
+      auto next = i + period;
+      diff_vecp[i] = vecp[next] - vecp[i];
+    }
+    return diff_vec;
+}
+
+template <class T>
+T infer_lvec_frequency(lvec<T>& val, int period) {
+  auto l_shadow = extend_lower_shadow(val, period);
+  auto l_diff = l_shadow.map(diff_helper<T>, broadcast(period));       // calculate diff locally
+  auto is_uniform = l_diff.map(vector_is_uniform<T>).reduce(add<int>); // check uniformity locally
+  auto freq = std::numeric_limits<T>::max();
+  if (is_uniform) {  // if uniform, gather first elements and confirm uniformity globally
+    auto all_first = l_diff.map(+[](const std::vector<T>& vec) {
+                        std::vector<T> first;
+                        if (vec.size() > 0) first.push_back(vec[0]);
+                        return first;
+                     }).template moveto_dvector<T>().gather();
+    if (!all_first.empty() && vector_is_uniform(all_first)) freq = all_first[0];
+  }
+  return freq;
+}
+
+template <class T>
+dummy_dftable 
+frovedis_get_frequency(exrpc_ptr_t& data_ptr, 
+                       std::string& col, int& period) {
+  dftable& df = *get_dftable_pointer(data_ptr);
+  auto dfcol = df.column(col);
+  use_dfcolumn use(dfcol);
+  auto data = std::dynamic_pointer_cast<typed_dfcolumn<T>>(dfcol);
+  std::vector<T> freq = {infer_lvec_frequency(data->val, period)};
+  auto dvec = make_dvector_scatter(freq);
+  auto retp = new dftable();
+  retp->append_column("inferred_freq", std::move(dvec), true); // can have null when failed to infer frequency
+  return to_dummy_dftable(retp);
+}
+
 #endif

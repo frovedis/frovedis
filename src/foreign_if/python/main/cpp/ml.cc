@@ -2088,22 +2088,4 @@ extern "C" {
       set_status(true, e.what());
     }
   }
-
-  long get_frequency(const char* host, int port,
-                               long xptr, const char* col) {
-    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
-    exrpc_node fm_node(host,port);
-    auto f_xptr = (exrpc_ptr_t) xptr;
-    long ret = std::numeric_limits<long>::max();
-    std::string _col = col;
-    try {
-      ret = exrpc_async(fm_node, (frovedis_get_frequency<long>),
-                                 f_xptr, _col).get();
-    }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
-    return ret;
-  }
-
 }

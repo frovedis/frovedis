@@ -2512,7 +2512,6 @@ arima_predict = LIB.arima_predict
 arima_predict.argtypes = [c_char_p, c_int,   #host, port
                           c_ulong, c_ulong,  #start, stop
                           c_int, c_short]    #mid, dtype
-
 arima_predict.restype = py_object
 
 #------------- forecast() -------------------#
@@ -2520,13 +2519,12 @@ arima_forecast = LIB.arima_forecast
 arima_forecast.argtypes = [c_char_p, c_int,   #host, port
                            c_ulong, c_int,    #steps, mid
                            c_short]           #dtype
-
 arima_forecast.restype = py_object
 
 #------------- get_frequency() -------------------#
 get_frequency = LIB.get_frequency
-get_frequency.argtypes = [c_char_p, c_int,      # host, port
-                                    c_long, c_char_p]    # data, col
-
-get_frequency.restype = c_long
+get_frequency.argtypes = [c_char_p, c_int,    # host, port
+                          c_long, c_char_p,   # proxy, col_name
+                          c_short, c_int]     # col_type, period
+get_frequency.restype = py_object
 

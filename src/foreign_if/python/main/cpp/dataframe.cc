@@ -2164,4 +2164,37 @@ extern "C" {
     }
   }
 
+  PyObject* get_frequency(const char* host, int port,
+                          long xptr, const char* col, 
+                          short dtype, int period) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    dummy_dftable ret;
+    std::string _col = col;
+    try {
+      switch(dtype) {
+        case BOOL:   
+        case INT:  ret = exrpc_async(fm_node, frovedis_get_frequency<int>,
+                                     f_xptr, _col, period).get(); break;
+        case TIMEDELTA:
+        case DATETIME:
+        case LONG: ret = exrpc_async(fm_node, frovedis_get_frequency<long>,
+                                     f_xptr, _col, period).get(); break;
+        case ULONG:  ret = exrpc_async(fm_node, frovedis_get_frequency<unsigned long>,
+                                       f_xptr, _col, period).get(); break;
+        case FLOAT:  ret = exrpc_async(fm_node, frovedis_get_frequency<float>,
+                                       f_xptr, _col, period).get(); break;
+        case DOUBLE: ret = exrpc_async(fm_node, frovedis_get_frequency<double>,
+                                       f_xptr, _col, period).get(); break;
+        default:     REPORT_ERROR(USER_ERROR, 
+                     "Unsupported column type for frequency calculation: " + std::to_string(dtype));
+      }
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return to_py_dummy_df(ret);
+  }
+
 }

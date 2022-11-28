@@ -1,5 +1,6 @@
 """ dfutil: module containing utility programs for dataframe """
 
+import math
 import numbers
 import numpy as np
 import pandas as pd
@@ -422,20 +423,32 @@ def get_str_methods_right_param(op_id, **kwargs):
                          "string method is encountered!")
     return ret
 
-def get_frequency(frov_df, col_name):
+def get_col_frequency(frov_df, col_name, periods=1):
     """
     DESC: Returns the detected frequency in the given column.
           If frequency is not monotonic then returns None.
     PARAMS: frov_df:  Frovedis dataframe containing the column data
             col_name: String name of column for which frequency is to  be 
                       calculated.
+            periods: Periods to shift for calculating difference, only positive values.
     RETURN: frequency value else None.
     """
+    if isinstance(periods, int):
+       if periods < 0:
+           raise ValueError("get_col_frequency: currently only possitive " + \
+                            "value is supported as for 'periods' parameter.")
+    else:
+       raise ValueError("get_col_frequency: expected a numeric value " + \
+                        "as for 'periods' parameter.")
+
     (host, port) = FrovedisServer.getServerInstance()
-    freq = rpclib.get_frequency(host, port, frov_df.get(),\
-                                str_encode(col_name))
+    dummy_df = rpclib.get_frequency(host, port, frov_df.get(),\
+                          str_encode(col_name), \
+                          frov_df[col_name].dtype, periods)
     excpt = rpclib.check_server_exception()
     if excpt["status"]:
         raise RuntimeError(excpt["info"])
-    LONG_MAX = np.iinfo(np.int64).max
-    return freq if freq != LONG_MAX else None
+    retdf = frov_df._wrap_result(dummy_df, as_series=True, ignore_index=True)
+    ret = retdf.values[0]
+    return None if math.isnan(ret) else ret
+
