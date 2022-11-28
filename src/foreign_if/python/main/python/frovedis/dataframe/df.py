@@ -131,10 +131,11 @@ def infer_datetime_column_format(df, col):
     try:
         from pandas._libs.tslibs.parsing import guess_datetime_format
     except ImportError:
-        raise \
-        ImportError("guess_datetime_format: You are currently using pandas {}"\
-                    .format(pd.__version__) + \
-                    ", whereas pandas >= 1.2.0 is required to use this module")
+        raise ImportError(\
+        "guess_datetime_format: You are currently using " + \
+        "pandas {}, whereas ".format(pd.__version__) + \
+        "pandas >= 1.2.0 is required to use this feature.")
+
     all_formats = [ guess_datetime_format(e) for e in df[col] ]
 
     cnt = {}
@@ -2696,17 +2697,18 @@ class DataFrame(SeriesHelper):
                   " and 'datetime64[ns]' are supported.")
 
     @check_association
-    def __get_datetime_fmt(self, col_list):
-        datetime_fmt = []
+    def __infer_datetime_format(self, col_list):
+        datetime_fmt = [""] * len(col_list) # format would be inferred only for string columns
         sample_size = 100
         for col_name in col_list:
-            datetime_fmt.append(infer_datetime_column_format( \
-                               self.dropna(axis=0, \
-                                           subset=[col_name], \
-                                           inplace=False)[:sample_size] \
-                                   .to_pandas(), \
-                               col_name))
-            if None == datetime_fmt[-1]: return None
+            if self[col_name].dtype == DTYPE.STRING:
+                fmt = infer_datetime_column_format(\
+                         self[[col_name]].dropna()[:sample_size].to_pandas(), \
+                         col_name)
+                if fmt is None:
+                    raise ValueError("Failed to infer the datetime format " + \
+                                     "for column '{}'".format(col_name))
+                datetime_fmt.append(fmt)
         return datetime_fmt
 
     @check_association
@@ -2722,13 +2724,12 @@ class DataFrame(SeriesHelper):
         t_cols = []
         t_dtypes = []
         if isinstance (dtype, (str, type)):
-            self.__assert_supported_datetime_types(np.dtype(dtype))
             numpy_dtype = np.dtype(dtype)
+            self.__assert_supported_datetime_types(numpy_dtype)
             t_cols = list(self.columns)
             t_dtypes = [TypeUtil.to_id_dtype(numpy_dtype)] * len(t_cols)
             if t_dtypes[0] == DTYPE.DATETIME:
-                datetime_fmt = self.__get_datetime_fmt(t_cols)
-                if None == datetime_fmt: return None
+                datetime_fmt = self.__infer_datetime_format(t_cols)
             else:
                 datetime_fmt = [""] * len(t_cols)
         elif isinstance (dtype, dict): # might include index as well
@@ -2736,13 +2737,14 @@ class DataFrame(SeriesHelper):
             for k, v in dtype.items():
                 if k in self.columns or \
                     (self.has_index() and k == self.index.name):
+                    numpy_dtype = np.dtype(v)
+                    id_dtype = TypeUtil.to_id_dtype(numpy_dtype)
+                    self.__assert_supported_datetime_types(numpy_dtype)
                     t_cols.append(k)
-                    self.__assert_supported_datetime_types(np.dtype(v))
-                    t_dtypes.append(TypeUtil.to_id_dtype(np.dtype(v)))
-                    if t_dtypes[-1] == DTYPE.DATETIME:
-                        part_fmt = self.__get_datetime_fmt([t_cols[-1]])
-                        if None == part_fmt: return None
-                        datetime_fmt.extend(part_fmt)
+                    t_dtypes.append(id_dtype)
+                    if id_dtype == DTYPE.DATETIME:
+                        part_fmt = self.__infer_datetime_format([k])
+                        datetime_fmt.append(part_fmt[0])
                     else:
                         datetime_fmt.append("")
         else:
