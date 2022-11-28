@@ -25,6 +25,7 @@ from ....matrix.dvector import FrovedisDvector
 from ....matrix.dtype import str_encode, TypeUtil, DTYPE
 from ...model_util import M_KIND, ModelID, GLM
 from ....dataframe import df as fd
+from ....dataframe import frovedisColumn as fc
 
 class ARIMA(BaseEstimator):
     """
@@ -108,8 +109,51 @@ class ARIMA(BaseEstimator):
         self.__ma_lag = None
         self._metadata = None #Used to hold Series/Dataframe index information
 
+    def _check_index_frov(self, default_index):
+        index_dtype = TypeUtil.to_id_dtype(self.endog.get_dtype(self.endog.index.name))
+        if self.freq is not None:
+            warnings.warn("'freq' parameter will be ignored as it is " + \
+                              "not supported with Frovedis data input. ")
+        if index_dtype in [DTYPE.INT, DTYPE.LONG, DTYPE.DATETIME]:
+            (host, port) = FrovedisServer.getServerInstance()
+            self.__frov_infr_freq = rpclib.get_frequency(host, port, self.endog.get(),\
+                                            str_encode(self.endog.index.name))
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            LONG_MAX = np.iinfo(np.int64).max
+            if LONG_MAX == self.__frov_infr_freq:
+                warnings.warn("An unsupported index was provided and " + \
+                              "will be ignored when e.g. forecasting.")
+                return (default_index, False)
+            return (self.endog.index, True)
+        if index_dtype == DTYPE.STRING:
+            self.casted_df = self.endog[[self.endog.index.name]].astype(dtype="datetime64") 
+            if self.casted_df is None:
+                return (default_index, False)
+            (host, port) = FrovedisServer.getServerInstance()
+            self.__frov_infr_freq = rpclib.get_frequency(host, port, self.casted_df.get(),\
+                                             str_encode(self.casted_df.columns[0]))
+            excpt = rpclib.check_server_exception()
+            if excpt["status"]:
+                raise RuntimeError(excpt["info"])
+            LONG_MAX = np.iinfo(np.int64).max
+            if LONG_MAX == self.__frov_infr_freq:
+                warnings.warn("A date index has been provided, but it " + \
+                              "is not monotonic and so will be ignored" + \
+                              " when e.g. forecasting.")
+                return (default_index, False)
+            final_index = self.casted_df[self.endog.index.name]
+            self.casted_df.set_index(self.endog.index.name, inplace=True)
+            return (final_index, True)
+        warnings.warn("An unsupported index was provided and " + \
+                      "will be ignored when e.g. forecasting.")
+        return (default_index, False)
+
     def _check_index(self):
         default_index = Index(range(self.endog.shape[0]))
+        if isinstance(self.endog.index, fc.FrovedisColumn):
+            return self._check_index_frov(default_index)
         final_index = copy.deepcopy(self.endog.index)
         if isinstance(final_index, RangeIndex):
             return (final_index, True)
@@ -158,8 +202,25 @@ class ARIMA(BaseEstimator):
     def _valid_input(self):
         endog = None
         if isinstance(self.endog, fd.DataFrame):
-            raise NotImplementedError("Currently, endog cannot be passed as" + \
-                                      " frovedis DataFrame!")
+            shape = (len(self.endog), len(self.endog.columns))
+            if len(shape) == 2 and shape[1] == 1:
+                if shape[0] < (self.__ar_lag + self.__diff_order + \
+                               self.__ma_lag + self.seasonal + 2):
+                    raise ValueError("Number of samples in input is too " + \
+                                     "less for time series analysis!")
+                self._metadata = self._check_index()
+                df_dtype = TypeUtil.to_id_dtype( \
+                               self.endog.get_dtype( \
+                                   self.endog.columns[0]))
+                if df_dtype in [DTYPE.INT, DTYPE.LONG]:
+                    endog = self.endog.as_dvector(self.endog.columns[0], \
+                                                  dtype=np.float64)
+                else:
+                    endog = self.endog.as_dvector(self.endog.columns[0])
+                self._endog_len = shape[0]
+            else:
+                raise ValueError("Frovedis ARIMA models require univariate " + \
+                                 "`endog`. Got shape {0}".format(shape))
         elif isinstance(self.endog, DataFrame):
             shape = np.shape(self.endog)
             if len(shape) == 2 and shape[1] == 1:
@@ -387,6 +448,69 @@ class ARIMA(BaseEstimator):
                     index = Index(np.arange(index[0], int(key + 1)))
                     key = len(index) - 1
                     key_oos = True
+        elif isinstance(index, fc.FrovedisColumn): #and index.dtype in [np.int64, np.int32]:
+            if isinstance(key, int):
+                if key < 0:
+                    if self._endog_len >= abs(key):
+                        key = self._endog_len + key
+                        if index.dtype == DTYPE.DATETIME:
+                            index = index.to_numpy("datetime64")
+                        else:
+                            index = index.to_numpy()
+                    else:
+                        raise KeyError(key)
+                elif key >= self._endog_len:
+                    if index.dtype == DTYPE.DATETIME:
+                        import pandas as pd
+                        start = pd.to_datetime(index.to_numpy()[0])
+                        end = pd.to_datetime(index.to_numpy()[0] + \
+                                          int(key + 1) * self.__frov_infr_freq)
+                        step = self.__frov_infr_freq
+                        index = np.arange(start, end, step, \
+                                          dtype="datetime64[ns]")
+                    else:
+                        index = np.arange(index.to_numpy()[0], \
+                                        int(key + 1) * self.__frov_infr_freq, \
+                                        self.__frov_infr_freq)
+                    key = len(index) - 1
+                    key_oos = True
+                else:
+                    if index.dtype == DTYPE.DATETIME:
+                        index = index.to_numpy('datetime64')
+                    else:
+                        index = index.to_numpy()
+            elif isinstance(key, (datetime.datetime, str)):
+                try:
+                    import pandas as pd
+                    key_ts = pd.to_datetime(key, infer_datetime_format=True)
+                    if key_ts > pd.to_datetime(index.to_numpy()[-1], \
+                                               infer_datetime_format=True):
+                        if index.dtype == DTYPE.DATETIME:
+                            start = pd.to_datetime(index.to_numpy()[0], \
+                                                   infer_datetime_format=True)
+                            end = pd.to_datetime( \
+                                   (int(key_ts.value) + self.__frov_infr_freq),\
+                                   infer_datetime_format=True)
+                            step = self.__frov_infr_freq
+                            index = np.arange(start, end, step, \
+                                              dtype="datetime64[ns]")
+                            key = len(index) - 1
+                            key_oos = True
+                        else:
+                            raise TypeError("Datetime type start/end expects a" \
+                                            + " datetime type index!")
+                    else:
+                        if index.dtype == DTYPE.DATETIME:
+                            if self.endog.index.dtype == DTYPE.STRING:
+                                key = self.casted_df.get_index_loc(key)
+                            else:
+                                key = self.endog.get_index_loc(key)
+                            index = index.to_numpy('datetime64')
+                        else:
+                            key = self.endog.get_index_loc(key)
+                            index = index.to_numpy()
+                except KeyError as kerr:
+                    raise KeyError(key) from kerr
         else:
             raise NotImplementedError("Invalid index type")
         return key, index, key_oos
@@ -396,24 +520,36 @@ class ARIMA(BaseEstimator):
         if isinstance(index, RangeIndex):
             if isinstance(key, int):
                 if key <= self._endog_len:
-                    index = self.endog.index
+                    if isinstance (self.endog.index, fc.FrovedisColumn):
+                        index = self.endog.index.to_numpy()
+                    else:
+                        index = self.endog.index
                 if key < 0:
                     if self._endog_len >= abs(key):
                         key = self._endog_len + key
-                        index = self.endog.index
+                        if isinstance (self.endog.index, fc.FrovedisColumn):
+                            index = self.endog.index.to_numpy()
+                        else:
+                            index = self.endog.index
                     else:
                         raise IndexError('index' + str(key) + ' is out of ' + \
                                          'bounds for axis 0 with ' + \
                                          'size ' + str(self._endog_len))
                 elif key > self._endog_len:
                     end = index.start + (key + 1) * index.step
-                    index = RangeIndex(start = index.start, stop = end, \
-                                       step = index.step)
+                    if isinstance (self.endog.index, fc.FrovedisColumn):
+                        index = np.arange(index.start, end, index.step)
+                    else:
+                        index = RangeIndex(start = index.start, stop = end, \
+                                           step = index.step)
                     key = index[key]
                     key_oos = True
             else:
-                key = self.endog.index.get_loc(key)
-                index = self.endog.index
+                key = self.endog.get_index_loc(key)
+                if isinstance (self.endog.index, fc.FrovedisColumn):
+                    index = self.endog.index.to_numpy()
+                else:
+                    index = self.endog.index
         return key, index, key_oos
 
     def _make_pred_index(self, key, index, valid_index):
@@ -518,6 +654,12 @@ class ARIMA(BaseEstimator):
                 pred_index = end_index[start : end + 1]
             else:
                 pred_index = end_index[start:]
+            if isinstance(self.endog.index, fc.FrovedisColumn):
+                ret_fdf = fd.DataFrame(is_series=True)
+                ret_fdf['id'] = pred_index
+                ret_fdf['predicted_mean'] = arima_pred
+                ret_fdf.set_index('id', inplace=True)
+                return ret_fdf
             return Series(arima_pred, index = pred_index, \
                           name = "predicted_mean")
         return np.asarray(arima_pred, dtype = np.float64)
@@ -569,6 +711,28 @@ class ARIMA(BaseEstimator):
                 end = index[-1] + int(steps + 1)
                 index = Index(np.arange(start=index[-1], stop=end))
                 steps = len(index) - 1
+        elif isinstance(index, fc.FrovedisColumn):
+            if isinstance(steps, int):
+                if steps <= 0:
+                    raise ValueError("Prediction must have `end` " + \
+                                     "after `start`!")
+                if index.dtype == DTYPE.DATETIME:
+                    import pandas as pd
+                    start = pd.to_datetime(index.to_numpy()[-1])
+                    end = pd.to_datetime(index.to_numpy()[-1] + \
+                                        int(steps + 1) * self.__frov_infr_freq)
+                    step = self.__frov_infr_freq
+                    index = np.arange(start, end, step, dtype="datetime64[ns]")
+                else:
+                    index = np.arange(index.to_numpy()[-1], \
+                                      index.to_numpy()[-1] \
+                                      + int(steps + self.__frov_infr_freq + 1), \
+                                      self.__frov_infr_freq)
+                steps = len(index) - 1
+            else:
+                raise TypeError("Invalid type for steps. Expected type is int"+\
+                                " or long. Received steps type is '%s'" \
+                                % type(steps))
         else:
             raise NotImplementedError("Invalid index type")
         return steps, index
@@ -580,7 +744,10 @@ class ARIMA(BaseEstimator):
                     raise ValueError("Prediction must have `end` " + \
                                      "after `start`!")
                 end = steps + index.stop + 1
-                index = RangeIndex(start = index.stop, stop = end)
+                if isinstance(self.endog.index, fc.FrovedisColumn):
+                    index = np.arange(start = index.stop, stop = end)
+                else:
+                    index = RangeIndex(start = index.stop, stop = end)
                 steps = len(index) - 1
             else:
                 raise KeyError(steps)
@@ -638,9 +805,21 @@ class ARIMA(BaseEstimator):
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
         if self._metadata is not None and self._metadata[1]:
+            if isinstance(self.endog.index, fc.FrovedisColumn):
+                ret_fdf = fd.DataFrame(is_series=True)
+                ret_fdf['id'] = step_index[1:steps + 1]
+                ret_fdf['predicted_mean'] = fcast
+                ret_fdf.set_index('id', inplace=True)
+                return ret_fdf
             return Series(fcast, index = step_index[1:steps + 1], \
                           name = "predicted_mean")
         if self._metadata is not None and not self._metadata[1]:
+            if isinstance(self.endog.index, fc.FrovedisColumn):
+                ret_fdf = fd.DataFrame(is_series=True)
+                ret_fdf['id'] = step_index[:steps]
+                ret_fdf['predicted_mean'] = fcast
+                ret_fdf.set_index('id', inplace=True)
+                return ret_fdf
             return Series(fcast, index = step_index[:steps], \
                           name = "predicted_mean")
         return np.asarray(fcast, dtype = np.float64)
@@ -655,16 +834,31 @@ class ARIMA(BaseEstimator):
         """
         if self._fittedvalues is None:
             (host, port) = FrovedisServer.getServerInstance()
-            ret = rpclib.get_fitted_vector(host, port, self.__mid, \
-                                           self.__mkind, self.__mdtype)
+            if self.__mdtype == DTYPE.FLOAT:
+                ret = np.zeros(len(self.endog), dtype=np.float32)
+                rpclib.get_fitted_vector_float(host, port, self.__mid, \
+                                     self.__mkind, self.__mdtype, ret)
+            elif self.__mdtype == DTYPE.DOUBLE:
+                ret = np.zeros(len(self.endog), dtype=np.float64)
+                rpclib.get_fitted_vector_double(host, port, self.__mid, \
+                                     self.__mkind, self.__mdtype, ret)
+            else:
+                raise TypeError("Unsupported dtype found in endog!")
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
             if self._metadata is None:
                 self._fittedvalues = np.asarray(ret, dtype = np.float64)
             else:
-                self._fittedvalues = Series(data = ret, \
-                                            index = self.endog.index)
+                if isinstance(self.endog.index, fc.FrovedisColumn):
+                    ret_fdf = fd.DataFrame(is_series=True)
+                    ret_fdf['id'] = self.endog.index
+                    ret_fdf[''] = ret
+                    ret_fdf.set_index('id', inplace=True)
+                    self._fittedvalues = ret_fdf
+                else:
+                    self._fittedvalues = Series(data = ret, \
+                                                index = self.endog.index)
         return self._fittedvalues
 
     @fittedvalues.setter

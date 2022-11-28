@@ -5,7 +5,9 @@ import numpy as np
 import pandas as pd
 from collections import Iterable
 from ..config import global_config
-from ..matrix.dtype import DTYPE, TypeUtil, get_result_type
+from ..matrix.dtype import DTYPE, TypeUtil, get_result_type, str_encode
+from ..exrpc import rpclib
+from ..exrpc.server import FrovedisServer
 
 # add future aggregator supporting non-numerics
 
@@ -420,3 +422,20 @@ def get_str_methods_right_param(op_id, **kwargs):
                          "string method is encountered!")
     return ret
 
+def get_frequency(frov_df, col_name):
+    """
+    DESC: Returns the detected frequency in the given column.
+          If frequency is not monotonic then returns None.
+    PARAMS: frov_df:  Frovedis dataframe containing the column data
+            col_name: String name of column for which frequency is to  be 
+                      calculated.
+    RETURN: frequency value else None.
+    """
+    (host, port) = FrovedisServer.getServerInstance()
+    freq = rpclib.get_frequency(host, port, frov_df.get(),\
+                                str_encode(col_name))
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]:
+        raise RuntimeError(excpt["info"])
+    LONG_MAX = np.iinfo(np.int64).max
+    return freq if freq != LONG_MAX else None

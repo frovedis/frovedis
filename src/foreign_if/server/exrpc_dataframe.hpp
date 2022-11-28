@@ -600,6 +600,7 @@ dummy_dftable
 frov_df_astype(exrpc_ptr_t& df_proxy,
                std::vector<std::string>& cols,
                std::vector<short>& types,
+               std::vector<std::string>& fmt,
                bool& check_bool_like_string);
 
 dummy_dftable

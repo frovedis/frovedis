@@ -1331,20 +1331,23 @@ extern "C" {
 
   PyObject* df_astype(const char* host, int port, 
                       long df,  
-                      const char** cols, short* types,
+                      const char** cols, short* types, const char** dt_fmt,
                       ulong size, bool check_bool_like_string) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (df);
     std::vector<std::string> cc(size);
     std::vector<short> tt(size);
+    std::vector<std::string> fmt(size);
     for(size_t i = 0; i < size; ++i) {
        cc[i] = std::string(cols[i]);
        tt[i] = types[i];
+       fmt[i] = std::string(dt_fmt[i]);
     }
     dummy_dftable res;
     try {
-      res = exrpc_async(fm_node, frov_df_astype, df_proxy, cc, tt, check_bool_like_string).get();
+      res = exrpc_async(fm_node, frov_df_astype, df_proxy, cc, tt, fmt, 
+                        check_bool_like_string).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());

@@ -271,9 +271,11 @@ df_copy_column.argtypes = [c_char_p, c_int, c_long, c_long,
 df_copy_column.restype = py_object
 
 df_astype = LIB.df_astype
-df_astype.argtypes = [c_char_p, c_int, c_long,
-                      POINTER(c_char_p),
-                      POINTER(c_short), c_ulong, c_bool]
+df_astype.argtypes = [c_char_p, c_int, c_long, #host,port,data
+                      POINTER(c_char_p),       #t_cols_ptr
+                      POINTER(c_short),        #t_dtypes_ptr
+                      POINTER(c_char_p),       #t_datetime_fmt_ptr
+                      c_ulong, c_bool]         #len(t_cols), chek_bool
 df_astype.restype = py_object
 
 select_frovedis_dataframe = LIB.select_frovedis_dataframe
@@ -2498,9 +2500,12 @@ arima_fit.argtypes = [c_char_p, c_int, c_long,    #host, port, endog
                       c_int, c_int, c_short]      #vb, mid, dtype 
 
 #-------- fittedvalue attribute ------------#
-get_fitted_vector = LIB.get_fitted_vector
-get_fitted_vector.argtypes = [c_char_p, c_int, c_int, c_short, c_short]
-get_fitted_vector.restype = py_object
+get_fitted_vector_float = LIB.get_fitted_vector_float
+get_fitted_vector_float.argtypes = [c_char_p, c_int, c_int, c_short, c_short, \
+                              ndpointer(c_float, ndim=1, flags="C_CONTIGUOUS")]
+get_fitted_vector_double = LIB.get_fitted_vector_double
+get_fitted_vector_double.argtypes = [c_char_p, c_int, c_int, c_short, c_short, \
+                              ndpointer(c_double, ndim=1, flags="C_CONTIGUOUS")]
 
 #------------- predict() -------------------#
 arima_predict = LIB.arima_predict
@@ -2517,4 +2522,11 @@ arima_forecast.argtypes = [c_char_p, c_int,   #host, port
                            c_short]           #dtype
 
 arima_forecast.restype = py_object
+
+#------------- get_frequency() -------------------#
+get_frequency = LIB.get_frequency
+get_frequency.argtypes = [c_char_p, c_int,      # host, port
+                                    c_long, c_char_p]    # data, col
+
+get_frequency.restype = c_long
 

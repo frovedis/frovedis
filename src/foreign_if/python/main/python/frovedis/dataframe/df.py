@@ -128,7 +128,11 @@ def infer_datetime_column_format(df, col):
     """
     infer datetime format for a column
     """
-    from pandas._libs.tslibs.parsing import guess_datetime_format
+    try:
+        from pandas._libs.tslibs.parsing import guess_datetime_format
+    except ImportError:
+        raise \
+        ImportError("Failed to import Pandas guess_datetime_format module.")
     all_formats = [ guess_datetime_format(e) for e in df[col] ]
 
     cnt = {}
@@ -137,7 +141,15 @@ def infer_datetime_column_format(df, col):
             cnt[e] += 1
         else:
             cnt[e] = 1
-
+    if None in cnt: return None #one or more formats could not be interpreted.
+    if len(cnt) > 2: return None #too many formats found to infer reliably.
+    sep = all_formats[0][1]
+    if len(cnt) == 2:
+        if ('d'+sep+'m'+sep+'Y' in [cnt]) ^ ('m'+sep+'d'+sep+'Y' in [cnt]) \
+         or ('d'+sep+'Y'+sep+'m' in [cnt]) ^ ('m'+sep+'Y'+sep+'d' in [cnt])\
+         or ('Y'+sep+'d'+sep+'m' in [cnt]) ^ ('Y'+sep+'m'+sep+'d' in [cnt]): 
+            return None
+    
     res = max(cnt, key=cnt.get)
     return res
 
@@ -733,7 +745,6 @@ class DataFrame(SeriesHelper):
                 if isinstance(val, pd.DatetimeIndex):
                     val = val.to_series()
                 self.datetime_cols_info[s_cname] = val.dt.tz.zone if val.dt.tz else None
-
                 arr = val.dt.tz_localize(None).view("int64")
                 dt = DTYPE.DATETIME
                 dvec[idx] = replace_nat(FrovedisLongDvector(arr), dt)
@@ -2671,6 +2682,32 @@ class DataFrame(SeriesHelper):
         return self
 
     @check_association
+    def __assert_supported_datetime_types(self, np_type):
+        """
+        DESC: Only datetime64 and datetime64[ns] are supported.
+        """
+        if "datetime" in str(np_type):
+            if str(np_type) != "datetime64" and \
+               str(np_type) != "datetime64[ns]":
+                raise NotImplementedError( \
+                  "Unsupported datetime type encountered. Only 'datetime64'"+ \
+                  " and 'datetime64[ns]' are supported.")
+
+    @check_association
+    def __get_datetime_fmt(self, col_list):
+        datetime_fmt = []
+        sample_size = 100
+        for col_name in col_list:
+            datetime_fmt.append(infer_datetime_column_format( \
+                               self.dropna(axis=0, \
+                                           subset=[col_name], \
+                                           inplace=False)[:sample_size] \
+                                   .to_pandas(), \
+                               col_name))
+            if None == datetime_fmt[-1]: return None
+        return datetime_fmt
+
+    @check_association
     def astype(self, dtype, copy=True, errors='raise',
                check_bool_like_string=False):
         """
@@ -2683,26 +2720,41 @@ class DataFrame(SeriesHelper):
         t_cols = []
         t_dtypes = []
         if isinstance (dtype, (str, type)):
+            self.__assert_supported_datetime_types(np.dtype(dtype))
             numpy_dtype = np.dtype(dtype)
             t_cols = list(self.columns)
             t_dtypes = [TypeUtil.to_id_dtype(numpy_dtype)] * len(t_cols)
+            if t_dtypes[0] == DTYPE.DATETIME:
+                datetime_fmt = self.__get_datetime_fmt(t_cols)
+                if None == datetime_fmt: return None
+            else:
+                datetime_fmt = [""] * len(t_cols)
         elif isinstance (dtype, dict): # might include index as well
+            datetime_fmt = []
             for k, v in dtype.items():
                 if k in self.columns or \
                     (self.has_index() and k == self.index.name):
                     t_cols.append(k)
+                    self.__assert_supported_datetime_types(np.dtype(v))
                     t_dtypes.append(TypeUtil.to_id_dtype(np.dtype(v)))
+                    if t_dtypes[-1] == DTYPE.DATETIME:
+                        part_fmt = self.__get_datetime_fmt([t_cols[-1]])
+                        if None == part_fmt: return None
+                        datetime_fmt.extend(part_fmt)
+                    else:
+                        datetime_fmt.append("")
         else:
             raise TypeError("astype: supports only string, numpy.dtype " \
                             "or dict object as for 'dtype' parameter!")
-
         ret = self.copy() # always returns a new dataframe (after casting)
         (host, port) = FrovedisServer.getServerInstance()
         t_cols_ptr = get_string_array_pointer(t_cols)
         type_arr = np.asarray(t_dtypes, dtype=c_short)
         t_dtypes_ptr = type_arr.ctypes.data_as(POINTER(c_short))
-        dummy_df = rpclib.df_astype(host, port, ret.get(), t_cols_ptr, \
-                                    t_dtypes_ptr, len(t_cols), \
+        t_datetime_fmt_ptr = get_string_array_pointer(datetime_fmt)
+        dummy_df = rpclib.df_astype(host, port, ret.get(), \
+                                    t_cols_ptr, t_dtypes_ptr,\
+                                    t_datetime_fmt_ptr, len(t_cols),\
                                     check_bool_like_string)
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -3717,7 +3769,6 @@ class DataFrame(SeriesHelper):
                 raise ValueError(\
                 "Unknown type '{}' ".format(type(value).__name__) + \
                 "for given value '{}' is detected.".format(value))
-
         (host, port) = FrovedisServer.getServerInstance()
         ret = rpclib.df_get_index_loc(host, port, self.get(), \
                                       str_encode(index_name), \

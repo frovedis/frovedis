@@ -3330,24 +3330,20 @@ void fpgrowth_rules(const char* host, int port,
   }
 
   //ARIMA    
-  PyObject* get_fitted_vector(const char* host, int port,
-                              int mid, short mkind,
-                              short mdtype) {
+  void get_fitted_vector_float(const char* host, int port,
+                               int mid, short mkind,
+                               short mdtype, float* ret) {
     if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
     exrpc_node fm_node(host, port);
-    PyObject* ret_ptr = NULL;
+    std::vector<double> fitted_vec;
     try {
       if (mkind != ARM) REPORT_ERROR(USER_ERROR, 
          "Unknown model for fitted_values vector extraction!\n");
       if (mdtype == FLOAT) {
-        std::vector<float> ret;
-        ret = exrpc_async(fm_node, (get_fitted_vector<DT2>), mid).get();
-        ret_ptr = to_python_float_list(ret);
-      }
-      else if (mdtype == DOUBLE) {
-        std::vector<double> ret;
-        ret = exrpc_async(fm_node, (get_fitted_vector<DT1>), mid).get();
-        ret_ptr = to_python_double_list(ret);
+        std::vector<float> fitted_vec;
+        fitted_vec = exrpc_async(fm_node, (get_fitted_vector<DT2>), mid).get();
+        auto sz = fitted_vec.size();
+        for(size_t i = 0; i < sz; ++i) ret[i] = fitted_vec[i];
       }
       else REPORT_ERROR(USER_ERROR,
                         "model dtype can either be float or double!\n");
@@ -3355,7 +3351,29 @@ void fpgrowth_rules(const char* host, int port,
     catch (std::exception& e) {
       set_status(true, e.what());
     }
-    return ret_ptr;
+  }
+
+  void get_fitted_vector_double(const char* host, int port,
+                                int mid, short mkind,
+                                short mdtype, double* ret) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host, port);
+    std::vector<double> fitted_vec;
+    try {
+      if (mkind != ARM) REPORT_ERROR(USER_ERROR, 
+         "Unknown model for fitted_values vector extraction!\n");
+      if (mdtype == DOUBLE) {
+        std::vector<double> fitted_vec;
+        fitted_vec = exrpc_async(fm_node, (get_fitted_vector<DT1>), mid).get();
+        auto sz = fitted_vec.size();
+        for(size_t i = 0; i < sz; ++i) ret[i] = fitted_vec[i];
+      }
+      else REPORT_ERROR(USER_ERROR,
+                        "model dtype can either be float or double!\n");
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
   }
 
   PyObject* arima_predict(const char* host, int port, ulong start, 

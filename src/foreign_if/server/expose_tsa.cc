@@ -18,6 +18,7 @@ void expose_frovedis_tsa() {
   // ---- (4) ARIMA forecast()
   expose(frovedis_arima_forecast<DT2>);  //for python
   expose(frovedis_arima_forecast<DT1>);  //for python
+  expose((frovedis_get_frequency<long>));
   // ---- (5) ARIMA release()
   expose(release_model<ARM1>);  //for python
   expose(release_model<ARM2>);  //for python

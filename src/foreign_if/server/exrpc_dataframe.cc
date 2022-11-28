@@ -1187,6 +1187,7 @@ dummy_dftable
 frov_df_astype(exrpc_ptr_t& df_proxy,
                std::vector<std::string>& cols,
                std::vector<short>& types,
+               std::vector<std::string>& fmt,
                bool& check_bool_like_string) {
   checkAssumption(cols.size() == types.size());
   auto dftblp = get_dftable_pointer(df_proxy);
@@ -1196,6 +1197,8 @@ frov_df_astype(exrpc_ptr_t& df_proxy,
     auto cc = dftblp->column(c);
     use_dfcolumn use(cc);
     auto t = get_string_dtype(types[i]);
+    if (fmt[i] != "" && t == "datetime")
+        t = t + ":" + fmt[i];
     if (cc->dtype() != t) {
       //std::cout << "col: " << c 
       //          << "; type: " << dftblp->column(c)->dtype() 
