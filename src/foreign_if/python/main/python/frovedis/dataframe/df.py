@@ -132,7 +132,9 @@ def infer_datetime_column_format(df, col):
         from pandas._libs.tslibs.parsing import guess_datetime_format
     except ImportError:
         raise \
-        ImportError("Failed to import Pandas guess_datetime_format module.")
+        ImportError("guess_datetime_format: You are currently using pandas {}"\
+                    .format(pd.__version__) + \
+                    ", whereas pandas >= 1.2.0 is required to use this module")
     all_formats = [ guess_datetime_format(e) for e in df[col] ]
 
     cnt = {}
