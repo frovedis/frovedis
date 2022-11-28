@@ -4,12 +4,13 @@ df.py
 import warnings
 import copy
 import sys
+import re
 import numbers
 from ctypes import *
 from array import array
 import numpy as np
 import pandas as pd
-from collections import Iterable, OrderedDict
+from collections import Iterable, OrderedDict, defaultdict
 
 from ..exrpc import rpclib
 from ..exrpc.server import FrovedisServer, set_association, \
@@ -124,6 +125,12 @@ class SeriesHelper(object):
         name = self.columns[0]
         return self.__dict__[name].between(left, right, inclusive)
 
+def get_month_date_position(format):
+    indicators = re.findall("[dmY]", format)
+    if len(indicators) != 3: 
+        return (None, None)
+    return indicators.index("d"), indicators.index("m")
+
 def infer_datetime_column_format(df, col):
     """
     infer datetime format for a column
@@ -136,25 +143,24 @@ def infer_datetime_column_format(df, col):
         "pandas {}, whereas ".format(pd.__version__) + \
         "pandas >= 1.2.0 is required to use this feature.")
 
-    all_formats = [ guess_datetime_format(e) for e in df[col] ]
-
-    cnt = {}
-    for e in all_formats:
-        if e in cnt:
-            cnt[e] += 1
-        else:
-            cnt[e] = 1
-    if None in cnt: return None #one or more formats could not be interpreted.
-    if len(cnt) > 2: return None #too many formats found to infer reliably.
-    sep = all_formats[0][1]
-    if len(cnt) == 2:
-        if ('d'+sep+'m'+sep+'Y' in [cnt]) ^ ('m'+sep+'d'+sep+'Y' in [cnt]) \
-         or ('d'+sep+'Y'+sep+'m' in [cnt]) ^ ('m'+sep+'Y'+sep+'d' in [cnt])\
-         or ('Y'+sep+'d'+sep+'m' in [cnt]) ^ ('Y'+sep+'m'+sep+'d' in [cnt]): 
-            return None
+    cnt = defaultdict(int)
+    for e in df[col]: 
+        cnt[guess_datetime_format(e)] += 1
+    keys = list(cnt.keys())
     
-    res = max(cnt, key=cnt.get)
-    return res
+    if None in keys: 
+        return None #one or more formats could not be interpreted.
+    if len(keys) > 2: 
+        return None #too many formats found to infer reliably.
+    if len(cnt) == 2:
+        d1, m1 = get_month_date_position(keys[0])
+        d2, m2 = get_month_date_position(keys[1])
+        if None in [d1, d2, m1, m2]: # format has something else apart from d, m and Y
+          return None
+        if d1 == m2 and d2 == m1:  # take max only when day/month positions are swapped
+             return max(cnt, key=cnt.get)
+        return None
+    return keys[0]
 
 def infer_combination_datetime_format(df, cols):
     """
@@ -2700,7 +2706,8 @@ class DataFrame(SeriesHelper):
     def __infer_datetime_format(self, col_list):
         datetime_fmt = [""] * len(col_list) # format would be inferred only for string columns
         sample_size = 100
-        for col_name in col_list:
+        for i in range(len(col_list)):
+            col_name = col_list[i]
             if self[col_name].dtype == DTYPE.STRING:
                 fmt = infer_datetime_column_format(\
                          self[[col_name]].dropna()[:sample_size].to_pandas(), \
@@ -2708,7 +2715,7 @@ class DataFrame(SeriesHelper):
                 if fmt is None:
                     raise ValueError("Failed to infer the datetime format " + \
                                      "for column '{}'".format(col_name))
-                datetime_fmt.append(fmt)
+                datetime_fmt[i] = fmt
         return datetime_fmt
 
     @check_association
@@ -4865,7 +4872,6 @@ class DataFrame(SeriesHelper):
             raise TypeError("as_series is expected to be boolean or None")
         if ignore_index is not None and not isinstance(ignore_index, bool):
             raise TypeError("ignore_index is expected to be boolean or None")
-
         names = dummy_df["names"]
         types = dummy_df["types"]
         is_series = self.is_series if as_series is None else as_series
