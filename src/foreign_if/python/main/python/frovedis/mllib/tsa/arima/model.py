@@ -117,11 +117,7 @@ class ARIMA(BaseEstimator):
         if index_dtype in [DTYPE.INT, DTYPE.LONG, DTYPE.DATETIME]:
             (host, port) = FrovedisServer.getServerInstance()
             self.__frov_infr_freq = self.endog.index.inferred_freq
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            LONG_MAX = np.iinfo(np.int64).max
-            if LONG_MAX == self.__frov_infr_freq:
+            if self.__frov_infr_freq is None:
                 warnings.warn("An unsupported index was provided and " + \
                               "will be ignored when e.g. forecasting.")
                 return (default_index, False)
@@ -132,11 +128,7 @@ class ARIMA(BaseEstimator):
                 return (default_index, False)
             (host, port) = FrovedisServer.getServerInstance()
             self.__frov_infr_freq = self.casted_df[self.endog.index.name].inferred_freq
-            excpt = rpclib.check_server_exception()
-            if excpt["status"]:
-                raise RuntimeError(excpt["info"])
-            LONG_MAX = np.iinfo(np.int64).max
-            if LONG_MAX == self.__frov_infr_freq:
+            if self.__frov_infr_freq is None:
                 warnings.warn("A date index has been provided, but it " + \
                               "is not monotonic and so will be ignored" + \
                               " when e.g. forecasting.")
