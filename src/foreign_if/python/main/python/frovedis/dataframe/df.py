@@ -149,6 +149,8 @@ def infer_datetime_column_format(df, col):
     keys = list(cnt.keys())
     if None in keys: 
         return None #one or more formats could not be interpreted.
+    if len(set([len(i) for i in keys])) > 1:
+        return None #different len formats
     stripped_keys = []
     for i in keys:
         stripped_keys.append("".join(re.findall("[dmY]", i)))
