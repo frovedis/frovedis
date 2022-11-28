@@ -149,6 +149,8 @@ Output
 
 **read_csv(filepath_or_buffer, sep = ',', delimiter = None, header = "infer", names = None, index_col = None, usecols = None, squeeze = False, prefix = None, mangle_dupe_cols = True, dtype = None, na_values = None, verbose = False, comment = None, low_memory = True, rows_to_see = 1024, separate_mb = 1024, parse_dates=None, datetime_format=None, infer_datetime_format=False, date_parser=None, keep_date_col=False)**   
 
+**Note:- read_csv() requires pandas >= 1.2.0 as it utilizes 'guess_datetime_format' module for inferring date formats.**  
+
 __Parameters__  
 _**filepath\_or\_buffer**_: It accepts any valid string value that contains the name of the file to access as parameter. The string path can be a URL as well. In case, a file is to be read, then the pathname can be absolute path or relative path to the current working directory of the file to be opened.  
 _**sep**_: It accepts string value as paramter that specifies delimiter to use. (Default: ',')  

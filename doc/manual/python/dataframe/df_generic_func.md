@@ -408,6 +408,8 @@ __Parameters__
 **_errors_**: This is an unused parameter. (Default: 'raise')  
 **_check\_bool\_like\_string_**: A boolean parameter which when set to True will cast string columns having boolean like case-insensitive strings (True, False, yes, No, On, Off, Y, N, T, F) to boolean columns. (Default: False)  
 
+**Note:- astype() requires pandas >= 1.2.0 as it utilizes 'guess_datetime_format' module for inferring date formats.**
+
 __Purpose__  
 It cast an entire Frovedis DataFrame or selected columns of Frovedis DataFrame to the specified dtype.  
 

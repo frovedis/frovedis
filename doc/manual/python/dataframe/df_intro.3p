@@ -269,6 +269,9 @@ Output
 = 1024, separate_mb = 1024, parse_dates=None, datetime_format=None,
 infer_datetime_format=False, date_parser=None, keep_date_col=False)\f[R]
 .PP
+\f[B]Note:- read_csv() requires pandas >= 1.2.0 as it utilizes
+`guess_datetime_format' module for inferring date formats.\f[R]
+.PP
 \f[B]Parameters\f[R]
 .PD 0
 .P
