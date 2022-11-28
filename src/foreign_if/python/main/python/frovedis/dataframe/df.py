@@ -147,12 +147,14 @@ def infer_datetime_column_format(df, col):
     for e in df[col]: 
         cnt[guess_datetime_format(e)] += 1
     keys = list(cnt.keys())
-    
     if None in keys: 
         return None #one or more formats could not be interpreted.
-    if len(keys) > 2: 
+    stripped_keys = []
+    for i in keys:
+        stripped_keys.append("".join(re.findall("[dmY]", i)))
+    if len(set(stripped_keys)) > 2: 
         return None #too many formats found to infer reliably.
-    if len(cnt) == 2:
+    if len(set(stripped_keys)) == 2:
         d1, m1 = get_month_date_position(keys[0])
         d2, m2 = get_month_date_position(keys[1])
         if None in [d1, d2, m1, m2]: # format has something else apart from d, m and Y
