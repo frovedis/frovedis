@@ -123,11 +123,18 @@ class ARIMA(BaseEstimator):
                 return (default_index, False)
             return (self.endog.index, True)
         if index_dtype == DTYPE.STRING:
-            self.casted_df = self.endog[[self.endog.index.name]].astype(dtype="datetime64") 
-            if self.casted_df is None:
+            try:
+                self.casted_df = self.endog[[self.endog.index.name]] \
+                                     .astype(dtype="datetime64") 
+            except ValueError as e:
+                warnings.warn("Failed to infer the datetime format " + \
+                              "for column '{}'".format(self.endog.index.name))
+
+                self.casted_df = None
                 return (default_index, False)
             (host, port) = FrovedisServer.getServerInstance()
-            self.__frov_infr_freq = self.casted_df[self.endog.index.name].inferred_freq
+            self.__frov_infr_freq = self.casted_df[self.endog.index.name] \
+                                        .inferred_freq
             if self.__frov_infr_freq is None:
                 warnings.warn("A date index has been provided, but it " + \
                               "is not monotonic and so will be ignored" + \
