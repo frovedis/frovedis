@@ -1026,16 +1026,17 @@ JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_limitDF
 
 JNIEXPORT jobject JNICALL Java_com_nec_frovedis_Jexrpc_JNISupport_castFrovedisDataframe
   (JNIEnv *env, jclass thisCls, jobject master_node, jlong proxy,
-   jobjectArray cols, jshortArray ctypes, jlong size) {
+   jobjectArray cols, jshortArray ctypes, jobjectArray cfmt, jlong size) {
   auto fm_node = java_node_to_frovedis_node(env, master_node);
   auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
   auto names = to_string_vector(env, cols, size);
   auto types = to_short_vector(env, ctypes, size);
+  auto fmt = to_string_vector(env, cfmt, size);
   bool check_bool_like = false; // no need for spark
   dummy_dftable ret;
   try {
     ret = exrpc_async(fm_node, frov_df_astype, df_proxy, 
-                      names, types, check_bool_like).get();
+                      names, types, fmt, check_bool_like).get();
   }
   catch(std::exception& e) { set_status(true,e.what()); }
   return to_spark_dummy_df(env, ret);

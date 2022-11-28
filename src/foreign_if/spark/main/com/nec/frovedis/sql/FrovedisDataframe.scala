@@ -79,10 +79,12 @@ class FrovedisDataFrame extends java.io.Serializable {
     val ulong_sz = ulong_cols.size
     if (ulong_sz > 0) {
       val ctypes = new Array[Short](ulong_sz)
+      val cfmt = new Array[String](ulong_sz)
       for (i <- 0 until ulong_sz) ctypes(i) = DTYPE.LONG
+      for (i <- 0 until ulong_sz) cfmt(i) = "" //For compatibility with updated frov_df_astype, Proper fix needed.
       val fs = FrovedisServer.getServerInstance()
       val ret = JNISupport.castFrovedisDataframe(fs.master_node, fdata, 
-                                       ulong_cols.toArray, ctypes, ulong_sz)
+                                   ulong_cols.toArray, ctypes, cfmt, ulong_sz)
       fdata = ret.dfptr
       val info = JNISupport.checkServerException()
       if (info != "") throw new java.rmi.ServerException(info)
