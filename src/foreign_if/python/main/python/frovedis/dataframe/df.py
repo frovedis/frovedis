@@ -126,10 +126,11 @@ class SeriesHelper(object):
         return self.__dict__[name].between(left, right, inclusive)
 
 def get_month_date_position(format):
-    indicators = re.findall("[dmY]", format)
+    indicators = re.findall("[dmY\|bmY]", format)
     if len(indicators) != 3: 
         return (None, None)
-    return indicators.index("d"), indicators.index("m")
+    return indicators.index(re.search('[d\|b]', str(indicators)).group()), \
+           indicators.index("m")
 
 def infer_datetime_column_format(df, col):
     """
