@@ -116,8 +116,7 @@ class ARIMA(BaseEstimator):
                               "not supported with Frovedis data input. ")
         if index_dtype in [DTYPE.INT, DTYPE.LONG, DTYPE.DATETIME]:
             (host, port) = FrovedisServer.getServerInstance()
-            self.__frov_infr_freq = rpclib.get_frequency(host, port, self.endog.get(),\
-                                            str_encode(self.endog.index.name))
+            self.__frov_infr_freq = self.endog.index.inferred_freq
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
@@ -132,8 +131,7 @@ class ARIMA(BaseEstimator):
             if self.casted_df is None:
                 return (default_index, False)
             (host, port) = FrovedisServer.getServerInstance()
-            self.__frov_infr_freq = rpclib.get_frequency(host, port, self.casted_df.get(),\
-                                             str_encode(self.casted_df.columns[0]))
+            self.__frov_infr_freq = self.casted_df[self.endog.index.name].inferred_freq
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
