@@ -968,7 +968,7 @@ class DataFrame(SeriesHelper):
             raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
-        self.__mark_boolean_columns(names, types)
+        self.__mark_boolean_timedelta_columns(names, types)
         ret = DataFrame(is_series=self.is_series)
         ret.num_row = dummy_df["nrow"]
         if self.has_index():
@@ -2103,7 +2103,7 @@ class DataFrame(SeriesHelper):
             raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
-        self.__mark_boolean_columns(names, types)
+        self.__mark_boolean_timedelta_columns(names, types)
         ret = self if inplace else DataFrame(is_series = self.is_series)
         ret.num_row = dummy_df["nrow"]
         if self.has_index():
@@ -2341,7 +2341,7 @@ class DataFrame(SeriesHelper):
         names = dummy_df["names"]
         types = dummy_df["types"]
 
-        self.__mark_boolean_columns(names, types)
+        self.__mark_boolean_timedelta_columns(names, types)
         if data_type == DTYPE.BOOL:
             ind = names.index(col_name)
             types[ind] = DTYPE.BOOL
@@ -2590,6 +2590,7 @@ class DataFrame(SeriesHelper):
                 raise RuntimeError(excpt["info"])
             names = dummy_df["names"]
             types = dummy_df["types"]
+            self.__mark_boolean_timedelta_columns(names, types)
             ret.index = FrovedisColumn(names[0], types[0]) # with new index
             ret.num_row = dummy_df["nrow"]
             ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
@@ -2621,13 +2622,7 @@ class DataFrame(SeriesHelper):
             names = dummy_df["names"]
             types = dummy_df["types"]
 
-            bool_cols = set([self.__cols[i] for i in range(len(self.__types)) \
-                            if self.__types[i] == DTYPE.BOOL])
-            if len(bool_cols) > 0:
-                for i in range(len(names)):
-                    if names[i] in bool_cols:
-                        types[i] = DTYPE.BOOL
-
+            self.__mark_boolean_timedelta_columns(names, types)
             ret.index = FrovedisColumn(names[0], types[0]) # with new index
             ret.num_row = dummy_df["nrow"]
             ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
@@ -2661,6 +2656,7 @@ class DataFrame(SeriesHelper):
             raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
+        self.__mark_boolean_timedelta_columns(names, types)
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.num_row = dummy_df["nrow"]
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
@@ -2708,6 +2704,7 @@ class DataFrame(SeriesHelper):
             raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
+        self.__mark_boolean_timedelta_columns(names, types)
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.num_row = dummy_df["nrow"]
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
@@ -2725,13 +2722,7 @@ class DataFrame(SeriesHelper):
         names = dummy_df["names"]
         types = dummy_df["types"]
 
-        bool_cols = set([self.__cols[i] for i in range(len(self.__types)) \
-                        if self.__types[i] == DTYPE.BOOL])
-        if len(bool_cols) > 0:
-            for i in range(len(names)):
-                if names[i] in bool_cols:
-                    types[i] = DTYPE.BOOL
-
+        self.__mark_boolean_timedelta_columns(names, types)
         self.index = FrovedisColumn(names[0], types[0]) #setting index
         self.num_row = dummy_df["nrow"]
         self.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
@@ -2821,6 +2812,7 @@ class DataFrame(SeriesHelper):
         names = dummy_df["names"]
         types = dummy_df["types"]
         ret.num_row = dummy_df["nrow"]
+        self.__mark_boolean_timedelta_columns(names, types)
         for i in range(0, len(t_dtypes)):
             if t_dtypes[i] == DTYPE.BOOL:
                 col = t_cols[i]
@@ -2878,11 +2870,7 @@ class DataFrame(SeriesHelper):
 
         names = dummy_df["names"]
         types = dummy_df["types"]
-        for c, t in astype_input.items():
-            if t == np.bool:
-                # searching index, since dictionary items might not be ordered
-                ind = names.index(c)
-                types[ind] = DTYPE.BOOL
+        self.__mark_boolean_timedelta_columns(names, types)
         res = DataFrame().load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         res.index = FrovedisColumn(names[0], types[0]) #setting index
         res.num_row = dummy_df["nrow"]
@@ -2925,7 +2913,7 @@ class DataFrame(SeriesHelper):
         names = dummy_df["names"]
         types = dummy_df["types"]
 
-        self.__mark_timedelta_columns(names, types)
+        self.__mark_boolean_timedelta_columns(names, types)
         self.num_row = dummy_df["nrow"]
         if self.has_index():
             self.index = FrovedisColumn(names[0], types[0]) #setting index
@@ -2994,8 +2982,12 @@ class DataFrame(SeriesHelper):
         dummy_df = rpclib.df_fillna(host, port, \
                        self.get(), str_encode(value), \
                        self.has_index())
+        excpt = rpclib.check_server_exception()
+        if excpt["status"]:
+            raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
+        self.__mark_boolean_timedelta_columns(names, types)
         ret.num_row = dummy_df["nrow"]
         if self.has_index():
             ret.index = FrovedisColumn(names[0], types[0]) #setting index
