@@ -1814,6 +1814,13 @@ class DataFrame(SeriesHelper):
                 res.index = res.index.to_series().replace({0: False, 1: True})
             elif (self.index.dtype == DTYPE.STRING):
                 res.index = res.index.to_series().replace({"NULL": None})
+            elif (self.index.dtype == DTYPE.DATETIME):
+                res.index = pd.to_datetime(res.index)
+                if res.index.name in self.datetime_cols_info:
+                    zone = self.datetime_cols_info[res.index.name]
+                    res.index = res.index.tz_localize(zone)
+            elif (self.index.dtype == DTYPE.TIMEDELTA):
+                res.index = pd.to_timedelta(res.index, unit='ns')
 
         for col in self.columns:
             # BOOL treatment
@@ -3098,14 +3105,15 @@ class DataFrame(SeriesHelper):
             immed_dt = get_python_scalar_type(other)
             is_series = self.is_series
         elif isinstance(other, pd.Timedelta) or is_nat(other):
-            for t in self.__types:
-                if t != DTYPE.DATETIME:
-                    raise TypeError(col + \
+            for i in range(len(self.__types)):
+                if self.__types[i] != DTYPE.DATETIME:
+                    raise TypeError(self.__cols[i] + \
                     ": supported type of column is 'datetime'."\
-                    "Received: '%s'" % type(col).__name__)
+                    " Received: '%s'" % TypeUtil.to_numpy_dtype( \
+                                                    self.__types[i]).__name__)
             if is_rev == True and op_type != "add":
-                raise TypeError(col + \
-                ": supported reverse operation on columns is 'radd' only." +\
+                raise TypeError( \
+                "Supported reverse operation on columns is 'radd' only." +\
                 "Received: '%s'" % op_type)
 
             immed = True
@@ -3120,14 +3128,15 @@ class DataFrame(SeriesHelper):
                 raise TypeError("cannot {} DatetimeArray" \
                                 " and TimeDelta".format(op_type))
         elif isinstance(other, pd.Timestamp):
-            for t in self.__types:
-                if t != DTYPE.DATETIME:
-                    raise TypeError(col + \
+            for i in range(len(self.__types)):
+                if self.__types[i] != DTYPE.DATETIME:
+                    raise TypeError(self.__cols[i]  + \
                     ": supported type of column is 'datetime'."\
-                    "Received: '%s'" % type(col).__name__)
+                    " Received: '%s'" % TypeUtil.to_numpy_dtype( \
+                                                    self.__types[i]).__name__)
             if is_rev == True and op_type != "sub":
-                raise TypeError(col + \
-                ": supported reverse operation on columns is 'rsub' only." +\
+                raise TypeError( \
+                "Supported reverse operation on columns is 'rsub' only." +\
                 "Received: '%s'" % op_type)
 
             immed = True
