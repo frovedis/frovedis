@@ -2230,6 +2230,8 @@ class DataFrame(SeriesHelper):
             for i in range(len(targets)):
                 if isinstance(targets[i], pd.Timestamp):
                     targets[i] = targets[i].value
+                elif not isinstance(targets[i], np.datetime64):
+                    raise KeyError("{} not found in axis.".format(targets))
             targets = np.asarray(targets, dtype=np.int64)
             targets_ptr = targets.ctypes.data_as(POINTER(c_long))
             dummy_df = rpclib.drop_frovedis_dataframe_rows_long(host, port, \
@@ -2239,6 +2241,8 @@ class DataFrame(SeriesHelper):
             for i in range(len(targets)):
                 if isinstance(targets[i], pd.Timedelta):
                     targets[i] = targets[i].value
+                elif not isinstance(targets[i], np.timedelta64):
+                    raise KeyError("{} not found in axis.".format(targets))
             targets = np.asarray(targets, dtype=np.int64)
             targets_ptr = targets.ctypes.data_as(POINTER(c_long))
             dummy_df = rpclib.drop_frovedis_dataframe_rows_long(host, port, \
