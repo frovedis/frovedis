@@ -2177,6 +2177,10 @@ class DataFrame(SeriesHelper):
             targets = [targets]
         if isinstance(targets, numbers.Number):
             targets = [targets]
+        elif isinstance(targets, pd.Timestamp):
+            targets = [targets]
+        elif isinstance(targets, pd.Timedelta):
+            targets = [targets]
         elif isinstance(targets, Iterable):
             targets = np.unique(targets)
         else:
@@ -2222,6 +2226,24 @@ class DataFrame(SeriesHelper):
             dummy_df = rpclib.drop_frovedis_dataframe_rows_str(host, port, \
                                           self.get(), targets_ptr, sz, \
                                           index_col)
+        elif dtype == DTYPE.DATETIME:
+            for i in range(len(targets)):
+                if isinstance(targets[i], pd.Timestamp):
+                    targets[i] = targets[i].value
+            targets = np.asarray(targets, dtype=np.int64)
+            targets_ptr = targets.ctypes.data_as(POINTER(c_long))
+            dummy_df = rpclib.drop_frovedis_dataframe_rows_long(host, port, \
+                                          self.get(), targets_ptr, sz, \
+                                          index_col)
+        elif dtype == DTYPE.TIMEDELTA:
+            for i in range(len(targets)):
+                if isinstance(targets[i], pd.Timedelta):
+                    targets[i] = targets[i].value
+            targets = np.asarray(targets, dtype=np.int64)
+            targets_ptr = targets.ctypes.data_as(POINTER(c_long))
+            dummy_df = rpclib.drop_frovedis_dataframe_rows_long(host, port, \
+                                          self.get(), targets_ptr, sz, \
+                                          index_col)
         else:
             raise TypeError(\
             "drop(): Unsupported index column dtype is detected!")
@@ -2232,7 +2254,7 @@ class DataFrame(SeriesHelper):
 
         names = dummy_df["names"]
         types = dummy_df["types"]
-        self.__mark_boolean_columns(names, types)
+        self.__mark_boolean_timedelta_columns(names, types)
         ret = self if inplace else DataFrame(is_series = self.is_series)
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.num_row = dummy_df["nrow"]
@@ -2328,6 +2350,16 @@ class DataFrame(SeriesHelper):
         else:
             self.load_dummy(dummy_df["dfptr"], names[0:], types[0:])
         return self
+
+    def __mark_boolean_timedelta_columns(self, names, types):
+        """ to mark boolean and timedelta columns for columns in names """
+        for i in range(len(names)):
+            c = names[i]
+            if c in self.columns and self.__dict__[c].dtype == DTYPE.BOOL:
+                types[i] = DTYPE.BOOL
+            elif c in self.columns \
+                 and self.__dict__[c].dtype == DTYPE.TIMEDELTA:
+                types[i] = DTYPE.TIMEDELTA
 
     def __mark_boolean_columns(self, names, types):
         """ to mark boolean columns for columns in names """
@@ -2868,7 +2900,6 @@ class DataFrame(SeriesHelper):
         current_col_order = self.columns
         if self.has_index():
             current_col_order = [self.index.name] + current_col_order
-
         if len(current_col_order) != len(new_cols):
             raise ValueError("set_col_order: The new column order to be set"
                             " must have same number of columns as the dataframe!")
@@ -3764,6 +3795,7 @@ class DataFrame(SeriesHelper):
         ret = DataFrame()
         names = dummy_df["names"]
         types = dummy_df["types"]
+        self.__mark_boolean_timedelta_columns(names, types)
         ret.num_row = dummy_df["nrow"]
         if self.has_index():
             ret.index = FrovedisColumn(names[0], types[0]) #setting index
