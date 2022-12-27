@@ -831,12 +831,16 @@ class ARIMA(BaseEstimator):
         """
         if self._fittedvalues is None:
             (host, port) = FrovedisServer.getServerInstance()
+            if isinstance(self.endog, FrovedisDvector):
+                sz = self.endog.size()
+            else:
+                sz = len(self.endog)
             if self.__mdtype == DTYPE.FLOAT:
-                ret = np.zeros(len(self.endog), dtype=np.float32)
+                ret = np.zeros(sz, dtype=np.float32)
                 rpclib.get_fitted_vector_float(host, port, self.__mid, \
                                      self.__mkind, self.__mdtype, ret)
             elif self.__mdtype == DTYPE.DOUBLE:
-                ret = np.zeros(len(self.endog), dtype=np.float64)
+                ret = np.zeros(sz, dtype=np.float64)
                 rpclib.get_fitted_vector_double(host, port, self.__mid, \
                                      self.__mkind, self.__mdtype, ret)
             else:
