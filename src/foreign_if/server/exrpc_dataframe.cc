@@ -1226,6 +1226,7 @@ void copy_column_helper(dftable& to_df,
     to_df.drop(cname_as);
   }
   switch(dtype) {
+    case BOOL:
     case INT:    to_df.append_column(cname_as, from_df.as_dvector<int>(cname), 
                                      true); break;
     case DATETIME:   to_df.append_datetime_column(
@@ -1288,6 +1289,8 @@ void fillna_helper(dftable& ret, const std::string& cname,
                    double fillv) {
   if (dfcol->dtype() == "int")
     ret.append_column(cname, fillna_column<int>(dfcol, fillv));
+  else if (dfcol->dtype() == "datetime")
+    ret.append_column(cname, fillna_column<datetime_t>(dfcol, fillv));
   else if (dfcol->dtype() == "unsigned int")
     ret.append_column(cname, fillna_column<unsigned int>(dfcol, fillv));
   else if (dfcol->dtype() == "long")
