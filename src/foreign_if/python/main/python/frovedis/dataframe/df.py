@@ -3085,6 +3085,7 @@ class DataFrame(SeriesHelper):
             raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
+        self.__mark_boolean_timedelta_columns(names, types)
         if self.has_index():
             ret.index = FrovedisColumn(names[0], types[0]) #setting index
             ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
@@ -3915,7 +3916,10 @@ class DataFrame(SeriesHelper):
         types = dummy_df["types"]
         ret.num_row = dummy_df["nrow"]
         ret.load_dummy(dummy_df["dfptr"], names, types)
-        arr = ret.to_numpy()
+        if self[col_name].dtype == DTYPE.DATETIME:
+            arr = ret.to_numpy(dtype="datetime64[ns]")
+        else:
+            arr = ret.to_numpy()
         ret = arr[0] if self.is_series else arr[0][0]
 
         if isinstance(ret, str):
@@ -3947,9 +3951,11 @@ class DataFrame(SeriesHelper):
         types = dummy_df["types"]
         ret.num_row = dummy_df["nrow"]
         ret.load_dummy(dummy_df["dfptr"], names, types)
-        arr = ret.to_numpy()
+        if self[col_name].dtype == DTYPE.DATETIME:
+            arr = ret.to_numpy(dtype="datetime64[ns]")
+        else:
+            arr = ret.to_numpy()
         ret = arr[0] if self.is_series else arr[0][0]
-
         if isinstance(ret, str):
             if ret == "NULL" and param.skipna_ == True:
                 raise ValueError("last_element: No valid value found in column {}!".format(col_name))
