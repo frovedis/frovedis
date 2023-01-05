@@ -1104,6 +1104,7 @@ dftable min_axis0_helper(dftable_base& df,
       switch(types[i]) {
         case BOOL:
         case INT:    resp[i] = df.min<int>(col);           break;
+        case TIMEDELTA:
         case LONG:   resp[i] = df.min<long>(col);          break;
         case ULONG:  resp[i] = df.min<unsigned long>(col); break;
         case FLOAT:  resp[i] = df.min<float>(col);         break;
