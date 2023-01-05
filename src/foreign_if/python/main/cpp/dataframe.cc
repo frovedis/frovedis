@@ -623,8 +623,11 @@ extern "C" {
     dummy_dftable ret;
     try {
       switch (res_type) {
+        case BOOL:
         case INT:    ret = exrpc_async(fm_node, frov_df_sum<int>, df_proxy,
                      cc, tt, axis, skipna, min_count, with_index).get(); break;
+        case DATETIME:
+        case TIMEDELTA:
         case LONG:   ret = exrpc_async(fm_node, frov_df_sum<long>, df_proxy,
                      cc, tt, axis, skipna, min_count, with_index).get(); break;
         case ULONG:  ret = exrpc_async(fm_node, frov_df_sum<unsigned long>, df_proxy,

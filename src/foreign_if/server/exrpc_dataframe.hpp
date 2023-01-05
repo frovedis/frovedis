@@ -874,6 +874,11 @@ dftable sum_axis0_helper(dftable_base& df,
         switch(types[i]) {
           case BOOL:
           case INT:    resp[i] = df.sum<int>(col);           break;
+          case DATETIME: 
+                       REPORT_ERROR(USER_ERROR, 
+                            "datetime + datetime: invalid operation!\n");
+                       break;
+          case TIMEDELTA:
           case LONG:   resp[i] = df.sum<long>(col);          break;
           case ULONG:  resp[i] = df.sum<unsigned long>(col); break;
           case FLOAT:  resp[i] = df.sum<float>(col);         break;
