@@ -3148,11 +3148,7 @@ class DataFrame(SeriesHelper):
             immed_val = str(other.value)
             immed_dt = "timedelta"
             is_series = self.is_series
-            if op_type == "add":
-                op_type = "timedelta_add"
-            elif op_type == "sub":
-                op_type = "timedelta_sub"
-            else:
+            if op_type not in ["add", "sub"]:
                 raise TypeError("cannot {} DatetimeArray" \
                                 " and TimeDelta".format(op_type))
         elif isinstance(other, pd.Timestamp):

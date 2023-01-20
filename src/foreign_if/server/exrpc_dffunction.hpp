@@ -13,8 +13,6 @@ get_immed_function(const std::string& op_id,
   std::shared_ptr<dffunction> ret = NULL;
   if (is_reversed) {
     if (op_id == "add")       ret = add_im(val,  lcol);
-    else if (op_id == "timedelta_add")  ret = datetime_add_im_as(lcol, val,
-                                              datetime_type::nanosecond, lcol);
     else if (op_id == "sub")  ret = sub_im(val,  lcol);
     else if (op_id == "mul")  ret = mul_im(val,  lcol); 
     else if (op_id == "idiv") ret = idiv_im(val, lcol);
@@ -24,14 +22,9 @@ get_immed_function(const std::string& op_id,
     else REPORT_ERROR(USER_ERROR, op_id + ": unsupported binary operator!\n");
   } else {
     if (op_id == "add")       ret = add_im(lcol,  val);
-    else if (op_id == "timedelta_add")  ret = datetime_add_im_as(lcol, val,
-                                              datetime_type::nanosecond, lcol);
-    else if (op_id == "sub")  ret = sub_im(lcol,  val);
-    else if (op_id == "timedelta_sub")  ret = datetime_sub_im_as(lcol, val,
-                                              datetime_type::nanosecond, lcol);
+    else if (op_id == "sub") ret = sub_im(lcol,  val);
     else if (op_id == "timestamp_sub")  ret = datetime_diff_im_as(lcol, val,
                                               datetime_type::nanosecond, lcol);
-    else if (op_id == "sub")  ret = sub_im(lcol,  val);
     else if (op_id == "mul")  ret = mul_im(lcol,  val);
     else if (op_id == "idiv") ret = idiv_im(lcol, val);
     else if (op_id == "fdiv") ret = fdiv_im(lcol, val);
