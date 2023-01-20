@@ -4592,6 +4592,7 @@ class DataFrame(SeriesHelper):
             raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
+        self.__mark_boolean_timedelta_columns(names, types)
 
         ret = self if inplace else DataFrame(is_series=self.is_series)
         ret.num_row = dummy_df["nrow"]
@@ -4643,6 +4644,7 @@ class DataFrame(SeriesHelper):
             raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
+        self.__mark_boolean_timedelta_columns(names, types)
 
         ret = self if inplace else DataFrame(is_series=self.is_series)
         ret.num_row = dummy_df["nrow"]
