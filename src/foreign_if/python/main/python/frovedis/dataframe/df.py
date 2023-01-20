@@ -4464,7 +4464,8 @@ class DataFrame(SeriesHelper):
                     if dtype == DTYPE.INT:
                         rpc_call = {'dtype':np.int32, 'rpctype':c_int, \
                                     'func':"df_sel_rows_by_val_int"}
-                    elif dtype == DTYPE.LONG:
+                    elif dtype == DTYPE.LONG or dtype == DTYPE.DATETIME \
+                                             or dtype == DTYPE.TIMEDELTA:
                         rpc_call = {'dtype':np.int64, 'rpctype':c_long, \
                                     'func':"df_sel_rows_by_val_long"}
                     elif dtype == DTYPE.ULONG:
@@ -4489,6 +4490,7 @@ class DataFrame(SeriesHelper):
                     raise RuntimeError(excpt["info"])
                 names = dummy_df["names"]
                 types = dummy_df["types"]
+                self.__mark_boolean_timedelta_columns(names, types)
                 res = DataFrame(is_series = self.is_series)
                 res.index = FrovedisColumn(names[0], types[0]) #setting index
                 res.num_row = dummy_df["nrow"]
