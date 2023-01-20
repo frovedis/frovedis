@@ -751,9 +751,13 @@ class DataFrame(SeriesHelper):
             elif vtype == 'str' or vtype == 'str_' or vtype == 'string':
                 dt = DTYPE.STRING
                 dvec[idx] = FrovedisStringDvector(val)
+            # bool column having nulls is treated as 'object' type in pandas
+            # hence filling nulls with imax at python-level before converting into dvector
             elif vtype == 'bool' or vtype == 'bool_':
                 dt = DTYPE.BOOL
-                dvec[idx] = FrovedisIntDvector(np.asarray(val, dtype=np.int32))
+                imax = np.iinfo(np.int32).max
+                val2 = val.fillna(imax)
+                dvec[idx] = FrovedisIntDvector(np.asarray(val2, dtype=np.int32))
             elif vtype.startswith('datetime64'):
                 if isinstance(val, pd.DatetimeIndex):
                     val = val.to_series()
