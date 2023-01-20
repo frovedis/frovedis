@@ -4027,6 +4027,7 @@ class DataFrame(SeriesHelper):
         ret = DataFrame(is_series=True)
         names = dummy_df["names"]
         types = dummy_df["types"]
+        types[-1] = res_type
         ret.num_row = dummy_df["nrow"]
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
@@ -4359,6 +4360,7 @@ class DataFrame(SeriesHelper):
                     raise RuntimeError(excpt["info"])
                 names = dummy_df["names"]
                 types = dummy_df["types"]
+                self.__mark_boolean_timedelta_columns(names, types)
                 ret = DataFrame(is_series = self.is_series)
                 ret.index = FrovedisColumn(names[0], types[0]) #setting index
                 ret.num_row = dummy_df["nrow"]

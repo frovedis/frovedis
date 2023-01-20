@@ -25,6 +25,7 @@ void fillna_column_min_typed_helper(
     case BOOL:
     case INT:    col = fillna_column<int>(col, 
                          std::numeric_limits<int>::min());break;
+    case TIMEDELTA:
     case LONG:   col = fillna_column<long>(col, 
                          std::numeric_limits<long>::min());break;
     case FLOAT:  col = fillna_column<float>(col, 

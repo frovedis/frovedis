@@ -724,8 +724,10 @@ extern "C" {
     dummy_dftable ret;
     try {
       switch (res_type) {
+        case BOOL:
         case INT:    ret = exrpc_async(fm_node, frov_df_max<int>, df_proxy,
                      cc, tt, axis, skipna, with_index).get(); break;
+        case TIMEDELTA:
         case LONG:   ret = exrpc_async(fm_node, frov_df_max<long>, df_proxy,
                      cc, tt, axis, skipna, with_index).get(); break;
         case ULONG:  ret = exrpc_async(fm_node, frov_df_max<unsigned long>, df_proxy,

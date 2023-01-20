@@ -982,6 +982,7 @@ dftable max_axis0_helper(dftable_base& df,
       switch(types[i]) {
         case BOOL:
         case INT:    resp[i] = df.max<int>(col);           break;
+        case TIMEDELTA:
         case LONG:   resp[i] = df.max<long>(col);          break;
         case ULONG:  resp[i] = df.max<unsigned long>(col); break;
         case FLOAT:  resp[i] = df.max<float>(col);         break;
