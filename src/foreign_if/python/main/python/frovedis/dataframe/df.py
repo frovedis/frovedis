@@ -3165,12 +3165,9 @@ class DataFrame(SeriesHelper):
 
             immed = True
             immed_val = str(other.value)
-            #immed_val = str(other.value//10**9)
             immed_dt = "timestamp"
             is_series = self.is_series
-            if op_type == "sub":
-                op_type = "timestamp_sub"
-            else:
+            if op_type != "sub":
                 raise TypeError("cannot {} DatetimeArray and " \
                                 " Timestamp".format(op_type))
         elif isinstance(other, (list, np.ndarray)):

@@ -727,7 +727,10 @@ std::shared_ptr<dfcolumn>
 typed_dfcolumn<datetime>::rsub_im(const std::shared_ptr<dfscalar>& right) {
   auto right_type = right->dtype();
   std::shared_ptr<dfcolumn> ret = NULL;
-  if (right_type == "datetime") {
+  if (right_type == "long") {
+    auto tmp = std::dynamic_pointer_cast<typed_dfscalar<long>>(right);
+    ret = rdatetime_diff_im(tmp->val, datetime_type_for_add_sub_op);
+  } else if (right_type == "datetime") {
     auto tmp = std::dynamic_pointer_cast<typed_dfscalar<datetime>>(right);
     ret = rdatetime_diff_im(tmp->val, datetime_type_for_add_sub_op);
   } else if (right_type == "string" ||
