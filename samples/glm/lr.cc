@@ -18,6 +18,44 @@ RegType getRegularizer(const std::string& rt) {
   return ret;
 }
 
+template <class MATRIX, class T>
+logistic_regression_model<T>
+do_train_impl(MATRIX& mat, dvector<T>& lbl,
+              const string& solver,
+              size_t num_iteration, 
+              double alpha, 
+              double minibatch_fraction,
+              size_t hist_size,
+              const string& regularizer, 
+              double regParam, bool intercept,
+              double convTol, MatType mType) {
+
+  logistic_regression_model<T> lm;
+  if (solver == "sgd") {
+    lm = logistic_regression_with_sgd::train(std::move(mat), lbl,
+                             num_iteration, alpha,
+                             minibatch_fraction, 
+                             regParam, getRegularizer(regularizer),
+                             intercept, convTol, mType);
+  }
+  else if (solver == "shrink-sgd") {
+    lm = shrink::logistic_regression_with_sgd::train(std::move(mat), lbl,
+                                     num_iteration, alpha,
+                                     minibatch_fraction,
+                                     regParam, getRegularizer(regularizer),
+                                     intercept, convTol, mType);
+  }
+  else if (solver == "lbfgs") {
+    lm = logistic_regression_with_lbfgs::train(std::move(mat), lbl,
+                             num_iteration, alpha,
+                             hist_size, 
+                             regParam, getRegularizer(regularizer),
+                             intercept, convTol, mType);
+  }
+  else REPORT_ERROR(USER_ERROR, "supported solver is sgd, shrink-sgd and lbfgs!\n");
+  return lm;
+}
+
 template <class T>
 void do_train(const string& input, 
               const string& label, 
@@ -29,47 +67,49 @@ void do_train(const string& input,
               size_t hist_size,
               const string& regularizer, 
               double regParam, bool intercept,
-              double convTol, MatType mType, bool binary) {
-
+              double convTol, MatType mType, 
+              bool binary, bool isdense) {
   time_spent t(DEBUG);
-  crs_matrix<T> mat;
   dvector<T> lbl;
   logistic_regression_model<T> lm;
 
-  if(binary) {
-    mat = make_crs_matrix_loadbinary<T>(input);
-    t.show("load matrix: ");
-    lbl = make_dvector_loadbinary<T>(label);
-    t.show("load label: ");
+  if(isdense) {
+    colmajor_matrix<T> mat;
+    if(binary) {
+      mat = colmajor_matrix<T>(make_rowmajor_matrix_loadbinary<T>(input));
+      t.show("load matrix: ");
+      lbl = make_dvector_loadbinary<T>(label);
+      t.show("load label: ");
+    } else {
+      mat = colmajor_matrix<T>(make_rowmajor_matrix_load<T>(input));
+      t.show("load matrix: ");
+      lbl = make_dvector_loadline<T>(label);
+      t.show("load label: ");
+    }
+    lm = do_train_impl<colmajor_matrix<T>, T> (
+                       mat, lbl, solver, num_iteration, alpha,
+                       minibatch_fraction, hist_size,
+                       regularizer, regParam,
+                       intercept, convTol, mType);
   } else {
-    mat = make_crs_matrix_load<T>(input);
-    t.show("load matrix: ");
-    lbl = make_dvector_loadline<T>(label);
-    t.show("load label: ");
+    crs_matrix<T> mat;
+    if(binary) {
+      mat = make_crs_matrix_loadbinary<T>(input);
+      t.show("load matrix: ");
+      lbl = make_dvector_loadbinary<T>(label);
+      t.show("load label: ");
+    } else {
+      mat = make_crs_matrix_load<T>(input);
+      t.show("load matrix: ");
+      lbl = make_dvector_loadline<T>(label);
+      t.show("load label: ");
+    }
+    lm = do_train_impl<crs_matrix<T>, T> (
+                       mat, lbl, solver, num_iteration, alpha,
+                       minibatch_fraction, hist_size,
+                       regularizer, regParam,
+                       intercept, convTol, mType);
   }
-
-  if (solver == "sgd") {
-    lm = logistic_regression_with_sgd::train(std::move(mat), lbl,
-                             num_iteration, alpha,
-                             minibatch_fraction, 
-                             regParam, getRegularizer(regularizer),
-                             intercept,convTol, mType);
-  }
-  else if (solver == "shrink-sgd") {
-    lm = shrink::logistic_regression_with_sgd::train(std::move(mat), lbl,
-                                     num_iteration, alpha,
-                                     minibatch_fraction,
-                                     regParam, getRegularizer(regularizer),
-                                     intercept,convTol, mType);
-  }
-  else if (solver == "lbfgs") {
-    lm = logistic_regression_with_lbfgs::train(std::move(mat), lbl,
-                             num_iteration, alpha,
-                             hist_size, 
-                             regParam, getRegularizer(regularizer),
-                             intercept,convTol, mType);
-  }
-  else REPORT_ERROR(USER_ERROR, "supported solver is sgd, shrink-sgd and lbfgs!\n");
   t.show("train time: ");
 
   if(binary) lm.savebinary(output);
@@ -77,27 +117,48 @@ void do_train(const string& input,
   t.show("save model time: ");
 }
 
+
 template <class T>
 void do_predict(const string& input, 
                 const string& model, 
                 const string& output,
-                bool prob, bool binary) {
+                bool prob, bool binary, 
+                bool isdense) {
   time_spent t(DEBUG);
-  crs_matrix_local<T> mat;
   logistic_regression_model<T> lm;
-  if(binary) {
-    lm.loadbinary(model);
-    t.show("load model: ");
-    mat = make_crs_matrix_local_loadbinary<T>(input);
-    t.show("load matrix: ");
+  std::vector<T> r;
+
+  if(isdense) {
+    rowmajor_matrix_local<T> mat;
+    if(binary) {
+      lm.loadbinary(model);
+      t.show("load model: ");
+      mat = make_rowmajor_matrix_local_loadbinary<T>(input);
+      t.show("load matrix: ");
+    } else {
+      lm.load(model);
+      t.show("load model: ");
+      mat = make_rowmajor_matrix_local_load<T>(input);
+      t.show("load matrix: ");
+    }
+    r = prob ? lm.predict_probability(mat) : lm.predict(mat);
   } else {
-    lm.load(model);
-    t.show("load model: ");
-    mat = make_crs_matrix_local_load<T>(input);
-    t.show("load matrix: ");
+    crs_matrix_local<T> mat;
+    if(binary) {
+      lm.loadbinary(model);
+      t.show("load model: ");
+      mat = make_crs_matrix_local_loadbinary<T>(input);
+      t.show("load matrix: ");
+    } else {
+      lm.load(model);
+      t.show("load model: ");
+      mat = make_crs_matrix_local_load<T>(input);
+      t.show("load matrix: ");
+    }
+    r = prob ? lm.predict_probability(mat) : lm.predict(mat);
   }
-  auto r = prob ? lm.predict_probability(mat) : lm.predict(mat);
   t.show("prediction time: ");
+
   if(binary) make_dvector_scatter(r).savebinary(output);
   else       make_dvector_scatter(r).saveline(output);
   t.show("save predicted result: ");
@@ -131,6 +192,8 @@ int main(int argc, char* argv[]) {
     ("regularization-parameter,e", value<double>(), "regularization parameter (default: 0.01)")
     ("convergence-tolerance,c", value<double>(), "a tolerance value to determine convergence (default: 0.001)")
     ("intercept,t", "use bias or not")
+    ("sparse", "use sparse matrix (default)")
+    ("dense", "use dense matrix")
     ("verbose", "set loglevel to DEBUG")
     ("verbose2", "set loglevel to TRACE")
     ("binary,b", "use binary input/output");
@@ -152,6 +215,7 @@ int main(int argc, char* argv[]) {
   double regParam = 0.01;
   bool intercept = false;
   bool binary = false;
+  bool isdense = false;
 #if defined(_SX) || defined(__ve__)
   MatType mType = HYBRID;
 #else
@@ -272,21 +336,35 @@ int main(int argc, char* argv[]) {
     hist_size = argmap["hist-size"].as<size_t>();
   }
 
+  if(argmap.count("sparse") && argmap.count("dense")) {
+    cerr << "either provide --sparse or --dense to specify type of input matrix" << endl;
+    cerr << opt << endl;
+    exit(1);
+  }
+
+  if(argmap.count("sparse")){
+    isdense = false;
+  }
+
+  if(argmap.count("dense")){
+    isdense = true;
+  }
+
   if (dtype == "float") {
     if(ispredict) do_predict<float>(input, model, output, 
-                                    predict_probability, binary);
+                                    predict_probability, binary, isdense);
     else do_train<float>(input, label, output, solver,
                          num_iteration, alpha, minibatch_fraction, hist_size,
                          regularizer, regParam, intercept, convTol, 
-                         mType, binary);
+                         mType, binary, isdense);
   }
   else if (dtype == "double") {
     if(ispredict) do_predict<double>(input, model, output, 
-                                     predict_probability, binary);
+                                     predict_probability, binary, isdense);
     else do_train<double>(input, label, output, solver,
                           num_iteration, alpha, minibatch_fraction, hist_size,
                           regularizer, regParam, intercept, convTol, 
-                          mType, binary);
+                          mType, binary, isdense);
   }
   else REPORT_ERROR(USER_ERROR, "supported dtype is either float or double!\n");
 }
