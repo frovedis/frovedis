@@ -1,6 +1,7 @@
 #include <frovedis.hpp>
 #include <frovedis/ml/glm/linear_regression_with_sgd.hpp>
 #include <frovedis/ml/glm/linear_regression_with_lbfgs.hpp>
+#include <frovedis/ml/glm/simple_linear_regression.hpp>
 #include <boost/program_options.hpp>
 
 using namespace boost;
@@ -27,6 +28,26 @@ do_train_impl(MATRIX& mat, dvector<T>& lbl,
     lm = linear_regression_with_lbfgs::train(std::move(mat), lbl, num_iteration, 
                                              alpha, hist_size,
                                              intercept, convTol, mType);
+  }
+  else if (solver == "lapack") {
+    int rank = 0;
+    std::vector<T> sval, sample_weight;
+    lm = linear_regression_with_lapack(mat, lbl, rank, sval,
+                                       sample_weight,
+                                       intercept);
+  }
+  else if (solver == "scalapack") {
+    std::vector<T> sample_weight;
+    lm = linear_regression_with_scalapack(mat, lbl,
+                                          sample_weight,
+                                          intercept);
+  }
+  else if (solver == "sparse_lsqr") {
+    size_t n_iter;
+    std::vector<T> sample_weight;
+    lm = linear_regression_with_lsqr_impl(mat, lbl,
+                                          sample_weight, num_iteration,
+                                          intercept, n_iter);
   }
   else REPORT_ERROR(USER_ERROR, "supported solver is either sgd or lbfgs!\n");
   return lm;
@@ -153,7 +174,7 @@ int main(int argc, char* argv[]) {
     ("model,m", value<string>(), "input model (for predict)")
     ("output,o", value<string>(), "output model or predict result")
     ("dtype", value<string>(), "target data type for input (double or float) (default: double)")
-    ("solver,s", value<string>(), "linear regression solver: sgd (default) or lbfgs")
+    ("solver,s", value<string>(), "linear regression solver: lapack (default for dense), sparse_lsqr (default for sparse), scalapack, sgd, lbfgs")
     ("num-iteration,n", value<size_t>(), "number of iteration (default: 1000)")
     ("alpha,a", value<double>(), "learning rate (default: 0.01)")
     ("minibatch-fraction,f", value<double>(), "fraction rate for minibatch (default: 1.0)")
@@ -186,7 +207,7 @@ int main(int argc, char* argv[]) {
 #else
   MatType mType = CRS;
 #endif
-  string solver = "sgd";
+  string solver = "sparse_lsqr";
   string dtype = "double";
   
   if(argmap.count("help")){
@@ -274,10 +295,6 @@ int main(int argc, char* argv[]) {
     set_loglevel(TRACE);
   }
 
-  if(argmap.count("solver")){
-    solver = argmap["solver"].as<string>();
-  } 
-
   if(argmap.count("dtype")){
     dtype = argmap["dtype"].as<string>();
   } 
@@ -294,11 +311,27 @@ int main(int argc, char* argv[]) {
 
   if(argmap.count("sparse")){
     isdense = false;
+    solver = "sparse_lsqr";
   }
 
   if(argmap.count("dense")){
     isdense = true;
+    solver = "lapack";
   }
+
+  if(argmap.count("solver")){
+    solver = argmap["solver"].as<string>();
+    if (not isdense && (solver == "lapack" || solver == "scalapack")) {
+      cerr << "lapack/scalapack solver can only be used for dense data" << endl;
+      cerr << opt << endl;
+      exit(1);
+    }
+    else if (isdense && (solver == "sparse_lsqr")) {
+      cerr << "sparse_lsqr solver can only be used for sparse data" << endl;
+      cerr << opt << endl;
+      exit(1);
+    }
+  } 
 
   if (dtype == "float") {
     if(ispredict) do_predict<float>(input, model, output, binary, isdense);
