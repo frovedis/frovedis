@@ -20,6 +20,12 @@ def is_nat(other):
   return other is pd.Timedelta("")
  
 def infer_column_type_from_first_notna(df, col, is_index=False):
+    # for empty series/dataframe: 
+    #   - index column is inferred to be of "int" type
+    #   -  non-index column is inferred to be of "string" type
+    if len(col) == 0:
+        return "int" if is_index else "str"
+
     if is_index: #infers type of index assuming it contains all non-na
         dtype = type(df.index.values[0]).__name__
     else:
@@ -460,8 +466,7 @@ def get_col_frequency(frov_df, col_name, periods=1):
 
 def get_empty_frovedis_series(col_name):
     from .df import DataFrame
-    return DataFrame(pd.Series(data=[1.1], name=col_name))\
-                .drop(labels=[0], inplace=False)
+    return DataFrame(pd.Series(name=col_name))
 
 def get_single_column_frovedis_series(col_name, col_len, fill_val=np.nan):
     from .df import DataFrame

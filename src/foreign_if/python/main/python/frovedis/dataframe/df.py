@@ -701,9 +701,6 @@ class DataFrame(SeriesHelper):
         """
         load
         """
-        if len(df) == 0:
-            raise ValueError("Cannot load an empty pandas dataframe " +\
-                             "(column types could not be deduced)")
         if isinstance(df.index, pd.MultiIndex):
             raise ValueError("Cannot load a pandas dataframe " +\
                              "with multi level index")
