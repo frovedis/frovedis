@@ -476,7 +476,7 @@ def is_bool_col(df_proxy, cname):
     RETURN: Boolean
     """
     (host, port) = FrovedisServer.getServerInstance()
-    ret = rpclib.is_bool_column(host, port, df_proxy, str_encode(cname))
+    ret = rpclib.is_bool_col(host, port, df_proxy, str_encode(cname))
     excpt = rpclib.check_server_exception()
     if excpt["status"]:
         raise RuntimeError(excpt["info"])

@@ -36,7 +36,7 @@ from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     if_mask_vector, get_null_value, check_string, is_nat, \
                     replace_nat, infer_arraylike_dtype, \
                     get_empty_frovedis_series, \
-                    get_single_column_frovedis_series
+                    get_single_column_frovedis_series, is_bool_col
 from ..utils import deprecated, str_type
 from pandas.core.common import SettingWithCopyWarning
 
@@ -4759,7 +4759,9 @@ class DataFrame(SeriesHelper):
             raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
-        self.__mark_boolean_timedelta_columns(names, types)
+        dont_mark = [c for c in self.columns if self.__dict__[c].dtype == DTYPE.BOOL \
+                     and not is_bool_col(dummy_df["dfptr"], c)]
+        self.__mark_boolean_timedelta_columns(names, types, dont_mark)
 
         ret = self if inplace else DataFrame(is_series=self.is_series)
         ret.num_row = dummy_df["nrow"]
