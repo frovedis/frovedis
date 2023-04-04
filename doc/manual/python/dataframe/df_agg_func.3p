@@ -118,7 +118,7 @@ It computes an aggregate operation based on the condition specified in
 \f[B]Currently, this method will perform aggregation operation to each
 column.\f[R]
 .PP
-\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -371,7 +371,7 @@ dataframe.
 .PD
 It computes pairwise covariance of columns, excluding missing values.
 .PP
-\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -592,7 +592,7 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 the pandas DataFrame.mad().
 These are not used internally in frovedis.
 .PP
-\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -793,11 +793,17 @@ during maximum value computation.
 .PD 0
 .P
 .PD
-\f[I]\f[BI]numeric_only\f[I]\f[R]: This is an unsed parameter.
+\f[I]\f[BI]numeric_only\f[I]\f[R]: It accepts a boolean parameter.
+It determines whether only numeric columns are used or non-numeric also.
 (Default: None)
+.IP \[bu] 2
+\f[B]True\f[R]: Use only float, int, boolean columns.
 .PD 0
 .P
 .PD
+.IP \[bu] 2
+\f[B]False/None\f[R]: Attempt to use all columns(see note below).
+.PP
 \f[I]\f[BI]**kwargs\f[I]\f[R]: Additional keyword arguments to be passed
 to the function.
 .PP
@@ -807,15 +813,53 @@ to the function.
 .PD
 It computes the maximum of the values over the requested axis.
 .PP
-\f[B]Currently, maximum operation will be calculated for dataframe
-having atleast one numeric columns\f[R].
-.PP
-The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
-\[lq]**kwargs\[rq] are simply kept in to make the interface uniform to
-the pandas DataFrame.max().
+The parameters: \[lq]level\[rq], \[lq]**kwargs\[rq] are simply kept in
+to make the interface uniform to the pandas DataFrame.max().
 These are not used internally in frovedis.
 .PP
-\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+\f[B]Note:-\f[R]
+.IP \[bu] 2
+Parameter \[lq]numeric_only\[rq] is None(interpreted as False) by
+default, in this state all numeric columns and non-numeric columns
+including Datetime and Timedelta type are valid input.
+In case value is set as True then only numeric(float, int, boolean)
+columns are valid input.
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+As of now Frovedis does not support mixing of numeric and non-numeric
+columns.
+Also mixing of non-numeric columns of different types is not supported.
+.PP
+\f[B]Following input dataframes would result in exception as explained
+above:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# numeric mixed with datetime
+index   data0   data1
+0       91      2022-11-30
+1       21      2022-11-30
+2       21      2022-11-29
+3       43      2022-11-28
+
+# Input dataframe with datetime mixed with timedelta
+index   data1           data2
+0       2022-11-30      1669766400000000091
+1       2022-11-27      1669766400000000021
+2       2022-11-29      1669766400000000041
+3       2022-11-28      1669766400000000045
+
+# Input dataframes like above would result in following exception:
+TypeError: Frovedis does not support mixing of numeric and non-numeric columns. Also mixing of 
+non-numeric columns of different types is not supported.  
+\f[R]
+.fi
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -1012,11 +1056,17 @@ during mean computation.
 .PD 0
 .P
 .PD
-\f[I]\f[BI]numeric_only\f[I]\f[R]: This is an unsued parameter.
+\f[I]\f[BI]numeric_only\f[I]\f[R]: It accepts a boolean parameter.
+It determines whether only numeric columns are used or non-numeric also.
 (Default: None)
+.IP \[bu] 2
+\f[B]True\f[R]: Use only float, int, boolean columns.
 .PD 0
 .P
 .PD
+.IP \[bu] 2
+\f[B]False/None\f[R]: Attempt to use all columns(see note below).
+.PP
 \f[I]\f[BI]**kwargs\f[I]\f[R]: Additional keyword arguments to be passed
 to the function.
 .PP
@@ -1026,15 +1076,53 @@ to the function.
 .PD
 It computes mean of the values over the requested axis.
 .PP
-\f[B]Currently, mean will be calculated for dataframe having atleast one
-numeric columns\f[R].
-.PP
-The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
-\[lq]**kwargs\[rq] are simply kept in to make the interface uniform to
-the pandas DataFrame.mean().
+The parameters: \[lq]level\[rq], \[lq]**kwargs\[rq] are simply kept in
+to make the interface uniform to the pandas DataFrame.mean().
 These are not used internally in frovedis.
 .PP
-\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+\f[B]Note:-\f[R]
+.IP \[bu] 2
+Parameter \[lq]numeric_only\[rq] is None(interpreted as False) by
+default, in this state all numeric columns and non-numeric columns
+including Datetime and Timedelta type are valid input.
+In case value is set as True then only numeric(float, int, boolean)
+columns are valid input.
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+As of now Frovedis does not support mixing of numeric and non-numeric
+columns.
+Also mixing of non-numeric columns of different types is not supported.
+.PP
+\f[B]Following input dataframes would result in exception as explained
+above:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# numeric mixed with datetime
+index   data0   data1
+0       91      2022-11-30
+1       21      2022-11-30
+2       21      2022-11-29
+3       43      2022-11-28
+
+# Input dataframe with datetime mixed with timedelta
+index   data1           data2
+0       2022-11-30      1669766400000000091
+1       2022-11-27      1669766400000000021
+2       2022-11-29      1669766400000000041
+3       2022-11-28      1669766400000000045
+
+# Input dataframes like above would result in following exception:
+TypeError: Frovedis does not support mixing of numeric and non-numeric columns. Also mixing of 
+non-numeric columns of different types is not supported.  
+\f[R]
+.fi
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -1230,11 +1318,17 @@ during median computation.
 .PD 0
 .P
 .PD
-\f[I]\f[BI]numeric_only\f[I]\f[R]: This is an unsued parameter.
+\f[I]\f[BI]numeric_only\f[I]\f[R]: It accepts a boolean parameter.
+It determines whether only numeric columns are used or non-numeric also.
 (Default: None)
+.IP \[bu] 2
+\f[B]True\f[R]: Use only float, int, boolean columns.
 .PD 0
 .P
 .PD
+.IP \[bu] 2
+\f[B]False/None\f[R]: Attempt to use all columns(see note below).
+.PP
 \f[I]\f[BI]**kwargs\f[I]\f[R]: Additional keyword arguments to be passed
 to the function.
 .PP
@@ -1244,15 +1338,53 @@ to the function.
 .PD
 It computes median of the values over the requested axis.
 .PP
-\f[B]Currently, median will be calculated for dataframe having atleast
-one numeric columns\f[R].
-.PP
-The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
-\[lq]**kwargs\[rq] are simply kept in to make the interface uniform to
-the pandas DataFrame.median().
+The parameters: \[lq]level\[rq], \[lq]**kwargs\[rq] are simply kept in
+to make the interface uniform to the pandas DataFrame.mean().
 These are not used internally in frovedis.
 .PP
-\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+\f[B]Note:-\f[R]
+.IP \[bu] 2
+Parameter \[lq]numeric_only\[rq] is None(interpreted as False) by
+default, in this state all numeric columns and non-numeric columns
+including Datetime and Timedelta type are valid input.
+In case value is set as True then only numeric(float, int, boolean)
+columns are valid input.
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+As of now Frovedis does not support mixing of numeric and non-numeric
+columns.
+Also mixing of non-numeric columns of different types is not supported.
+.PP
+\f[B]Following input dataframes would result in exception as explained
+above:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# numeric mixed with datetime
+index   data0   data1
+0       91      2022-11-30
+1       21      2022-11-30
+2       21      2022-11-29
+3       43      2022-11-28
+
+# Input dataframe with datetime mixed with timedelta
+index   data1           data2
+0       2022-11-30      1669766400000000091
+1       2022-11-27      1669766400000000021
+2       2022-11-29      1669766400000000041
+3       2022-11-28      1669766400000000045
+
+# Input dataframes like above would result in following exception:
+TypeError: Frovedis does not support mixing of numeric and non-numeric columns. Also mixing of 
+non-numeric columns of different types is not supported.  
+\f[R]
+.fi
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -1451,11 +1583,17 @@ during minimum value computation.
 .PD 0
 .P
 .PD
-\f[I]\f[BI]numeric_only\f[I]\f[R]: This is an unsed parameter.
+\f[I]\f[BI]numeric_only\f[I]\f[R]: It accepts a boolean parameter.
+It determines whether only numeric columns are used or non-numeric also.
 (Default: None)
+.IP \[bu] 2
+\f[B]True\f[R]: Use only float, int, boolean columns.
 .PD 0
 .P
 .PD
+.IP \[bu] 2
+\f[B]False/None\f[R]: Attempt to use all columns(see note below).
+.PP
 \f[I]\f[BI]**kwargs\f[I]\f[R]: Additional keyword arguments to be passed
 to the function.
 .PP
@@ -1465,15 +1603,53 @@ to the function.
 .PD
 It computes the minimum of the values over the requested axis.
 .PP
-\f[B]Currently, minimum operation will be calculated for dataframe
-having atleast one numeric columns\f[R].
-.PP
-The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
-\[lq]**kwargs\[rq] are simply kept in to make the interface uniform to
-the pandas DataFrame.min().
+The parameters: \[lq]level\[rq], \[lq]**kwargs\[rq] are simply kept in
+to make the interface uniform to the pandas DataFrame.min().
 These are not used internally in frovedis.
 .PP
-\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+\f[B]Note:-\f[R]
+.IP \[bu] 2
+Parameter \[lq]numeric_only\[rq] is None(interpreted as False) by
+default, in this state all numeric columns and non-numeric columns
+including Datetime and Timedelta type are valid input.
+In case value is set as True then only numeric(float, int, boolean)
+columns are valid input.
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+As of now Frovedis does not support mixing of numeric and non-numeric
+columns.
+Also mixing of non-numeric columns of different types is not supported.
+.PP
+\f[B]Following input dataframes would result in exception as explained
+above:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# numeric mixed with datetime
+index   data0   data1
+0       91      2022-11-30
+1       21      2022-11-30
+2       21      2022-11-29
+3       43      2022-11-28
+
+# Input dataframe with datetime mixed with timedelta
+index   data1           data2
+0       2022-11-30      1669766400000000091
+1       2022-11-27      1669766400000000021
+2       2022-11-29      1669766400000000041
+3       2022-11-28      1669766400000000045
+
+# Input dataframes like above would result in following exception:
+TypeError: Frovedis does not support mixing of numeric and non-numeric columns. Also mixing of 
+non-numeric columns of different types is not supported.  
+\f[R]
+.fi
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -1681,7 +1857,7 @@ It can be multiple values.
 \f[B]When input with non-numeric columns is used with mode(), then it
 ignores the non-numeric columns for mode computation.\f[R]
 .PP
-\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -1995,7 +2171,7 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 the pandas DataFrame.sem().
 These are not used internally in frovedis.
 .PP
-\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -2219,11 +2395,17 @@ specifies the delta degrees of freedom.
 .PD 0
 .P
 .PD
-\f[I]\f[BI]numeric_only\f[I]\f[R]: This is an unsed parameter.
+\f[I]\f[BI]numeric_only\f[I]\f[R]: It accepts a boolean parameter.
+It determines whether only numeric columns are used or non-numeric also.
 (Default: None)
+.IP \[bu] 2
+\f[B]True\f[R]: Use only float, int, boolean columns.
 .PD 0
 .P
 .PD
+.IP \[bu] 2
+\f[B]False/None\f[R]: Attempt to use all columns(see note below).
+.PP
 \f[I]\f[BI]**kwargs\f[I]\f[R]: Additional keyword arguments to be passed
 to the function.
 .PP
@@ -2233,15 +2415,53 @@ to the function.
 .PD
 It computes standard deviation over requested axis.
 .PP
-\f[B]Currently, standard deviation will be calculated for dataframe
-having atleast one numeric columns\f[R].
-.PP
-The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
-\[lq]**kwargs\[rq] are simply kept in to make the interface uniform to
-the pandas DataFrame.std().
+The parameters: \[lq]level\[rq], \[lq]**kwargs\[rq] are simply kept in
+to make the interface uniform to the pandas DataFrame.min().
 These are not used internally in frovedis.
 .PP
-\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+\f[B]Note:-\f[R]
+.IP \[bu] 2
+Parameter \[lq]numeric_only\[rq] is None(interpreted as False) by
+default, in this state all numeric columns and non-numeric columns
+including Datetime and Timedelta type are valid input.
+In case value is set as True then only numeric(float, int, boolean)
+columns are valid input.
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+As of now Frovedis does not support mixing of numeric and non-numeric
+columns.
+Also mixing of non-numeric columns of different types is not supported.
+.PP
+\f[B]Following input dataframes would result in exception as explained
+above:\f[R]
+.PP
+For example,
+.IP
+.nf
+\f[C]
+# numeric mixed with datetime
+index   data0   data1
+0       91      2022-11-30
+1       21      2022-11-30
+2       21      2022-11-29
+3       43      2022-11-28
+
+# Input dataframe with datetime mixed with timedelta
+index   data1           data2
+0       2022-11-30      1669766400000000091
+1       2022-11-27      1669766400000000021
+2       2022-11-29      1669766400000000041
+3       2022-11-28      1669766400000000045
+
+# Input dataframes like above would result in following exception:
+TypeError: Frovedis does not support mixing of numeric and non-numeric columns. Also mixing of 
+non-numeric columns of different types is not supported.  
+\f[R]
+.fi
+.PP
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -2487,7 +2707,7 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 the pandas DataFrame.sum().
 These are not used internally in frovedis.
 .PP
-\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP
@@ -2714,7 +2934,7 @@ The parameters: \[lq]level\[rq], \[lq]numeric_only\[rq],
 the pandas DataFrame.var().
 These are not used internally in frovedis.
 .PP
-\f[B]Creatinng frovedis DataFrame from pandas DataFrame:\f[R]
+\f[B]Creating frovedis DataFrame from pandas DataFrame:\f[R]
 .PP
 For example,
 .IP

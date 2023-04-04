@@ -28702,7 +28702,7 @@ It computes an aggregate operation based on the condition specified in 'func'.
 
 **Currently, this method will perform aggregation operation to each column.**  
 
-**Creatinng frovedis DataFrame from pandas DataFrame:**  
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
     
@@ -28841,7 +28841,7 @@ When it is None (not specified explicitly), then **min_periods = 1**.
 __Purpose__  
 It computes pairwise covariance of columns, excluding missing values.  
 
-**Creatinng frovedis DataFrame from pandas DataFrame:**  
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -28969,7 +28969,7 @@ It computes the mean absolute deviation of the values over the requested axis.
 The parameters: "level", "numeric_only", "\*\*kwargs" are simply kept in to make the interface uniform to the 
 pandas DataFrame.mad(). These are not used internally in frovedis.  
 
-**Creatinng frovedis DataFrame from pandas DataFrame:**  
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -29097,18 +29097,53 @@ _**skipna**_: It accepts boolean as parameter. When set to True, it will exclude
 result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during maximum value computation.  
 _**level**_: This is an unused parameter. (Default: None)  
-_**numeric\_only**_: This is an unsed parameter. (Default: None)  
+_**numeric\_only**_: It accepts a boolean parameter. It determines whether only numeric columns 
+are used or non-numeric also. (Default: None)  
+
+- **True**: Use only float, int, boolean columns.  
+- **False/None**: Attempt to use all columns(see note below).  
+
 _**\*\*kwargs**_: Additional keyword arguments to be passed to the function.  
 
 __Purpose__  
 It computes the maximum of the values over the requested axis.  
 
-**Currently, maximum operation will be calculated for dataframe having atleast one numeric columns**.  
-
-The parameters: "level", "numeric_only", "\*\*kwargs" are simply kept in to make the interface uniform to the 
+The parameters: "level", "\*\*kwargs" are simply kept in to make the interface uniform to the 
 pandas DataFrame.max(). These are not used internally in frovedis.  
 
-**Creatinng frovedis DataFrame from pandas DataFrame:**  
+**Note:-**  
+
+- Parameter "numeric_only" is None(interpreted as False) by default, in this state 
+all numeric columns and non-numeric columns including Datetime and Timedelta type 
+are valid input. In case value is set as True then only numeric(float, int, boolean) 
+columns are valid input.  
+- As of now Frovedis does not support mixing of numeric and non-numeric columns. Also 
+mixing of non-numeric columns of different types is not supported.  
+
+
+**Following input dataframes would result in exception as explained above:**  
+
+For example,  
+
+    # numeric mixed with datetime
+    index   data0   data1
+    0       91      2022-11-30
+    1       21      2022-11-30
+    2       21      2022-11-29
+    3       43      2022-11-28
+    
+    # Input dataframe with datetime mixed with timedelta
+    index   data1           data2
+    0       2022-11-30      1669766400000000091
+    1       2022-11-27      1669766400000000021
+    2       2022-11-29      1669766400000000041
+    3       2022-11-28      1669766400000000045
+    
+    # Input dataframes like above would result in following exception:
+    TypeError: Frovedis does not support mixing of numeric and non-numeric columns. Also mixing of 
+    non-numeric columns of different types is not supported.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -29233,18 +29268,53 @@ When it is None (not specified explicitly), it performs mean operation along the
 _**skipna**_: It is a boolean parameter. When set to True, it will exclude missing values while computing the result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during mean computation.  
 _**level**_: This is an unused parameter. (Default: None)  
-_**numeric\_only**_: This is an unsued parameter. (Default: None)  
+_**numeric\_only**_: It accepts a boolean parameter. It determines whether only numeric columns 
+are used or non-numeric also. (Default: None)  
+
+- **True**: Use only float, int, boolean columns.  
+- **False/None**: Attempt to use all columns(see note below).  
+
 _**\*\*kwargs**_: Additional keyword arguments to be passed to the function.  
 
 __Purpose__  
 It computes mean of the values over the requested axis.  
 
-**Currently, mean will be calculated for dataframe having atleast one numeric columns**.  
-
-The parameters: "level", "numeric_only", "\*\*kwargs" are simply kept in to make the interface uniform to the 
+The parameters: "level", "\*\*kwargs" are simply kept in to make the interface uniform to the 
 pandas DataFrame.mean(). These are not used internally in frovedis.  
 
-**Creatinng frovedis DataFrame from pandas DataFrame:**  
+**Note:-**  
+
+- Parameter "numeric_only" is None(interpreted as False) by default, in this state 
+all numeric columns and non-numeric columns including Datetime and Timedelta type 
+are valid input. In case value is set as True then only numeric(float, int, boolean) 
+columns are valid input.  
+- As of now Frovedis does not support mixing of numeric and non-numeric columns. Also 
+mixing of non-numeric columns of different types is not supported.  
+
+
+**Following input dataframes would result in exception as explained above:**  
+
+For example,  
+
+    # numeric mixed with datetime
+    index   data0   data1
+    0       91      2022-11-30
+    1       21      2022-11-30
+    2       21      2022-11-29
+    3       43      2022-11-28
+    
+    # Input dataframe with datetime mixed with timedelta
+    index   data1           data2
+    0       2022-11-30      1669766400000000091
+    1       2022-11-27      1669766400000000021
+    2       2022-11-29      1669766400000000041
+    3       2022-11-28      1669766400000000045
+    
+    # Input dataframes like above would result in following exception:
+    TypeError: Frovedis does not support mixing of numeric and non-numeric columns. Also mixing of 
+    non-numeric columns of different types is not supported.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -29371,18 +29441,53 @@ _**skipna**_: It accepts boolean as parameter. When set to True, it will exclude
 the result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during median computation.  
 _**level**_: This is an unused parameter. (Default: None)  
-_**numeric\_only**_: This is an unsued parameter. (Default: None)  
+_**numeric\_only**_: It accepts a boolean parameter. It determines whether only numeric columns 
+are used or non-numeric also. (Default: None)  
+
+- **True**: Use only float, int, boolean columns.  
+- **False/None**: Attempt to use all columns(see note below).  
+
 _**\*\*kwargs**_: Additional keyword arguments to be passed to the function.  
 
 __Purpose__  
 It computes median of the values over the requested axis.  
 
-**Currently, median will be calculated for dataframe having atleast one numeric columns**.  
+The parameters: "level", "\*\*kwargs" are simply kept in to make the interface uniform to the 
+pandas DataFrame.mean(). These are not used internally in frovedis.  
 
-The parameters: "level", "numeric_only", "\*\*kwargs" are simply kept in to make the interface uniform to the 
-pandas DataFrame.median(). These are not used internally in frovedis.  
+**Note:-**  
 
-**Creatinng frovedis DataFrame from pandas DataFrame:**  
+- Parameter "numeric_only" is None(interpreted as False) by default, in this state 
+all numeric columns and non-numeric columns including Datetime and Timedelta type 
+are valid input. In case value is set as True then only numeric(float, int, boolean) 
+columns are valid input.  
+- As of now Frovedis does not support mixing of numeric and non-numeric columns. Also 
+mixing of non-numeric columns of different types is not supported.  
+
+
+**Following input dataframes would result in exception as explained above:**  
+
+For example,  
+
+    # numeric mixed with datetime
+    index   data0   data1
+    0       91      2022-11-30
+    1       21      2022-11-30
+    2       21      2022-11-29
+    3       43      2022-11-28
+    
+    # Input dataframe with datetime mixed with timedelta
+    index   data1           data2
+    0       2022-11-30      1669766400000000091
+    1       2022-11-27      1669766400000000021
+    2       2022-11-29      1669766400000000041
+    3       2022-11-28      1669766400000000045
+    
+    # Input dataframes like above would result in following exception:
+    TypeError: Frovedis does not support mixing of numeric and non-numeric columns. Also mixing of 
+    non-numeric columns of different types is not supported.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -29509,18 +29614,53 @@ _**skipna**_: It accepts boolean as parameter. When set to True, it will exclude
 the result. (Default: None)  
 When it is None (not specified explicitly), it excludes missing values during minimum value computation.  
 _**level**_: This is an unused parameter. (Default: None)  
-_**numeric\_only**_: This is an unsed parameter. (Default: None)  
+_**numeric\_only**_: It accepts a boolean parameter. It determines whether only numeric columns 
+are used or non-numeric also. (Default: None)  
+
+- **True**: Use only float, int, boolean columns.  
+- **False/None**: Attempt to use all columns(see note below).  
+
 _**\*\*kwargs**_: Additional keyword arguments to be passed to the function.  
 
 __Purpose__  
 It computes the minimum of the values over the requested axis.  
 
-**Currently, minimum operation will be calculated for dataframe having atleast one numeric columns**.  
-
-The parameters: "level", "numeric_only", "\*\*kwargs" are simply kept in to make the interface uniform to the 
+The parameters: "level", "\*\*kwargs" are simply kept in to make the interface uniform to the 
 pandas DataFrame.min(). These are not used internally in frovedis.  
 
-**Creatinng frovedis DataFrame from pandas DataFrame:**  
+**Note:-**  
+
+- Parameter "numeric_only" is None(interpreted as False) by default, in this state 
+all numeric columns and non-numeric columns including Datetime and Timedelta type 
+are valid input. In case value is set as True then only numeric(float, int, boolean) 
+columns are valid input.  
+- As of now Frovedis does not support mixing of numeric and non-numeric columns. Also 
+mixing of non-numeric columns of different types is not supported.  
+
+
+**Following input dataframes would result in exception as explained above:**  
+
+For example,  
+
+    # numeric mixed with datetime
+    index   data0   data1
+    0       91      2022-11-30
+    1       21      2022-11-30
+    2       21      2022-11-29
+    3       43      2022-11-28
+    
+    # Input dataframe with datetime mixed with timedelta
+    index   data1           data2
+    0       2022-11-30      1669766400000000091
+    1       2022-11-27      1669766400000000021
+    2       2022-11-29      1669766400000000041
+    3       2022-11-28      1669766400000000045
+    
+    # Input dataframes like above would result in following exception:
+    TypeError: Frovedis does not support mixing of numeric and non-numeric columns. Also mixing of 
+    non-numeric columns of different types is not supported.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -29653,7 +29793,7 @@ The mode of a set of values is the value that appears most often. It can be mult
 
 **When input with non-numeric columns is used with mode(), then it ignores the non-numeric columns for mode computation.**  
 
-**Creatinng frovedis DataFrame from pandas DataFrame:**  
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -29853,7 +29993,7 @@ It computes standard error of the mean over requested axis.
 The parameters: "level", "numeric_only", "\*\*kwargs" are simply kept in to make the interface uniform to the 
 pandas DataFrame.sem(). These are not used internally in frovedis.  
 
-**Creatinng frovedis DataFrame from pandas DataFrame:**  
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -29990,18 +30130,53 @@ result. (Default: None)
 When it is None (not specified explicitly), it excludes missing values during standard deviation computation.  
 _**level**_: This is an unused parameter. (Default: None)  
 **_ddof_**: It accepts an integer parameter that specifies the delta degrees of freedom. (Default: 1)  
-_**numeric\_only**_: This is an unsed parameter. (Default: None)  
+_**numeric\_only**_: It accepts a boolean parameter. It determines whether only numeric columns 
+are used or non-numeric also. (Default: None)  
+
+- **True**: Use only float, int, boolean columns.  
+- **False/None**: Attempt to use all columns(see note below).  
+
 _**\*\*kwargs**_: Additional keyword arguments to be passed to the function.  
 
 __Purpose__  
 It computes standard deviation over requested axis.  
 
-**Currently, standard deviation will be calculated for dataframe having atleast one numeric columns**.  
+The parameters: "level", "\*\*kwargs" are simply kept in to make the interface uniform to the 
+pandas DataFrame.min(). These are not used internally in frovedis.  
 
-The parameters: "level", "numeric_only", "\*\*kwargs" are simply kept in to make the interface uniform to 
-the pandas DataFrame.std(). These are not used internally in frovedis.  
+**Note:-**  
 
-**Creatinng frovedis DataFrame from pandas DataFrame:**  
+- Parameter "numeric_only" is None(interpreted as False) by default, in this state 
+all numeric columns and non-numeric columns including Datetime and Timedelta type 
+are valid input. In case value is set as True then only numeric(float, int, boolean) 
+columns are valid input.  
+- As of now Frovedis does not support mixing of numeric and non-numeric columns. Also 
+mixing of non-numeric columns of different types is not supported.  
+
+
+**Following input dataframes would result in exception as explained above:**  
+
+For example,  
+
+    # numeric mixed with datetime
+    index   data0   data1
+    0       91      2022-11-30
+    1       21      2022-11-30
+    2       21      2022-11-29
+    3       43      2022-11-28
+    
+    # Input dataframe with datetime mixed with timedelta
+    index   data1           data2
+    0       2022-11-30      1669766400000000091
+    1       2022-11-27      1669766400000000021
+    2       2022-11-29      1669766400000000041
+    3       2022-11-28      1669766400000000045
+    
+    # Input dataframes like above would result in following exception:
+    TypeError: Frovedis does not support mixing of numeric and non-numeric columns. Also mixing of 
+    non-numeric columns of different types is not supported.  
+
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -30149,7 +30324,7 @@ It computes the sum of the values over the requested axis.
 The parameters: "level", "numeric_only", "\*\*kwargs" are simply kept in to make the interface uniform to the 
 pandas DataFrame.sum(). These are not used internally in frovedis.  
 
-**Creatinng frovedis DataFrame from pandas DataFrame:**  
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
@@ -30288,7 +30463,7 @@ It computes variance over requested axis.
 The parameters: "level", "numeric_only", "\*\*kwargs" are simply kept in to make the interface uniform to the 
 pandas DataFrame.var(). These are not used internally in frovedis.  
 
-**Creatinng frovedis DataFrame from pandas DataFrame:**  
+**Creating frovedis DataFrame from pandas DataFrame:**  
 
 For example,  
 
