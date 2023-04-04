@@ -4703,9 +4703,9 @@ class DataFrame(SeriesHelper):
         return ret
 
     def __clip_axis1_helper(self, lower=None, upper=None, axis=None, inplace=False):
-        if isinstance(lower, (numbers.Number, str)):
+        if isinstance(lower, (numbers.Number, str, pd.Timestamp, pd.Timedelta)):
             lower = [lower] * len(self.columns)
-        if isinstance(upper, (numbers.Number, str)):
+        if isinstance(upper, (numbers.Number, str, pd.Timestamp, pd.Timedelta)):
             upper = [upper] * len(self.columns)
 
         if len(lower) != len(self.columns):
@@ -4843,12 +4843,12 @@ class DataFrame(SeriesHelper):
             axis = 1
 
         if not isinstance(lower, (numbers.Number, str, list, pd.Series,
-                                np.ndarray, tuple)):
+                                np.ndarray, tuple, pd.Timestamp, pd.Timedelta)):
             raise TypeError("clip: Unsupported type of limit provided: "
                             "{} ". format(type(lower)))
 
         if not isinstance(upper, (numbers.Number, str, list, pd.Series,
-                                np.ndarray, tuple)):
+                                np.ndarray, tuple, pd.Timestamp, pd.Timedelta)):
             raise TypeError("clip: Unsupported type of limit provided: "
                             "{} ". format(type(upper)))
 
