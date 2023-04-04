@@ -2999,7 +2999,10 @@ class DataFrame(SeriesHelper):
             raise RuntimeError(excpt["info"])
         names = dummy_df["names"]
         types = dummy_df["types"]
-        self.__mark_boolean_timedelta_columns(names, types)
+        dont_mark = [c for c in self.columns if self.__dict__[c].dtype == DTYPE.BOOL \
+                     and not is_bool_col(dummy_df["dfptr"], c)]
+        self.__mark_boolean_timedelta_columns(names, types, dont_mark)
+
         ret.num_row = dummy_df["nrow"]
         if self.has_index():
             ret.index = FrovedisColumn(names[0], types[0]) #setting index
