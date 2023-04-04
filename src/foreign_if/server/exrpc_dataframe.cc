@@ -2729,142 +2729,102 @@ get_clipped_column(std::shared_ptr<dffunction>& curr_col,
                   std::string& lower_limit, short lower_dtype,
                   std::string& upper_limit, short upper_dtype) {
   std::shared_ptr<dffunction> res_col;
+  std::string msg = "get_clipped_column: Unsupported datatype for ";
+  auto u_msg = msg + "upper: " + std::to_string(upper_dtype) + "!\n";
+  auto l_msg = msg + "lower: " + std::to_string(lower_dtype) + "!\n";
+
   switch (lower_dtype) {
     case STRING: 
       if (upper_dtype == STRING) {
         res_col = get_clipped_column_helper<std::string, std::string>(curr_col, 
                                                                   lower_limit, 
                                                                   upper_limit);
-      } 
-      else {
-        auto msg = "get_clipped_column: Unsupported datatype for upper: " + 
-                            std::to_string(lower_dtype) + "! \n";
-        REPORT_ERROR(USER_ERROR, msg);
-      }
+      } else REPORT_ERROR(USER_ERROR, u_msg);
       break;
     case DATETIME: 
       if (upper_dtype == DATETIME) {
         res_col = get_clipped_column_helper<datetime_t, datetime_t>(curr_col, 
                                                       lower_limit, 
                                                       upper_limit);
-      } 
-      else {
-        auto msg = "get_clipped_column: Unsupported datatype for upper: " + 
-                            std::to_string(lower_dtype) + "! \n";
-        REPORT_ERROR(USER_ERROR, msg);
-      }
+      } else REPORT_ERROR(USER_ERROR, u_msg);
       break;
     case INT: 
       if (upper_dtype == INT) {
         res_col = get_clipped_column_helper<int, int>(curr_col, 
                                                       lower_limit, 
                                                       upper_limit);
-      } 
-      else if (upper_dtype == LONG) {
+      } else if (upper_dtype == LONG) {
         res_col = get_clipped_column_helper<int, long>(curr_col, 
                                                        lower_limit, 
                                                        upper_limit);
-      }
-      else if (upper_dtype == FLOAT) {
+      } else if (upper_dtype == FLOAT) {
         res_col = get_clipped_column_helper<int, float>(curr_col, 
                                                        lower_limit, 
                                                        upper_limit);
-      }
-      else if (upper_dtype == DOUBLE) {
+      } else if (upper_dtype == DOUBLE) {
         res_col = get_clipped_column_helper<int, double>(curr_col, 
                                                        lower_limit, 
                                                        upper_limit);
-      }
-      else {
-        auto msg = "get_clipped_column: Unsupported datatype for upper: " + 
-                            std::to_string(lower_dtype) + "! \n";
-        REPORT_ERROR(USER_ERROR, msg);
-      }
+      } else REPORT_ERROR(USER_ERROR, u_msg);
       break;
     case LONG: 
       if (upper_dtype == INT) {
         res_col = get_clipped_column_helper<long, int>(curr_col, 
                                                       lower_limit, 
                                                       upper_limit);
-      } 
-      else if (upper_dtype == LONG) {
+      } else if (upper_dtype == LONG) {
         res_col = get_clipped_column_helper<long, long>(curr_col, 
                                                        lower_limit, 
                                                        upper_limit);
-      }
-      else if (upper_dtype == FLOAT) {
+      } else if (upper_dtype == FLOAT) {
         res_col = get_clipped_column_helper<long, float>(curr_col, 
                                                        lower_limit, 
                                                        upper_limit);
-      }
-      else if (upper_dtype == DOUBLE) {
+      } else if (upper_dtype == DOUBLE) {
         res_col = get_clipped_column_helper<long, double>(curr_col, 
                                                        lower_limit, 
                                                        upper_limit);
-      }
-      else {
-        auto msg = "get_clipped_column: Unsupported datatype for upper: " + 
-                            std::to_string(lower_dtype) + "! \n";
-        REPORT_ERROR(USER_ERROR, msg);
-      }
+      } else REPORT_ERROR(USER_ERROR, u_msg);
       break;
     case FLOAT: 
       if (upper_dtype == INT) {
         res_col = get_clipped_column_helper<float, int>(curr_col, 
                                                       lower_limit, 
                                                       upper_limit);
-      } 
-      else if (upper_dtype == LONG) {
+      } else if (upper_dtype == LONG) {
         res_col = get_clipped_column_helper<float, long>(curr_col, 
                                                        lower_limit, 
                                                        upper_limit);
-      }
-      else if (upper_dtype == FLOAT) {
+      } else if (upper_dtype == FLOAT) {
         res_col = get_clipped_column_helper<float, float>(curr_col, 
                                                        lower_limit, 
                                                        upper_limit);
-      }
-      else if (upper_dtype == DOUBLE) {
+      } else if (upper_dtype == DOUBLE) {
         res_col = get_clipped_column_helper<float, double>(curr_col, 
                                                        lower_limit, 
                                                        upper_limit);
-      }
-      else {
-        auto msg = "get_clipped_column: Unsupported datatype for upper: " + 
-                            std::to_string(lower_dtype) + "! \n";
-        REPORT_ERROR(USER_ERROR, msg);
-      }
+      } else REPORT_ERROR(USER_ERROR, u_msg);
       break;
     case DOUBLE: 
       if (upper_dtype == INT) {
         res_col = get_clipped_column_helper<double, int>(curr_col, 
                                                       lower_limit, 
                                                       upper_limit);
-      } 
-      else if (upper_dtype == LONG) {
+      } else if (upper_dtype == LONG) {
         res_col = get_clipped_column_helper<double, long>(curr_col, 
                                                        lower_limit, 
                                                        upper_limit);
-      }
-      else if (upper_dtype == FLOAT) {
+      } else if (upper_dtype == FLOAT) {
         res_col = get_clipped_column_helper<double, float>(curr_col, 
                                                        lower_limit, 
                                                        upper_limit);
-      }
-      else if (upper_dtype == DOUBLE) {
+      } else if (upper_dtype == DOUBLE) {
         res_col = get_clipped_column_helper<double, double>(curr_col, 
                                                        lower_limit, 
                                                        upper_limit);
-      }
-      else {
-        auto msg = "get_clipped_column: Unsupported datatype for upper: " + 
-                            std::to_string(lower_dtype) + "! \n";
-        REPORT_ERROR(USER_ERROR, msg);
-      }
+      } else REPORT_ERROR(USER_ERROR, u_msg);
       break;
-    default:     auto msg = "get_clipped_column: Unsupported datatype for lower: " + 
-                            std::to_string(lower_dtype) + "! \n";
-                 REPORT_ERROR(USER_ERROR, msg);
+    default:  REPORT_ERROR(USER_ERROR, l_msg);
   }
   return res_col;
 }
