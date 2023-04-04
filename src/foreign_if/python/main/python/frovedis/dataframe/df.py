@@ -36,7 +36,8 @@ from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     if_mask_vector, get_null_value, check_string, is_nat, \
                     replace_nat, infer_arraylike_dtype, \
                     get_empty_frovedis_series, \
-                    get_single_column_frovedis_series, is_bool_col
+                    get_single_column_frovedis_series, is_bool_col, \
+                    get_unique_column_name
 from ..utils import deprecated, str_type
 from pandas.core.common import SettingWithCopyWarning
 
@@ -3278,9 +3279,8 @@ class DataFrame(SeriesHelper):
                     tmp_col_name = None
 
                     if len(pd_left2.columns) <= 1 or len(pd_right2.columns) <= 1:
-                        tmp_col_name = self.__get_unique_column_name(
-                                        pd_left2.columns + pd_right2.columns,
-                                        True)
+                        tmp_col_name = get_unique_column_name(
+                                          pd_left2.columns + pd_right2.columns)
 
                         if not pd_left2.empty:
                             col_data = range(len(pd_left2))
@@ -4501,10 +4501,10 @@ class DataFrame(SeriesHelper):
         idx = self.index.name
         if idx == "index":
             index_flg = True
-            __tmp_index = self.__get_unique_column_name(self.columns, True)
+            __tmp_index = get_unique_column_name(self.columns)
             self.rename_index(__tmp_index, inplace=True)
             idx = __tmp_index
-        __rowid = self.__get_unique_column_name(self.columns, True)
+        __rowid = get_unique_column_name(self.columns)
         self.add_index(__rowid)
         ret = None
         #row handling
@@ -4700,17 +4700,6 @@ class DataFrame(SeriesHelper):
             ret.is_series = False
         return ret
 
-    def __get_unique_column_name(self, column_names, validate=False):
-        import secrets
-        name = "__col__" + secrets.token_hex(32)
-
-        if validate:
-            column_set = set(column_names)
-            while name in column_set:
-                name = "__col__" + secrets.token_hex(32)
-
-        return name
-
     def __clip_axis1_helper(self, lower=None, upper=None, axis=None, inplace=False):
         if isinstance(lower, (numbers.Number, str)):
             lower = [lower] * len(self.columns)
@@ -4718,10 +4707,10 @@ class DataFrame(SeriesHelper):
             upper = [upper] * len(self.columns)
 
         if len(lower) != len(self.columns):
-            raise ValueError("Unable to align with columns, length must "
+            raise ValueError("lower: Unable to align with columns, length must "
                             "be {}: given {}".format(len(self.columns), len(lower)))
         if len(upper) != len(self.columns):
-            raise ValueError("Unable to align with columns, length must "
+            raise ValueError("upper: Unable to align with columns, length must "
                             "be {}: given {}".format(len(self.columns), len(upper)))
 
         dtypes = [self.get_dtype(c) for c in self.columns]
@@ -4784,10 +4773,8 @@ class DataFrame(SeriesHelper):
         return None if inplace else ret
 
     def __clip_axis0_helper(self, lower=None, upper=None, axis=None, inplace=False):
-        lower_limit_col = \
-            self.__get_unique_column_name(self.columns, True)
-        upper_limit_col = \
-            self.__get_unique_column_name(self.columns+[lower_limit_col], True)
+        lower_limit_col = get_unique_column_name(self.columns)
+        upper_limit_col = get_unique_column_name(self.columns + [lower_limit_col])
 
         self[lower_limit_col] = lower
         self[upper_limit_col] = upper

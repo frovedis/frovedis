@@ -482,3 +482,28 @@ def is_bool_col(df_proxy, cname):
         raise RuntimeError(excpt["info"])
     return ret == 1
 
+def get_unique_column_name(column_names, validate=True):
+    """
+    DESC: return a unique column name which is possibly not 
+          a part of input "column_names"
+    PARAMS: column_names:  an array-like containing the existing names of columns
+            validate: whether to check the generated name belongs to the existing names.
+                      if False "column_names" will be ignored.
+    RETURN: String containing the resultant unique name
+    """
+    prefix = "__tmp_col__"
+    try:
+        import secrets
+        name = prefix + secrets.token_hex(3)
+        if validate:
+            column_set = set(column_names)
+            while name in column_set:
+                name = prefix + secrets.token_hex(3)
+    except ImportError:
+        import random
+        name = prefix + str(random.randint(0, 1024))
+        if validate:
+            column_set = set(column_names)
+            while name in column_set:
+                name = prefix + str(random.randint(0, 1024))
+    return name
