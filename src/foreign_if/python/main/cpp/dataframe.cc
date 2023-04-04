@@ -693,6 +693,7 @@ extern "C" {
         case BOOL:
         case INT:    ret = exrpc_async(fm_node, frov_df_min<int>, df_proxy,
                      cc, tt, axis, skipna, with_index).get(); break;
+        case DATETIME:
         case TIMEDELTA:
         case LONG:   ret = exrpc_async(fm_node, frov_df_min<long>, df_proxy,
                      cc, tt, axis, skipna, with_index).get(); break;

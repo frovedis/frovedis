@@ -1561,7 +1561,8 @@ class DataFrame(SeriesHelper):
             result_dict = dict(zip(numeric_cols, ret))
             return [result_dict.get(col, np.nan) for col in columns]
 
-    def __get_numeric_columns(self, cols=None, include_bool=True):
+    def __get_numeric_columns(self, cols=None, include_bool=True, \
+                              include_datetime=True, include_timedelta=True):
         """
         __get_numeric_columns
         """
@@ -1572,10 +1573,13 @@ class DataFrame(SeriesHelper):
             cols = self.__cols
             types = self.__types
 
-        if include_bool:
-            non_numeric_types = [DTYPE.STRING]
-        else:
-            non_numeric_types = [DTYPE.STRING, DTYPE.BOOL]
+        non_numeric_types = [DTYPE.STRING]
+        if not include_bool:
+            non_numeric_types.append(DTYPE.BOOL)
+        if not include_datetime:
+            non_numeric_types.append(DTYPE.DATETIME)
+        if not include_timedelta:
+            non_numeric_types.append(DTYPE.TIMEDELTA)
 
         numeric_cols = []
         numeric_col_types = []
@@ -3954,6 +3958,36 @@ class DataFrame(SeriesHelper):
 
         return ret
 
+    def __min_col_dtype_check_helper(self, types):
+        """
+        Checks if non-numeric cols of different types are present alogside 
+        bool and numeric cols.
+        Returns bool True only if same(numeric and non-numeir both included) 
+           dtype columns are detected(bool & all numeric types can co-exist).
+        else False is returned in all other cases.
+
+        """
+        str_c = types.count(DTYPE.STRING)
+        dt_c = types.count(DTYPE.DATETIME)
+        td_c = types.count(DTYPE.TIMEDELTA)
+        count  = 0
+        if str_c:
+            count += 1
+        if dt_c:
+            count += 1
+        if td_c:
+            count += 1
+        if count == 0:
+            return True
+        if count > 1:
+            return False
+        if count == 1:
+            bool_c = types.count(DTYPE.BOOL)
+            num_c = len(types) - (str_c + bool_c + dt_c + td_c)
+            if not (bool_c + num_c):
+                return True
+            return False
+
     @check_association
     def min(self, axis=None, skipna=None, level=None,
             numeric_only=None, **kwargs):
@@ -3964,7 +3998,21 @@ class DataFrame(SeriesHelper):
                                  axis_ = axis, skipna_ = skipna, \
                                  level_ = level, \
                                  numeric_only_= numeric_only)
-        cols, types = self.__get_numeric_columns()
+        if numeric_only == True:
+            cols, types = self.__get_numeric_columns(include_datetime=False, \
+                                                     include_timedelta=False)
+        else:
+            cols, types = self.__get_numeric_columns()
+            if not self.__min_col_dtype_check_helper(types):
+                raise TypeError ("Unexpected non-numeric column datatypes" + \
+                                 " encountered!")
+        if len(cols) == 0:
+            if axis == 1:
+                data = {'min':[np.nan] * self.num_row}
+            else:
+                data = {}
+            ret = DataFrame(pd.DataFrame(data), is_series=False)
+            return ret
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
 
