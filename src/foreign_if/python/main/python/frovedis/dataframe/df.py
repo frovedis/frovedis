@@ -704,8 +704,11 @@ class DataFrame(SeriesHelper):
         if isinstance(df.index, pd.MultiIndex):
             raise ValueError("Cannot load a pandas dataframe " +\
                              "with multi level index")
-
+        is_series = False
+        if self.is_series:
+            is_series = True
         self.release()
+        self.is_series = is_series
         if isinstance(df, pd.Series):
             if len(df) == 1 and len(df[0]) > 1: # contains array-like
                 raise ValueError("Cannot load a pandas series " +\
@@ -4004,14 +4007,18 @@ class DataFrame(SeriesHelper):
         else:
             cols, types = self.__get_numeric_columns()
             if not self.__col_dtype_check_helper(types):
-                raise TypeError ("Unexpected non-numeric column datatypes" + \
-                                 " encountered!")
+                raise TypeError ("Frovedis does not support mixing of numeric " \
+                                 + "and non-numeric columns. Also mixing of " \
+                                 + "non-numeric columns of different types is " \
+                                 + "not supported.")
         if len(cols) == 0:
             if axis == 1:
                 data = {'min':[np.nan] * self.num_row}
+                ret = DataFrame(pd.DataFrame(data), is_series=False)
             else:
-                data = {}
-            ret = DataFrame(pd.DataFrame(data), is_series=False)
+                data = {'min':[1]}
+                ret = DataFrame(pd.DataFrame(data), is_series=True)
+                ret.drop(labels=[0], inplace=True)
             return ret
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
@@ -4056,14 +4063,18 @@ class DataFrame(SeriesHelper):
         else:
             cols, types = self.__get_numeric_columns()
             if not self.__col_dtype_check_helper(types):
-                raise TypeError ("Unexpected non-numeric column datatypes" + \
-                                 " encountered!")
+                raise TypeError ("Frovedis does not support mixing of numeric " \
+                                 + "and non-numeric columns. Also mixing of " \
+                                 + "non-numeric columns of different types is " \
+                                 + "not supported.")
         if len(cols) == 0:
             if axis == 1:
                 data = {'max':[np.nan] * self.num_row}
+                ret = DataFrame(pd.DataFrame(data), is_series=False)
             else:
-                data = {}
-            ret = DataFrame(pd.DataFrame(data), is_series=False)
+                data = {'max':[1]}
+                ret = DataFrame(pd.DataFrame(data), is_series=True)
+                ret.drop(labels=[0], inplace=True)
             return ret
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
@@ -4107,16 +4118,19 @@ class DataFrame(SeriesHelper):
         else:
             cols, types = self.__get_numeric_columns()
             if not self.__col_dtype_check_helper(types):
-                raise TypeError ("Unexpected non-numeric column datatypes" + \
-                                 " encountered!")
+                raise TypeError ("Frovedis does not support mixing of numeric " \
+                                 + "and non-numeric columns. Also mixing of " \
+                                 + "non-numeric columns of different types is " \
+                                 + "not supported.")
         ncol = len(cols)
-        if ncol == 0:
+        if len(cols) == 0:
             if axis == 1:
                 data = {'mean':[np.nan] * self.num_row}
+                ret = DataFrame(pd.DataFrame(data), is_series=False)
             else:
-                data = {}
-            ret = DataFrame(pd.Series(data, dtype=np.float64), \
-                            is_series=True)
+                data = {'mean':[1]}
+                ret = DataFrame(pd.DataFrame(data), is_series=True)
+                ret.drop(labels=[0], inplace=True)
             return ret
 
         cols_arr = get_string_array_pointer(cols)
