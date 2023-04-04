@@ -715,6 +715,8 @@ class DataFrame(SeriesHelper):
                     pass
             df = df.to_frame()
             self.is_series = True
+        else:
+            self.is_series = False
 
         self.num_row = len(df)
         cols = df.columns.tolist()
