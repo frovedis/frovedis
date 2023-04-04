@@ -2366,15 +2366,15 @@ class DataFrame(SeriesHelper):
             self.load_dummy(dummy_df["dfptr"], names[0:], types[0:])
         return self
 
-    def __mark_boolean_timedelta_columns(self, names, types):
+    def __mark_boolean_timedelta_columns(self, names, types, dont_mark=[]):
         """ to mark boolean and timedelta columns for columns in names """
         for i in range(len(names)):
             c = names[i]
-            if c in self.columns and self.__dict__[c].dtype == DTYPE.BOOL:
-                types[i] = DTYPE.BOOL
-            elif c in self.columns \
-                 and self.__dict__[c].dtype == DTYPE.TIMEDELTA:
-                types[i] = DTYPE.TIMEDELTA
+            if c in self.columns and c not in dont_mark:
+                if self.__dict__[c].dtype == DTYPE.BOOL:
+                    types[i] = DTYPE.BOOL
+                elif self.__dict__[c].dtype == DTYPE.TIMEDELTA:
+                    types[i] = DTYPE.TIMEDELTA
 
     def __mark_boolean_columns(self, names, types):
         """ to mark boolean columns for columns in names """
@@ -2823,7 +2823,7 @@ class DataFrame(SeriesHelper):
         names = dummy_df["names"]
         types = dummy_df["types"]
         ret.num_row = dummy_df["nrow"]
-        self.__mark_boolean_timedelta_columns(names, types) #FIXME: malhandling of metadata after casting bool -> int, timedelta -> long
+        self.__mark_boolean_timedelta_columns(names, types, dont_mark=t_cols)
         for i in range(0, len(t_dtypes)):
             cast_type = t_dtypes[i]
             if (cast_type == DTYPE.BOOL) or (cast_type == DTYPE.TIMEDELTA):
