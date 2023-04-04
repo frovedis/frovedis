@@ -982,6 +982,7 @@ dftable max_axis0_helper(dftable_base& df,
       switch(types[i]) {
         case BOOL:
         case INT:    resp[i] = df.max<int>(col);           break;
+        case DATETIME:
         case TIMEDELTA:
         case LONG:   resp[i] = df.max<long>(col);          break;
         case ULONG:  resp[i] = df.max<unsigned long>(col); break;
@@ -1105,6 +1106,7 @@ dftable min_axis0_helper(dftable_base& df,
       switch(types[i]) {
         case BOOL:
         case INT:    resp[i] = df.min<int>(col);           break;
+        case DATETIME:
         case TIMEDELTA:
         case LONG:   resp[i] = df.min<long>(col);          break;
         case ULONG:  resp[i] = df.min<unsigned long>(col); break;
