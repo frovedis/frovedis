@@ -4217,9 +4217,16 @@ class DataFrame(SeriesHelper):
         param = check_stat_error("mad", DTYPE.STRING in self.__types, \
                                  numeric_only_= numeric_only, \
                                  axis_=axis, skipna_=skipna, level_=level)
-        cols, types = self.__get_numeric_columns()
+        cols, types = self.__get_numeric_columns(include_datetime=False, \
+                                                 include_timedelta=False)
 
         ncol = len(cols)
+        if len(cols) == 0:
+            if axis == 1:
+                ret = get_single_column_frovedis_series('mad', self.num_row)
+            else:
+                ret = get_empty_frovedis_series('mad')
+            return ret
         cols_arr = get_string_array_pointer(cols)
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_mad(host, port, self.get(), \
@@ -4248,12 +4255,32 @@ class DataFrame(SeriesHelper):
                                  numeric_only_= numeric_only, \
                                  axis_=axis, skipna_=skipna, \
                                  level_=level, ddof_=ddof)
-        cols, types = self.__get_numeric_columns()
+        if numeric_only == True:
+            cols, types = self.__get_numeric_columns(include_datetime=False, \
+                                                     include_timedelta=False)
+        else:
+            cols, types = self.__get_numeric_columns()
+            if not self.__col_dtype_check_helper(types):
+                raise TypeError ("Frovedis does not support mixing of numeric " \
+                                 + "and non-numeric columns. Also mixing of " \
+                                 + "non-numeric columns of different types is " \
+                                 + "not supported.")
+
 
         ncol = len(cols)
+        if len(cols) == 0:
+            if axis == 1:
+                ret = get_single_column_frovedis_series('std', self.num_row)
+            else:
+                ret = get_empty_frovedis_series('std')
+            return ret
+        dtypes = [self.get_dtype(c) for c in cols]
+        res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
+
+        tmp = self.astype("long") if res_type == DTYPE.DATETIME else self     
         cols_arr = get_string_array_pointer(cols)
         (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_std(host, port, self.get(), \
+        dummy_df = rpclib.df_std(host, port, tmp.get(), \
                                   cols_arr, ncol, \
                                   param.axis_, param.skipna_, \
                                   param.ddof_, self.has_index())
@@ -4267,6 +4294,8 @@ class DataFrame(SeriesHelper):
         ret.num_row = dummy_df["nrow"]
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        if res_type == DTYPE.DATETIME or res_type == DTYPE.TIMEDELTA:
+            ret = ret.astype("timedelta64[ns]")
         return ret
 
     @check_association
