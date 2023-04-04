@@ -4724,35 +4724,25 @@ class DataFrame(SeriesHelper):
             raise ValueError("Unable to align with columns, length must "
                             "be {}: given {}".format(len(self.columns), len(upper)))
 
-        is_str_lower = all(isinstance(e, str) for e in lower)
-        is_str_upper = all(isinstance(e, str) for e in upper)
-        is_str_columns = all( e==DTYPE.STRING for e in self.__types )
-
-        if is_str_columns and ( (not is_str_lower) or (not is_str_upper) ) or\
-            (not is_str_columns) and (is_str_lower or is_str_upper):
-            raise TypeError("clip: Cannot perform comparison between string"
-                           " and numeric values!")
+        dtypes = [self.get_dtype(c) for c in self.columns]
+        res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
 
         sz = len(lower)
+        lb_types = np.array([TypeUtil.to_id_dtype(get_python_scalar_type(i)) for i in lower], dtype=c_short)
+        ub_types = np.array([TypeUtil.to_id_dtype(get_python_scalar_type(i)) for i in upper], dtype=c_short)
+        import datetime
+        lb_str = [str(i.value) for i in lower if isinstance(i, datetime.datetime)]
+        ub_str = [str(i.value) for i in upper if isinstance(i, datetime.datetime)]
 
         (host, port) = FrovedisServer.getServerInstance()
-        if is_str_lower and is_str_upper:
-            lower_ptr = get_string_array_pointer(lower)
-            upper_ptr = get_string_array_pointer(upper)
-
-            dummy_df = rpclib.df_clip_axis1_str(host, port, self.get(),
-                                                lower_ptr, upper_ptr,
-                                                self.has_index(), sz)
-        else:
-            lower_arr = np.asarray(lower, dtype=np.float64)
-            lower_ptr = lower_arr.ctypes.data_as(POINTER(c_double))
-           
-            upper_arr = np.asarray(upper, dtype=np.float64)
-            upper_ptr = upper_arr.ctypes.data_as(POINTER(c_double))
-            
-            dummy_df = rpclib.df_clip_axis1_numeric(host, port, self.get(),
-                                                    lower_ptr, upper_ptr, 
-                                                    self.has_index(), sz)
+        lb_str_ptr = get_string_array_pointer(lb_str)
+        lb_types_ptr = lb_types.ctypes.data_as(POINTER(c_short))
+        ub_str_ptr = get_string_array_pointer(ub_str)
+        ub_types_ptr = ub_types.ctypes.data_as(POINTER(c_short))
+        dummy_df = rpclib.df_clip_axis1(host, port, self.get(),\
+                                        lb_str_ptr, lb_types_ptr, \
+                                        ub_str_ptr, ub_types_ptr, \
+                                        self.has_index(), sz)
 
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
@@ -4770,6 +4760,10 @@ class DataFrame(SeriesHelper):
             ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
         else:
             ret.load_dummy(dummy_df["dfptr"], names, types)
+        if res_type == DTYPE.DATETIME:
+          ret = ret.astype("datetime64[ns]")
+        elif res_type == DTYPE.TIMEDELTA:
+          ret = ret.astype("timedelta64[ns]")
 
         return None if inplace else ret
 

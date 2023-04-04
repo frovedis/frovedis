@@ -1232,17 +1232,6 @@ frov_df_clip(exrpc_ptr_t& df_proxy,
             std::string& upper_limit_col,
             bool& with_index);
 
-dummy_dftable 
-frov_df_clip_axis1_numeric(exrpc_ptr_t& df_proxy,
-                          std::vector<double>& lower_limit,
-                          std::vector<double>& upper_limit,
-                          bool& with_index);
-dummy_dftable 
-frov_df_clip_axis1_str(exrpc_ptr_t& df_proxy,
-                      std::vector<std::string>& lower_limit,
-                      std::vector<std::string>& upper_limit,
-                      bool& with_index);
-
 template <class T>
 dummy_dftable
 frov_df_sel_rows_by_val(exrpc_ptr_t& df_proxy,
@@ -1323,6 +1312,25 @@ frovedis_get_frequency(exrpc_ptr_t& data_ptr,
   auto retp = new dftable();
   retp->append_column("inferred_freq", std::move(dvec), true); // can have null when failed to infer frequency
   return to_dummy_dftable(retp);
+}
+
+dummy_dftable
+frov_df_clip_axis1(exrpc_ptr_t& df_proxy,
+                  std::vector<std::string>& lower_limit,
+                  std::vector<short>& lower_dtypes,
+                  std::vector<std::string>& upper_limit,
+                  std::vector<short>& upper_dtypes,
+                  bool& with_index);
+
+template <class T, class I>
+std::shared_ptr<dffunction>
+get_clipped_column_helper(std::shared_ptr<dffunction>& curr_col,
+                          std::string& lower_limit,
+                          std::string& upper_limit) {
+  auto lval = do_cast<T>(lower_limit);
+  auto uval = do_cast<I>(upper_limit);
+  return when({curr_col < lval, curr_col > uval},
+              {im(lval), im(uval), curr_col});
 }
 
 #endif

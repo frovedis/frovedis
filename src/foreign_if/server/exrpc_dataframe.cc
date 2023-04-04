@@ -2724,56 +2724,176 @@ frov_df_clip(exrpc_ptr_t& df_proxy,
   return to_dummy_dftable(retp);
 }
 
-dummy_dftable 
-frov_df_clip_axis1_numeric(exrpc_ptr_t& df_proxy,
-                          std::vector<double>& lower_limit,
-                          std::vector<double>& upper_limit,
-                          bool& with_index) {
-  auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
-  auto columns = dftblp->columns();
-  auto sz = columns.size();
-  std::vector<std::shared_ptr<frovedis::dffunction>> res_cols(sz);
-
-  size_t start = 0;
-  if (with_index) {
-    res_cols[0] = ~columns[0];
-    start = 1;
+std::shared_ptr<dffunction>
+get_clipped_column(std::shared_ptr<dffunction>& curr_col, 
+                  std::string& lower_limit, short lower_dtype,
+                  std::string& upper_limit, short upper_dtype) {
+  std::shared_ptr<dffunction> res_col;
+  switch (lower_dtype) {
+    case STRING: 
+      if (upper_dtype == STRING) {
+        res_col = get_clipped_column_helper<std::string, std::string>(curr_col, 
+                                                                  lower_limit, 
+                                                                  upper_limit);
+      } 
+      else {
+        auto msg = "get_clipped_column: Unsupported datatype for upper: " + 
+                            std::to_string(lower_dtype) + "! \n";
+        REPORT_ERROR(USER_ERROR, msg);
+      }
+      break;
+    case DATETIME: 
+      if (upper_dtype == DATETIME) {
+        res_col = get_clipped_column_helper<datetime_t, datetime_t>(curr_col, 
+                                                      lower_limit, 
+                                                      upper_limit);
+      } 
+      else {
+        auto msg = "get_clipped_column: Unsupported datatype for upper: " + 
+                            std::to_string(lower_dtype) + "! \n";
+        REPORT_ERROR(USER_ERROR, msg);
+      }
+      break;
+    case INT: 
+      if (upper_dtype == INT) {
+        res_col = get_clipped_column_helper<int, int>(curr_col, 
+                                                      lower_limit, 
+                                                      upper_limit);
+      } 
+      else if (upper_dtype == LONG) {
+        res_col = get_clipped_column_helper<int, long>(curr_col, 
+                                                       lower_limit, 
+                                                       upper_limit);
+      }
+      else if (upper_dtype == FLOAT) {
+        res_col = get_clipped_column_helper<int, float>(curr_col, 
+                                                       lower_limit, 
+                                                       upper_limit);
+      }
+      else if (upper_dtype == DOUBLE) {
+        res_col = get_clipped_column_helper<int, double>(curr_col, 
+                                                       lower_limit, 
+                                                       upper_limit);
+      }
+      else {
+        auto msg = "get_clipped_column: Unsupported datatype for upper: " + 
+                            std::to_string(lower_dtype) + "! \n";
+        REPORT_ERROR(USER_ERROR, msg);
+      }
+      break;
+    case LONG: 
+      if (upper_dtype == INT) {
+        res_col = get_clipped_column_helper<long, int>(curr_col, 
+                                                      lower_limit, 
+                                                      upper_limit);
+      } 
+      else if (upper_dtype == LONG) {
+        res_col = get_clipped_column_helper<long, long>(curr_col, 
+                                                       lower_limit, 
+                                                       upper_limit);
+      }
+      else if (upper_dtype == FLOAT) {
+        res_col = get_clipped_column_helper<long, float>(curr_col, 
+                                                       lower_limit, 
+                                                       upper_limit);
+      }
+      else if (upper_dtype == DOUBLE) {
+        res_col = get_clipped_column_helper<long, double>(curr_col, 
+                                                       lower_limit, 
+                                                       upper_limit);
+      }
+      else {
+        auto msg = "get_clipped_column: Unsupported datatype for upper: " + 
+                            std::to_string(lower_dtype) + "! \n";
+        REPORT_ERROR(USER_ERROR, msg);
+      }
+      break;
+    case FLOAT: 
+      if (upper_dtype == INT) {
+        res_col = get_clipped_column_helper<float, int>(curr_col, 
+                                                      lower_limit, 
+                                                      upper_limit);
+      } 
+      else if (upper_dtype == LONG) {
+        res_col = get_clipped_column_helper<float, long>(curr_col, 
+                                                       lower_limit, 
+                                                       upper_limit);
+      }
+      else if (upper_dtype == FLOAT) {
+        res_col = get_clipped_column_helper<float, float>(curr_col, 
+                                                       lower_limit, 
+                                                       upper_limit);
+      }
+      else if (upper_dtype == DOUBLE) {
+        res_col = get_clipped_column_helper<float, double>(curr_col, 
+                                                       lower_limit, 
+                                                       upper_limit);
+      }
+      else {
+        auto msg = "get_clipped_column: Unsupported datatype for upper: " + 
+                            std::to_string(lower_dtype) + "! \n";
+        REPORT_ERROR(USER_ERROR, msg);
+      }
+      break;
+    case DOUBLE: 
+      if (upper_dtype == INT) {
+        res_col = get_clipped_column_helper<double, int>(curr_col, 
+                                                      lower_limit, 
+                                                      upper_limit);
+      } 
+      else if (upper_dtype == LONG) {
+        res_col = get_clipped_column_helper<double, long>(curr_col, 
+                                                       lower_limit, 
+                                                       upper_limit);
+      }
+      else if (upper_dtype == FLOAT) {
+        res_col = get_clipped_column_helper<double, float>(curr_col, 
+                                                       lower_limit, 
+                                                       upper_limit);
+      }
+      else if (upper_dtype == DOUBLE) {
+        res_col = get_clipped_column_helper<double, double>(curr_col, 
+                                                       lower_limit, 
+                                                       upper_limit);
+      }
+      else {
+        auto msg = "get_clipped_column: Unsupported datatype for upper: " + 
+                            std::to_string(lower_dtype) + "! \n";
+        REPORT_ERROR(USER_ERROR, msg);
+      }
+      break;
+    default:     auto msg = "get_clipped_column: Unsupported datatype for lower: " + 
+                            std::to_string(lower_dtype) + "! \n";
+                 REPORT_ERROR(USER_ERROR, msg);
   }
-
-  for(size_t i = start; i < sz; i++){
-      auto curr_col = ~columns[i];
-      auto res_col = when({curr_col < lower_limit[i-start], curr_col > upper_limit[i-start]},
-                          {im(lower_limit[i-start]), im(upper_limit[i-start]), curr_col} );
-      res_cols[i] = res_col->as(columns[i]);
-  }
-
-  auto retp = new dftable(dftblp->fselect(res_cols));
-  return to_dummy_dftable(retp);
+  return res_col;
 }
 
 dummy_dftable 
-frov_df_clip_axis1_str(exrpc_ptr_t& df_proxy,
-                      std::vector<std::string>& lower_limit,
-                      std::vector<std::string>& upper_limit,
-                      bool& with_index) {
+frov_df_clip_axis1(exrpc_ptr_t& df_proxy,
+                  std::vector<std::string>& lower_limit,
+                  std::vector<short>& lower_dtypes,
+                  std::vector<std::string>& upper_limit,
+                  std::vector<short>& upper_dtypes,
+                  bool& with_index) {
   auto dftblp = reinterpret_cast<dftable_base*>(df_proxy);
   auto columns = dftblp->columns();
   auto sz = columns.size();
   std::vector<std::shared_ptr<frovedis::dffunction>> res_cols(sz);
-
   size_t start = 0;
   if (with_index) {
     res_cols[0] = ~columns[0];
     start = 1;
   }
-
   for(size_t i = start; i < sz; i++){
     auto curr_col = ~columns[i];
-    auto res_col = when({curr_col < lower_limit[i-start], curr_col > upper_limit[i-start]},
-                        {dic_string_im(lower_limit[i-start]), dic_string_im(upper_limit[i-start]), curr_col});
+    auto res_col = get_clipped_column(curr_col,
+                                      lower_limit[i-start], 
+                                      lower_dtypes[i-start],  
+                                      upper_limit[i-start], 
+                                      upper_dtypes[i-start]);
     res_cols[i] = res_col->as(columns[i]);
   }
-
   auto retp = new dftable(dftblp->fselect(res_cols));
   return to_dummy_dftable(retp);
 }

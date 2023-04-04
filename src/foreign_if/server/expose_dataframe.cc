@@ -141,8 +141,7 @@ void expose_frovedis_dataframe_functions() {
   expose(frov_df_mode_cols);
   expose(frov_df_mode_rows);
   expose(frov_df_clip);
-  expose(frov_df_clip_axis1_numeric);
-  expose(frov_df_clip_axis1_str);
+  expose(frov_df_clip_axis1);
   expose(frov_df_datetime_operation);
   expose(frov_df_concat_columns);
   //loc

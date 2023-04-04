@@ -678,17 +678,12 @@ df_clip.argtypes = [c_char_p, c_int, c_long,     # host, port, proxy
                     c_bool]                      # with_index
 df_clip.restype = py_object
 
-df_clip_axis1_numeric = LIB.df_clip_axis1_numeric
-df_clip_axis1_numeric.argtypes = [c_char_p, c_int, c_long,             # host, port, proxy
-                                 POINTER(c_double), POINTER(c_double), # lower_limit, upper_limit
-                                 c_bool, c_ulong]                      # with_index, size
-df_clip_axis1_numeric.restype = py_object
-
-df_clip_axis1_str = LIB.df_clip_axis1_str
-df_clip_axis1_str.argtypes = [c_char_p, c_int, c_long,            # host, port, proxy
-                            POINTER(c_char_p), POINTER(c_char_p), # lower_limit, upper_limit
-                            c_bool, c_ulong]                      # with_index, size
-df_clip_axis1_str.restype = py_object
+df_clip_axis1 = LIB.df_clip_axis1
+df_clip_axis1.argtypes = [c_char_p, c_int, c_long,            # host, port, proxy
+                          POINTER(c_char_p), POINTER(c_short), # lower_limit, lower_dtypes
+                          POINTER(c_char_p), POINTER(c_short), # lower_limit, upper_dtypes
+                          c_bool, c_ulong]                      # with_index, size
+df_clip_axis1.restype = py_object
 
 df_datetime_operation = LIB.df_datetime_operation
 df_datetime_operation.argtypes = [c_char_p, c_int, c_long,            # host, port, proxy

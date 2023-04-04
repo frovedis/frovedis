@@ -1858,46 +1858,33 @@ extern "C" {
     return to_py_dummy_df(ret);
   }
 
-  PyObject* df_clip_axis1_numeric(const char* host, int port, long proxy,
-                                double* lower_limit, double* upper_limit,
-                                bool with_index, ulong sz) {
-    ASSERT_PTR(host);
-    exrpc_node fm_node(host, port);
-    auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
-
-    auto lower_limit_ = to_double_vector(lower_limit, sz);
-    auto upper_limit_ = to_double_vector(upper_limit, sz);
-    dummy_dftable ret;
-    try {
-      ret = exrpc_async(fm_node, frov_df_clip_axis1_numeric, df_proxy,
-                        lower_limit_, upper_limit_, with_index).get();
-    }
-    catch (std::exception& e) {
-      set_status(true, e.what());
-    }
-    return to_py_dummy_df(ret);
-  }
-
-  PyObject* df_clip_axis1_str(const char* host, int port, long proxy,
-                              const char** lower_limit, const char** upper_limit,
-                              bool with_index, ulong sz) {
+  PyObject* df_clip_axis1(const char* host, int port, long proxy,
+                          const char** lower_limit,
+                          short* lower_dtypes,
+                          const char** upper_limit,
+                          short* upper_dtypes,
+                          bool with_index, ulong sz) {
     ASSERT_PTR(host);
     exrpc_node fm_node(host, port);
     auto df_proxy = static_cast<exrpc_ptr_t> (proxy);
 
     auto lower_limit_ = to_string_vector(lower_limit, sz);
+    auto lower_dtypes_ = to_short_vector(lower_dtypes, sz);
     auto upper_limit_ = to_string_vector(upper_limit, sz);
+    auto upper_dtypes_ = to_short_vector(upper_dtypes, sz);
     dummy_dftable ret;
     try {
-      ret = exrpc_async(fm_node, frov_df_clip_axis1_str, df_proxy,
-                        lower_limit_, upper_limit_, with_index).get();
+      ret = exrpc_async(fm_node, frov_df_clip_axis1, df_proxy,
+                        lower_limit_, lower_dtypes_,
+                        upper_limit_, upper_dtypes_,
+                        with_index).get();
     }
     catch (std::exception& e) {
       set_status(true, e.what());
     }
     return to_py_dummy_df(ret);
   }
-  
+
   PyObject* df_sel_rows_by_val_int(const char* host, int port, 
                                    long proxy,
                                    const char* target_col, 
