@@ -458,10 +458,11 @@ def get_col_frequency(frov_df, col_name, periods=1):
     ret = retdf.values[0]
     return None if math.isnan(ret) else ret
 
-def get_empty_frovedis_series():
+def get_empty_frovedis_series(col_name):
     from .df import DataFrame
-    return DataFrame(pd.Series(data=[1.1])).drop(labels=[0], inplace=False)
+    return DataFrame(pd.Series(data=[1.1], name=col_name))\
+                .drop(labels=[0], inplace=False)
 
-def get_single_column_frovedis_dataframe(col_name, col_len, fill_val=np.nan):
+def get_single_column_frovedis_series(col_name, col_len, fill_val=np.nan):
     from .df import DataFrame
-    return DataFrame(pd.DataFrame({col_name:[fill_val] * col_len}))
+    return DataFrame(pd.Series(data=[fill_val] * col_len, name=col_name))

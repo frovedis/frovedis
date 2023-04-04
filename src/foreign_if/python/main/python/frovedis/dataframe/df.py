@@ -36,7 +36,7 @@ from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     if_mask_vector, get_null_value, check_string, is_nat, \
                     replace_nat, infer_arraylike_dtype, \
                     get_empty_frovedis_series, \
-                    get_single_column_frovedis_dataframe
+                    get_single_column_frovedis_series
 from ..utils import deprecated, str_type
 from pandas.core.common import SettingWithCopyWarning
 
@@ -4014,9 +4014,9 @@ class DataFrame(SeriesHelper):
                                  + "not supported.")
         if len(cols) == 0:
             if axis == 1:
-                ret = get_single_column_frovedis_dataframe('min', self.num_row)
+                ret = get_single_column_frovedis_series('min', self.num_row)
             else:
-                ret = get_empty_frovedis_series()
+                ret = get_empty_frovedis_series('min')
             return ret
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
@@ -4068,9 +4068,9 @@ class DataFrame(SeriesHelper):
                                  + "not supported.")
         if len(cols) == 0:
             if axis == 1:
-                ret = get_single_column_frovedis_dataframe('max', self.num_row)
+                ret = get_single_column_frovedis_series('max', self.num_row)
             else:
-                ret = get_empty_frovedis_series()
+                ret = get_empty_frovedis_series('max')
             return ret
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
@@ -4122,9 +4122,9 @@ class DataFrame(SeriesHelper):
         ncol = len(cols)
         if len(cols) == 0:
             if axis == 1:
-                ret = get_single_column_frovedis_dataframe('mean', self.num_row)
+                ret = get_single_column_frovedis_series('mean', self.num_row)
             else:
-                ret = get_empty_frovedis_series()
+                ret = get_empty_frovedis_series('mean')
             return ret
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
@@ -4178,10 +4178,16 @@ class DataFrame(SeriesHelper):
         ncol = len(cols)
         if len(cols) == 0:
             if axis == 1:
-                ret = get_single_column_frovedis_dataframe('var', self.num_row)
+                ret = get_single_column_frovedis_series('var', self.num_row)
             else:
-                ret = get_empty_frovedis_series()
+                ret = get_empty_frovedis_series('var')
             return ret
+        if DTYPE.DATETIME in types:
+            raise TypeError ("Frovedis does not support reduction with " \
+                             + "datetime data.")
+        if DTYPE.TIMEDELTA in types:
+            raise TypeError ("Frovedis does not support reduction with " \
+                             + "timedelta data.")
 
         cols_arr = get_string_array_pointer(cols)
         (host, port) = FrovedisServer.getServerInstance()
@@ -4371,9 +4377,9 @@ class DataFrame(SeriesHelper):
         ncol = len(cols)
         if len(cols) == 0:
             if axis == 1:
-                ret = get_single_column_frovedis_dataframe('median', self.num_row)
+                ret = get_single_column_frovedis_series('median', self.num_row)
             else:
-                ret = get_empty_frovedis_series()
+                ret = get_empty_frovedis_series('median')
             return ret
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
@@ -4411,9 +4417,12 @@ class DataFrame(SeriesHelper):
         param = check_stat_error("cov", DTYPE.STRING in self.__types, \
                                  min_periods_=min_periods, \
                                  ddof_=ddof, low_memory_=low_memory)
-        cols, types = self.__get_numeric_columns()
-
+        cols, types = self.__get_numeric_columns(include_datetime=False, \
+                                                 include_timedelta=False)
         ncol = len(cols)
+        if len(cols) == 0:
+            ret = get_empty_frovedis_series('cov')
+            return ret
         cols_arr = get_string_array_pointer(cols)
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_covariance(host, port, self.get(), \
