@@ -22,7 +22,7 @@ def is_nat(other):
 def infer_column_type_from_first_notna(df, col, is_index=False):
     # for empty series/dataframe: 
     #   - index column is inferred to be of "int" type
-    #   -  non-index column is inferred to be of "string" type
+    #   - non-index object-typed column is inferred to be of "string" type
     if len(col) == 0:
         return "int" if is_index else "str"
 
