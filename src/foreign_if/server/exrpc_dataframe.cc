@@ -1815,6 +1815,8 @@ dftable frov_df_median_impl(exrpc_ptr_t& df_proxy,
         switch(types[i]) {
           case BOOL:   
           case INT:    median_res[i] = df.median<int>(cols[i]);break;
+          case DATETIME:   
+          case TIMEDELTA:   
           case LONG:   median_res[i] = df.median<long>(cols[i]); break;
           case FLOAT:  median_res[i] = df.median<float>(cols[i]); break;
           case DOUBLE: median_res[i] = df.median<double>(cols[i]); break;
@@ -1833,6 +1835,8 @@ dftable frov_df_median_impl(exrpc_ptr_t& df_proxy,
           switch(types[i]) {
             case BOOL:   
             case INT:    median_res[i] = df.median<int>(cname);break;
+            case DATETIME:   
+            case TIMEDELTA:   
             case LONG:   median_res[i] = df.median<long>(cname); break;
             case FLOAT:  median_res[i] = df.median<float>(cname); break;
             case DOUBLE: median_res[i] = df.median<double>(cname); break;
