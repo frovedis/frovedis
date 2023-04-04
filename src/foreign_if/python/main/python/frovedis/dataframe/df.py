@@ -4164,9 +4164,25 @@ class DataFrame(SeriesHelper):
                                  axis_=axis, skipna_=skipna, \
                                  numeric_only_= numeric_only, \
                                  level_=level, ddof_=ddof)
-        cols, types = self.__get_numeric_columns()
+        if numeric_only == True:
+            cols, types = self.__get_numeric_columns(include_datetime=False, \
+                                                     include_timedelta=False)
+        else:
+            cols, types = self.__get_numeric_columns()
+            if not self.__col_dtype_check_helper(types):
+                raise TypeError ("Frovedis does not support mixing of numeric " \
+                                 + "and non-numeric columns. Also mixing of " \
+                                 + "non-numeric columns of different types is " \
+                                 + "not supported.")
 
         ncol = len(cols)
+        if len(cols) == 0:
+            if axis == 1:
+                ret = get_single_column_frovedis_dataframe('var', self.num_row)
+            else:
+                ret = get_empty_frovedis_series()
+            return ret
+
         cols_arr = get_string_array_pointer(cols)
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_var(host, port, self.get(), \
@@ -4341,9 +4357,28 @@ class DataFrame(SeriesHelper):
         param = check_stat_error("median", DTYPE.STRING in self.__types, \
                                  numeric_only_= numeric_only, \
                                  axis_=axis, skipna_=skipna, level_=level)
-        cols, types = self.__get_numeric_columns()
+        if numeric_only == True:
+            cols, types = self.__get_numeric_columns(include_datetime=False, \
+                                                     include_timedelta=False)
+        else:
+            cols, types = self.__get_numeric_columns()
+            if not self.__col_dtype_check_helper(types):
+                raise TypeError ("Frovedis does not support mixing of numeric " \
+                                 + "and non-numeric columns. Also mixing of " \
+                                 + "non-numeric columns of different types is " \
+                                 + "not supported.")
 
         ncol = len(cols)
+        if len(cols) == 0:
+            if axis == 1:
+                ret = get_single_column_frovedis_dataframe('var', self.num_row)
+            else:
+                ret = get_empty_frovedis_series()
+            return ret
+        dtypes = [self.get_dtype(c) for c in cols]
+        res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
+
+        tmp = self.astype("long") if res_type == DTYPE.DATETIME else self     
         cols_arr = get_string_array_pointer(cols)
         type_arr = np.asarray(types, dtype=c_short)
         tptr = type_arr.ctypes.data_as(POINTER(c_short))
@@ -4362,6 +4397,10 @@ class DataFrame(SeriesHelper):
         ret.num_row = dummy_df["nrow"]
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        if res_type == DTYPE.DATETIME:
+          ret = ret.astype("datetime64[ns]")
+        elif res_type == DTYPE.TIMEDELTA:
+          ret = ret.astype("timedelta64[ns]")
         return ret
 
     @check_association
