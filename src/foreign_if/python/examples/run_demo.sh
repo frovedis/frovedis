@@ -13,6 +13,7 @@ rm -rf out/*
 python crs_matrix_demo.py "$COMMAND"
 python dense_matrix_demo.py "$COMMAND"
 python df_demo.py "$COMMAND"
+python df_agg_demo.py "$COMMAND"
 python linalg_demo.py "$COMMAND"
 python standard_scaler_demo.py "$COMMAND"
 
