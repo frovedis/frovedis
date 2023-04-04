@@ -2977,10 +2977,12 @@ int is_bool_column(exrpc_ptr_t& df_proxy, std::string& cname) {
 
   if (dfcol->dtype() == "int") ret = is_bool_column_helper<int>(dfcol);
   else if (dfcol->dtype() == "unsigned int") ret = is_bool_column_helper<unsigned int>(dfcol);
+  /*
   else if (dfcol->dtype() == "long") ret = is_bool_column_helper<long>(dfcol);
   else if (dfcol->dtype() == "unsigned long") ret = is_bool_column_helper<unsigned long>(dfcol);
   else if (dfcol->dtype() == "float") ret = is_bool_column_helper<float>(dfcol);
   else if (dfcol->dtype() == "double") ret = is_bool_column_helper<double>(dfcol);
+  */
   else ret = 0; // false for all lother types
   return ret;
 }
