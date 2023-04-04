@@ -1746,6 +1746,18 @@ class DataFrame(SeriesHelper):
             "to_dict: supported only dictionary as per return type!\n")
         return self.__to_dict_impl(orient=orient, into=into)
 
+    def __to_datetime(self, colname, colval, dtype):
+        if (dtype == DTYPE.DATETIME):
+            res = pd.to_datetime(colval)
+            zone = self.datetime_cols_info.get(colname)
+            if zone:
+                res = res.tz_localize(zone)
+        elif dtype == DTYPE.TIMEDELTA:
+            res = pd.to_timedelta(colval, unit='ns')
+        else:
+            res = colval
+        return res
+
     def __get_index_column(self):
         """ returns index column if present """
         if not self.has_index():
@@ -1758,8 +1770,9 @@ class DataFrame(SeriesHelper):
         excpt = rpclib.check_server_exception()
         if excpt["status"]:
             raise RuntimeError(excpt["info"])
-        return FrovedisDvector(indx_dvec).to_numpy_array()
-
+        colval = FrovedisDvector(indx_dvec).to_numpy_array()
+        return self.__to_datetime(self.index.name, colval, self.index.dtype)
+        
     def as_dvector(self, colname, dtype=None):
         """ returns dvector containing the column values """
         if not isinstance(colname, str):
@@ -1803,7 +1816,8 @@ class DataFrame(SeriesHelper):
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
-            col_arr = FrovedisDvector(dvec).to_numpy_array()
+            colval = FrovedisDvector(dvec).to_numpy_array()
+            col_arr = self.__to_datetime(cc, colval, tt)
             #TODO: fix NULL conversion in case of string-vector;
             #TODO: fix numeric to boolean conversion in case of boolean-vector
             if orient == "dict":
@@ -1827,13 +1841,6 @@ class DataFrame(SeriesHelper):
                 res.index = res.index.to_series().replace({0: False, 1: True})
             elif (self.index.dtype == DTYPE.STRING):
                 res.index = res.index.to_series().replace({"NULL": None})
-            elif (self.index.dtype == DTYPE.DATETIME):
-                res.index = pd.to_datetime(res.index)
-                if res.index.name in self.datetime_cols_info:
-                    zone = self.datetime_cols_info[res.index.name]
-                    res.index = res.index.tz_localize(zone)
-            elif (self.index.dtype == DTYPE.TIMEDELTA):
-                res.index = pd.to_timedelta(res.index, unit='ns')
 
         for col in self.columns:
             # BOOL treatment
@@ -1842,13 +1849,6 @@ class DataFrame(SeriesHelper):
             # NULL treatment for string columns
             elif (self.__dict__[col].dtype == DTYPE.STRING):
                 res[col].replace(to_replace={"NULL": None}, inplace=True)
-            elif (self.__dict__[col].dtype == DTYPE.DATETIME):
-                res[col] = pd.to_datetime(res[col])
-                if col in self.datetime_cols_info:
-                    zone = self.datetime_cols_info[col]
-                    res[col] = res[col].dt.tz_localize(zone)
-            elif (self.__dict__[col].dtype == DTYPE.TIMEDELTA):
-                res[col] = pd.to_timedelta(res[col], unit='ns')
 
         if self.is_series:
             res = res[self.columns[0]]
@@ -1874,9 +1874,7 @@ class DataFrame(SeriesHelper):
         """
         frovedis dataframe to numpy array conversion
         """
-        out_data = self.__to_dict_impl(orient="list", include_index=False)
-        arr = np.array(list(out_data.values()), dtype=dtype)
-        return arr.ravel() if self.is_series else arr.T
+        return self.to_pandas().to_numpy()
 
     @property
     def values(self):
@@ -2825,12 +2823,13 @@ class DataFrame(SeriesHelper):
         names = dummy_df["names"]
         types = dummy_df["types"]
         ret.num_row = dummy_df["nrow"]
-        self.__mark_boolean_timedelta_columns(names, types)
+        self.__mark_boolean_timedelta_columns(names, types) #FIXME: malhandling of metadata after casting bool -> int, timedelta -> long
         for i in range(0, len(t_dtypes)):
-            if t_dtypes[i] == DTYPE.BOOL:
+            cast_type = t_dtypes[i]
+            if (cast_type == DTYPE.BOOL) or (cast_type == DTYPE.TIMEDELTA):
                 col = t_cols[i]
                 ind = names.index(col)
-                types[ind] = DTYPE.BOOL
+                types[ind] = cast_type
         if self.has_index():
             ret.index = FrovedisColumn(names[0], types[0]) #setting index
             ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
@@ -4043,10 +4042,9 @@ class DataFrame(SeriesHelper):
         ret.num_row = dummy_df["nrow"]
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        if types[-1] == DTYPE.DATETIME:
+        if res_type == DTYPE.DATETIME:
             ret = ret.astype("datetime64[ns]")
         return ret
-
 
     @check_association
     def max(self, axis=None, skipna=None, level=None,
@@ -4098,10 +4096,9 @@ class DataFrame(SeriesHelper):
         ret.num_row = dummy_df["nrow"]
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        if types[-1] == DTYPE.DATETIME:
+        if res_type == DTYPE.DATETIME:
             ret = ret.astype("datetime64[ns]")
         return ret
-
 
     @check_association
     def mean(self, axis=None, skipna=None, level=None,
@@ -4132,9 +4129,10 @@ class DataFrame(SeriesHelper):
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
 
+        tmp = self.astype("long") if res_type == DTYPE.DATETIME else self     
         cols_arr = get_string_array_pointer(cols)
         (host, port) = FrovedisServer.getServerInstance()
-        dummy_df = rpclib.df_mean(host, port, self.get(), \
+        dummy_df = rpclib.df_mean(host, port, tmp.get(), \
                                   cols_arr, ncol, \
                                   param.axis_, param.skipna_, \
                                   self.has_index())
@@ -4145,12 +4143,15 @@ class DataFrame(SeriesHelper):
         ret = DataFrame(is_series=True)
         names = dummy_df["names"]
         types = dummy_df["types"]
-        types[-1] = res_type
         ret.num_row = dummy_df["nrow"]
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
-        if types[-1] == DTYPE.DATETIME:
+        # casting is required for both datetime and timedelta 
+        # in order to retain long part of the mean result
+        if res_type == DTYPE.DATETIME:
           ret = ret.astype("datetime64[ns]")
+        elif res_type == DTYPE.TIMEDELTA:
+          ret = ret.astype("timedelta64[ns]")
         return ret
 
     @check_association

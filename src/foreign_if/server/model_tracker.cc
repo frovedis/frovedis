@@ -124,6 +124,7 @@ std::string get_string_dtype(short dt) {
   else if (dt == ULONG) return "unsigned long";
   else if (dt == DATETIME) return "datetime";
   else if (dt == TIMESTAMP) return "timestamp";
+  else if (dt == TIMEDELTA) return "long";
   else throw std::runtime_error(STR(dt) + ": unsupported dtype encountered!\n");
 }
 
