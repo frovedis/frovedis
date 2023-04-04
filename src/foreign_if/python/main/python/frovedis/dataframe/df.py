@@ -4371,7 +4371,7 @@ class DataFrame(SeriesHelper):
         ncol = len(cols)
         if len(cols) == 0:
             if axis == 1:
-                ret = get_single_column_frovedis_dataframe('var', self.num_row)
+                ret = get_single_column_frovedis_dataframe('median', self.num_row)
             else:
                 ret = get_empty_frovedis_series()
             return ret
