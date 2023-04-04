@@ -3958,11 +3958,11 @@ class DataFrame(SeriesHelper):
 
         return ret
 
-    def __min_col_dtype_check_helper(self, types):
+    def __col_dtype_check_helper(self, types):
         """
         Checks if non-numeric cols of different types are present alogside 
         bool and numeric cols.
-        Returns bool True only if same(numeric and non-numeir both included) 
+        Returns bool True only if same(numeric and non-numeric both included) 
            dtype columns are detected(bool & all numeric types can co-exist).
         else False is returned in all other cases.
 
@@ -4003,7 +4003,7 @@ class DataFrame(SeriesHelper):
                                                      include_timedelta=False)
         else:
             cols, types = self.__get_numeric_columns()
-            if not self.__min_col_dtype_check_helper(types):
+            if not self.__col_dtype_check_helper(types):
                 raise TypeError ("Unexpected non-numeric column datatypes" + \
                                  " encountered!")
         if len(cols) == 0:
@@ -4050,7 +4050,21 @@ class DataFrame(SeriesHelper):
                                  axis_ = axis, skipna_ = skipna, \
                                  level_ = level, \
                                  numeric_only_= numeric_only)
-        cols, types = self.__get_numeric_columns()
+        if numeric_only == True:
+            cols, types = self.__get_numeric_columns(include_datetime=False, \
+                                                     include_timedelta=False)
+        else:
+            cols, types = self.__get_numeric_columns()
+            if not self.__col_dtype_check_helper(types):
+                raise TypeError ("Unexpected non-numeric column datatypes" + \
+                                 " encountered!")
+        if len(cols) == 0:
+            if axis == 1:
+                data = {'max':[np.nan] * self.num_row}
+            else:
+                data = {}
+            ret = DataFrame(pd.DataFrame(data), is_series=False)
+            return ret
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
 
@@ -4087,9 +4101,24 @@ class DataFrame(SeriesHelper):
         param = check_stat_error("mean", DTYPE.STRING in self.__types, \
                                  numeric_only_= numeric_only, \
                                  axis_=axis, skipna_=skipna, level_=level)
-        cols, types = self.__get_numeric_columns()
-
+        if numeric_only == True:
+            cols, types = self.__get_numeric_columns(include_datetime=False, \
+                                                     include_timedelta=False)
+        else:
+            cols, types = self.__get_numeric_columns()
+            if not self.__col_dtype_check_helper(types):
+                raise TypeError ("Unexpected non-numeric column datatypes" + \
+                                 " encountered!")
         ncol = len(cols)
+        if ncol == 0:
+            if axis == 1:
+                data = {'mean':[np.nan] * self.num_row}
+            else:
+                data = {}
+            ret = DataFrame(pd.Series(data, dtype=np.float64), \
+                            is_series=True)
+            return ret
+
         cols_arr = get_string_array_pointer(cols)
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_mean(host, port, self.get(), \
