@@ -2484,6 +2484,17 @@ df_sel_rows_by_val_string.argtypes = [c_char_p, c_int, c_long,    # host, port, 
                           c_ulong]             # sz
 df_sel_rows_by_val_string.restype = py_object
 
+get_frequency = LIB.get_frequency
+get_frequency.argtypes = [c_char_p, c_int,    # host, port
+                          c_long, c_char_p,   # proxy, col_name
+                          c_short, c_int]     # col_type, period
+get_frequency.restype = py_object
+
+is_bool_col = LIB.is_bool_col
+is_bool_col.argtypes = [c_char_p, c_int,    # host, port
+                        c_long, c_char_p]   # proxy, col_name
+is_bool_col.restype = c_int
+
 #----iloc----#
 df_sel_rows_by_indices = LIB.df_sel_rows_by_indices
 df_sel_rows_by_indices.argtypes = [c_char_p, c_int, c_long,    # host, port, proxy
@@ -2520,11 +2531,4 @@ arima_forecast.argtypes = [c_char_p, c_int,   #host, port
                            c_ulong, c_int,    #steps, mid
                            c_short]           #dtype
 arima_forecast.restype = py_object
-
-#------------- get_frequency() -------------------#
-get_frequency = LIB.get_frequency
-get_frequency.argtypes = [c_char_p, c_int,    # host, port
-                          c_long, c_char_p,   # proxy, col_name
-                          c_short, c_int]     # col_type, period
-get_frequency.restype = py_object
 

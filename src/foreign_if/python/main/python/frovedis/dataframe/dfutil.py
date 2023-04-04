@@ -466,3 +466,19 @@ def get_empty_frovedis_series(col_name):
 def get_single_column_frovedis_series(col_name, col_len, fill_val=np.nan):
     from .df import DataFrame
     return DataFrame(pd.Series(data=[fill_val] * col_len, name=col_name))
+
+def is_bool_col(df_proxy, cname):
+    """
+    DESC: Returns whether the specified column is bool-like, i.e.,
+          contains only zeros and ones.
+    PARAMS: df_proxy:  a long parameter specifying proxy of the server side Frovedis dataframe
+            col_name: a string parameter specifying name of target column
+    RETURN: Boolean
+    """
+    (host, port) = FrovedisServer.getServerInstance()
+    ret = rpclib.is_bool_column(host, port, df_proxy, str_encode(cname))
+    excpt = rpclib.check_server_exception()
+    if excpt["status"]:
+        raise RuntimeError(excpt["info"])
+    return ret == 1
+

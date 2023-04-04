@@ -2207,4 +2207,20 @@ extern "C" {
     return to_py_dummy_df(ret);
   }
 
+  int is_bool_col(const char* host, int port,
+                  long xptr, const char* col) {
+    if(!host) REPORT_ERROR(USER_ERROR,"Invalid hostname!!");
+    exrpc_node fm_node(host,port);
+    auto f_xptr = (exrpc_ptr_t) xptr;
+    std::string _col = col;
+    int ret = 0;
+    try {
+      ret = exrpc_async(fm_node, is_bool_column, f_xptr, _col).get();
+    }
+    catch (std::exception& e) {
+      set_status(true, e.what());
+    }
+    return ret;
+  }
+
 }

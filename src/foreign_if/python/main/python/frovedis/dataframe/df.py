@@ -4129,7 +4129,7 @@ class DataFrame(SeriesHelper):
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
 
-        tmp = self.astype("long") if res_type == DTYPE.DATETIME else self     
+        tmp = self.astype("int64") if res_type == DTYPE.DATETIME else self     
         cols_arr = get_string_array_pointer(cols)
         (host, port) = FrovedisServer.getServerInstance()
         dummy_df = rpclib.df_mean(host, port, tmp.get(), \
