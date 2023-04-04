@@ -200,4 +200,5 @@ void expose_frovedis_dataframe_functions() {
   expose(frovedis_get_frequency<unsigned long>);
   expose(frovedis_get_frequency<float>);
   expose(frovedis_get_frequency<double>);
+  expose(is_bool_column);
 }

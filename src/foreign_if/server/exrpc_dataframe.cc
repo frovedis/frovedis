@@ -2968,3 +2968,20 @@ void frovedis_set_datetime_type_for_add_sub_op(std::string& name) {
   else REPORT_ERROR(USER_ERROR, "unsupported datetime_type for add_sub operation.");
   frovedis::set_datetime_type_for_add_sub_op(type);
 }
+
+int is_bool_column(exrpc_ptr_t& df_proxy, std::string& cname) {
+  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  use_dfcolumn use_col(df.raw_column(cname));
+  auto dfcol = df.column(cname);
+  int ret = 0;
+
+  if (dfcol->dtype() == "int") ret = is_bool_column_helper<int>(dfcol);
+  else if (dfcol->dtype() == "unsigned int") ret = is_bool_column_helper<unsigned int>(dfcol);
+  else if (dfcol->dtype() == "long") ret = is_bool_column_helper<long>(dfcol);
+  else if (dfcol->dtype() == "unsigned long") ret = is_bool_column_helper<unsigned long>(dfcol);
+  else if (dfcol->dtype() == "float") ret = is_bool_column_helper<float>(dfcol);
+  else if (dfcol->dtype() == "double") ret = is_bool_column_helper<double>(dfcol);
+  else ret = 0; // false for all lother types
+  return ret;
+}
+

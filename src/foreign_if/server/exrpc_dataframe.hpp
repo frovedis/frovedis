@@ -155,6 +155,19 @@ exrpc_ptr_t get_dffunc_im(std::string& value) {
   return reinterpret_cast<exrpc_ptr_t> (retptr);
 }
 
+template <class T>
+int is_bool_column_helper(std::shared_ptr<frovedis::dfcolumn>& dfcol) {
+  auto col = std::dynamic_pointer_cast<typed_dfcolumn<T>>(dfcol);
+  return col->val.map(+[](const std::vector<T>& val) {
+                    size_t sum = 0, vsize = val.size();
+                    auto valp = val.data();    
+                    for(size_t i = 0; i < vsize; ++i) sum += (valp[i] == 0) || (valp[i] == 1);
+                    return int(sum == vsize);
+               }).reduce(frovedis::add<int>) == get_nodesize(); // if all process reports True
+}
+
+int is_bool_column(exrpc_ptr_t& df_proxy, std::string& cname);
+
 dummy_dftable
 frovedis_series_string_methods(exrpc_ptr_t& df_proxy,
                                std::string& cname,
