@@ -4,10 +4,10 @@ export PYTHONPATH=../main/python:$PYTHONPATH
 export LD_LIBRARY_PATH=../lib:$LD_LIBRARY_PATH
 
 #list of source targets
-src=( nb dt fm bfs cc pagerank sssp tsne eigen scaler arima)
+src=( nb dt df fm bfs cc pagerank sssp tsne eigen scaler arima)
 
 #list of target frovedis worker nodes to test with
-frov_worker=( 1 2 4 )
+frov_worker=( 1 2 4)
 
 # creating directory structure
 mkdir -p err out
