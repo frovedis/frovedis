@@ -34,7 +34,9 @@ from .dfutil import union_lists, infer_dtype, add_null_column_and_type_cast, \
                     get_python_scalar_type, check_string_or_array_like, \
                     check_stat_error, double_typed_aggregator, \
                     if_mask_vector, get_null_value, check_string, is_nat, \
-                    replace_nat, infer_arraylike_dtype
+                    replace_nat, infer_arraylike_dtype, \
+                    get_empty_frovedis_series, \
+                    get_single_column_frovedis_dataframe
 from ..utils import deprecated, str_type
 from pandas.core.common import SettingWithCopyWarning
 
@@ -704,13 +706,15 @@ class DataFrame(SeriesHelper):
         if isinstance(df.index, pd.MultiIndex):
             raise ValueError("Cannot load a pandas dataframe " +\
                              "with multi level index")
-        is_series = self.is_series
         self.release()
-        self.is_series = is_series
         if isinstance(df, pd.Series):
-            if len(df) == 1 and len(df[0]) > 1: # contains array-like
-                raise ValueError("Cannot load a pandas series " +\
-                                 "containing non-atomic elements!")
+            if len(df) == 1:
+                try:
+                    if len(df[0]) > 1: # contains array-like
+                        raise ValueError("Cannot load a pandas series " +\
+                                         "containing non-atomic elements!")
+                except TypeError:
+                    pass
             df = df.to_frame()
             self.is_series = True
 
@@ -4011,12 +4015,9 @@ class DataFrame(SeriesHelper):
                                  + "not supported.")
         if len(cols) == 0:
             if axis == 1:
-                data = {'min':[np.nan] * self.num_row}
-                ret = DataFrame(pd.DataFrame(data), is_series=False)
+                ret = get_single_column_frovedis_dataframe('min', self.num_row)
             else:
-                data = {'min':[1]}
-                ret = DataFrame(pd.DataFrame(data), is_series=True)
-                ret.drop(labels=[0], inplace=True)
+                ret = get_empty_frovedis_series()
             return ret
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
@@ -4069,12 +4070,9 @@ class DataFrame(SeriesHelper):
                                  + "not supported.")
         if len(cols) == 0:
             if axis == 1:
-                data = {'max':[np.nan] * self.num_row}
-                ret = DataFrame(pd.DataFrame(data), is_series=False)
+                ret = get_single_column_frovedis_dataframe('max', self.num_row)
             else:
-                data = {'max':[1]}
-                ret = DataFrame(pd.DataFrame(data), is_series=True)
-                ret.drop(labels=[0], inplace=True)
+                ret = get_empty_frovedis_series()
             return ret
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
@@ -4127,12 +4125,9 @@ class DataFrame(SeriesHelper):
         ncol = len(cols)
         if len(cols) == 0:
             if axis == 1:
-                data = {'mean':[np.nan] * self.num_row}
-                ret = DataFrame(pd.DataFrame(data), is_series=False)
+                ret = get_single_column_frovedis_dataframe('mean', self.num_row)
             else:
-                data = {'mean':[1]}
-                ret = DataFrame(pd.DataFrame(data), is_series=True)
-                ret.drop(labels=[0], inplace=True)
+                ret = get_empty_frovedis_series()
             return ret
         dtypes = [self.get_dtype(c) for c in cols]
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
