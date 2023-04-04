@@ -704,9 +704,7 @@ class DataFrame(SeriesHelper):
         if isinstance(df.index, pd.MultiIndex):
             raise ValueError("Cannot load a pandas dataframe " +\
                              "with multi level index")
-        is_series = False
-        if self.is_series:
-            is_series = True
+        is_series = self.is_series
         self.release()
         self.is_series = is_series
         if isinstance(df, pd.Series):
@@ -4044,6 +4042,8 @@ class DataFrame(SeriesHelper):
         ret.num_row = dummy_df["nrow"]
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        if types[-1] == DTYPE.DATETIME:
+            ret = ret.astype("datetime64[ns]")
         return ret
 
 
@@ -4100,6 +4100,8 @@ class DataFrame(SeriesHelper):
         ret.num_row = dummy_df["nrow"]
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        if types[-1] == DTYPE.DATETIME:
+            ret = ret.astype("datetime64[ns]")
         return ret
 
 
@@ -4132,6 +4134,8 @@ class DataFrame(SeriesHelper):
                 ret = DataFrame(pd.DataFrame(data), is_series=True)
                 ret.drop(labels=[0], inplace=True)
             return ret
+        dtypes = [self.get_dtype(c) for c in cols]
+        res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
 
         cols_arr = get_string_array_pointer(cols)
         (host, port) = FrovedisServer.getServerInstance()
@@ -4146,9 +4150,12 @@ class DataFrame(SeriesHelper):
         ret = DataFrame(is_series=True)
         names = dummy_df["names"]
         types = dummy_df["types"]
+        types[-1] = res_type
         ret.num_row = dummy_df["nrow"]
         ret.index = FrovedisColumn(names[0], types[0]) #setting index
         ret.load_dummy(dummy_df["dfptr"], names[1:], types[1:])
+        if types[-1] == DTYPE.DATETIME:
+          ret = ret.astype("datetime64[ns]")
         return ret
 
     @check_association
