@@ -1657,6 +1657,7 @@ std::string merge_type(const std::string& left, const std::string& right) {
     else if(right == "int") return merge_type_helper<long,int>();
     else if(right == "unsigned int")
       return merge_type_helper<long,unsigned int>();
+    else if(right == "datetime") return "datetime";
   } else if(left == "unsigned long") {
     if(right == "double") return merge_type_helper<unsigned long,double>();
     else if(right == "float") return merge_type_helper<unsigned long,float>();
@@ -1666,6 +1667,7 @@ std::string merge_type(const std::string& left, const std::string& right) {
     else if(right == "int") return merge_type_helper<unsigned long,int>();
     else if(right == "unsigned int")
       return merge_type_helper<unsigned long,unsigned int>();
+    else if(right == "datetime") return "datetime";
   } else if(left == "int") {
     if(right == "double") return merge_type_helper<int,double>();
     else if(right == "float") return merge_type_helper<int,float>();
@@ -1684,6 +1686,11 @@ std::string merge_type(const std::string& left, const std::string& right) {
     else if(right == "int") return merge_type_helper<unsigned int,int>();
     else if(right == "unsigned int")
       return merge_type_helper<unsigned int,unsigned int>();
+  } else if(left == "datetime") {
+    if(right == "datetime") return "datetime";
+    else if(right == "long") return "datetime";
+    else if(right == "unsigned long")
+      return "datetime"; 
   } else if(left == right) {
     return left;
   } else {
