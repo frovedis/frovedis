@@ -4728,11 +4728,27 @@ class DataFrame(SeriesHelper):
         res_type = TypeUtil.to_id_dtype(get_result_type(dtypes))
 
         sz = len(lower)
-        lb_types = np.array([TypeUtil.to_id_dtype(get_python_scalar_type(i)) for i in lower], dtype=c_short)
-        ub_types = np.array([TypeUtil.to_id_dtype(get_python_scalar_type(i)) for i in upper], dtype=c_short)
-        import datetime
-        lb_str = [str(i.value) for i in lower if isinstance(i, datetime.datetime)]
-        ub_str = [str(i.value) for i in upper if isinstance(i, datetime.datetime)]
+        lb_str = [str(i) for i in lower]
+        lb_types = [np.dtype(type(i)) for i in lower]
+        for i in range(len(lb_types)):
+            if lb_types[i] == 'O':
+                import datetime
+                if isinstance(lower[i], datetime.datetime):
+                    lb_str[i] = str(lower[i].value)
+                    lb_types[i] = np.datetime64
+            lb_types[i] = TypeUtil.to_id_dtype(lb_types[i])
+        lb_types = np.array(lb_types, dtype=c_short)
+        ub_str = [str(i) for i in upper]
+        ub_types = [np.dtype(type(i)) for i in upper]
+        for i in range(len(ub_types)):
+            if ub_types[i] == 'O':
+                import datetime
+                if isinstance(upper[i], datetime.datetime):
+                    ub_str[i] = str(upper[i].value)
+                    ub_types[i] = np.datetime64
+            ub_types[i] = TypeUtil.to_id_dtype(ub_types[i])
+        ub_types = np.array(ub_types, dtype=c_short)
+
 
         (host, port) = FrovedisServer.getServerInstance()
         lb_str_ptr = get_string_array_pointer(lb_str)
