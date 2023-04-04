@@ -246,9 +246,9 @@ def get_python_scalar_type(val):
         elif dt == "float": # all floating point numbers in python3 is typed as 'float'
             dt = "double"
     elif isinstance(val, pd.Timestamp):
-        dt = np.datetime64
+        dt = "datetime64"
     elif isinstance(val, pd.Timedelta) or is_nat(val):
-        dt = np.timedelta64
+        dt = "timedelta64"
     else:
         raise ValueError("input must be a scalar value " \
                          + "or of datetime64/timedelta64 type!")
