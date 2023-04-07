@@ -1,7 +1,7 @@
 """
 server.py
 """
-
+import os
 import warnings
 from . import node, rpclib
 from ..config import global_config
@@ -47,8 +47,9 @@ class FrovedisServer(object):
 
     def __new__(cls):
         if FrovedisServer.__instance is None:
-            n_init_server = rpclib.initialize_server(\
-                            FrovedisServer.__cmd.encode('ascii'))
+            command = os.environ.get("FROVEDIS_SERVER_INIT_COMMAND", \
+                                     FrovedisServer.__cmd)
+            n_init_server = rpclib.initialize_server(command.encode('ascii'))
             excpt = rpclib.check_server_exception()
             if excpt["status"]:
                 raise RuntimeError(excpt["info"])
@@ -79,6 +80,7 @@ class FrovedisServer(object):
             raise ValueError(\
             "expected a string as for server initialization command!")
         FrovedisServer.__cmd = command
+        os.environ["FROVEDIS_SERVER_INIT_COMMAND"] = command # to make it visible for any child process
 
     @classmethod
     def getCommand(cls):
