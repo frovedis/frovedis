@@ -1379,7 +1379,7 @@ dummy_dftable frov_df_tail(exrpc_ptr_t& df_proxy,
 dummy_dftable frov_df_slice_range(exrpc_ptr_t& df_proxy, 
                                   size_t& a, size_t& b,
                                   size_t& c) {
-  auto& df = *reinterpret_cast<dftable_base*>(df_proxy);
+  auto& df = *get_dftable_pointer(df_proxy);
   auto ret = new dftable(make_sliced_dftable(df, a, b, c));
   return to_dummy_dftable(ret);
 }
